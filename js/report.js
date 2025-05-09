@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initCopyLink();
     initStarRating();
     initReviewForm();
+    initDeviceGallery();
+    initTechGallery();
     
     // Initialize step-by-step walkthrough
     initReportWalkthrough();
@@ -223,7 +225,7 @@ function initReportWalkthrough() {
 function createWalkthroughUI() {
     // Create walkthrough container
     const walkthroughContainer = document.createElement('div');
-    walkthroughContainer.className = 'walkthrough-container card shadow-sm mb-4 sticky-top';
+    walkthroughContainer.className = 'walkthrough-container card shadow-sm mb-4 ';
     walkthroughContainer.style.top = '20px';
     walkthroughContainer.style.zIndex = '100';
     walkthroughContainer.innerHTML = `
@@ -233,8 +235,7 @@ function createWalkthroughUI() {
                 <i class="fas fa-minus"></i>
             </button>
         </div>
-        <div class="card-body" id="walkthroughContent">
-            <p class="text-muted mb-3">هذا الدليل سيساعدك في فهم تقرير فحص جهازك خطوة بخطوة</p>
+        <div class="card-body" id="walkthroughContent">   
             
             <div class="step-description mb-3" id="stepDescription">
                 <!-- Step description will be inserted here -->
@@ -248,14 +249,7 @@ function createWalkthroughUI() {
                 <button type="button" class="btn btn-outline-secondary" id="prevStepBtn" disabled>
                     <i class="fas fa-arrow-right me-1"></i> السابق
                 </button>
-                <div class="dropdown">
-                    <button class="btn btn-outline-success dropdown-toggle" type="button" id="quickNavDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        الانتقال السريع
-                    </button>
-                    <ul class="dropdown-menu" id="quickNavMenu" aria-labelledby="quickNavDropdown">
-                        <!-- Quick navigation links will be inserted here -->
-                    </ul>
-                </div>
+                
                 <button type="button" class="btn btn-primary" id="nextStepBtn">
                     التالي <i class="fas fa-arrow-left ms-1"></i>
                 </button>
@@ -289,11 +283,31 @@ function createWalkthroughUI() {
 function createStepIndicators(stepCount) {
     const indicatorsContainer = document.getElementById('stepIndicators');
     
+    // Clear existing indicators
+    indicatorsContainer.innerHTML = '';
+    
+    // Add welcome step indicator (step 0)
+    const welcomeIndicator = document.createElement('div');
+    welcomeIndicator.className = 'step-indicator active';
+    welcomeIndicator.setAttribute('data-step', 0);
+    welcomeIndicator.innerHTML = `<i class="fas fa-home"></i>`;
+    welcomeIndicator.title = 'مرحباً';
+    
+    // Add click event to navigate to welcome step
+    welcomeIndicator.addEventListener('click', function() {
+        activateStep(0);
+    });
+    
+    indicatorsContainer.appendChild(welcomeIndicator);
+    
+    // Create step indicators for the rest of the sections
     for (let i = 0; i < stepCount; i++) {
         const indicator = document.createElement('div');
         indicator.className = 'step-indicator';
-        indicator.setAttribute('data-step', i);
+        indicator.setAttribute('data-step', i + 1); // +1 because we added the welcome step
         indicator.innerHTML = `<span>${i + 1}</span>`;
+        
+        // Add click event to navigate to this step
         indicator.addEventListener('click', function() {
             activateStep(parseInt(this.getAttribute('data-step')));
         });
@@ -309,32 +323,66 @@ function createStepIndicators(stepCount) {
 function populateQuickNavigation(sections) {
     const quickNavMenu = document.getElementById('quickNavMenu');
     
-    // Define section titles and icons
-    const sectionInfo = [
-        { title: 'معلومات عامة', icon: 'fas fa-info-circle' },
-        { title: 'فحوصات الجهاز', icon: 'fas fa-laptop-medical' },
-        { title: 'فحص الشكل الخارجي', icon: 'fas fa-camera' },
-        { title: 'الملاحظات', icon: 'fas fa-clipboard-list' },
-        { title: 'روابط مساعدة', icon: 'fas fa-link' }
+    // Clear existing menu items
+    quickNavMenu.innerHTML = '';
+    
+    // Add welcome step to quick navigation
+    const welcomeItem = document.createElement('li');
+    const welcomeLink = document.createElement('a');
+    welcomeLink.className = 'dropdown-item';
+    welcomeLink.href = '#';
+    welcomeLink.innerHTML = `<i class="fas fa-home me-2"></i> مرحباً بك`;
+    
+    // Add click event to navigate to welcome step
+    welcomeLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        activateStep(0);
+    });
+    
+    welcomeItem.appendChild(welcomeLink);
+    quickNavMenu.appendChild(welcomeItem);
+    
+    // Add divider
+    const divider = document.createElement('li');
+    divider.innerHTML = '<hr class="dropdown-divider">';
+    quickNavMenu.appendChild(divider);
+    
+    // Section titles
+    const sectionTitles = [
+        'معلومات عامة',
+        'فحوصات الجهاز',
+        'فحص الشكل الخارجي',
+        'الملاحظات',
+        'روابط مساعدة'
     ];
     
-    // Create navigation items
+    // Section icons
+    const sectionIcons = [
+        'fa-info-circle',
+        'fa-microchip',
+        'fa-laptop',
+        'fa-clipboard-list',
+        'fa-link'
+    ];
+    
+    // Create menu items for each section
     sections.forEach((section, index) => {
-        if (index < sectionInfo.length) {
-            const item = document.createElement('li');
-            item.innerHTML = `
-                <a class="dropdown-item" href="#" data-step="${index}">
-                    <i class="${sectionInfo[index].icon} me-2"></i> ${sectionInfo[index].title}
-                </a>
-            `;
+        if (index < sectionTitles.length) {
+            const menuItem = document.createElement('li');
+            const link = document.createElement('a');
+            link.className = 'dropdown-item';
+            link.href = '#';
+            link.innerHTML = `<i class="fas ${sectionIcons[index]} me-2"></i> ${sectionTitles[index]}`;
             
-            item.querySelector('a').addEventListener('click', function(e) {
+            // Add click event to navigate to this section
+            link.addEventListener('click', function(e) {
                 e.preventDefault();
-                const step = parseInt(this.getAttribute('data-step'));
-                activateStep(step);
+                // Add 1 to index because step 0 is the welcome step
+                activateStep(index + 1);
             });
             
-            quickNavMenu.appendChild(item);
+            menuItem.appendChild(link);
+            quickNavMenu.appendChild(menuItem);
         }
     });
 }
@@ -344,6 +392,7 @@ function populateQuickNavigation(sections) {
  */
 function navigateToPrevStep() {
     const currentStep = getCurrentStep();
+    
     if (currentStep > 0) {
         activateStep(currentStep - 1);
     }
@@ -354,9 +403,10 @@ function navigateToPrevStep() {
  */
 function navigateToNextStep() {
     const currentStep = getCurrentStep();
-    const totalSteps = document.querySelectorAll('.step-indicator').length;
+    const reportSections = document.querySelectorAll('.card.mb-4.shadow');
+    const maxStep = reportSections.length; // Total sections + welcome step
     
-    if (currentStep < totalSteps - 1) {
+    if (currentStep < maxStep) {
         activateStep(currentStep + 1);
     }
 }
@@ -380,18 +430,20 @@ function activateStep(stepIndex) {
     const stepIndicators = document.querySelectorAll('.step-indicator');
     
     // Validate step index
-    if (stepIndex < 0 || stepIndex >= reportSections.length) return;
+    const maxStepIndex = reportSections.length; // +1 for welcome step
+    if (stepIndex < 0 || stepIndex > maxStepIndex) return;
     
     // Update step indicators
     stepIndicators.forEach((indicator, index) => {
-        if (index === stepIndex) {
+        const indicatorStep = parseInt(indicator.getAttribute('data-step'));
+        if (indicatorStep === stepIndex) {
             indicator.classList.add('active');
         } else {
             indicator.classList.remove('active');
         }
         
         // Mark completed steps
-        if (index < stepIndex) {
+        if (indicatorStep < stepIndex) {
             indicator.classList.add('completed');
         } else {
             indicator.classList.remove('completed');
@@ -399,24 +451,44 @@ function activateStep(stepIndex) {
     });
     
     // Update navigation buttons
-    document.getElementById('prevStepBtn').disabled = (stepIndex === 0);
-    document.getElementById('nextStepBtn').disabled = (stepIndex === reportSections.length - 1);
+    const prevBtn = document.getElementById('prevStepBtn');
+    const nextBtn = document.getElementById('nextStepBtn');
     
-    // If it's the last step, change the next button text to "Finish"
-    if (stepIndex === reportSections.length - 1) {
-        document.getElementById('nextStepBtn').innerHTML = 'إنهاء <i class="fas fa-check ms-1"></i>';
-    } else {
-        document.getElementById('nextStepBtn').innerHTML = 'التالي <i class="fas fa-arrow-left ms-1"></i>';
+    if (prevBtn && nextBtn) {
+        // Update previous button state
+        prevBtn.disabled = (stepIndex === 0);
+        
+        // Update next button state
+        nextBtn.disabled = (stepIndex === reportSections.length);
+        
+        // If it's the last step, change the next button text to "Finish"
+        if (stepIndex === reportSections.length) {
+            nextBtn.innerHTML = 'إنهاء <i class="fas fa-check ms-1"></i>';
+        } else {
+            nextBtn.innerHTML = 'التالي <i class="fas fa-arrow-left ms-1"></i>';
+        }
     }
     
     // Update step description
     updateStepDescription(stepIndex);
     
-    // Scroll to the section
-    scrollToSection(reportSections[stepIndex]);
+    // Scroll to the corresponding section
+    if (stepIndex === 0) {
+        // For welcome step, scroll to the top of the page
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    } else if (stepIndex <= reportSections.length) {
+        // For other steps, scroll to the corresponding section
+        // Subtract 1 from stepIndex because step 0 is the welcome step
+        scrollToSection(reportSections[stepIndex - 1]);
+    }
     
     // Highlight the current section
-    highlightCurrentSection(reportSections, stepIndex);
+    if (stepIndex > 0 && stepIndex <= reportSections.length) {
+        highlightCurrentSection(reportSections, stepIndex - 1);
+    }
 }
 
 /**
@@ -426,6 +498,10 @@ function activateStep(stepIndex) {
 function updateStepDescription(stepIndex) {
     const descriptionContainer = document.getElementById('stepDescription');
     const stepDescriptions = [
+        {
+            title: 'مرحباً بك في تقرير جهازك الجديد!',
+            description: 'هذا التقرير يشبه "شهادة صحة" لجهازك الجديد! يوضح لك أن كل شيء في جهازك يعمل بشكل ممتاز، تماماً مثل الطبيب عندما يخبرك أنك بصحة جيدة. 😊'
+        },
         {
             title: 'معلومات عامة',
             description: 'هذا القسم يعرض المعلومات الأساسية عن جهازك وبيانات الطلب وتاريخ الفحص. يمكنك مسح رمز QR لمشاركة التقرير.'
@@ -448,7 +524,34 @@ function updateStepDescription(stepIndex) {
         }
     ];
     
-    if (stepIndex < stepDescriptions.length) {
+    if (stepIndex === 0) {
+        // Special welcome card for step 0
+        descriptionContainer.innerHTML = `
+            <div class="welcome-step">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="simple-explanation">
+                            <div class="simple-explanation-title">
+                                <i class="fas fa-info-circle"></i> ما هذا التقرير؟
+                            </div>
+                            <p>${stepDescriptions[0].description}</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 text-center">
+                        <div class="emoji-status">🥳</div>
+                        <h4 class="text-success">جهازك بحالة ممتازة!</h4>
+                        <p class="text-muted mb-0">رقم التقرير: <span class="fw-bold">${getReportIdFromUrl() || 'LAP-2025-0001'}</span></p>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h5 class="mb-3"><i class="fas fa-map-signs me-2"></i> دليلك لفهم التقرير:</h5>
+                    <p>هيا نتعرف على جهازك الجديد خطوة بخطوة! 🚶‍♂️</p>
+                </div>
+            </div>
+        `;
+    } else if (stepIndex < stepDescriptions.length) {
+        // Regular step descriptions for steps 1 and beyond
         descriptionContainer.innerHTML = `
             <h5 class="text-success mb-2">
                 <i class="fas fa-info-circle me-2"></i> ${stepDescriptions[stepIndex].title}
@@ -529,4 +632,237 @@ function loadReportFromCache() {
     }
     
     return null;
+}
+
+/**
+ * Initialize the device gallery functionality
+ * This handles the interactive gallery for device images
+ */
+function initDeviceGallery() {
+    const mainImage = document.getElementById('mainGalleryImage');
+    const imageCaption = document.getElementById('imageCaption');
+    const thumbnails = document.querySelectorAll('.thumbnail');
+    const prevBtn = document.querySelector('.gallery-prev');
+    const nextBtn = document.querySelector('.gallery-next');
+    const fullscreenBtn = document.querySelector('.gallery-fullscreen');
+    
+    if (!mainImage || !thumbnails.length) return;
+    
+    // Set up thumbnails
+    thumbnails.forEach(thumbnail => {
+        thumbnail.addEventListener('click', function() {
+            // Update active state
+            thumbnails.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update main image
+            const imgSrc = this.querySelector('img').getAttribute('src');
+            const imgAlt = this.querySelector('img').getAttribute('alt');
+            mainImage.setAttribute('src', imgSrc);
+            mainImage.setAttribute('alt', imgAlt);
+            
+            // Update caption
+            if (imageCaption) {
+                imageCaption.textContent = imgAlt || 'صورة الجهاز';
+            }
+        });
+    });
+    
+    // Navigation buttons
+    if (prevBtn && nextBtn) {
+        prevBtn.addEventListener('click', function() {
+            navigateGallery(-1);
+        });
+        
+        nextBtn.addEventListener('click', function() {
+            navigateGallery(1);
+        });
+    }
+    
+    // Fullscreen button
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', function() {
+            const currentImg = mainImage.getAttribute('src');
+            openImageInLightbox(currentImg);
+        });
+    }
+    
+    // Main image click for lightbox
+    if (mainImage) {
+        mainImage.addEventListener('click', function() {
+            const currentImg = this.getAttribute('src');
+            openImageInLightbox(currentImg);
+        });
+    }
+    
+    // Helper function to navigate through gallery
+    function navigateGallery(direction) {
+        const activeThumbnail = document.querySelector('.thumbnail.active');
+        if (!activeThumbnail) return;
+        
+        let nextThumbnail;
+        
+        if (direction > 0) {
+            // Next image
+            nextThumbnail = activeThumbnail.nextElementSibling;
+            if (!nextThumbnail || !nextThumbnail.classList.contains('thumbnail')) {
+                // Loop back to first
+                nextThumbnail = document.querySelector('.thumbnail:first-child');
+            }
+        } else {
+            // Previous image
+            nextThumbnail = activeThumbnail.previousElementSibling;
+            if (!nextThumbnail || !nextThumbnail.classList.contains('thumbnail')) {
+                // Loop to last
+                nextThumbnail = document.querySelector('.thumbnail:last-child');
+            }
+        }
+        
+        if (nextThumbnail) {
+            nextThumbnail.click();
+        }
+    }
+    
+    // Helper function to open image in lightbox
+    function openImageInLightbox(imgSrc) {
+        // If lightbox library is available
+        if (typeof lightbox !== 'undefined') {
+            // Find the matching anchor and trigger click
+            const anchors = document.querySelectorAll('a[data-lightbox="gallery"]');
+            for (let i = 0; i < anchors.length; i++) {
+                if (anchors[i].href.includes(imgSrc)) {
+                    anchors[i].click();
+                    return;
+                }
+            }
+        } else {
+            // Fallback - open image in new tab
+            window.open(imgSrc, '_blank');
+        }
+    }
+}
+
+/**
+ * Initialize the technical tests gallery functionality
+ * This handles the interactive gallery for technical test results
+ */
+function initTechGallery() {
+    const techGalleryWrapper = document.querySelector('.tech-gallery-wrapper');
+    const techGalleryItems = document.querySelectorAll('.tech-gallery-item');
+    const techGalleryDots = document.querySelectorAll('.tech-gallery-dot');
+    const prevBtn = document.querySelector('.tech-gallery-prev-btn');
+    const nextBtn = document.querySelector('.tech-gallery-next-btn');
+    const techGalleryPrev = document.querySelector('.tech-gallery-prev');
+    const techGalleryNext = document.querySelector('.tech-gallery-next');
+    const techGalleryFullscreen = document.querySelector('.tech-gallery-fullscreen');
+    
+    if (!techGalleryWrapper || !techGalleryItems.length) return;
+    
+    let currentIndex = 0;
+    const itemCount = techGalleryItems.length;
+    
+    // Initialize gallery
+    updateGallery();
+    
+    // Set up navigation dots
+    if (techGalleryDots.length) {
+        techGalleryDots.forEach((dot, index) => {
+            dot.addEventListener('click', function() {
+                currentIndex = index;
+                updateGallery();
+            });
+        });
+    }
+    
+    // Set up navigation buttons
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function() {
+            navigateGallery(-1);
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function() {
+            navigateGallery(1);
+        });
+    }
+    
+    // Additional navigation buttons
+    if (techGalleryPrev) {
+        techGalleryPrev.addEventListener('click', function() {
+            navigateGallery(-1);
+        });
+    }
+    
+    if (techGalleryNext) {
+        techGalleryNext.addEventListener('click', function() {
+            navigateGallery(1);
+        });
+    }
+    
+    // Fullscreen button
+    if (techGalleryFullscreen) {
+        techGalleryFullscreen.addEventListener('click', function() {
+            const currentItem = techGalleryItems[currentIndex];
+            const imgElement = currentItem.querySelector('img');
+            if (imgElement) {
+                const imgSrc = imgElement.getAttribute('src');
+                openTechImageInLightbox(imgSrc);
+            }
+        });
+    }
+    
+    // Helper function to navigate through gallery
+    function navigateGallery(direction) {
+        currentIndex = (currentIndex + direction + itemCount) % itemCount;
+        updateGallery();
+    }
+    
+    // Helper function to update gallery display
+    function updateGallery() {
+        // Update wrapper transform
+        techGalleryWrapper.style.transform = `translateX(${currentIndex * 100}%)`;
+        
+        // Update active dots
+        if (techGalleryDots.length) {
+            techGalleryDots.forEach((dot, index) => {
+                if (index === currentIndex) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+    }
+    
+    // Helper function to open tech image in lightbox
+    function openTechImageInLightbox(imgSrc) {
+        // If lightbox library is available
+        if (typeof lightbox !== 'undefined') {
+            // Find the matching anchor and trigger click
+            const anchors = document.querySelectorAll('a[data-lightbox="tech-gallery"]');
+            for (let i = 0; i < anchors.length; i++) {
+                if (anchors[i].href.includes(imgSrc)) {
+                    anchors[i].click();
+                    return;
+                }
+            }
+        } else {
+            // Fallback - open image in new tab
+            window.open(imgSrc, '_blank');
+        }
+    }
+    
+    // Add keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        // Only if tech gallery tab is active
+        const techTab = document.getElementById('technical');
+        if (!techTab || !techTab.classList.contains('active')) return;
+        
+        if (e.key === 'ArrowLeft') {
+            navigateGallery(1); // RTL layout, so left is next
+        } else if (e.key === 'ArrowRight') {
+            navigateGallery(-1); // RTL layout, so right is previous
+        }
+    });
 }
