@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإعدادات | Laapak</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/custom-admin.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#007553">
+    
+    <style>
+        :root {
+            --primary-color: #007553;
+            --primary-hover: #005d42;
+            --secondary-color: #6c757d;
+            --light-gray: #f8f9fa;
+            --dark-gray: #343a40;
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--dark-gray);
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 6px;
+            margin-right: 0.25rem;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            background-color: rgba(0, 117, 83, 0.08);
+            color: var(--primary-color);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: white;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            box-shadow: 0 4px 10px rgba(0, 117, 83, 0.2);
+        }
+        
+        .settings-card {
+            border-radius: 12px;
+            border: none;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .settings-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 117, 83, 0.2);
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(0, 117, 83, 0.25);
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 117, 83, 0.05);
+        }
+        
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .color-picker {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        
+        .color-picker::-webkit-color-swatch {
+            border: none;
+            border-radius: 20px;
+        }
+        
+        .gradient-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 117, 83, 0.2);
+            margin-bottom: 25px;
+        }
+        
+        .dark-mode {
+            background-color: #1a1a1a;
+            color: #f8f9fa;
+        }
+        
+        .dark-mode .card {
+            background-color: #2c2c2c;
+            color: #f8f9fa;
+        }
+        
+        .dark-mode .form-control, .dark-mode .form-select {
+            background-color: #333;
+            border-color: #444;
+            color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+    
+    <!-- Main Content -->
+    <div class="container-fluid p-4 mt-2">
+        <!-- Settings Header -->
+        <div class="gradient-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-0 fw-bold">الإعدادات</h2>
+                <p class="mb-0 opacity-75">إدارة إعدادات النظام والمستخدمين</p>
+            </div>
+            <div>
+                <i class="fas fa-cogs fa-2x opacity-75"></i>
+            </div>
+        </div>
+                    
+        <!-- Settings Tabs -->
+        <div class="card settings-card mb-4">
+            <div class="card-body p-4">
+                <ul class="nav nav-tabs border-0 mb-4" id="settingsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                            <i class="fas fa-cog me-2"></i> إعدادات عامة
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="appearance-tab" data-bs-toggle="tab" data-bs-target="#appearance" type="button" role="tab">
+                            <i class="fas fa-palette me-2"></i> المظهر
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                            <i class="fas fa-users me-2"></i> المستخدمين
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" type="button" role="tab">
+                            <i class="fas fa-bell me-2"></i> الإشعارات
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backup" type="button" role="tab">
+                            <i class="fas fa-database me-2"></i> النسخ الاحتياطي
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content p-4" id="settingsTabsContent">
+                    <!-- General Settings -->
+                    <div class="tab-pane fade show active" id="general" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="mb-0"><i class="fas fa-cog me-2 text-primary"></i> الإعدادات العامة</h5>
+                            <span class="badge bg-primary rounded-pill"><i class="fas fa-info-circle me-1"></i> إعدادات النظام الأساسية</span>
+                        </div>
+                        
+                        <div class="card settings-card mb-4">
+                            <div class="card-body p-4">
+                                <form id="generalSettingsForm">
+                                    <div class="row mb-4">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="companyName" class="form-label fw-bold">اسم الشركة</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                                <input type="text" class="form-control" id="companyName" value="Laapak">
+                                            </div>
+                                            <small class="text-muted">سيظهر في التقارير والإيصالات</small>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="contactEmail" class="form-label fw-bold">البريد الإلكتروني للتواصل</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                                <input type="email" class="form-control" id="contactEmail" value="info@laapak.com">
+                                            </div>
+                                            <small class="text-muted">للتواصل مع العملاء</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-4">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="contactPhone" class="form-label fw-bold">رقم الهاتف للتواصل</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                                <input type="tel" class="form-control" id="contactPhone" value="+966 123456789">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="reportPrefix" class="form-label fw-bold">بادئة رقم التقرير</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                                <input type="text" class="form-control" id="reportPrefix" value="LAP-">
+                                            </div>
+                                            <small class="text-muted">مثال: LAP-12345</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-4">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="language" class="form-label fw-bold">اللغة الافتراضية</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-language"></i></span>
+                                                <select class="form-select" id="language">
+                                                    <option value="ar" selected>العربية</option>
+                                                    <option value="en">English</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="dateFormat" class="form-label fw-bold">صيغة التاريخ</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                                <select class="form-select" id="dateFormat">
+                                                    <option value="DD-MM-YYYY" selected>DD-MM-YYYY</option>
+                                                    <option value="MM-DD-YYYY">MM-DD-YYYY</option>
+                                                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <div class="card bg-light border-0 p-3">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="enablePWA" checked>
+                                                    <label class="form-check-label fw-bold" for="enablePWA">
+                                                        <i class="fas fa-mobile-alt me-2 text-primary"></i>
+                                                        تفعيل تطبيق الويب التقدمي (PWA)
+                                                    </label>
+                                                    <small class="d-block text-muted mt-1">يتيح للمستخدمين تثبيت التطبيق على هواتفهم واستخدامه دون اتصال بالإنترنت</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-end mt-4">
+                                        <button type="submit" class="btn btn-primary px-4">
+                                            <i class="fas fa-save me-2"></i> حفظ الإعدادات
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Appearance Settings -->
+                    <div class="tab-pane fade" id="appearance" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="mb-0"><i class="fas fa-palette me-2 text-primary"></i> إعدادات المظهر</h5>
+                            <span class="badge bg-primary rounded-pill"><i class="fas fa-paint-brush me-1"></i> تخصيص الواجهة</span>
+                        </div>
+                        
+                        <div class="card settings-card mb-4">
+                            <div class="card-body p-4">
+                                <form id="appearanceSettingsForm">
+                                    <div class="row mb-4">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="primaryColor" class="form-label fw-bold">اللون الرئيسي</label>
+                                            <div class="d-flex align-items-center">
+                                                <input type="color" class="color-picker me-3" id="primaryColor" value="#007553">
+                                                <div class="flex-grow-1">
+                                                    <div class="form-control">#007553</div>
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">يستخدم في الأزرار والعناصر الرئيسية</small>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="fontSize" class="form-label fw-bold">حجم الخط</label>
+                                            <select class="form-select" id="fontSize">
+                                                <option value="small">صغير</option>
+                                                <option value="medium" selected>متوسط</option>
+                                                <option value="large">كبير</option>
+                                            </select>
+                                            <small class="text-muted">تغيير حجم الخط للنظام بشكل عام</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <div class="card bg-light border-0 p-3">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="darkMode">
+                                                    <label class="form-check-label fw-bold" for="darkMode">
+                                                        <i class="fas fa-moon me-2 text-primary"></i>
+                                                        الوضع الليلي
+                                                    </label>
+                                                    <small class="d-block text-muted mt-1">تفعيل الوضع الليلي للنظام بالكامل</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4 d-flex justify-content-between align-items-center">
+                                        <button type="button" class="btn btn-outline-secondary">
+                                            <i class="fas fa-undo me-2"></i> استعادة الإعدادات الافتراضية
+                                        </button>
+                                        <button type="submit" class="btn btn-primary px-4">
+                                            <i class="fas fa-save me-2"></i> حفظ التغييرات
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="card settings-card">
+                            <div class="card-header bg-light fw-bold">
+                                <i class="fas fa-eye me-2 text-primary"></i> معاينة المظهر
+                            </div>
+                            <div class="card-body">
+                                <div class="preview-container p-3 border rounded">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">مثال للإعدادات الحالية:</h6>
+                                        <button class="btn btn-sm btn-primary">زر نموذجي</button>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-floating mb-3">
+                                                <input type="text" class="form-control" id="previewInput" placeholder="مثال نص" value="Laapak Report System">
+                                                <label for="previewInput">مثال حقل نص</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="previewSwitch" checked>
+                                                <label class="form-check-label" for="previewSwitch">مثال زر تبديل</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Users Settings -->
+                    <div class="tab-pane fade" id="users" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="mb-0"><i class="fas fa-users me-2 text-primary"></i> إدارة المستخدمين</h5>
+                            <button class="btn btn-primary" id="addUserBtn">
+                                <i class="fas fa-user-plus me-2"></i> إضافة مستخدم جديد
+                            </button>
+                        </div>
+                        
+                        <div class="card settings-card mb-4">
+                            <div class="card-body p-0">
+                                <div class="d-flex p-3 border-bottom bg-light justify-content-between">
+                                    <div class="input-group" style="max-width: 300px">
+                                        <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" placeholder="بحث عن مستخدم..." id="userSearchInput">
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-outline-secondary">
+                                            <i class="fas fa-filter me-1"></i> فلتر
+                                        </button>
+                                        <button class="btn btn-outline-secondary">
+                                            <i class="fas fa-download me-1"></i> تصدير
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="ps-3">رقم</th>
+                                                <th>المستخدم</th>
+                                                <th>البريد الإلكتروني</th>
+                                                <th>الدور</th>
+                                                <th>الحالة</th>
+                                                <th>آخر تسجيل دخول</th>
+                                                <th class="text-center" style="width: 60px;">إجراءات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTableBody">
+                                            <!-- This will be populated by the settings.js script -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light">
+                                    <div>إجمالي المستخدمين: <span class="fw-bold" id="totalUsersCount">3</span></div>
+                                    <nav aria-label="Page navigation">
+                                        <ul class="pagination pagination-sm mb-0">
+                                            <li class="page-item disabled">
+                                                <a class="page-link" href="#" tabindex="-1">السابق</a>
+                                            </li>
+                                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                            <li class="page-item disabled">
+                                                <a class="page-link" href="#">التالي</a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card settings-card mb-4">
+                                    <div class="card-header bg-light">
+                                        <i class="fas fa-shield-alt me-2 text-primary"></i> إعدادات الأمان
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="passwordMinLength" class="form-label fw-bold">الحد الأدنى لطول كلمة المرور</label>
+                                            <input type="number" class="form-control" id="passwordMinLength" value="8" min="6" max="16">
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="requireSpecialChars" checked>
+                                                <label class="form-check-label" for="requireSpecialChars">تتطلب رموز خاصة في كلمة المرور</label>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="twoFactorAuth">
+                                                <label class="form-check-label" for="twoFactorAuth">تفعيل المصادقة الثنائية</label>
+                                            </div>
+                                            <small class="text-muted d-block">ميزة قادمة قريباً</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card settings-card mb-4">
+                                    <div class="card-header bg-light">
+                                        <i class="fas fa-user-tag me-2 text-primary"></i> أدوار المستخدمين
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="role-box p-3 mb-2 border rounded bg-light">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0"><span class="badge bg-primary">مدير</span></h6>
+                                                <span class="badge rounded-pill bg-light text-dark border">صلاحيات كاملة</span>
+                                            </div>
+                                            <small class="text-muted d-block mt-2">إدارة النظام والمستخدمين والفنيين</small>
+                                        </div>
+                                        <div class="role-box p-3 mb-2 border rounded bg-light">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0"><span class="badge bg-info">فني</span></h6>
+                                                <span class="badge rounded-pill bg-light text-dark border">صلاحيات محدودة</span>
+                                            </div>
+                                            <small class="text-muted d-block mt-2">إدارة التقارير والعملاء</small>
+                                        </div>
+                                        <div class="role-box p-3 mb-2 border rounded bg-light">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0"><span class="badge bg-secondary">مستخدم</span></h6>
+                                                <span class="badge rounded-pill bg-light text-dark border">قراءة فقط</span>
+                                            </div>
+                                            <small class="text-muted d-block mt-2">مشاهدة التقارير فقط</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                                                            <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
+                                                                <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
+                                                            </button>
+                                                            <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none;">
+                                                                <li><a class="dropdown-item py-2" href="#"><i class="fas fa-edit me-2 text-warning"></i> تعديل</a></li>
+                                                                <li><a class="dropdown-item py-2" href="#"><i class="fas fa-key me-2 text-primary"></i> تغيير كلمة المرور</a></li>
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li><a class="dropdown-item py-2" href="#"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- Notifications Settings -->
+                                <div class="tab-pane fade" id="notifications" role="tabpanel">
+                                    <h5 class="mb-4">إعدادات الإشعارات</h5>
+                                    
+                                    <form id="notificationSettingsForm">
+                                        <div class="mb-3">
+                                            <h6>الإشعارات البريدية</h6>
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" id="emailNewReport" checked>
+                                                <label class="form-check-label" for="emailNewReport">إشعار عند إنشاء تقرير جديد</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" id="emailEditReport" checked>
+                                                <label class="form-check-label" for="emailEditReport">إشعار عند تعديل تقرير</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" id="emailNewClient">
+                                                <label class="form-check-label" for="emailNewClient">إشعار عند إضافة عميل جديد</label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <h6>إشعارات واتساب</h6>
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" id="whatsappNewReport" checked>
+                                                <label class="form-check-label" for="whatsappNewReport">إرسال رابط التقرير للعميل عبر واتساب</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" id="whatsappReminder">
+                                                <label class="form-check-label" for="whatsappReminder">تذكير العميل بعد 3 أيام من استلام التقرير</label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <h6>إشعارات النظام</h6>
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" id="systemPush" checked>
+                                                <label class="form-check-label" for="systemPush">إشعارات النظام (Push Notifications)</label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mt-4">
+                                            <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                
+                                <!-- Backup Settings -->
+                                <div class="tab-pane fade" id="backup" role="tabpanel">
+                                    <h5 class="mb-4">النسخ الاحتياطي واستعادة البيانات</h5>
+                                    
+                                    <div class="card mb-4">
+                                        <div class="card-body">
+                                            <h6>النسخ الاحتياطي اليدوي</h6>
+                                            <p>قم بعمل نسخة احتياطية لجميع بيانات النظام بما في ذلك التقارير والعملاء والإعدادات</p>
+                                            <button class="btn btn-primary">
+                                                <i class="fas fa-download me-2"></i> تنزيل نسخة احتياطية
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card mb-4">
+                                        <div class="card-body">
+                                            <h6>النسخ الاحتياطي التلقائي</h6>
+                                            <p>قم بإعداد النسخ الاحتياطي التلقائي</p>
+                                            <div class="mb-3">
+                                                <label for="backupFrequency" class="form-label">تكرار النسخ الاحتياطي</label>
+                                                <select class="form-select" id="backupFrequency">
+                                                    <option>يوميًا</option>
+                                                    <option selected>أسبوعيًا</option>
+                                                    <option>شهريًا</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="enableAutoBackup" checked>
+                                                <label class="form-check-label" for="enableAutoBackup">تفعيل النسخ الاحتياطي التلقائي</label>
+                                            </div>
+                                            <button class="btn btn-primary">
+                                                <i class="fas fa-save me-2"></i> حفظ الإعدادات
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card mb-4">
+                                        <div class="card-body">
+                                            <h6>استعادة البيانات</h6>
+                                            <p>استعادة بيانات النظام من نسخة احتياطية سابقة</p>
+                                            <div class="mb-3">
+                                                <label for="backupFile" class="form-label">ملف النسخة الاحتياطية</label>
+                                                <input type="file" class="form-control" id="backupFile">
+                                            </div>
+                                            <button class="btn btn-warning">
+                                                <i class="fas fa-sync-alt me-2"></i> استعادة البيانات
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white;">
+                <h5 class="modal-title">إضافة مستخدم جديد</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label for="userName" class="form-label">اسم المستخدم</label>
+                        <input type="text" class="form-control" id="userName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userEmail" class="form-label">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" id="userEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userRole" class="form-label">الدور</label>
+                        <select class="form-select" id="userRole" required>
+                            <option value="">اختر الدور</option>
+                            <option value="admin">مدير</option>
+                            <option value="supervisor">مشرف</option>
+                            <option value="technician">فني</option>
+                            <option value="viewer">مشاهد</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userPassword" class="form-label">كلمة المرور</label>
+                        <input type="password" class="form-control" id="userPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userConfirmPassword" class="form-label">تأكيد كلمة المرور</label>
+                        <input type="password" class="form-control" id="userConfirmPassword" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="userActive" checked>
+                        <label class="form-check-label" for="userActive">نشط</label>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white;">حفظ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Custom JavaScript -->
+<script src="js/main.js"></script>
+<script src="js/header-component.js"></script>
+<script src="js/settings.js"></script>
+
+<!-- Initialize Header Component -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the header component
+        const header = new LpkHeader('header-container', {
+            showLogo: true,
+            logoPath: 'img/logo.png',
+            logoWidth: '100px',
+            showNavigation: true,
+            navigationItems: [
+                { text: 'الرئيسية', url: 'admin.html', icon: 'fas fa-tachometer-alt' },
+                { text: 'التقارير', url: 'reports.html', icon: 'fas fa-file-alt' },
+                { text: 'العملاء', url: 'clients.html', icon: 'fas fa-users' },
+                { text: 'تقرير جديد', url: 'create-report.html', icon: 'fas fa-plus-circle' }
+            ],
+            showUserMenu: true,
+            userMenuItems: [
+                { text: 'الإعدادات', url: 'settings.html', icon: 'fas fa-cog', active: true },
+                { text: 'تسجيل الخروج', url: 'index.html', icon: 'fas fa-sign-out-alt' }
+            ]
+        });
+        // For the prototype
+        document.addEventListener('DOMContentLoaded', function() {
+            // Settings form submission
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    alert('سيتم حفظ الإعدادات في الإصدار النهائي');
+                });
+            });
+            
+            // Buttons with no form
+            const actionButtons = document.querySelectorAll('.card-body .btn');
+            actionButtons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    alert('سيتم تنفيذ هذا الإجراء في الإصدار النهائي');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#f8f9fa"/>
+  <rect x="20" y="20" width="360" height="260" fill="#ffffff" stroke="#0eaf54" stroke-width="2"/>
+  <text x="40" y="50" font-family="Arial" font-size="14" fill="#333333">GPU Performance Test</text>
+  <text x="40" y="80" font-family="Arial" font-size="12" fill="#666666">NVIDIA GeForce RTX 3060, 6GB VRAM</text>
+  
+  <rect x="40" y="100" width="320" height="30" fill="#f8f9fa" stroke="#dddddd" stroke-width="1"/>
+  <rect x="40" y="100" width="290" height="30" fill="#0eaf54" stroke="none"/>
+  <text x="200" y="120" font-family="Arial" font-size="12" fill="#ffffff" text-anchor="middle">90.6%</text>
+  
+  <text x="40" y="150" font-family="Arial" font-size="12" fill="#666666">3DMark Score: 7840</text>
+  <text x="40" y="170" font-family="Arial" font-size="12" fill="#666666">FPS Test (High Settings): 98 FPS</text>
+  
+  <text x="40" y="200" font-family="Arial" font-size="12" fill="#666666">GPU Temperature Under Load: 74°C</text>
+  <text x="40" y="220" font-family="Arial" font-size="12" fill="#666666">Performance Rating: ممتاز</text>
+  
+  <text x="330" y="270" font-family="Arial" font-size="10" fill="#999999">Laapak Test</text>
+</svg>

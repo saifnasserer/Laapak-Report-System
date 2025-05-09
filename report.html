@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير فحص اللابتوب | Laapak</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Lightbox for images -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/custom-admin.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+</head>
+<body>
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <div class="container-fluid p-0">
+        <!-- Header Container - will be populated by header-component.js -->
+        <div id="header-container"></div>
+        
+        <!-- Main Content -->
+        <div class="admin-content">
+                <!-- Content starts here -->
+                
+                <!-- Content Area -->
+                <div class="container p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="mb-0">تقرير فحص الجهاز</h2>
+                        <div>
+                            <a href="reports.html" class="btn btn-outline-success">
+                                <i class="fas fa-arrow-right me-1"></i> العودة للتقارير
+                            </a>
+                        </div>
+                    </div>
+            <div class="row">
+                <div class="col-12">
+                    <!-- Section 1: General Information -->
+                    <div class="card mb-4 shadow">
+                        <div class="card-header bg-dark-green text-white">
+                            <h4 class="mb-0"><i class="fas fa-info-circle me-2"></i> معلومات عامة</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">رقم الطلب:</div>
+                                        <div class="col-sm-8">LAP-2025-0001</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">اسم العميل:</div>
+                                        <div class="col-sm-8">أحمد محمد السيد</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">تاريخ الفحص:</div>
+                                        <div class="col-sm-8">07-05-2025</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">موديل الجهاز:</div>
+                                        <div class="col-sm-8">Dell XPS 15 9570</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">الرقم التسلسلي:</div>
+                                        <div class="col-sm-8">XPS957001223</div>
+                                    </div>
+                                    
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <div class="qr-code-container">
+                                        <img src="img/sample-qr-code.png" alt="QR Code" class="img-fluid mb-2" style="max-width: 150px;">
+                                        <p class="small mb-0">امسح الكود لتحميل التقرير</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 2: Technical Tests -->
+                    <div class="card mb-4 shadow">
+                        <div class="card-header bg-dark-green text-white">
+                            <h4 class="mb-0"><i class="fas fa-laptop-medical me-2"></i> فحوصات الجهاز</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>المكون</th>
+                                            <th>الغرض من الفحص</th>
+                                            <th>النتيجة</th>
+                                            <th>صورة الفحص</th>
+                                            <th>ملاحظات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><i class="fas fa-microchip me-2 text-primary"></i> المعالج (CPU)</td>
+                                            <td>قياس الأداء تحت الضغط</td>
+                                            <td><span class="badge bg-success">✓ ممتاز</span></td>
+                                            <td>
+                                                <a href="img/test-screenshots/cpu-test.svg" data-lightbox="cpu-test" data-title="فحص المعالج">
+                                                    <img src="img/test-screenshots/cpu-test.svg" alt="CPU Test" class="img-thumbnail" width="80">
+                                                </a>
+                                            </td>
+                                            <td>لا يوجد</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-tv me-2 text-success"></i> كرت الشاشة (GPU)</td>
+                                            <td>اختبار الاستقرار والحرارة</td>
+                                            <td><span class="badge bg-success">✓ ممتاز</span></td>
+                                            <td>
+                                                <a href="img/test-screenshots/gpu-test.svg" data-lightbox="gpu-test" data-title="فحص كرت الشاشة">
+                                                    <img src="img/test-screenshots/gpu-test.svg" alt="GPU Test" class="img-thumbnail" width="80">
+                                                </a>
+                                            </td>
+                                            <td>لا يوجد</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-memory me-2 text-info"></i> الرام (RAM)</td>
+                                            <td>اختبار الثبات والسرعة</td>
+                                            <td><span class="badge bg-success">✓ سليم</span></td>
+                                            <td>
+                                                <a href="img/test-screenshots/ram-test.svg" data-lightbox="ram-test" data-title="فحص الرام">
+                                                    <img src="img/test-screenshots/ram-test.svg" alt="RAM Test" class="img-thumbnail" width="80">
+                                                </a>
+                                            </td>
+                                            <td>لا يوجد</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-hdd me-2 text-warning"></i> التخزين (SSD)</td>
+                                            <td>فحص العمر والأداء</td>
+                                            <td><span class="badge bg-success">✓ ممتاز</span></td>
+                                            <td>
+                                                <a href="img/test-screenshots/ssd-test.svg" data-lightbox="ssd-test" data-title="فحص التخزين">
+                                                    <img src="img/test-screenshots/ssd-test.svg" alt="SSD Test" class="img-thumbnail" width="80">
+                                                </a>
+                                            </td>
+                                            <td>لا يوجد</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-battery-three-quarters me-2 text-danger"></i> البطارية</td>
+                                            <td>اختبار الصحة والوقت</td>
+                                            <td><span class="badge bg-warning text-dark">⚠️ 85% صحة</span></td>
+                                            <td>
+                                                <a href="img/test-screenshots/battery-test.svg" data-lightbox="battery-test" data-title="فحص البطارية">
+                                                    <img src="img/test-screenshots/battery-test.svg" alt="Battery Test" class="img-thumbnail" width="80">
+                                                </a>
+                                            </td>
+                                            <td>البطارية تحتفظ بـ 85% من سعتها الأصلية</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 3: External Inspection -->
+                    <div class="card mb-4 shadow">
+                        <div class="card-header bg-dark-green text-white">
+                            <h4 class="mb-0"><i class="fas fa-camera me-2"></i> فحص الشكل الخارجي</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12 mb-4">
+                                    <h5 class="mb-3">فيديو فحص 360 درجة</h5>
+                                    <div class="ratio ratio-16x9">
+                                        <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="فيديو فحص الجهاز" allowfullscreen></iframe>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h5 class="mb-3">صور الفحص الخارجي</h5>
+                            <div class="row g-3 report-gallery">
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <a href="img/sample-laptop-front.jpg" data-lightbox="external" data-title="الواجهة الأمامية">
+                                        <img src="img/sample-laptop-front.jpg" alt="Front View" class="img-fluid gallery-image">
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <a href="img/sample-laptop-back.jpg" data-lightbox="external" data-title="الواجهة الخلفية">
+                                        <img src="img/sample-laptop-back.jpg" alt="Back View" class="img-fluid gallery-image">
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <a href="img/sample-laptop-side1.jpg" data-lightbox="external" data-title="الجانب الأيمن">
+                                        <img src="img/sample-laptop-side1.jpg" alt="Right Side" class="img-fluid gallery-image">
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <a href="img/sample-laptop-side2.jpg" data-lightbox="external" data-title="الجانب الأيسر">
+                                        <img src="img/sample-laptop-side2.jpg" alt="Left Side" class="img-fluid gallery-image">
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <a href="img/sample-laptop-keyboard.jpg" data-lightbox="external" data-title="لوحة المفاتيح">
+                                        <img src="img/sample-laptop-keyboard.jpg" alt="Keyboard" class="img-fluid gallery-image">
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <a href="img/sample-laptop-screen.jpg" data-lightbox="external" data-title="الشاشة">
+                                        <img src="img/sample-laptop-screen.jpg" alt="Screen" class="img-fluid gallery-image">
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 4: Notes (if any) -->
+                    <div class="card mb-4 shadow">
+                        <div class="card-header bg-dark-green text-white">
+                            <h4 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> الملاحظات</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>ملاحظة حول البطارية:</strong> البطارية تحتفظ بـ 85% من سعتها الأصلية، وهو معدل طبيعي لعمر الجهاز.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section 5: Help Links -->
+                    <div class="card mb-4 shadow">
+                        <div class="card-header bg-dark-green text-white">
+                            <h4 class="mb-0"><i class="fas fa-link me-2"></i> روابط مساعدة</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-6 mb-3">
+                                    <button class="btn btn-success w-100" id="copyLinkBtn">
+                                        <i class="fas fa-copy me-2"></i> نسخ رابط التقرير
+                                    </button>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <a href="https://wa.me/966123456789" class="btn btn-info w-100" target="_blank">
+                                        <i class="fab fa-whatsapp me-2"></i> مشاركة عبر واتساب
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Review System -->
+        <div class="container mb-5">
+            <div class="card shadow border-0">
+                <div class="card-header bg-light py-3">
+                    <h4 class="mb-0"><i class="fas fa-star me-2 text-warning"></i> تقييم التقرير</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form id="reviewForm">
+                        <div class="mb-4 text-center">
+                            <p class="mb-3">كيف تقيّم جودة هذا التقرير؟</p>
+                            <div class="rating-stars d-inline-flex">
+                                <input type="radio" id="star5" name="rating" value="5" class="visually-hidden"/>
+                                <label for="star5" class="star-label" title="ممتاز"><i class="far fa-star fa-2x mx-1"></i></label>
+                                
+                                <input type="radio" id="star4" name="rating" value="4" class="visually-hidden"/>
+                                <label for="star4" class="star-label" title="جيد جداً"><i class="far fa-star fa-2x mx-1"></i></label>
+                                
+                                <input type="radio" id="star3" name="rating" value="3" class="visually-hidden"/>
+                                <label for="star3" class="star-label" title="جيد"><i class="far fa-star fa-2x mx-1"></i></label>
+                                
+                                <input type="radio" id="star2" name="rating" value="2" class="visually-hidden"/>
+                                <label for="star2" class="star-label" title="مقبول"><i class="far fa-star fa-2x mx-1"></i></label>
+                                
+                                <input type="radio" id="star1" name="rating" value="1" class="visually-hidden"/>
+                                <label for="star1" class="star-label" title="ضعيف"><i class="far fa-star fa-2x mx-1"></i></label>
+                            </div>
+                            <p class="selected-rating mt-2 fw-bold">0 من 5</p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reviewFeedback" class="form-label">ملاحظاتك ومقترحاتك</label>
+                            <textarea class="form-control" id="reviewFeedback" rows="4" placeholder="أخبرنا بملاحظاتك حول التقرير والخدمة..."></textarea>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary px-4" id="submitReviewBtn">
+                                <i class="fas fa-paper-plane me-2"></i> إرسال التقييم
+                            </button>
+                        </div>
+                    </form>
+                    <div id="reviewThanks" class="text-center py-4 d-none">
+                        <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                        <h4 class="mt-3">شكراً لتقييمك!</h4>
+                        <p class="text-muted">نقدر ملاحظاتك ونستخدمها لتحسين خدماتنا.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-success text-white py-4 mt-5">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>لاباك لتقارير اللابتوب</h5>
+                        <p class="small">خدمة فحص وتقرير مفصل لأجهزة اللابتوب والحاسب المحمول</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p class="small">&copy; 2025 لاباك. جميع الحقوق محفوظة.</p>
+                        <div class="social-links">
+                            <a href="#" class="me-2"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="me-2"><i class="fab fa-facebook"></i></a>
+                            <a href="#" class="me-2"><i class="fab fa-instagram"></i></a>
+                            <a href="#"><i class="fab fa-whatsapp"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- PWA Install Button -->
+    <button class="btn btn-primary rounded-circle shadow pwa-install-button" id="pwaInstallButton">
+        <i class="fas fa-download"></i>
+    </button>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Lightbox JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="js/report.js"></script>
+    <script src="js/sidebar-component.js"></script>
+    
+    <!-- Service Worker Registration for PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

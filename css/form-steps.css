@@ -1,0 +1,139 @@
+/* Multi-step form styling for Laapak Report System */
+
+/* Step indicator styling */
+.step-item {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+}
+
+.step-title {
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+/* Step progress line */
+.d-flex.justify-content-between.position-relative::before {
+    content: "";
+    position: absolute;
+    height: 2px;
+    background-color: #dee2e6;
+    top: 20px; /* Half of button height */
+    left: 40px;
+    right: 40px;
+    z-index: 0;
+}
+
+/* Step progress bar */
+.steps-progress-bar {
+    position: absolute;
+    height: 2px;
+    background-color: var(--medium-green);
+    top: 20px;
+    left: 40px;
+    z-index: 0;
+    transition: width 0.3s ease;
+}
+
+/* Completed step */
+.step-item.completed .step-button {
+    background-color: var(--light-green) !important;
+    border-color: var(--light-green) !important;
+    color: white;
+}
+
+/* Form steps */
+.form-step {
+    display: none;
+}
+
+.form-step.active {
+    display: block;
+}
+
+/* Improve step button styling */
+.step-button {
+    border-radius: 50% !important;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin: 0 auto;
+}
+
+/* File upload preview */
+.upload-preview {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.upload-container {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.upload-container:hover {
+    border-color: var(--medium-green);
+}
+
+.validation-alert {
+    display: none;
+}
+
+/* Navigation buttons for steps */
+.form-navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+
+/* Component tests styling */
+.component-test-card {
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+}
+
+.component-test-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.component-test-result {
+    cursor: pointer;
+}
+
+/* Image upload grid */
+.external-images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.image-upload-item {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 200px;
+}
+
+.image-upload-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 5px;
+    text-align: center;
+}

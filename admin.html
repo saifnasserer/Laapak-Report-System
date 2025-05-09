@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم | Laapak Report System</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/custom-admin.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+    
+    <style>
+    /* Star rating system styles */
+    .rating-stars .star-label {
+        cursor: pointer;
+        margin: 0 2px;
+    }
+    .rating-stars .star-label:hover i {
+        color: #ffc107 !important;
+    }
+    </style>
+</head>
+<body>
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+    
+    <!-- Dashboard Content -->
+    <div class="container-fluid mt-4 px-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-dark fw-bold">لوحة المعلومات</h2>
+            <a href="create-report.html" class="btn btn-sm rounded-pill" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white; padding: 8px 16px;">
+                <i class="fas fa-plus-circle me-2"></i> تقرير جديد
+            </a>
+        </div>
+        
+        <!-- Stats Cards - Minimal Modern Style -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle p-2 me-3" style="background-color: rgba(0, 117, 83, 0.1);">
+                                <i class="fas fa-file-alt" style="color: #007553; font-size: 1.2rem;"></i>
+                            </div>
+                            <h6 class="fw-bold text-muted mb-0">إجمالي التقارير</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <h3 class="fw-bold mb-0">156</h3>
+                            <span class="badge bg-success bg-opacity-10 text-success">+12% <i class="fas fa-arrow-up"></i></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle p-2 me-3" style="background-color: rgba(0, 117, 83, 0.1);">
+                                <i class="fas fa-calendar-alt" style="color: #007553; font-size: 1.2rem;"></i>
+                            </div>
+                            <h6 class="fw-bold text-muted mb-0">التقارير الشهرية</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <h3 class="fw-bold mb-0">24</h3>
+                            <span class="badge bg-success bg-opacity-10 text-success">+8% <i class="fas fa-arrow-up"></i></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle p-2 me-3" style="background-color: rgba(0, 117, 83, 0.1);">
+                                <i class="fas fa-users" style="color: #007553; font-size: 1.2rem;"></i>
+                            </div>
+                            <h6 class="fw-bold text-muted mb-0">عدد العملاء</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <h3 class="fw-bold mb-0">78</h3>
+                            <span class="badge bg-success bg-opacity-10 text-success">+5% <i class="fas fa-arrow-up"></i></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle p-2 me-3" style="background-color: rgba(0, 117, 83, 0.1);">
+                                <i class="fas fa-hourglass-half" style="color: #007553; font-size: 1.2rem;"></i>
+                            </div>
+                            <h6 class="fw-bold text-muted mb-0">قيد الإنتظار</h6>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <h3 class="fw-bold mb-0">5</h3>
+                            <span class="badge bg-danger bg-opacity-10 text-danger">-3% <i class="fas fa-arrow-down"></i></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analytics Section -->
+        <div class="row mb-4">
+            <div class="col-lg-4 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h5 class="fw-bold mb-0" style="color: #007553;">توزيع الأجهزة</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div style="height: 254px; background-color: rgba(0, 117, 83, 0.05); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <div class="text-center">
+                                <i class="fas fa-chart-pie" style="font-size: 3rem; color: #007553; opacity: 0.3;"></i>
+                                <p class="mt-3 text-muted">رسم بياني لتوزيع أنواع الأجهزة</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <!-- reviews section -->
+            <div class="col-lg-6 mb-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h5 class="fw-bold mb-0" style="color: #007553;">التقييمات والمراجعات</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="me-3">
+                                <div class="rating-display">
+                                    <i class="fas fa-star text-warning"></i>
+                                    <i class="fas fa-star text-warning"></i>
+                                    <i class="fas fa-star text-warning"></i>
+                                    <i class="fas fa-star text-warning"></i>
+                                    <i class="fas fa-star-half-alt text-warning"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h2 class="mb-0 fw-bold">4.5</h2>
+                                <p class="text-muted mb-0">156 تقييم</p>
+                            </div>
+                        </div>
+                        
+                        <div class="rating-bars mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="text-muted me-2" style="width: 30px;">5</div>
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar bg-success" style="width: 75%;"></div>
+                                </div>
+                                <div class="text-muted ms-2" style="width: 30px;">75%</div>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="text-muted me-2" style="width: 30px;">4</div>
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar bg-success" style="width: 18%;"></div>
+                                </div>
+                                <div class="text-muted ms-2" style="width: 30px;">18%</div>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="text-muted me-2" style="width: 30px;">3</div>
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" style="width: 5%;"></div>
+                                </div>
+                                <div class="text-muted ms-2" style="width: 30px;">5%</div>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="text-muted me-2" style="width: 30px;">2</div>
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar bg-danger" style="width: 1%;"></div>
+                                </div>
+                                <div class="text-muted ms-2" style="width: 30px;">1%</div>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="text-muted me-2" style="width: 30px;">1</div>
+                                <div class="progress flex-grow-1" style="height: 8px;">
+                                    <div class="progress-bar bg-danger" style="width: 1%;"></div>
+                                </div>
+                                <div class="text-muted ms-2" style="width: 30px;">1%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-success text-white py-4 mt-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>لابك دوت كوم</h5>
+                    <p class="small">ضمان - ثقة - امان</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="small">&copy; 2025 لابك. جميع الحقوق محفوظة.</p>
+                    <div class="social-links">
+                        <a href="#" class="me-2"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="me-2"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="me-2"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Core application scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/header-component.js"></script>
+    <script src="js/admin-dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize header component
+            const header = new LpkHeader({
+                containerId: 'header-container',
+                activeItem: 'dashboard'
+            });
+        });
+    </script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="js/admin.js"></script>
+    <script src="js/header-component.js"></script>
+    <script src="js/auth-check.js"></script>
+    
+    <!-- Service Worker Registration for PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
