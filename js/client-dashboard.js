@@ -26,17 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
         welcomeClientNameEl.textContent = clientInfo.name;
     }
     
-    // Handle logout using auth-middleware
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Client logout button clicked');
-            // Use auth-middleware for logout
-            authMiddleware.logout();
-            // No need to redirect as auth-middleware.logout() handles it
-        });
-    }
+    // Note: Logout is now handled by the client-header-component.js
+    // The logoutBtn event listener is set up in that component
     
     // Load client reports and related data
     async function loadClientReports(clientId) {
