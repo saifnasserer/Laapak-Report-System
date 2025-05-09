@@ -1,6 +1,7 @@
 /**
  * Laapak Report System - Unified Login JavaScript
  * Handles both administrator and client authentication functionality
+ * Updated to use backend authentication API
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -13,7 +14,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginSubmitBtn = document.getElementById('loginSubmitBtn');
     const loginTypeLabel = document.getElementById('loginTypeLabel');
     
+    // API endpoints
+    const API_URL = window.location.origin;
+    const ADMIN_LOGIN_URL = `${API_URL}/api/auth/admin`;
+    const CLIENT_LOGIN_URL = `${API_URL}/api/auth/client`;
+    
     let isAdminLogin = false; // Default to client login
+    
+    // Check if user is already logged in
+    const checkExistingLogin = () => {
+        const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+        
+        if (adminToken) {
+            // Redirect to admin dashboard
+            window.location.href = 'admin.html';
+            return true;
+        } else if (clientToken) {
+            // Redirect to client dashboard
+            window.location.href = 'client-dashboard.html';
+            return true;
+        }
+        
+        return false;
+    };
+    
+    // Check for existing login on page load
+    if (checkExistingLogin()) {
+        return; // Stop execution if already logged in
+    }
     
     // Initialize login form type
     if (loginTypeSwitch) {
@@ -36,34 +65,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Show error message
+    const showError = (message) => {
+        loginError.textContent = message;
+        loginError.classList.remove('d-none');
+        
+        // Clear error after 4 seconds
+        setTimeout(() => {
+            loginError.classList.add('d-none');
+        }, 4000);
+    };
+    
+    // Handle form submission
     if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // Disable submit button during API call
+            loginSubmitBtn.disabled = true;
+            loginSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
             
             const rememberMe = document.getElementById('rememberMe').checked;
             
-            if (isAdminLogin) {
-                // Admin login logic
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                
-                // Mock admin users data (in real implementation, this would come from a server)
-                const mockAdmins = [
-                    { username: "admin", password: "admin123", userId: "1", name: "مدير النظام", role: "admin" },
-                    { username: "tech", password: "tech123", userId: "2", name: "فني الصيانة", role: "technician" },
-                    { username: "viewer", password: "viewer123", userId: "3", name: "مشاهد", role: "viewer" }
-                ];
-                
-                // Validate credentials
-                const admin = mockAdmins.find(a => a.username === username && a.password === password);
-                
-                if (admin) {
-                    // Store admin info in session/local storage
+            try {
+                if (isAdminLogin) {
+                    // Admin login logic
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    
+                    if (!username || !password) {
+                        throw new Error('يرجى إدخال اسم المستخدم وكلمة المرور');
+                    }
+                    
+                    // Call admin login API
+                    const response = await fetch(ADMIN_LOGIN_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.message || 'خطأ في اسم المستخدم أو كلمة المرور');
+                    }
+                    
+                    // Store admin info and token
                     const adminInfo = {
-                        userId: admin.userId,
-                        name: admin.name,
-                        username: admin.username,
-                        role: admin.role,
+                        userId: data.user.id,
+                        name: data.user.name,
+                        username: data.user.username,
+                        role: data.user.role,
                         isLoggedIn: true,
                         loginTime: new Date().getTime()
                     };
@@ -71,43 +125,43 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Save to session or local storage based on "remember me" checkbox
                     if (rememberMe) {
                         localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+                        localStorage.setItem('adminToken', data.token);
                     } else {
                         sessionStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+                        sessionStorage.setItem('adminToken', data.token);
                     }
                     
                     // Redirect to admin dashboard
                     window.location.href = 'admin.html';
                 } else {
-                    // Show error message
-                    loginError.textContent = 'خطأ في اسم المستخدم أو كلمة المرور. يرجى المحاولة مرة أخرى.';
-                    loginError.classList.remove('d-none');
+                    // Client login logic
+                    const phoneNumber = document.getElementById('phoneNumber').value;
+                    const orderCode = document.getElementById('orderCode').value;
                     
-                    // Clear error after 4 seconds
-                    setTimeout(() => {
-                        loginError.classList.add('d-none');
-                    }, 4000);
-                }
-            } else {
-                // Client login logic
-                const phoneNumber = document.getElementById('phoneNumber').value;
-                const orderCode = document.getElementById('orderCode').value;
-                
-                // Mock clients data (in real implementation, this would come from a server)
-                const mockClients = [
-                    { phone: "0501234567", orderCode: "LP12345", clientId: "1", name: "أحمد محمد" },
-                    { phone: "0509876543", orderCode: "LP67890", clientId: "2", name: "سارة علي" },
-                    { phone: "0553219876", orderCode: "LP54321", clientId: "3", name: "محمود خالد" }
-                ];
-                
-                // Validate credentials
-                const client = mockClients.find(c => c.phone === phoneNumber && c.orderCode === orderCode);
-                
-                if (client) {
-                    // Store client info in session/local storage
+                    if (!phoneNumber || !orderCode) {
+                        throw new Error('يرجى إدخال رقم الموبايل وكود الطلب');
+                    }
+                    
+                    // Call client login API
+                    const response = await fetch(CLIENT_LOGIN_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ phone: phoneNumber, orderCode })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.message || 'خطأ في رقم الموبايل أو كود الطلب');
+                    }
+                    
+                    // Store client info and token
                     const clientInfo = {
-                        clientId: client.clientId,
-                        name: client.name,
-                        phone: client.phone,
+                        clientId: data.user.id,
+                        name: data.user.name,
+                        phone: data.user.phone,
                         isLoggedIn: true,
                         loginTime: new Date().getTime()
                     };
@@ -115,22 +169,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Save to session or local storage based on "remember me" checkbox
                     if (rememberMe) {
                         localStorage.setItem('clientInfo', JSON.stringify(clientInfo));
+                        localStorage.setItem('clientToken', data.token);
                     } else {
                         sessionStorage.setItem('clientInfo', JSON.stringify(clientInfo));
+                        sessionStorage.setItem('clientToken', data.token);
                     }
                     
                     // Redirect to client dashboard
                     window.location.href = 'client-dashboard.html';
-                } else {
-                    // Show error message
-                    loginError.textContent = 'خطأ في رقم الموبايل أو كود الطلب. يرجى المحاولة مرة أخرى.';
-                    loginError.classList.remove('d-none');
-                    
-                    // Clear error after 4 seconds
-                    setTimeout(() => {
-                        loginError.classList.add('d-none');
-                    }, 4000);
                 }
+            } catch (error) {
+                // Show error message
+                showError(error.message);
+            } finally {
+                // Re-enable submit button
+                loginSubmitBtn.disabled = false;
+                loginSubmitBtn.textContent = isAdminLogin ? 'تسجيل دخول الموظفين' : 'تسجيل دخول العملاء';
             }
         });
     }

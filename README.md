@@ -22,6 +22,8 @@ The Laapak Report System enables technicians to create detailed laptop inspectio
 ## Technical Implementation
 
 - **Frontend**: HTML5, CSS3, JavaScript, Bootstrap 5 (RTL support)
+- **Backend**: Node.js with Express, MySQL database, Sequelize ORM
+- **Authentication**: JWT-based authentication for both admin and client users
 - **PWA Features**: 
   - Service worker for offline capabilities
   - Manifest file for installation
@@ -30,16 +32,42 @@ The Laapak Report System enables technicians to create detailed laptop inspectio
 
 ## Getting Started
 
+### Frontend Only
 1. Clone this repository
 2. Open the project folder
 3. Start a local web server to preview the site
 4. Access the site through your browser
 
+### With Backend Authentication
+1. Install Node.js and npm if not already installed
+2. Install and set up MySQL database
+3. Create a database named `laapak_report_system`
+4. Configure database connection in `.env` file
+5. Install dependencies: `npm install`
+6. Start the server: `npm start`
+7. Access the site at `http://localhost:3000`
+
+### Database Setup
+1. Install MySQL Server and MySQL Workbench
+2. Create a new database:
+   ```sql
+   CREATE DATABASE laapak_report_system;
+   ```
+3. The application will automatically create the necessary tables and seed initial data on first run
+4. Default admin credentials:
+   - Username: `admin`, Password: `admin123`
+   - Username: `tech`, Password: `tech123`
+   - Username: `viewer`, Password: `viewer123`
+5. Default client credentials:
+   - Phone: `0501234567`, Order Code: `LP12345`
+   - Phone: `0509876543`, Order Code: `LP67890`
+   - Phone: `0553219876`, Order Code: `LP54321`
+
 ## Future Development Roadmap
 
-- **Backend Integration**: Laravel PHP framework with MySQL database
-- **Authentication System**: Admin login and access control
-- **CRUD Operations**: Complete data management
+- **✅ Backend Integration**: Node.js with Express and MySQL database (implemented)
+- **✅ Authentication System**: JWT-based authentication for admin and client users (implemented)
+- **CRUD Operations**: Complete data management for reports and users
 - **PDF Generation**: Download reports as PDF documents
 - **QR Code Integration**: For easy sharing
 - **WhatsApp Integration**: Direct messaging to customers
