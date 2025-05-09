@@ -4,6 +4,9 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Create welcome card as Step 0
+    createWelcomeCard();
+    
     // Initialize animations
     initAnimations();
     
@@ -19,6 +22,120 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add tooltips to technical terms
     addSimpleTooltips();
 });
+
+/**
+ * Create welcome card as Step 0
+ */
+function createWelcomeCard() {
+    // Create the walkthrough container if it doesn't exist
+    let walkthroughContainer = document.querySelector('.walkthrough-container');
+    
+    if (!walkthroughContainer) {
+        // Create the walkthrough container
+        walkthroughContainer = document.createElement('div');
+        walkthroughContainer.className = 'walkthrough-container child-walkthrough card shadow-sm mb-4 sticky-top';
+        walkthroughContainer.style = 'top: 20px; z-index: 100;';
+        
+        // Create the header
+        const header = document.createElement('div');
+        header.className = 'card-header d-flex justify-content-between align-items-center';
+        header.innerHTML = `
+            <h5 class="mb-0"><i class="fas fa-map-signs me-2"></i> دليلك السهل للتقرير</h5>
+            <button type="button" class="btn btn-sm btn-light" id="toggleWalkthroughBtn">
+                <i class="fas fa-minus"></i>
+            </button>
+        `;
+        
+        // Create the body
+        const body = document.createElement('div');
+        body.className = 'card-body';
+        body.id = 'walkthroughContent';
+        
+        // Add the welcome content to the walkthrough body
+        body.innerHTML = `
+            <div class="welcome-step active" id="welcome-step">
+                <div class="fun-header mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0 fw-bold">مرحباً بك في تقرير جهازك الجديد! 🎉</h4>
+                        </div>
+                        <div>
+                            <a href="reports.html" class="btn btn-sm btn-light">
+                                <i class="fas fa-arrow-right me-1"></i> العودة
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="simple-explanation">
+                            <div class="simple-explanation-title">
+                                <i class="fas fa-info-circle"></i> ما هذا التقرير؟
+                            </div>
+                            <p>هذا التقرير يشبه "شهادة صحة" لجهازك الجديد! يوضح لك أن كل شيء في جهازك يعمل بشكل ممتاز، تماماً مثل الطبيب عندما يخبرك أنك بصحة جيدة. 😊</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 text-center">
+                        <div class="emoji-status">🥳</div>
+                        <h4 class="text-success">جهازك بحالة ممتازة!</h4>
+                        <p class="text-muted mb-0">رقم التقرير: <span class="fw-bold">LAP-2025-0001</span></p>
+                    </div>
+                </div>
+                
+                <p class="mt-3">هيا نتعرف على جهازك الجديد خطوة بخطوة! 🚶‍♂️</p>
+                
+                <div class="step-description mb-3" id="stepDescription">
+                    <!-- Step description will be inserted here by JS -->
+                </div>
+                
+                <div class="step-indicators d-flex justify-content-center mb-3" id="stepIndicators">
+                    <!-- Step indicators will be inserted here by JS -->
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" id="prevStepBtn" disabled>
+                        <i class="fas fa-arrow-right me-1"></i> السابق
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success dropdown-toggle" type="button" id="quickNavDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            الانتقال السريع
+                        </button>
+                        <ul class="dropdown-menu" id="quickNavMenu" aria-labelledby="quickNavDropdown">
+                            <!-- Quick navigation links will be inserted here by JS -->
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="nextStepBtn">
+                        التالي <i class="fas fa-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Append the header and body to the walkthrough container
+        walkthroughContainer.appendChild(header);
+        walkthroughContainer.appendChild(body);
+        
+        // Insert the walkthrough container into the page
+        const container = document.querySelector('.container.py-4');
+        if (container) {
+            container.insertBefore(walkthroughContainer, container.firstChild);
+        }
+        
+        // Initialize toggle button functionality
+        const toggleBtn = document.getElementById('toggleWalkthroughBtn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                const content = document.getElementById('walkthroughContent');
+                if (content) {
+                    content.classList.toggle('d-none');
+                    this.querySelector('i').classList.toggle('fa-minus');
+                    this.querySelector('i').classList.toggle('fa-plus');
+                }
+            });
+        }
+    }
+}
 
 /**
  * Initialize animations for elements

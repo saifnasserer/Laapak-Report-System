@@ -46,77 +46,6 @@
     
     <!-- Main Content -->
     <div class="container py-4">
-        <!-- Report Header -->
-        <div class="card mb-4 shadow animate__animated animate__fadeIn">
-            <div class="fun-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0 fw-bold">مرحباً بك في تقرير جهازك الجديد! 🎉</h2>
-                        <p class="mb-0">هذا التقرير يوضح أن جهازك الجديد يعمل بشكل رائع</p>
-                    </div>
-                    <div>
-                        <a href="reports.html" class="btn btn-light">
-                            <i class="fas fa-arrow-right me-1"></i> العودة
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-8">
-                        <div class="simple-explanation">
-                            <div class="simple-explanation-title">
-                                <i class="fas fa-info-circle"></i> ما هذا التقرير؟
-                            </div>
-                            <p>هذا التقرير يشبه "شهادة صحة" لجهازك الجديد! يوضح لك أن كل شيء في جهازك يعمل بشكل ممتاز، تماماً مثل الطبيب عندما يخبرك أنك بصحة جيدة. 😊</p>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 text-center">
-                        <div class="emoji-status">🥳</div>
-                        <h4 class="text-success">جهازك بحالة ممتازة!</h4>
-                        <p class="text-muted mb-0">رقم التقرير: <span class="fw-bold">LAP-2025-0001</span></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Walkthrough Navigation -->
-        <div class="walkthrough-container child-walkthrough card shadow-sm mb-4 sticky-top" style="top: 20px; z-index: 100;">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-map-signs me-2"></i> دليلك السهل للتقرير</h5>
-                <button type="button" class="btn btn-sm btn-light" id="toggleWalkthroughBtn">
-                    <i class="fas fa-minus"></i>
-                </button>
-            </div>
-            <div class="card-body" id="walkthroughContent">
-                <p class="mb-3">هيا نتعرف على جهازك الجديد خطوة بخطوة! 🚶‍♂️</p>
-                
-                <div class="step-description mb-3" id="stepDescription">
-                    <!-- Step description will be inserted here by JS -->
-                </div>
-                
-                <div class="step-indicators d-flex justify-content-center mb-3" id="stepIndicators">
-                    <!-- Step indicators will be inserted here by JS -->
-                </div>
-                
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" id="prevStepBtn" disabled>
-                        <i class="fas fa-arrow-right me-1"></i> السابق
-                    </button>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-success dropdown-toggle" type="button" id="quickNavDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            الانتقال السريع
-                        </button>
-                        <ul class="dropdown-menu" id="quickNavMenu" aria-labelledby="quickNavDropdown">
-                            <!-- Quick navigation links will be inserted here by JS -->
-                        </ul>
-                    </div>
-                    <button type="button" class="btn btn-primary" id="nextStepBtn">
-                        التالي <i class="fas fa-arrow-left ms-1"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
         <!-- Report Content -->
         <div class="report-content">
             <!-- Section 1: General Information -->
