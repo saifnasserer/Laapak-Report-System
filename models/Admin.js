@@ -69,7 +69,17 @@ const Admin = sequelize.define('Admin', {
 
 // Instance method to check password
 Admin.prototype.checkPassword = async function(password) {
-    return await bcrypt.compare(password, this.password);
+    try {
+        console.log('Comparing passwords:');
+        console.log('Input password:', password);
+        console.log('Stored password hash:', this.password);
+        const result = await bcrypt.compare(password, this.password);
+        console.log('Comparison result:', result);
+        return result;
+    } catch (error) {
+        console.error('Error comparing passwords:', error);
+        return false;
+    }
 };
 
 module.exports = Admin;

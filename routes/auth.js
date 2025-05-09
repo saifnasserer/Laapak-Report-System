@@ -16,7 +16,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'laapak-secret-key-change-in-produc
 router.post('/admin', async (req, res) => {
     const { username, password } = req.body;
     
+    console.log('Admin login attempt:', { username });
+    
     if (!username || !password) {
+        console.log('Missing username or password');
         return res.status(400).json({ message: 'Please provide username and password' });
     }
     
@@ -25,13 +28,19 @@ router.post('/admin', async (req, res) => {
         const admin = await Admin.findOne({ where: { username } });
         
         if (!admin) {
+            console.log('Admin not found:', username);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
         
+        console.log('Admin found:', { id: admin.id, username: admin.username, role: admin.role });
+        
         // Check password
+        console.log('Checking password...');
         const isMatch = await admin.checkPassword(password);
+        console.log('Password match result:', isMatch);
         
         if (!isMatch) {
+            console.log('Password does not match');
             return res.status(400).json({ message: 'Invalid credentials' });
         }
         

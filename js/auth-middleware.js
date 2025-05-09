@@ -60,20 +60,42 @@ class AuthMiddleware {
 
     // Logout user
     logout() {
-        // Clear admin data
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminInfo');
-        sessionStorage.removeItem('adminToken');
-        sessionStorage.removeItem('adminInfo');
+        console.log('Logging out user...');
         
-        // Clear client data
-        localStorage.removeItem('clientToken');
-        localStorage.removeItem('clientInfo');
-        sessionStorage.removeItem('clientToken');
-        sessionStorage.removeItem('clientInfo');
-        
-        // Redirect to login page
-        window.location.href = 'index.html';
+        try {
+            // Determine if we're logging out an admin or client
+            const isAdmin = this.isAdminLoggedIn();
+            const isClient = this.isClientLoggedIn();
+            
+            console.log('User type:', isAdmin ? 'Admin' : (isClient ? 'Client' : 'Unknown'));
+            
+            // Clear admin data
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminInfo');
+            sessionStorage.removeItem('adminToken');
+            sessionStorage.removeItem('adminInfo');
+            
+            // Clear client data
+            localStorage.removeItem('clientToken');
+            localStorage.removeItem('clientInfo');
+            sessionStorage.removeItem('clientToken');
+            sessionStorage.removeItem('clientInfo');
+            
+            // Clear any other session data
+            localStorage.removeItem('currentUser');
+            sessionStorage.removeItem('currentUser');
+            
+            console.log('All tokens and user info cleared');
+            
+            // Redirect to appropriate page
+            setTimeout(() => {
+                console.log('Redirecting to login page...');
+                window.location.href = 'index.html';
+            }, 100);
+        } catch (error) {
+            console.error('Error during logout:', error);
+            alert('حدث خطأ أثناء تسجيل الخروج. يرجى المحاولة مرة أخرى.');
+        }
     }
 
     // Require admin authentication for admin pages

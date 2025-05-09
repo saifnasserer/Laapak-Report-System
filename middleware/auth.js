@@ -11,7 +11,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'laapak-secret-key-change-in-produc
 
 // General Authentication Middleware
 const auth = async (req, res, next) => {
-    const token = req.header('x-auth-token');
+    // Get token from header (support both x-auth-token and Authorization Bearer)
+    const token = req.header('x-auth-token') || req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
         return res.status(401).json({ message: 'No token, authorization denied' });
@@ -19,16 +20,24 @@ const auth = async (req, res, next) => {
     
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
+        
+        // Handle different token formats (direct payload or nested in user property)
+        if (decoded.user) {
+            req.user = decoded.user;
+        } else {
+            req.user = decoded;
+        }
+        
         next();
     } catch (err) {
+        console.error('Token verification error:', err.message);
         res.status(401).json({ message: 'Token is not valid' });
     }
 };
 
 // Admin Authentication Middleware
 const adminAuth = async (req, res, next) => {
-    const token = req.header('x-auth-token');
+    const token = req.header('x-auth-token') || req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
         return res.status(401).json({ message: 'No token, authorization denied' });
@@ -37,18 +46,24 @@ const adminAuth = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        if (decoded.type !== 'admin') {
+        // Check if user is admin either by type or isAdmin flag
+        if (decoded.type !== 'admin' && !decoded.user?.isAdmin) {
             return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
         }
         
         // Verify admin exists in database
-        const admin = await Admin.findByPk(decoded.id);
+        const adminId = decoded.id || decoded.user?.id;
+        const admin = await Admin.findByPk(adminId);
         
         if (!admin) {
             return res.status(401).json({ message: 'Invalid admin credentials' });
         }
         
-        req.user = decoded;
+        // Set user info in request
+        req.user = decoded.user || {
+            id: decoded.id,
+            isAdmin: true
+        };
         next();
     } catch (err) {
         res.status(401).json({ message: 'Token is not valid' });
@@ -57,7 +72,7 @@ const adminAuth = async (req, res, next) => {
 
 // Client Authentication Middleware
 const clientAuth = async (req, res, next) => {
-    const token = req.header('x-auth-token');
+    const token = req.header('x-auth-token') || req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
         return res.status(401).json({ message: 'No token, authorization denied' });
@@ -66,18 +81,25 @@ const clientAuth = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        if (decoded.type !== 'client') {
+        // Check if user is client either by type or isClient flag
+        if (decoded.type !== 'client' && !decoded.user?.isClient) {
             return res.status(403).json({ message: 'Access denied. Client privileges required.' });
         }
         
         // Verify client exists in database
-        const client = await Client.findByPk(decoded.id);
+        const clientId = decoded.id || decoded.user?.id;
+        const client = await Client.findByPk(clientId);
         
         if (!client) {
             return res.status(401).json({ message: 'Invalid client credentials' });
         }
         
-        req.user = decoded;
+        // Set user info in request
+        req.user = decoded.user || {
+            id: decoded.id,
+            isClient: true
+        };
+        req.client = client;
         next();
     } catch (err) {
         res.status(401).json({ message: 'Token is not valid' });

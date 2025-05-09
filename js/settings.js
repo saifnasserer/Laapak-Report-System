@@ -9,6 +9,7 @@
  * - Notification settings
  * - Data backup and restore
  * - System theme and appearance
+ * - Backend API integration
  */
 
 // Models and data structures
@@ -175,14 +176,29 @@ class SettingsManager {
         }
     }
     
-    // Get users from localStorage
-    getUsers() {
-        return JSON.parse(localStorage.getItem('lpk_users') || '[]');
+    // Get users from API or localStorage
+    async getUsers() {
+        try {
+            // Try to get users from API adapter
+            return await settingsApiAdapter.getUsers();
+        } catch (error) {
+            console.error('Error getting users from API, falling back to localStorage:', error);
+            // Fall back to localStorage if API fails
+            return JSON.parse(localStorage.getItem('lpk_users') || '[]');
+        }
     }
 
-    // Save users to localStorage
-    saveUsers(users) {
-        localStorage.setItem('lpk_users', JSON.stringify(users));
+    // Save users to API or localStorage
+    async saveUsers(users) {
+        try {
+            // We don't need to bulk save users with the API adapter
+            // Each user is saved individually through the adapter in other methods
+            localStorage.setItem('lpk_users', JSON.stringify(users));
+            return true;
+        } catch (error) {
+            console.error('Error saving users:', error);
+            return false;
+        }
     }
 
     // Get settings from localStorage
@@ -259,19 +275,48 @@ class SettingsManager {
     }
     
     // Load users into the users table
-    loadUsers() {
-        const users = this.getUsers();
+    async loadUsers() {
         const usersTableBody = document.getElementById('usersTableBody');
-        
         if (!usersTableBody) return;
         
-        // Clear existing rows
-        usersTableBody.innerHTML = '';
+        try {
+            // Get users from API or localStorage
+            const users = await this.getUsers();
+            usersTableBody.innerHTML = '';
         
-        // Add user rows
-        users.forEach(user => {
-            const row = document.createElement('tr');
-            
+            // Add user rows
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                
+                // Create avatar with initials
+                const avatarUrl = user.avatar || generateAvatarUrl(user.fullName);
+                
+                // Format status badge
+                const statusBadgeClass = user.status === 'active' ? 'bg-success' : 'bg-warning text-dark';
+                const statusText = user.status === 'active' ? 'نشط' : 'معلق';
+                
+                // Format role badge
+                const roleBadgeClass = user.role === ROLES.ADMIN ? 'bg-primary' : user.role === ROLES.TECHNICIAN ? 'bg-info' : 'bg-secondary';
+                const roleText = user.role === ROLES.ADMIN ? 'مدير' : user.role === ROLES.TECHNICIAN ? 'فني' : 'مستخدم';
+                
+                // Create row content
+                row.innerHTML = `
+                    <td>
+                        <img src="${avatarUrl}" alt="${user.fullName}" class="rounded-circle" width="32" height="32">
+                    </td>
+                    <td>${user.fullName}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>
+                        <span class="badge ${statusBadgeClass}">${statusText}</span>
+                    </td>
+                    <td>
+                        <span class="badge ${roleBadgeClass}">${roleText}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-user" data-id="${user.id}">تعديل</button>
+                        <button class="btn btn-sm btn-secondary change-password" data-id="${user.id}">تغيير كلمة المرور</button>
+                        <button class="btn btn-sm btn-danger delete-user" data-id="${user.id}">حذف</button>
             // Create avatar with initials
             const avatarUrl = user.avatar || generateAvatarUrl(user.fullName);
             
@@ -284,42 +329,41 @@ class SettingsManager {
             const roleText = user.role === ROLES.ADMIN ? 'مدير' : user.role === ROLES.TECHNICIAN ? 'فني' : 'مستخدم';
             
             // Create row content
-            row.innerHTML = `
-                <td>${user.id}</td>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <div class="avatar-circle me-3" style="background-image: url('${avatarUrl}'); width: 40px; height: 40px;"></div>
-                        <div>
-                            <div class="fw-bold">${user.fullName}</div>
-                            <div class="small text-muted">${user.username}</div>
                         </div>
-                    </div>
-                </td>
-                <td>${user.email}</td>
-                <td><span class="badge ${roleBadgeClass}">${roleText}</span></td>
-                <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
-                <td class="text-center">
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
-                            <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none;">
-                            <li><a class="dropdown-item py-2" href="#" onclick="settingsManager.editUser(${user.id}); return false;"><i class="fas fa-edit me-2 text-warning"></i> تعديل</a></li>
-                            <li><a class="dropdown-item py-2" href="#" onclick="settingsManager.changePassword(${user.id}); return false;"><i class="fas fa-key me-2 text-primary"></i> تغيير كلمة المرور</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item py-2 ${user.role === ROLES.ADMIN && users.filter(u => u.role === ROLES.ADMIN).length <= 1 ? 'disabled' : ''}" 
-                                   href="#" onclick="${user.role === ROLES.ADMIN && users.filter(u => u.role === ROLES.ADMIN).length <= 1 ? 'alert(\'لا يمكن حذف المدير الوحيد\')' : `settingsManager.deleteUser(${user.id})`}; return false;">
-                                    <i class="fas fa-trash me-2 text-danger"></i> حذف
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </td>
-            `;
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
             
-            usersTableBody.appendChild(row);
-        });
+            // Add event listeners to action buttons
+            document.querySelectorAll('.edit-user').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const userId = parseInt(btn.getAttribute('data-id'));
+                    this.editUser(userId);
+                });
+            });
+            
+            document.querySelectorAll('.change-password').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const userId = parseInt(btn.getAttribute('data-id'));
+                    this.changePassword(userId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-user').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const userId = parseInt(btn.getAttribute('data-id'));
+                    this.deleteUser(userId);
+                });
+            });
+        } catch (error) {
+            console.error('Error loading users:', error);
+            // Show error message to user
+            this.showToast('فشل في تحميل بيانات المستخدمين. يرجى المحاولة مرة أخرى.');
+        }
     }
     
     // Helper function to set select field value

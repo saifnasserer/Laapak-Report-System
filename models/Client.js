@@ -43,6 +43,11 @@ const Client = sequelize.define('Client', {
         type: DataTypes.TEXT,
         allowNull: true
     },
+    status: {
+        type: DataTypes.ENUM('active', 'inactive'),
+        defaultValue: 'active',
+        allowNull: false
+    },
     lastLogin: {
         type: DataTypes.DATE,
         allowNull: true

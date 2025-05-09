@@ -4,6 +4,12 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if auth-middleware.js is loaded
+    if (typeof authMiddleware === 'undefined') {
+        console.error('Auth middleware not loaded! Make sure auth-middleware.js is included before auth-check.js');
+        return;
+    }
+
     // Check if we're on a protected admin page
     const currentPath = window.location.pathname;
     const adminPages = [
@@ -22,12 +28,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const isAdminPage = adminPages.some(page => page.includes(filename));
     
     if (isAdminPage) {
-        // Check if admin is logged in
-        const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || sessionStorage.getItem('adminInfo') || '{}');
-        
-        if (!adminInfo.isLoggedIn) {
-            // Not logged in, redirect to admin login
-            window.location.href = 'admin-login.html';
+        // Use authMiddleware to check if admin is logged in
+        if (!authMiddleware.isAdminLoggedIn()) {
+            console.log('Admin not authenticated, redirecting to login page');
+            // Not logged in, redirect to login page
+            window.location.href = 'index.html';
+        } else {
+            console.log('Admin authenticated, access granted');
         }
     }
     
@@ -40,12 +47,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const isClientPage = clientPages.some(page => page.includes(filename));
     
     if (isClientPage) {
-        // Check if client is logged in
-        const clientInfo = JSON.parse(localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo') || '{}');
-        
-        if (!clientInfo.isLoggedIn) {
-            // Not logged in, redirect to client login
-            window.location.href = 'client-login.html';
+        // Use authMiddleware to check if client is logged in
+        if (!authMiddleware.isClientLoggedIn()) {
+            console.log('Client not authenticated, redirecting to login page');
+            // Not logged in, redirect to login page
+            window.location.href = 'index.html';
+        } else {
+            console.log('Client token found, user is authenticated');
         }
     }
     

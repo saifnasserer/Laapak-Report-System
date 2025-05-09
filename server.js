@@ -17,6 +17,9 @@ const { initDatabase } = require('./config/dbInit');
 // Import routes and middleware
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
+const healthRoutes = require('./routes/health');
+const resetPasswordRoutes = require('./routes/reset-password');
+const clientsRoutes = require('./routes/clients');
 const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
@@ -35,11 +38,9 @@ app.use(express.static('./'));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
-
-// Health check route
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date() });
-});
+app.use('/api/health', healthRoutes);
+app.use('/api/reset-password', resetPasswordRoutes);
+app.use('/api/clients', clientsRoutes);
 
 // Protected routes examples
 app.get('/api/protected', auth, (req, res) => {

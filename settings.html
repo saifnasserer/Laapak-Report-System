@@ -688,7 +688,11 @@
 <!-- Custom JavaScript -->
 <script src="js/main.js"></script>
 <script src="js/header-component.js"></script>
+<script src="js/auth-middleware.js"></script>
+<script src="js/api-service.js"></script>
+<script src="js/settings-api-adapter.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/settings-patch.js"></script>
 
 <!-- Initialize Header Component -->
 <script>
@@ -711,26 +715,25 @@
                 { text: 'تسجيل الخروج', url: 'index.html', icon: 'fas fa-sign-out-alt' }
             ]
         });
-        // For the prototype
-        document.addEventListener('DOMContentLoaded', function() {
-            // Settings form submission
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    alert('سيتم حفظ الإعدادات في الإصدار النهائي');
-                });
-            });
-            
-            // Buttons with no form
-            const actionButtons = document.querySelectorAll('.card-body .btn');
-            actionButtons.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    alert('سيتم تنفيذ هذا الإجراء في الإصدار النهائي');
-                });
+        
+        // Settings form submission
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('سيتم حفظ الإعدادات في الإصدار النهائي');
             });
         });
+        
+        // Buttons with no form
+        const actionButtons = document.querySelectorAll('.card-body .btn');
+        actionButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('سيتم تنفيذ هذا الإجراء في الإصدار النهائي');
+            });
+        });
+    });
     </script>
 </body>
 </html>

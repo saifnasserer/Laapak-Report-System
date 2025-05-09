@@ -4,14 +4,15 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if client is logged in
-    const clientInfo = getClientInfo();
-    
-    // If not logged in, redirect to login page
-    if (!clientInfo || !clientInfo.isLoggedIn) {
-        window.location.href = 'client-login.html';
+    // Check if client is logged in using auth-middleware
+    if (!authMiddleware.isClientLoggedIn()) {
+        console.log('Client not logged in, redirecting to login page');
+        window.location.href = 'index.html';
         return;
     }
+    
+    // Get client info from storage
+    const clientInfo = JSON.parse(localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo') || '{}');
     
     // Display client information
     const clientNameEl = document.getElementById('clientName');
@@ -25,18 +26,117 @@ document.addEventListener('DOMContentLoaded', function() {
         welcomeClientNameEl.textContent = clientInfo.name;
     }
     
-    // Handle logout
+    // Handle logout using auth-middleware
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            logout();
-            window.location.href = 'client-login.html';
+            console.log('Client logout button clicked');
+            // Use auth-middleware for logout
+            authMiddleware.logout();
+            // No need to redirect as auth-middleware.logout() handles it
         });
     }
     
-    // Load client data
-    loadClientReports(clientInfo.clientId);
+    // Load client reports and related data
+    async function loadClientReports(clientId) {
+        if (!clientId) {
+            console.error('No client ID provided for loading reports');
+            return;
+        }
+        
+        console.log('Loading reports for client ID:', clientId);
+        
+        try {
+            // Get client token
+            const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+            if (!clientToken) {
+                throw new Error('No authentication token found');
+            }
+            
+            // Try to fetch reports from the API
+            const response = await fetch(`${REPORTS_API_URL}/${clientId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${clientToken}`
+                }
+            });
+            
+            // If API fails, use mock data
+            if (!response.ok) {
+                console.warn('Failed to fetch reports from API, using mock data');
+                displayReportsAndInvoices(getMockReports(clientId), getMockInvoices(clientId));
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('Reports data from API:', data);
+            
+            // Display the reports and invoices
+            displayReportsAndInvoices(data.reports || [], data.invoices || []);
+        } catch (error) {
+            console.error('Error loading client reports:', error);
+            // Fallback to mock data if API fails
+            displayReportsAndInvoices(getMockReports(clientId), getMockInvoices(clientId));
+        }
+    }
+
+    // Display reports and invoices in the UI
+    function displayReportsAndInvoices(reports, invoices) {
+        // Display reports
+        const reportsList = document.getElementById('reportsList');
+        const noReportsMessage = document.getElementById('noReportsMessage');
+        
+        if (reportsList) {
+            if (reports.length === 0) {
+                if (noReportsMessage) {
+                    noReportsMessage.style.display = 'block';
+                }
+            } else {
+                if (noReportsMessage) {
+                    noReportsMessage.style.display = 'none';
+                }
+                
+                // Clear existing reports
+                reportsList.innerHTML = '';
+                
+                // Add report cards
+                reports.forEach(report => {
+                    const reportCard = createReportCard(report);
+                    reportsList.appendChild(reportCard);
+                });
+            }
+        }
+        
+        // Display invoices
+        const invoicesList = document.getElementById('invoicesList');
+        const noInvoicesMessage = document.getElementById('noInvoicesMessage');
+        
+        if (invoicesList) {
+            if (invoices.length === 0) {
+                if (noInvoicesMessage) {
+                    noInvoicesMessage.style.display = 'block';
+                }
+            } else {
+                if (noInvoicesMessage) {
+                    noInvoicesMessage.style.display = 'none';
+                }
+                
+                // Clear existing invoices
+                invoicesList.innerHTML = '';
+                
+                // Add invoice cards
+                invoices.forEach(invoice => {
+                    const invoiceCard = createInvoiceCard(invoice);
+                    invoicesList.appendChild(invoiceCard);
+                });
+            }
+        }
+    }
+
+    // API URLs for client data
+    const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api';
+    const REPORTS_API_URL = `${API_BASE_URL}/reports/client`;
     
     // Check for offline status
     function updateOfflineStatus() {
@@ -56,6 +156,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Listen for online/offline events
     window.addEventListener('online', updateOfflineStatus);
     window.addEventListener('offline', updateOfflineStatus);
+    
+    // Load client data
+    loadClientReports(clientInfo.clientId);
 });
 
 /**

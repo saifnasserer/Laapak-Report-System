@@ -17,7 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // API endpoints
     const API_URL = window.location.origin;
     const ADMIN_LOGIN_URL = `${API_URL}/api/auth/admin`;
-    const CLIENT_LOGIN_URL = `${API_URL}/api/auth/client`;
+    const CLIENT_LOGIN_URL = `${API_URL}/api/clients/auth`;
+    
+    console.log('API endpoints:', { ADMIN_LOGIN_URL, CLIENT_LOGIN_URL });
     
     let isAdminLogin = false; // Default to client login
     
@@ -67,13 +69,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show error message
     const showError = (message) => {
-        loginError.textContent = message;
-        loginError.classList.remove('d-none');
-        
-        // Clear error after 4 seconds
-        setTimeout(() => {
-            loginError.classList.add('d-none');
-        }, 4000);
+        if (loginError) {
+            loginError.textContent = message;
+            loginError.classList.remove('d-none');
+            
+            // Clear error after 4 seconds
+            setTimeout(() => {
+                loginError.classList.add('d-none');
+            }, 4000);
+        } else {
+            console.error('Login error:', message);
+            alert(message);
+        }
     };
     
     // Handle form submission
@@ -98,6 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // Call admin login API
+                    console.log('Attempting admin login with:', { username, password: '******' });
+                    
                     const response = await fetch(ADMIN_LOGIN_URL, {
                         method: 'POST',
                         headers: {
@@ -106,7 +115,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         body: JSON.stringify({ username, password })
                     });
                     
-                    const data = await response.json();
+                    console.log('Admin login response status:', response.status);
+                    
+                    const responseText = await response.text();
+                    console.log('Raw admin response:', responseText);
+                    
+                    let data;
+                    try {
+                        data = JSON.parse(responseText);
+                        console.log('Admin login response data:', data);
+                    } catch (e) {
+                        console.error('Failed to parse JSON response:', responseText);
+                        throw new Error('خطأ في الاتصال بالخادم');
+                    }
                     
                     if (!response.ok) {
                         throw new Error(data.message || 'خطأ في اسم المستخدم أو كلمة المرور');
@@ -115,20 +136,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Store admin info and token
                     const adminInfo = {
                         userId: data.user.id,
-                        name: data.user.name,
                         username: data.user.username,
+                        name: data.user.name,
                         role: data.user.role,
-                        isLoggedIn: true,
-                        loginTime: new Date().getTime()
+                        token: data.token
                     };
                     
-                    // Save to session or local storage based on "remember me" checkbox
+                    // Save to storage based on remember me option
                     if (rememberMe) {
-                        localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
                         localStorage.setItem('adminToken', data.token);
+                        localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
                     } else {
-                        sessionStorage.setItem('adminInfo', JSON.stringify(adminInfo));
                         sessionStorage.setItem('adminToken', data.token);
+                        sessionStorage.setItem('adminInfo', JSON.stringify(adminInfo));
                     }
                     
                     // Redirect to admin dashboard
@@ -143,6 +163,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // Call client login API
+                    console.log('Attempting client login with:', { phone: phoneNumber, orderCode: '******' });
+                    console.log('Sending request to:', CLIENT_LOGIN_URL);
+                    
                     const response = await fetch(CLIENT_LOGIN_URL, {
                         method: 'POST',
                         headers: {
@@ -151,31 +174,48 @@ document.addEventListener('DOMContentLoaded', function() {
                         body: JSON.stringify({ phone: phoneNumber, orderCode })
                     });
                     
-                    const data = await response.json();
+                    console.log('Client login response status:', response.status);
                     
-                    if (!response.ok) {
-                        throw new Error(data.message || 'خطأ في رقم الموبايل أو كود الطلب');
+                    const responseText = await response.text();
+                    console.log('Raw client response:', responseText);
+                    
+                    let responseData;
+                    try {
+                        responseData = JSON.parse(responseText);
+                        console.log('Client login response data:', responseData);
+                    } catch (e) {
+                        console.error('Failed to parse JSON response:', responseText);
+                        throw new Error('خطأ في الاتصال بالخادم');
                     }
                     
+                    if (!response.ok) {
+                        throw new Error(responseData.message || 'خطأ في رقم الموبايل أو كود الطلب');
+                    }
+                    
+                    // If we got here, login was successful
                     // Store client info and token
                     const clientInfo = {
-                        clientId: data.user.id,
-                        name: data.user.name,
-                        phone: data.user.phone,
+                        clientId: responseData.client.id,
+                        name: responseData.client.name,
+                        phone: responseData.client.phone,
+                        email: responseData.client.email,
                         isLoggedIn: true,
                         loginTime: new Date().getTime()
                     };
                     
+                    console.log('Storing client info:', clientInfo);
+                    
                     // Save to session or local storage based on "remember me" checkbox
                     if (rememberMe) {
                         localStorage.setItem('clientInfo', JSON.stringify(clientInfo));
-                        localStorage.setItem('clientToken', data.token);
+                        localStorage.setItem('clientToken', responseData.token);
                     } else {
                         sessionStorage.setItem('clientInfo', JSON.stringify(clientInfo));
-                        sessionStorage.setItem('clientToken', data.token);
+                        sessionStorage.setItem('clientToken', responseData.token);
                     }
                     
                     // Redirect to client dashboard
+                    console.log('Login successful, redirecting to client dashboard');
                     window.location.href = 'client-dashboard.html';
                 }
             } catch (error) {
@@ -188,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
+    
     // Check for offline status
     function updateOfflineStatus() {
         const offlineAlert = document.getElementById('offlineAlert');
@@ -200,10 +240,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-
+    
     // Initial check
     updateOfflineStatus();
-
+    
     // Listen for online/offline events
     window.addEventListener('online', updateOfflineStatus);
     window.addEventListener('offline', updateOfflineStatus);
