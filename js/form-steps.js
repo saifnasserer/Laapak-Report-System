@@ -109,10 +109,224 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Validate current step fields
+    // Validate current step fields with enhanced validation
     function validateStep(stepIndex) {
         const currentStepEl = formSteps[stepIndex];
-        const requiredFields = currentStepEl.querySelectorAll('[required]');
+        let isValid = true;
+        let errorMessages = [];
+        
+        // Clear previous validation messages
+        const existingAlerts = currentStepEl.querySelectorAll('.validation-alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        // Step-specific validation
+        switch(stepIndex) {
+            case 0: // Basic Information
+                isValid = validateBasicInfoStep(currentStepEl, errorMessages);
+                break;
+            case 1: // Technical Tests
+                isValid = validateTechnicalTestsStep(currentStepEl, errorMessages);
+                break;
+            case 2: // External Inspection
+                isValid = validateExternalInspectionStep(currentStepEl, errorMessages);
+                break;
+            case 3: // Notes
+                isValid = validateNotesStep(currentStepEl, errorMessages);
+                break;
+            case 4: // Invoice
+                isValid = validateInvoiceStep(currentStepEl, errorMessages);
+                break;
+            default:
+                // Default validation for required fields
+                isValid = validateRequiredFields(currentStepEl, errorMessages);
+        }
+        
+        if (!isValid) {
+            // Show validation message with specific errors
+            const alertEl = createValidationAlert(currentStepEl, errorMessages);
+            alertEl.style.display = 'block';
+            
+            // Scroll to the first error
+            const firstInvalidField = currentStepEl.querySelector('.is-invalid');
+            if (firstInvalidField) {
+                firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => firstInvalidField.focus(), 500);
+            } else {
+                alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        return isValid;
+    }
+    
+    // Validate basic information step
+    function validateBasicInfoStep(stepEl, errorMessages) {
+        let isValid = true;
+        
+        // Client validation
+        const clientSelect = stepEl.querySelector('#clientSelect');
+        if (clientSelect && !clientSelect.value) {
+            errorMessages.push('الرجاء اختيار عميل أو إضافة عميل جديد');
+            isValid = false;
+            highlightElement(clientSelect.parentNode);
+        }
+        
+        // Order number validation
+        const orderNumber = stepEl.querySelector('#orderNumber');
+        if (orderNumber && !orderNumber.value.trim()) {
+            errorMessages.push('الرجاء إدخال رقم الطلب');
+            isValid = false;
+            markInvalid(orderNumber, 'هذا الحقل مطلوب');
+        }
+        
+        // Inspection date validation
+        const inspectionDate = stepEl.querySelector('#inspectionDate');
+        if (inspectionDate && !inspectionDate.value) {
+            errorMessages.push('الرجاء تحديد تاريخ الفحص');
+            isValid = false;
+            markInvalid(inspectionDate, 'هذا الحقل مطلوب');
+        }
+        
+        // Device model validation
+        const deviceModel = stepEl.querySelector('#deviceModel');
+        if (deviceModel && !deviceModel.value.trim()) {
+            errorMessages.push('الرجاء إدخال موديل الجهاز');
+            isValid = false;
+            markInvalid(deviceModel, 'هذا الحقل مطلوب');
+        }
+        
+        // Serial number validation
+        const serialNumber = stepEl.querySelector('#serialNumber');
+        if (serialNumber && !serialNumber.value.trim()) {
+            errorMessages.push('الرجاء إدخال الرقم التسلسلي');
+            isValid = false;
+            markInvalid(serialNumber, 'هذا الحقل مطلوب');
+        }
+        
+        return isValid;
+    }
+    
+    // Validate technical tests step
+    function validateTechnicalTestsStep(stepEl, errorMessages) {
+        let isValid = true;
+        
+        // Check hardware components
+        const hardwareComponents = [
+            'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
+            'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
+            'card_reader_status', 'audio_jack_status'
+        ];
+        
+        const unselectedComponents = [];
+        
+        hardwareComponents.forEach(component => {
+            const checkedInput = stepEl.querySelector(`input[name="${component}"]:checked`);
+            if (!checkedInput) {
+                unselectedComponents.push(component.replace('_status', '').replace('_', ' '));
+                isValid = false;
+                
+                // Highlight the component row
+                const componentRow = stepEl.querySelector(`input[name="${component}"]`).closest('tr');
+                if (componentRow) {
+                    componentRow.classList.add('table-danger');
+                    
+                    // Remove highlight when a radio is selected
+                    const radios = componentRow.querySelectorAll('input[type="radio"]');
+                    radios.forEach(radio => {
+                        radio.addEventListener('change', function() {
+                            componentRow.classList.remove('table-danger');
+                        }, { once: true });
+                    });
+                }
+            }
+        });
+        
+        if (unselectedComponents.length > 0) {
+            errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedComponents.join('، ')}`);
+        }
+        
+        // Check system components if they exist
+        const systemComponents = [
+            { id: 'cpuStatus', label: 'المعالج' },
+            { id: 'gpuStatus', label: 'كرت الشاشة' },
+            { id: 'ramStatus', label: 'الذاكرة' },
+            { id: 'storageStatus', label: 'التخزين' },
+            { id: 'batteryStatus', label: 'البطارية' }
+        ];
+        
+        const unselectedSystemComponents = [];
+        
+        systemComponents.forEach(component => {
+            const select = stepEl.querySelector(`#${component.id}`);
+            if (select && !select.value) {
+                unselectedSystemComponents.push(component.label);
+                isValid = false;
+                markInvalid(select, 'الرجاء تحديد الحالة');
+            }
+        });
+        
+        if (unselectedSystemComponents.length > 0) {
+            errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedSystemComponents.join('، ')}`);
+        }
+        
+        return isValid;
+    }
+    
+    // Validate external inspection step
+    function validateExternalInspectionStep(stepEl, errorMessages) {
+        let isValid = true;
+        
+        // Check external condition fields if they exist
+        const conditionFields = [
+            { id: 'caseCondition', label: 'حالة الهيكل الخارجي' },
+            { id: 'screenCondition', label: 'حالة الشاشة' },
+            { id: 'keyboardCondition', label: 'حالة لوحة المفاتيح' },
+            { id: 'touchpadCondition', label: 'حالة لوحة اللمس' },
+            { id: 'portsCondition', label: 'حالة المنافذ' },
+            { id: 'hingesCondition', label: 'حالة المفصلات' }
+        ];
+        
+        const unselectedConditions = [];
+        
+        conditionFields.forEach(field => {
+            const select = stepEl.querySelector(`#${field.id}`);
+            if (select && select.required && !select.value) {
+                unselectedConditions.push(field.label);
+                isValid = false;
+                markInvalid(select, 'الرجاء تحديد الحالة');
+            }
+        });
+        
+        if (unselectedConditions.length > 0) {
+            errorMessages.push(`الرجاء تحديد ${unselectedConditions.join('، ')}`);
+        }
+        
+        return isValid;
+    }
+    
+    // Validate notes step
+    function validateNotesStep(stepEl, errorMessages) {
+        // Notes step typically doesn't have required fields
+        return validateRequiredFields(stepEl, errorMessages);
+    }
+    
+    // Validate invoice step
+    function validateInvoiceStep(stepEl, errorMessages) {
+        // Check if billing is enabled
+        const billingEnabled = document.getElementById('enableBilling')?.checked || false;
+        
+        // If billing is disabled, no validation needed
+        if (!billingEnabled) {
+            return true;
+        }
+        
+        // Validate required fields
+        return validateRequiredFields(stepEl, errorMessages);
+    }
+    
+    // General validation for required fields
+    function validateRequiredFields(stepEl, errorMessages, addMessages = true) {
+        const requiredFields = stepEl.querySelectorAll('[required]');
         let isValid = true;
         
         requiredFields.forEach(field => {
@@ -126,19 +340,59 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.classList.remove('is-invalid');
                     }
                 }, { once: true });
+                
+                // Add error message if needed
+                if (addMessages) {
+                    const fieldLabel = getFieldLabel(field);
+                    errorMessages.push(`الرجاء إدخال ${fieldLabel}`);
+                }
             } else {
                 field.classList.remove('is-invalid');
             }
         });
         
-        if (!isValid) {
-            // Show validation message
-            const alertEl = currentStepEl.querySelector('.validation-alert') || 
-                            createValidationAlert(currentStepEl);
-            alertEl.style.display = 'block';
+        return isValid;
+    }
+    
+    // Mark a form input as invalid
+    function markInvalid(input, message) {
+        if (!input) return;
+        
+        input.classList.add('is-invalid');
+        
+        // Check if feedback element already exists
+        let feedbackEl = input.nextElementSibling;
+        if (!feedbackEl || !feedbackEl.classList.contains('invalid-feedback')) {
+            feedbackEl = document.createElement('div');
+            feedbackEl.className = 'invalid-feedback';
+            input.parentNode.insertBefore(feedbackEl, input.nextSibling);
         }
         
-        return isValid;
+        feedbackEl.textContent = message;
+        
+        // Add event listener to remove invalid class when user interacts
+        input.addEventListener('input', function() {
+            if ((this.type === 'text' || this.type === 'textarea' || this.type === 'email' || this.type === 'tel') && this.value.trim()) {
+                this.classList.remove('is-invalid');
+            } else if (this.type === 'select-one' && this.value) {
+                this.classList.remove('is-invalid');
+            }
+        }, { once: true });
+    }
+    
+    // Get field label for error messages
+    function getFieldLabel(field) {
+        // Try to find a label for this field
+        const id = field.id;
+        if (id) {
+            const label = document.querySelector(`label[for="${id}"]`);
+            if (label) {
+                return label.textContent;
+            }
+        }
+        
+        // If no label found, use placeholder or name
+        return field.placeholder || field.name || 'هذا الحقل';
     }
     
     // Validate all steps before current one when jumping to a step
@@ -149,121 +403,76 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
     
-    // Create validation alert element
-    function createValidationAlert(container) {
-        const alertEl = document.createElement('div');
-        alertEl.className = 'alert alert-danger validation-alert mt-3';
-        alertEl.role = 'alert';
-        alertEl.innerHTML = 'الرجاء إكمال جميع الحقول المطلوبة';
-        container.appendChild(alertEl);
-        return alertEl;
-    }
-    
     // Handle form submission for the final step
     document.getElementById('reportForm').addEventListener('submit', function(e) {
         e.preventDefault();
         if (validateStep(currentStep)) {
-            // Collect all form data
-            const reportData = collectFormData();
-            
-            // Save report data
-            saveReportData(reportData);
-            
-            // Collect invoice data from the form if available
-            let invoiceFormData = null;
-            if (window.invoiceFormHandler && typeof window.invoiceFormHandler.collectInvoiceData === 'function') {
-                invoiceFormData = window.invoiceFormHandler.collectInvoiceData();
+            // Use the collectReportData function from create-report.js
+            // This ensures consistent data collection across the application
+            if (typeof collectReportData === 'function') {
+                // Show loading indicator
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
+                
+                // Collect form data
+                const reportData = collectReportData();
+                
+                // Check if billing is enabled
+                const billingEnabled = document.getElementById('enableBilling')?.checked || false;
+                reportData.billingEnabled = billingEnabled;
+                
+                // Save report data
+                saveReportData(reportData);
+                
+                // Generate invoice if needed
+                let invoice = null;
+                
+                // If billing is enabled and it's a single device for a single client, generate invoice automatically
+                if (billingEnabled) {
+                    // Create basic invoice data
+                    invoice = {
+                        id: generateInvoiceNumber(),
+                        reportId: reportData.id,
+                        clientId: reportData.clientId,
+                        clientName: reportData.clientName,
+                        date: new Date().toISOString(),
+                        amount: reportData.amount || 0,
+                        status: 'pending'
+                    };
+                    
+                    // Save invoice data if API service is available
+                    if (typeof apiService !== 'undefined' && typeof apiService.saveInvoice === 'function') {
+                        apiService.saveInvoice(invoice).catch(error => {
+                            console.error('Error saving invoice:', error);
+                        });
+                    } else {
+                        // Save to localStorage as fallback
+                        const storedInvoices = localStorage.getItem('lpk_invoices');
+                        const invoices = storedInvoices ? JSON.parse(storedInvoices) : [];
+                        invoices.push(invoice);
+                        localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
+                    }
+                }
+                
+                // Update success modal with report and invoice info
+                updateSuccessModal(reportData, invoice);
+                
+                // Show success modal
+                const successModal = new bootstrap.Modal(document.getElementById('reportCreatedModal'));
+                successModal.show();
+                
+                // Reset form
+                this.reset();
+                currentStep = 0;
+                showStep(currentStep);
+                updateProgressBar();
+            } else {
+                console.error('collectReportData function not found. Make sure create-report.js is loaded before form-steps.js');
+                alert('خطأ في معالجة البيانات. الرجاء المحاولة مرة أخرى.');
             }
-            
-            // Generate invoice with form data if available
-            const invoice = generateInvoice(reportData, invoiceFormData);
-            
-            // Update success modal with report and invoice info
-            updateSuccessModal(reportData, invoice);
-            
-            // Show success modal
-            const successModal = new bootstrap.Modal(document.getElementById('reportCreatedModal'));
-            successModal.show();
-            
-            // Reset form
-            this.reset();
-            currentStep = 0;
-            showStep(currentStep);
-            updateProgressBar();
         }
     });
-    
-    /**
-     * Collect all form data from the report form
-     * @returns {Object} The collected report data
-     */
-    function collectFormData() {
-        const formData = {
-            // Client information
-            clientName: document.getElementById('clientName').value,
-            clientPhone: document.getElementById('clientPhone').value,
-            clientEmail: document.getElementById('clientEmail')?.value || '',
-            orderCode: 'LP' + Math.floor(10000 + Math.random() * 90000), // Generate order code
-            
-            // Device information
-            deviceType: document.getElementById('deviceType').value,
-            brand: document.getElementById('deviceBrand').value,
-            model: document.getElementById('deviceModel').value,
-            serialNumber: document.getElementById('serialNumber').value,
-            
-            // Problem and solution
-            problem: document.getElementById('problemDescription').value,
-            diagnosis: document.getElementById('diagnosisNotes')?.value || '',
-            solution: document.getElementById('solutionDescription')?.value || '',
-            
-            // Status
-            status: document.getElementById('deviceStatus')?.value || 'تم الفحص',
-            
-            // Technician info
-            technicianName: document.getElementById('technicianName')?.value || 'فني الدعم',
-            
-            // Additional notes
-            generalNotes: document.getElementById('generalNotes')?.value || '',
-            
-            // Replacement parts
-            parts: collectReplacementParts()
-        };
-        
-        // Generate a client ID from phone number
-        formData.clientId = 'C' + formData.clientPhone.slice(-6);
-        
-        return formData;
-    }
-    
-    /**
-     * Collect replacement parts and their costs
-     * @returns {Array} Array of parts with names and costs
-     */
-    function collectReplacementParts() {
-        const parts = [];
-        
-        // This is a placeholder - in a real implementation, you would collect this from form fields
-        // For demo purposes, we'll add some sample parts if hardware issues were mentioned
-        const problemDesc = document.getElementById('problemDescription').value.toLowerCase();
-        
-        if (problemDesc.includes('شاشة') || problemDesc.includes('عرض')) {
-            parts.push({ name: 'كابل شاشة', cost: 150 });
-        }
-        
-        if (problemDesc.includes('بطارية') || problemDesc.includes('شحن')) {
-            parts.push({ name: 'بطارية جديدة', cost: 350 });
-        }
-        
-        if (problemDesc.includes('هارد') || problemDesc.includes('تخزين')) {
-            parts.push({ name: 'قرص SSD', cost: 450 });
-        }
-        
-        if (problemDesc.includes('لوحة') || problemDesc.includes('مفاتيح')) {
-            parts.push({ name: 'لوحة مفاتيح جديدة', cost: 250 });
-        }
-        
-        return parts;
-    }
     
     /**
      * Save report data to storage
@@ -288,48 +497,79 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
+     * Generate a unique invoice number
+     * @returns {string} The generated invoice number
+     */
+    function generateInvoiceNumber() {
+        const date = new Date();
+        const year = date.getFullYear().toString().slice(-2);
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const random = Math.floor(1000 + Math.random() * 9000);
+        
+        return `INV-${year}${month}${day}-${random}`;
+    }
+    
+    /**
      * Update success modal with report and invoice information
      * @param {Object} reportData - The saved report data
      * @param {Object} invoice - The generated invoice
      */
     function updateSuccessModal(reportData, invoice) {
-        // Set report link in modal
-        const reportLink = document.getElementById('reportLink');
-        if (reportLink) {
-            reportLink.value = `${window.location.origin}/report.html?id=${reportData.id}`;
+        const modal = document.getElementById('reportCreatedModal');
+        if (!modal) return;
+        
+        // Update report ID
+        const reportIdEl = modal.querySelector('#createdReportId');
+        if (reportIdEl) reportIdEl.textContent = reportData.id;
+        
+        // Update report link
+        const reportLinkEl = modal.querySelector('#reportLink');
+        if (reportLinkEl) reportLinkEl.value = `${window.location.origin}/report.html?id=${reportData.id}`;
+        
+        // Update invoice information if available
+        const invoiceInfoEl = modal.querySelector('#invoiceInfo');
+        if (invoiceInfoEl) {
+            if (invoice) {
+                invoiceInfoEl.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        تم إنشاء الفاتورة رقم <strong>${invoice.id}</strong>
+                    </div>
+                `;
+            } else if (reportData.billingEnabled) {
+                invoiceInfoEl.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        تم تفعيل الفوترة لهذا التقرير. يمكنك إنشاء فاتورة من صفحة <a href="create-invoice.html" class="alert-link">إنشاء فاتورة</a>.
+                    </div>
+                `;
+            } else {
+                invoiceInfoEl.innerHTML = '';
+            }
         }
         
-        // Add invoice information to modal
-        const successMessage = document.querySelector('#reportCreatedModal .modal-body p');
-        if (successMessage) {
-            successMessage.innerHTML = `تم إنشاء التقرير ورقم الفاتورة <strong>${invoice.id}</strong> بنجاح!`;
-        }
-        
-        // Add invoice link to modal
-        const modalFooter = document.querySelector('#reportCreatedModal .modal-footer');
-        if (modalFooter) {
-            const invoiceBtn = document.createElement('a');
-            invoiceBtn.href = `#`;
-            invoiceBtn.className = 'btn btn-info';
-            invoiceBtn.innerHTML = '<i class="fas fa-file-invoice me-2"></i> عرض الفاتورة';
-            invoiceBtn.onclick = function(e) {
+        // Set up view report button
+        const viewReportBtn = modal.querySelector('#viewReportBtn');
+        if (viewReportBtn) {
+            viewReportBtn.onclick = function(e) {
                 e.preventDefault();
-                // Close the current modal
-                bootstrap.Modal.getInstance(document.getElementById('reportCreatedModal')).hide();
-                
-                // Show invoice modal
-                setTimeout(() => {
-                    // Populate invoice modal
-                    populateInvoiceModal(invoice);
-                    
-                    // Show the modal
-                    const invoiceModal = new bootstrap.Modal(document.getElementById('invoiceModal'));
-                    invoiceModal.show();
-                }, 500);
+                window.location.href = `report.html?id=${reportData.id}`;
             };
-            
-            // Add to modal footer before the last button
-            modalFooter.insertBefore(invoiceBtn, modalFooter.lastElementChild);
+        }
+        
+        // Set up create invoice button if billing is enabled but no invoice was created
+        const createInvoiceBtn = modal.querySelector('#createInvoiceBtn');
+        if (createInvoiceBtn) {
+            if (reportData.billingEnabled && !invoice) {
+                createInvoiceBtn.style.display = 'inline-block';
+                createInvoiceBtn.onclick = function(e) {
+                    e.preventDefault();
+                    window.location.href = 'create-invoice.html';
+                };
+            } else {
+                createInvoiceBtn.style.display = 'none';
+            }
         }
     }
     

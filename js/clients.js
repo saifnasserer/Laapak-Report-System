@@ -86,8 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('غير مصرح لك بإضافة عملاء');
                 }
                 
-                // Use ApiService to create client - using the correct endpoint path
-                const newClient = await apiService.request('/api/clients', 'POST', {
+                // Use ApiService's createClient method
+                const newClient = await apiService.createClient({
                     name: clientName,
                     phone: clientPhone,
                     email: clientEmail,
@@ -104,18 +104,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 document.getElementById('addClientForm').reset();
                 
-                // Add the new client to the clientsData array and refresh display
-                if (newClient) {
-                    if (Array.isArray(clientsData)) {
+                // Always reload all clients from the API to ensure we have the latest data
+                try {
+                    // Force a complete reload of clients from API
+                    await loadClients();
+                    console.log('Successfully refreshed client data after adding new client');
+                } catch (refreshError) {
+                    console.warn('Error refreshing client data, using local update:', refreshError);
+                    // Fall back to local update if API refresh fails
+                    if (newClient && Array.isArray(clientsData)) {
                         clientsData.push(newClient);
                         displayClients(clientsData);
-                    } else {
-                        // If something went wrong with the response, reload all clients
-                        loadClients();
                     }
-                } else {
-                    // If no client data returned, reload all clients
-                    loadClients();
                 }
             } catch (error) {
                 console.error('Error adding client:', error);
@@ -145,8 +145,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('غير مصرح لك بتعديل بيانات العملاء');
                 }
                 
-                // Use ApiService to update client - using the correct endpoint path
-                const updatedClient = await apiService.request(`/api/clients/${clientId}`, 'PUT', {
+                // Use ApiService's updateClient method
+                const updatedClient = await apiService.updateClient(clientId, {
                     name: clientName,
                     phone: clientPhone,
                     email: clientEmail,
@@ -161,19 +161,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     modal.hide();
                 }
                 
-                // Update the client in the clientsData array and refresh display
-                if (updatedClient) {
-                    const index = clientsData.findIndex(c => c.id == clientId);
-                    if (index !== -1) {
-                        clientsData[index] = updatedClient;
-                        displayClients(clientsData);
-                    } else {
-                        // If client not found in array, reload all clients
-                        loadClients();
+                // Always reload all clients from the API to ensure we have the latest data
+                try {
+                    // Force a complete reload of clients from API
+                    await loadClients();
+                    console.log('Successfully refreshed client data after updating client');
+                } catch (refreshError) {
+                    console.warn('Error refreshing client data, using local update:', refreshError);
+                    // Fall back to local update if API refresh fails
+                    if (updatedClient) {
+                        const index = clientsData.findIndex(c => c.id == clientId);
+                        if (index !== -1) {
+                            clientsData[index] = updatedClient;
+                            displayClients(clientsData);
+                        }
                     }
-                } else {
-                    // If no client data returned, reload all clients
-                    loadClients();
                 }
             } catch (error) {
                 console.error('Error updating client:', error);
@@ -248,10 +250,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     .join('&');
             }
             
-            // Use ApiService to get clients - using the correct endpoint path
+            // Use ApiService's getClients method
             console.log('Fetching clients with filters:', filters);
-            const data = await apiService.request(`/api/clients${queryParams}`);
-            console.log('Clients data received:', data);
+            let data;
+            try {
+                if (typeof apiService !== 'undefined' && typeof apiService.getClients === 'function') {
+                    data = await apiService.getClients();
+                } else {
+                    throw new Error('API service not available');
+                }
+                console.log('Clients data received:', data);
+            } catch (apiError) {
+                console.error('Error calling API service:', apiError);
+                throw apiError; // Re-throw to be caught by the outer try-catch
+            }
             
             // Check if data has clients property or if the response is an array
             if (Array.isArray(data)) {
@@ -410,20 +422,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('غير مصرح لك بحذف العملاء');
             }
             
-            // Use ApiService to delete client - using the correct endpoint path
-            await apiService.request(`/api/clients/${clientId}`, 'DELETE');
+            // Use ApiService's deleteClient method
+            if (typeof apiService !== 'undefined' && typeof apiService.deleteClient === 'function') {
+                await apiService.deleteClient(clientId);
+            } else {
+                throw new Error('API service not available');
+            }
             
             // Show success message
             alert('تم حذف العميل بنجاح');
             
-            // Remove the client from the clientsData array and refresh display
-            const index = clientsData.findIndex(c => c.id == clientId);
-            if (index !== -1) {
-                clientsData.splice(index, 1);
-                displayClients(clientsData);
-            } else {
-                // If client not found in array, reload all clients
-                loadClients();
+            // Always reload all clients from the API to ensure we have the latest data
+            try {
+                // Force a complete reload of clients from API
+                await loadClients();
+                console.log('Successfully refreshed client data after deleting client');
+            } catch (refreshError) {
+                console.warn('Error refreshing client data, using local update:', refreshError);
+                // Fall back to local update if API refresh fails
+                const index = clientsData.findIndex(c => c.id == clientId);
+                if (index !== -1) {
+                    clientsData.splice(index, 1);
+                    displayClients(clientsData);
+                }
             }
         } catch (error) {
             console.error('Error deleting client:', error);

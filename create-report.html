@@ -81,8 +81,93 @@
                     <!-- Step 1: Basic Information -->
                     <div class="form-step" id="step1">
                         <h4 class="mb-4">المعلومات الأساسية</h4>
-                                    
-                                    
+                        <div class="card-header bg-success bg-opacity-10">
+                            <h5 class="mb-0 text-success"><i class="fas fa-user me-2"></i> بيانات العميل</h5>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">اختر عميل</label>
+                            <div class="d-flex mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <select class="form-select" id="clientSelect" onchange="clientSelectionChanged(this)">
+                                        <option value="" selected>اختر عميل...</option>
+                                        <!-- Client options will be loaded dynamically -->
+                                    </select>
+                                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                                        <i class="fas fa-plus"></i> عميل جديد
+                                    </button>
+                                </div>
+                                <div id="clientLoadingIndicator" class="spinner-border spinner-border-sm text-primary ms-2 mt-2" role="status" style="display: none;">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Client search filter -->
+                            <div class="mb-3">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-filter" style="color: #0eaf54;"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="clientSearchFilter" placeholder="البحث عن عميل بالاسم أو رقم الهاتف..." aria-label="البحث عن عميل">
+                                    <button class="btn btn-outline-secondary" type="button" id="clearClientSearch">
+                                        <i class="fas fa-times" style="color: #0eaf54;"></i>
+                                    </button>
+                                </div>
+                                
+                            </div>
+                            
+                            <div id="selectedClientInfo" class="card border-0 bg-light p-3 mb-3" style="display: none;">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h6 class="mb-1" id="selectedClientName">اسم العميل</h6>
+                                        <div class="text-muted small">
+                                            <span id="selectedClientPhone"><i class="fas fa-phone me-1"></i> رقم الهاتف</span>
+                                            <span class="mx-2">|</span>
+                                            <span id="selectedClientEmail"><i class="fas fa-envelope me-1"></i> البريد الإلكتروني</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="badge bg-info text-white" id="selectedClientOrderCode">رقم الطلب</span>
+                                            <span class="badge bg-secondary text-white ms-1" id="selectedClientStatus">الحالة</span>
+                                        </div>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="editSelectedClient">
+                                            <i class="fas fa-edit"></i> تعديل
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-3 pt-3 border-top">
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <div class="small text-muted">العنوان</div>
+                                            <div id="selectedClientAddress">غير متوفر</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="small text-muted">تاريخ آخر تقرير</div>
+                                            <div id="selectedClientLastReport">لا يوجد تقارير سابقة</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Quick client actions -->
+                            <div id="clientQuickActions" class="d-flex justify-content-end mb-3" style="display: none !important;">
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="viewClientHistory">
+                                    <i class="fas fa-history"></i> سجل العميل
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info" id="viewClientReports">
+                                    <i class="fas fa-file-alt"></i> تقارير سابقة
+                                </button>
+                            </div>
+                        </div>
+    
                                     <div class="card mb-4 shadow-sm">
                                         <div class="card-header bg-success bg-opacity-10">
                                             <h5 class="mb-0 text-success"><i class="fas fa-laptop me-2"></i> بيانات الجهاز والفحص</h5>
@@ -781,8 +866,17 @@
                                                 </div>
                                             </div>
                                             
-                                            <!-- Payment Information -->
+                                            <!-- Billing Toggle -->
                                             <div class="mb-4">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="enableBilling" checked>
+                                                    <label class="form-check-label fw-bold" for="enableBilling">تفعيل الفوترة</label>
+                                                </div>
+                                                <p class="text-muted small mb-3">عند تفعيل الفوترة، سيتم إنشاء فاتورة تلقائيًا مع التقرير. إذا كنت ترغب في إنشاء فاتورة لاحقًا، يمكنك إلغاء تفعيل هذا الخيار.</p>
+                                            </div>
+                                            
+                                            <!-- Payment Information -->
+                                            <div class="mb-4" id="paymentInfoSection">
                                                 <h6 class="fw-bold mb-3">معلومات الدفع</h6>
                                                 <div class="row">
                                                     <div class="col-md-6">
@@ -845,7 +939,7 @@
                                     
                                     <div class="form-navigation text-center">
                                         <button type="button" class="btn btn-prev-step btn-secondary me-3">السابق</button>
-                                        <button type="submit" class="btn btn-success px-4">إنشاء التقرير والفاتورة</button>
+                                        <button type="submit" class="btn btn-success px-4" id="submitReportBtn">إنشاء التقرير</button>
                                     </div>
                                 </div>
                                 
@@ -1029,6 +1123,8 @@
     
     <!-- Custom JS Files -->
     <script src="js/offline-handler.js"></script>
+    <script src="js/api-service.js"></script>
+    <script src="js/auth-middleware.js"></script>
     <script src="js/header-component.js"></script>
     <script src="js/invoice-generator.js"></script>
     <script src="js/invoice-form.js"></script>
@@ -1106,10 +1202,10 @@
 
     <!-- JavaScript Files -->
     <script src="js/form-steps.js"></script>
-    <script src="js/client-selection.js"></script>
     <script src="js/component-tests.js"></script>
     <script src="js/invoice-form.js"></script>
     <script src="js/invoice-generator.js"></script>
+    <script src="js/create-report.js"></script>
     
     <!-- Form navigation -->
     <script>
@@ -1124,5 +1220,57 @@
             });
         });
     </script>
+    <!-- Add Client Modal -->
+    <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> إضافة عميل جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="addClientForm">
+                        <div class="mb-3">
+                            <label for="clientName" class="form-label">اسم العميل <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="clientName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientPhone" class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="clientPhone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientEmail" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="clientEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientAddress" class="form-label">العنوان</label>
+                            <textarea class="form-control" id="clientAddress" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientOrderCode" class="form-label">رقم الطلب <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="clientOrderCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-block">حالة العميل</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="clientStatus" id="statusActive" value="active" checked>
+                                <label class="form-check-label" for="statusActive">نشط</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="clientStatus" id="statusInactive" value="inactive">
+                                <label class="form-check-label" for="statusInactive">غير نشط</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveClientBtn">
+                        <i class="fas fa-save me-2"></i> حفظ العميل
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

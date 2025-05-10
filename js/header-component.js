@@ -12,6 +12,7 @@ class LpkHeader {
                 { text: 'الرئيسية', url: 'admin.html', icon: 'fas fa-tachometer-alt', id: 'dashboard' },
                 { text: 'تقرير جديد', url: 'create-report.html', icon: 'fas fa-plus-circle', id: 'create-report' },
                 { text: 'التقارير', url: 'reports.html', icon: 'fas fa-file-alt', id: 'reports' },
+                { text: 'إنشاء فاتورة', url: 'create-invoice.html', icon: 'fas fa-file-invoice-dollar', id: 'create-invoice' },
                 { text: 'العملاء', url: 'clients.html', icon: 'fas fa-users', id: 'clients' },
                 { text: 'الإعدادات', url: 'settings.html', icon: 'fas fa-cog', id: 'settings' }
             ],
