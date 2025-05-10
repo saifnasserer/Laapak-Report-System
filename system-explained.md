@@ -130,19 +130,24 @@ The authentication system and backend API provide the foundation for both client
 
 #### Backend Structure
 - **API Routes**:
-  - `routes/auth.js`: Handles admin authentication
-  - `routes/clients.js`: Includes client authentication endpoints
-  - `routes/users.js`: Manages admin user accounts
+  - `routes/auth.js`: Handles admin authentication with JWT token generation
+  - `routes/clients.js`: Includes client authentication endpoints and client CRUD operations
+  - `routes/users.js`: Manages admin user accounts with role-based access control
   - `routes/reset-password.js`: Handles password reset functionality
-  - `routes/reports.js`: Manages report CRUD operations
+  - `routes/reports.js`: Manages report CRUD operations with technical tests and external inspection data
+  - `routes/invoices.js`: Handles invoice creation, retrieval, updating, and deletion
 
 - **Middleware**:
   - `middleware/auth.js`: Verifies JWT tokens and enforces role-based access control
 
 - **Models**:
-  - `models/Admin.js`: Defines the admin user schema
-  - `models/Client.js`: Defines the client schema
+  - `models/Admin.js`: Defines the admin user schema with role-based permissions
+  - `models/Client.js`: Defines the client schema with order code authentication
   - `models/Report.js`: Defines the report schema with relationships to Admin and Client
+  - `models/ReportTechnicalTest.js`: Defines the technical test components of reports
+  - `models/ReportExternalInspection.js`: Defines the external inspection components of reports
+  - `models/Invoice.js`: Defines the invoice schema with relationships to Reports and Clients
+  - `models/InvoiceItem.js`: Defines the invoice line items with support for different item types
 
 #### Authentication Flow
 1. **Login Request**: User submits credentials (admin: username/password, client: phone/orderCode)
@@ -193,32 +198,51 @@ The authentication system and backend API provide the foundation for both client
 - **Server Setup**:
   - `server.js`: Main entry point that configures Express and middleware
   - `config/config.js`: Application configuration settings
-  - `config/db.js`: Database connection setup
-  - `config/dbInit.js`: Database initialization and seeding
+  - `config/db.js`: Database connection setup using Sequelize ORM
+  - `config/dbInit.js`: Database initialization and seeding with migration support
+  - `config/setupDatabase.js`: Script for clean database setup and recreation
 
 - **API Routes**:
-  - `routes/clients.js`: Client CRUD operations
-  - `routes/reports.js`: Report management endpoints
-  - `routes/health.js`: System health check endpoints
+  - `routes/clients.js`: Client CRUD operations with authentication
+  - `routes/reports.js`: Report management endpoints with support for technical tests and external inspections
+  - `routes/invoices.js`: Invoice management with line items and payment tracking
+  - `routes/health.js`: System health check endpoints with database connection verification
+  
+- **Database Migrations**:
+  - `config/migrations/001_create_reports_table.sql`: Creates the reports table schema
+  - `config/migrations/002_create_report_technical_tests_table.sql`: Creates the technical tests table schema
+  - `config/migrations/003_create_report_external_inspection_table.sql`: Creates the external inspection table schema
+  - `config/migrations/004_create_invoices_table.sql`: Creates the invoices table schema
+  - `config/migrations/005_create_invoice_items_table.sql`: Creates the invoice items table schema
 
 - **Database Models**:
-  - `models/Admin.js`: Admin user model
-  - `models/Client.js`: Client model
-  - `models/Report.js`: Report model
+  - `models/Admin.js`: Admin user model with role-based permissions
+  - `models/Client.js`: Client model with order code authentication
+  - `models/Report.js`: Report model with client and technician associations
+  - `models/ReportTechnicalTest.js`: Technical test components model
+  - `models/ReportExternalInspection.js`: External inspection components model
+  - `models/Invoice.js`: Invoice model with report and client associations
+  - `models/InvoiceItem.js`: Invoice line items model with different item types
   - `models/index.js`: Model associations and exports
 
 ### API Data Flow
-1. **Request Reception**: Express server receives API requests
-2. **Authentication**: Middleware authenticates and authorizes requests
-3. **Data Processing**: Route handlers process requests and interact with the database
-4. **Response Generation**: Appropriate responses are generated and sent back to the client
+1. **Request Reception**: Express server receives API requests with JSON data
+2. **Authentication**: Middleware authenticates and authorizes requests using JWT tokens
+3. **Data Processing**: Route handlers process requests and interact with the database using Sequelize ORM
+4. **Transaction Management**: Database operations are wrapped in transactions to ensure data integrity
+5. **Association Handling**: Related data (like reports with technical tests) is processed in a single request
+6. **Response Generation**: Appropriate responses with status codes are generated and sent back to the client
 
 ### Security Features
-- **JWT Authentication**: Secure token-based authentication
+- **JWT Authentication**: Secure token-based authentication with expiration
 - **Password Hashing**: Secure storage of passwords using bcrypt
-- **Role-based Access Control**: Different permissions for different user roles
-- **Input Validation**: Validation of all incoming data
+- **Role-based Access Control**: Different permissions for different user roles (admin, technician, viewer)
+- **Input Validation**: Validation of all incoming data with error messages
 - **Error Handling**: Comprehensive error handling and logging
+- **Database Transactions**: Ensures data integrity during complex operations
+- **Protected Routes**: Middleware protection for sensitive operations
+- **Secure API Endpoints**: Proper authorization checks for all data access
+- **SQL Injection Prevention**: Using Sequelize ORM with parameterized queries
 
 ## File Structure Summary
 
@@ -227,24 +251,36 @@ Laapak Report System/
 ├── config/
 │   ├── config.js         # Application configuration
 │   ├── db.js             # Database connection
-│   └── dbInit.js         # Database initialization
+│   ├── dbInit.js         # Database initialization
+│   ├── setupDatabase.js  # Clean database setup script
+│   └── migrations/       # SQL migration scripts
+│       ├── 001_create_reports_table.sql
+│       ├── 002_create_report_technical_tests_table.sql
+│       ├── 003_create_report_external_inspection_table.sql
+│       ├── 004_create_invoices_table.sql
+│       └── 005_create_invoice_items_table.sql
 ├── middleware/
 │   └── auth.js           # Authentication middleware
 ├── models/
 │   ├── Admin.js          # Admin user model
 │   ├── Client.js         # Client model
 │   ├── Report.js         # Report model
+│   ├── ReportTechnicalTest.js  # Technical test model
+│   ├── ReportExternalInspection.js  # External inspection model
+│   ├── Invoice.js        # Invoice model
+│   ├── InvoiceItem.js    # Invoice item model
 │   └── index.js          # Model associations
 ├── routes/
 │   ├── auth.js           # Authentication routes
 │   ├── clients.js        # Client management routes
 │   ├── health.js         # Health check routes
 │   ├── reports.js        # Report management routes
+│   ├── invoices.js       # Invoice management routes
 │   ├── reset-password.js # Password reset routes
 │   └── users.js          # User management routes
 ├── js/
 │   ├── admin.js                # Admin dashboard logic
-│   ├── api-service.js          # API communication service
+│   ├── api-service.js          # API communication service with report and invoice methods
 │   ├── auth-check.js           # Authentication verification
 │   ├── auth-middleware.js      # Frontend auth middleware
 │   ├── client-dashboard.js     # Client dashboard logic
@@ -253,8 +289,10 @@ Laapak Report System/
 │   ├── client-warranty.js      # Client warranty logic
 │   ├── clients.js              # Client management logic
 │   ├── create-report.js        # Report creation logic with client selection
+│   ├── form-steps.js           # Multi-step form with backend integration
 │   ├── header-component.js     # Admin header component
-│   ├── invoice-generator.js    # Invoice generation logic
+│   ├── invoice-generator.js    # Invoice generation with API integration
+│   ├── invoice-form.js         # Invoice form with backend submission
 │   ├── login.js                # Login page logic
 │   ├── reports.js              # Report management logic
 │   ├── settings.js             # Entry point for settings modules
@@ -282,6 +320,134 @@ Laapak Report System/
 ```
 
 This architecture provides a scalable, maintainable, and secure foundation for the Laapak Report System, with clear separation of concerns between client and admin functionality, and a robust authentication and API layer.
+
+## 4. Report and Invoice Backend Integration
+
+The Laapak Report System now features a comprehensive backend integration for reports and invoices, enabling seamless data flow between the frontend and the database.
+
+### Report Backend Integration
+
+#### Database Schema
+
+The report data is stored in a relational database with the following structure:
+
+1. **Main Report Table (`reports`)**:
+   - Contains basic report information (client, device, dates, status)
+   - Linked to client and technician records
+   - Serves as the parent record for technical tests and external inspections
+
+2. **Technical Tests Table (`report_technical_tests`)**:
+   - Stores individual component test results
+   - Each record represents one hardware component test
+   - Fields include component name, status, and notes
+
+3. **External Inspection Table (`report_external_inspection`)**:
+   - Stores physical inspection results
+   - Each record represents one physical component inspection
+   - Fields include component name, condition status, and notes
+
+#### API Endpoints
+
+The report API provides the following endpoints:
+
+- **GET `/api/reports`**: Retrieves all reports with optional filtering
+- **GET `/api/reports/:id`**: Retrieves a specific report with all related data
+- **GET `/api/reports/without-invoice`**: Retrieves reports that don't have invoices yet
+- **POST `/api/reports`**: Creates a new report with technical tests and external inspections
+- **PUT `/api/reports/:id`**: Updates an existing report
+- **DELETE `/api/reports/:id`**: Deletes a report and all related data
+
+#### Data Flow
+
+1. **Report Creation**:
+   - Frontend collects report data through the multi-step form
+   - Data is structured into a report object with nested arrays for technical tests and external inspections
+   - The `apiService.createReport()` method sends this data to the backend
+   - Backend processes the request within a transaction to ensure data integrity
+   - Technical tests and external inspections are created as child records
+   - The report ID is returned to the frontend for reference
+
+2. **Report Retrieval**:
+   - Frontend requests report data using the report ID
+   - Backend retrieves the main report record and all associated data
+   - Data is returned as a structured JSON object with nested arrays
+   - Frontend renders the report with all its components
+
+### Invoice Backend Integration
+
+#### Database Schema
+
+The invoice data is stored with the following structure:
+
+1. **Main Invoice Table (`invoices`)**:
+   - Contains invoice header information (client, report, totals, payment status)
+   - Linked to client and optionally to a report
+   - Serves as the parent record for invoice items
+
+2. **Invoice Items Table (`invoice_items`)**:
+   - Stores individual line items in the invoice
+   - Supports different item types (laptop, item, service)
+   - Fields include description, amount, quantity, and total amount
+
+#### API Endpoints
+
+The invoice API provides the following endpoints:
+
+- **GET `/api/invoices`**: Retrieves all invoices with optional filtering
+- **GET `/api/invoices/:id`**: Retrieves a specific invoice with all line items
+- **GET `/api/invoices/client/:clientId`**: Retrieves all invoices for a specific client
+- **POST `/api/invoices`**: Creates a new invoice with line items
+- **PUT `/api/invoices/:id`**: Updates an existing invoice
+- **PUT `/api/invoices/:id/status`**: Updates just the payment status of an invoice
+- **DELETE `/api/invoices/:id`**: Deletes an invoice and all related items
+
+#### Data Flow
+
+1. **Invoice Creation**:
+   - Frontend collects invoice data through the invoice form
+   - Data is structured into an invoice object with a nested array for line items
+   - The `apiService.createInvoice()` method sends this data to the backend
+   - Backend processes the request within a transaction to ensure data integrity
+   - Line items are created as child records
+   - The invoice ID is returned to the frontend for reference
+
+2. **Invoice Retrieval**:
+   - Frontend requests invoice data using the invoice ID
+   - Backend retrieves the main invoice record and all associated items
+   - Data is returned as a structured JSON object with nested arrays
+   - Frontend renders the invoice with all its line items
+
+### Integration with Frontend Components
+
+1. **Form Steps Integration**:
+   - The `form-steps.js` file now includes backend API calls for report submission
+   - Report data is collected and formatted for the API
+   - Success and error handling provide user feedback
+
+2. **Invoice Form Integration**:
+   - The `invoice-form.js` file includes backend API calls for invoice submission
+   - Invoice data is collected, validated, and sent to the API
+   - Fallback to localStorage if API is unavailable
+
+3. **Invoice Generator Integration**:
+   - The `invoice-generator.js` file can now save invoices to the backend
+   - Supports both online and offline operation modes
+
+### Offline Support and Data Synchronization
+
+1. **Fallback Mechanisms**:
+   - All API calls include fallback to localStorage if the backend is unavailable
+   - Data is cached locally and can be synchronized later
+
+2. **Data Integrity**:
+   - Database transactions ensure that related data (reports with tests, invoices with items) is saved atomically
+   - Validation occurs on both frontend and backend to ensure data quality
+
+3. **Error Handling**:
+   - Comprehensive error handling with appropriate user feedback
+   - Failed API calls are logged with detailed information for troubleshooting
+
+This backend integration provides a robust foundation for the Laapak Report System, enabling reliable data storage, retrieval, and management for both reports and invoices.
 
 ## 5. Report Creation Process
 
@@ -327,7 +493,8 @@ The `form-steps.js` file is responsible for managing the multi-step form functio
 3. **Form Submission**
    - `handleFormSubmit(event)`: Processes the form submission
    - `collectReportData()`: Gathers all form data into a structured object
-   - `saveReport(reportData)`: Sends the report data to the backend API
+   - `saveReport(reportData)`: Sends the report data to the backend API using apiService
+   - `apiService.createReport(reportData)`: Handles the API communication for report creation
    - `showSuccessModal(reportData, invoice)`: Displays success message after submission
    - `updateSuccessModal(reportData, invoice)`: Updates modal content with report details
 

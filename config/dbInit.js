@@ -3,12 +3,66 @@
  * Creates database tables and seeds initial data
  */
 
+const fs = require('fs').promises;
+const path = require('path');
 const { sequelize } = require('./db');
-const { Admin, Client } = require('../models');
+const { Admin, Client, Report, ReportTechnicalTest, ReportExternalInspection, Invoice, InvoiceItem } = require('../models');
+
+// Run SQL migrations from files
+const runMigrations = async () => {
+    try {
+        const migrationsDir = path.join(__dirname, 'migrations');
+        
+        // Check if migrations directory exists
+        try {
+            await fs.access(migrationsDir);
+        } catch (error) {
+            console.log('Migrations directory not found, skipping migrations');
+            return true;
+        }
+        
+        // Get all migration files
+        const files = await fs.readdir(migrationsDir);
+        
+        // Sort files by name to ensure correct order
+        const migrationFiles = files
+            .filter(file => file.endsWith('.sql'))
+            .sort();
+        
+        if (migrationFiles.length === 0) {
+            console.log('No migration files found');
+            return true;
+        }
+        
+        console.log(`Found ${migrationFiles.length} migration files`);
+        
+        // Execute each migration file
+        for (const file of migrationFiles) {
+            console.log(`Running migration: ${file}`);
+            const filePath = path.join(migrationsDir, file);
+            const sql = await fs.readFile(filePath, 'utf8');
+            
+            // Execute the SQL
+            await sequelize.query(sql);
+            console.log(`Migration ${file} completed successfully`);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error running migrations:', error);
+        return false;
+    }
+};
 
 // Initialize database
 const initDatabase = async () => {
     try {
+        // Run migrations first
+        const migrationsResult = await runMigrations();
+        if (!migrationsResult) {
+            console.warn('Migrations failed, falling back to automatic sync');
+        }
+        
         // Sync all models with database
         await sequelize.sync({ alter: true });
         console.log('Database synchronized successfully');

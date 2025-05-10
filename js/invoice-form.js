@@ -400,11 +400,136 @@ document.addEventListener('DOMContentLoaded', function() {
         return invoiceData;
     }
     
-    // Expose functions to global scope for use in other scripts
-    window.invoiceFormHandler = {
-        collectInvoiceData: collectInvoiceData,
-        updateInvoiceSummary: updateInvoiceSummary,
-        addNewLaptop: addNewLaptop,
-        addNewItem: addNewItem
-    };
+    // Form submission handler
+    document.getElementById('invoiceForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        try {
+            // Show loading indicator
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
+            
+            // Get client and report data
+            const clientSelect = document.getElementById('clientSelect');
+            const reportSelect = document.getElementById('reportSelect');
+            
+            if (!clientSelect?.value) {
+                alert('الرجاء اختيار عميل');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'إنشاء الفاتورة';
+                return;
+            }
+            
+            // Get client info
+            const clientId = clientSelect.value;
+            const clientName = clientSelect.options[clientSelect.selectedIndex].text;
+            
+            // Get report info if selected
+            const reportId = reportSelect?.value || null;
+            
+            // Collect invoice data
+            const invoiceData = collectInvoiceData();
+            
+            // Add client and report info
+            invoiceData.clientId = clientId;
+            invoiceData.clientName = clientName;
+            invoiceData.reportId = reportId;
+            
+            // Save invoice to API
+            let savedInvoice;
+            if (window.apiService && typeof window.apiService.createInvoice === 'function') {
+                try {
+                    // Format data for API
+                    const apiInvoiceData = {
+                        reportId: reportId,
+                        clientId: clientId,
+                        subtotal: invoiceData.subtotal,
+                        discount: invoiceData.discount,
+                        taxRate: invoiceData.taxRate,
+                        tax: invoiceData.tax,
+                        total: invoiceData.total,
+                        paymentStatus: invoiceData.paymentStatus,
+                        paymentMethod: invoiceData.paymentMethod,
+                        items: []
+                    };
+                    
+                    // Add laptop items
+                    if (invoiceData.laptops && invoiceData.laptops.length > 0) {
+                        invoiceData.laptops.forEach(laptop => {
+                            apiInvoiceData.items.push({
+                                description: laptop.name + (laptop.serial ? ` (SN: ${laptop.serial})` : ''),
+                                type: 'laptop',
+                                amount: laptop.price,
+                                quantity: 1,
+                                totalAmount: laptop.price,
+                                serialNumber: laptop.serial
+                            });
+                            
+                            // Add additional serials as separate items if needed
+                            if (laptop.additionalSerials && laptop.additionalSerials.length > 0) {
+                                laptop.additionalSerials.forEach(serial => {
+                                    if (serial) {
+                                        apiInvoiceData.items.push({
+                                            description: laptop.name + ` (SN: ${serial})`,
+                                            type: 'laptop',
+                                            amount: laptop.price,
+                                            quantity: 1,
+                                            totalAmount: laptop.price,
+                                            serialNumber: serial
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Add additional items
+                    if (invoiceData.additionalItems && invoiceData.additionalItems.length > 0) {
+                        invoiceData.additionalItems.forEach(item => {
+                            apiInvoiceData.items.push({
+                                description: item.name,
+                                type: 'item',
+                                amount: item.price,
+                                quantity: item.quantity,
+                                totalAmount: item.totalPrice
+                            });
+                        });
+                    }
+                    
+                    savedInvoice = await window.apiService.createInvoice(apiInvoiceData);
+                    console.log('Invoice saved to API:', savedInvoice);
+                } catch (apiError) {
+                    console.error('Error saving invoice to API:', apiError);
+                    // Fall back to localStorage
+                    savedInvoice = generateInvoice(null, invoiceData);
+                }
+            } else {
+                // Fall back to localStorage
+                savedInvoice = generateInvoice(null, invoiceData);
+            }
+            
+            // Show success message
+            alert('تم إنشاء الفاتورة بنجاح');
+            
+            // Redirect to invoice page
+            window.location.href = `invoice.html?id=${savedInvoice.id}`;
+        } catch (error) {
+            console.error('Error creating invoice:', error);
+            alert('حدث خطأ أثناء إنشاء الفاتورة. الرجاء المحاولة مرة أخرى.');
+        } finally {
+            // Re-enable submit button
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'إنشاء الفاتورة';
+        }
+    });
 });
+
+// Expose functions to global scope for use in other scripts
+window.invoiceFormHandler = {
+    collectInvoiceData: collectInvoiceData,
+    updateInvoiceSummary: updateInvoiceSummary,
+    addNewLaptop: addNewLaptop,
+    addNewItem: addNewItem
+};

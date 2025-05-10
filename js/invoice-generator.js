@@ -237,10 +237,43 @@ function calculateSubtotal(items) {
 }
 
 /**
- * Save invoice to storage
+ * Save invoice to storage or API
  * @param {object} invoice - The invoice to save
+ * @returns {Promise<object>} The saved invoice
  */
-function saveInvoice(invoice) {
+async function saveInvoice(invoice) {
+    try {
+        // Try to save to API first
+        if (window.apiService && typeof window.apiService.createInvoice === 'function') {
+            const apiInvoiceData = {
+                reportId: invoice.reportId,
+                clientId: invoice.clientId,
+                subtotal: invoice.subtotal,
+                discount: invoice.discount || 0,
+                taxRate: invoice.taxRate || 14,
+                tax: invoice.tax,
+                total: invoice.total,
+                paymentStatus: invoice.paid ? 'paid' : (invoice.partiallyPaid ? 'partial' : 'unpaid'),
+                paymentMethod: invoice.paymentMethod,
+                items: invoice.items.map(item => ({
+                    description: item.description,
+                    type: item.type,
+                    amount: item.amount,
+                    quantity: item.quantity || 1,
+                    totalAmount: item.totalAmount,
+                    serialNumber: item.serialNumber
+                }))
+            };
+            
+            const savedInvoice = await window.apiService.createInvoice(apiInvoiceData);
+            console.log('Invoice saved to API:', savedInvoice);
+            return savedInvoice;
+        }
+    } catch (error) {
+        console.error('Error saving invoice to API:', error);
+    }
+    
+    // Fall back to localStorage if API fails or is not available
     // Get existing invoices from storage
     let invoices = JSON.parse(localStorage.getItem('lpk_invoices') || '[]');
     
@@ -256,6 +289,8 @@ function saveInvoice(invoice) {
         clientInvoices.push(invoice);
         localStorage.setItem(`lpk_client_${invoice.clientId}_invoices`, JSON.stringify(clientInvoices));
     }
+    
+    return invoice;
 }
 
 /**

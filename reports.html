@@ -132,117 +132,29 @@
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
+                                <!-- Loading Indicator -->
+                                <div id="loadingIndicator" class="text-center py-5 d-none">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">جاري التحميل...</span>
+                                    </div>
+                                    <p class="mt-2">جاري تحميل التقارير...</p>
+                                </div>
+                                
+                                <!-- Error Message -->
+                                <div id="errorContainer" class="alert alert-danger d-none" role="alert"></div>
+                                
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>رقم الطلب</th>
                                             <th>اسم العميل</th>
-                                            <th>موديل الجهاز</th>
+                                            <th>نوع الجهاز</th>
                                             <th>تاريخ الفحص</th>
-                                            <th class="text-center" style="width: 60px;"></th>
+                                            <th class="text-center">الإجراءات</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>LAP-2025-0001</td>
-                                            <td>أحمد محمد السيد</td>
-                                            <td>Dell XPS 15 9570</td>
-                                            <td>07-05-2025</td>
-                                            <td class="text-center">
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
-                                                        <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none;">
-                                                        <li><a class="dropdown-item py-2" href="report.html"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-edit me-2 text-warning"></i> تعديل</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-share-alt me-2 text-success"></i> مشاركة</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
-                                                    </ul>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>LAP-2025-0002</td>
-                                            <td>سارة علي أحمد</td>
-                                            <td>MacBook Pro 2021</td>
-                                            <td>06-05-2025</td>
-                                            <td class="text-center">
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
-                                                        <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none;">
-                                                        <li><a class="dropdown-item py-2" href="report.html"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-edit me-2 text-warning"></i> تعديل</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-share-alt me-2 text-success"></i> مشاركة</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
-                                                    </ul>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>LAP-2025-0003</td>
-                                            <td>محمود خالد سعيد</td>
-                                            <td>HP Spectre x360</td>
-                                            <td>05-05-2025</td>
-                                            <td class="text-center">
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
-                                                        <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none;">
-                                                        <li><a class="dropdown-item py-2" href="report.html"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-edit me-2 text-warning"></i> تعديل</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-share-alt me-2 text-success"></i> مشاركة</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
-                                                    </ul>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>LAP-2025-0004</td>
-                                            <td>فاطمة يوسف أحمد</td>
-                                            <td>Lenovo ThinkPad X1</td>
-                                            <td>04-05-2025</td>
-                                            <td class="text-center">
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
-                                                        <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none;">
-                                                        <li><a class="dropdown-item py-2" href="report.html"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-edit me-2 text-warning"></i> تعديل</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-share-alt me-2 text-success"></i> مشاركة</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
-                                                    </ul>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>LAP-2025-0005</td>
-                                            <td>عمر سمير محمود</td>
-                                            <td>ASUS ZenBook Pro</td>
-                                            <td>03-05-2025</td>
-                                            <td class="text-center">
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
-                                                        <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none;">
-                                                        <li><a class="dropdown-item py-2" href="report.html"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-edit me-2 text-warning"></i> تعديل</a></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-share-alt me-2 text-success"></i> مشاركة</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item py-2" href="#"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
-                                                    </ul>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                    <tbody id="reportsTableBody">
+                                        <!-- Reports will be loaded dynamically via JavaScript -->
                                     </tbody>
                                 </table>
                             </div>
@@ -272,8 +184,11 @@
     
     <!-- Custom JS -->
     <script src="js/main.js"></script>
+    <script src="js/auth-middleware.js"></script>
+    <script src="js/api-service.js"></script>
     <script src="js/header-component.js"></script>
     <script src="js/admin.js"></script>
+    <script src="js/reports.js"></script>
     
     <!-- Service Worker Registration for PWA -->
     <script>

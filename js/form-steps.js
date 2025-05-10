@@ -404,69 +404,176 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Handle form submission for the final step
-    document.getElementById('reportForm').addEventListener('submit', function(e) {
+    document.getElementById('reportForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         if (validateStep(currentStep)) {
             // Use the collectReportData function from create-report.js
             // This ensures consistent data collection across the application
             if (typeof collectReportData === 'function') {
-                // Show loading indicator
-                const submitBtn = this.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
-                
-                // Collect form data
-                const reportData = collectReportData();
-                
-                // Check if billing is enabled
-                const billingEnabled = document.getElementById('enableBilling')?.checked || false;
-                reportData.billingEnabled = billingEnabled;
-                
-                // Save report data
-                saveReportData(reportData);
-                
-                // Generate invoice if needed
-                let invoice = null;
-                
-                // If billing is enabled and it's a single device for a single client, generate invoice automatically
-                if (billingEnabled) {
-                    // Create basic invoice data
-                    invoice = {
-                        id: generateInvoiceNumber(),
-                        reportId: reportData.id,
-                        clientId: reportData.clientId,
-                        clientName: reportData.clientName,
-                        date: new Date().toISOString(),
-                        amount: reportData.amount || 0,
-                        status: 'pending'
-                    };
+                try {
+                    // Show loading indicator
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
                     
-                    // Save invoice data if API service is available
-                    if (typeof apiService !== 'undefined' && typeof apiService.saveInvoice === 'function') {
-                        apiService.saveInvoice(invoice).catch(error => {
-                            console.error('Error saving invoice:', error);
-                        });
+                    // Collect form data
+                    const reportData = collectReportData();
+                    
+                    // Check if billing is enabled
+                    const billingEnabled = document.getElementById('enableBilling')?.checked || false;
+                    reportData.billingEnabled = billingEnabled;
+                    
+                    // Prepare technical tests data
+                    const technicalTests = [];
+                    
+                    // Hardware components
+                    const hardwareComponents = [
+                        'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
+                        'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
+                        'card_reader_status', 'audio_jack_status'
+                    ];
+                    
+                    hardwareComponents.forEach(component => {
+                        const checkedInput = document.querySelector(`input[name="${component}"]:checked`);
+                        if (checkedInput) {
+                            technicalTests.push({
+                                componentName: component.replace('_status', ''),
+                                status: checkedInput.value,
+                                notes: ''
+                            });
+                        }
+                    });
+                    
+                    // System components
+                    const systemComponents = [
+                        { id: 'cpuStatus', name: 'cpu' },
+                        { id: 'gpuStatus', name: 'gpu' },
+                        { id: 'ramStatus', name: 'ram' },
+                        { id: 'storageStatus', name: 'storage' },
+                        { id: 'batteryStatus', name: 'battery' }
+                    ];
+                    
+                    systemComponents.forEach(component => {
+                        const select = document.getElementById(component.id);
+                        if (select && select.value) {
+                            technicalTests.push({
+                                componentName: component.name,
+                                status: select.value,
+                                notes: ''
+                            });
+                        }
+                    });
+                    
+                    // Prepare external inspection data
+                    const externalInspection = [];
+                    
+                    // External condition fields
+                    const conditionFields = [
+                        { id: 'caseCondition', name: 'case' },
+                        { id: 'screenCondition', name: 'screen' },
+                        { id: 'keyboardCondition', name: 'keyboard' },
+                        { id: 'touchpadCondition', name: 'touchpad' },
+                        { id: 'portsCondition', name: 'ports' },
+                        { id: 'hingesCondition', name: 'hinges' }
+                    ];
+                    
+                    conditionFields.forEach(field => {
+                        const select = document.getElementById(field.id);
+                        if (select && select.value) {
+                            externalInspection.push({
+                                componentName: field.name,
+                                status: select.value,
+                                notes: ''
+                            });
+                        }
+                    });
+                    
+                    // Add technical tests and external inspection to report data
+                    reportData.technicalTests = technicalTests;
+                    reportData.externalInspection = externalInspection;
+                    
+                    // Save report data to API
+                    let savedReport;
+                    if (window.apiService && typeof window.apiService.createReport === 'function') {
+                        try {
+                            savedReport = await window.apiService.createReport(reportData);
+                            console.log('Report saved to API:', savedReport);
+                        } catch (apiError) {
+                            console.error('Error saving report to API:', apiError);
+                            // Fall back to localStorage
+                            saveReportData(reportData);
+                            savedReport = reportData;
+                        }
                     } else {
-                        // Save to localStorage as fallback
-                        const storedInvoices = localStorage.getItem('lpk_invoices');
-                        const invoices = storedInvoices ? JSON.parse(storedInvoices) : [];
-                        invoices.push(invoice);
-                        localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
+                        // Fall back to localStorage
+                        saveReportData(reportData);
+                        savedReport = reportData;
                     }
+                    
+                    // Generate invoice if needed
+                    let invoice = null;
+                    
+                    // If billing is enabled, generate invoice
+                    if (billingEnabled) {
+                        // Create basic invoice data
+                        const invoiceData = {
+                            reportId: savedReport.id,
+                            clientId: savedReport.clientId,
+                            subtotal: 0,
+                            tax: 0,
+                            total: 0,
+                            items: []
+                        };
+                        
+                        // Add device as an item
+                        if (savedReport.deviceModel) {
+                            invoiceData.items.push({
+                                description: savedReport.deviceModel + (savedReport.serialNumber ? ` (SN: ${savedReport.serialNumber})` : ''),
+                                type: 'laptop',
+                                amount: 0,
+                                quantity: 1,
+                                totalAmount: 0,
+                                serialNumber: savedReport.serialNumber
+                            });
+                        }
+                        
+                        // Save invoice to API
+                        if (typeof apiService !== 'undefined' && typeof apiService.createInvoice === 'function') {
+                            try {
+                                invoice = await apiService.createInvoice(invoiceData);
+                                console.log('Invoice saved to API:', invoice);
+                            } catch (apiError) {
+                                console.error('Error saving invoice to API:', apiError);
+                                // Fall back to localStorage
+                                invoice = generateInvoice(savedReport);
+                            }
+                        } else {
+                            // Fall back to localStorage
+                            invoice = generateInvoice(savedReport);
+                        }
+                    }
+                    
+                    // Update success modal with report and invoice info
+                    updateSuccessModal(savedReport, invoice);
+                    
+                    // Show success modal
+                    const successModal = new bootstrap.Modal(document.getElementById('reportCreatedModal'));
+                    successModal.show();
+                    
+                    // Reset form
+                    this.reset();
+                    currentStep = 0;
+                    showStep(currentStep);
+                    updateProgressBar();
+                } catch (error) {
+                    console.error('Error creating report:', error);
+                    alert('حدث خطأ أثناء إنشاء التقرير. الرجاء المحاولة مرة أخرى.');
+                    
+                    // Re-enable submit button
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'إنشاء التقرير';
                 }
-                
-                // Update success modal with report and invoice info
-                updateSuccessModal(reportData, invoice);
-                
-                // Show success modal
-                const successModal = new bootstrap.Modal(document.getElementById('reportCreatedModal'));
-                successModal.show();
-                
-                // Reset form
-                this.reset();
-                currentStep = 0;
-                showStep(currentStep);
-                updateProgressBar();
             } else {
                 console.error('collectReportData function not found. Make sure create-report.js is loaded before form-steps.js');
                 alert('خطأ في معالجة البيانات. الرجاء المحاولة مرة أخرى.');
