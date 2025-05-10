@@ -1,7 +1,7 @@
 /**
  * Laapak Report System - Unified Login JavaScript
  * Handles both administrator and client authentication functionality
- * Updated to use backend authentication API
+ * Updated to use backend authentication API and apiService
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -19,7 +19,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const ADMIN_LOGIN_URL = `${API_URL}/api/auth/admin`;
     const CLIENT_LOGIN_URL = `${API_URL}/api/clients/auth`;
     
-    console.log('API endpoints:', { ADMIN_LOGIN_URL, CLIENT_LOGIN_URL });
+    console.log('Admin login URL:', ADMIN_LOGIN_URL);
+    console.log('Client login URL:', CLIENT_LOGIN_URL);
+    
+    console.log('API endpoints initialized');
     
     let isAdminLogin = false; // Default to client login
     
@@ -83,6 +86,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
+    // Create a simple API service for login if apiService is not available
+    const loginApiService = window.apiService || {
+        async adminLogin(username, password) {
+            console.log('Sending admin login request to:', ADMIN_LOGIN_URL);
+            console.log('With credentials:', { username, password });
+            
+            try {
+                const response = await fetch(ADMIN_LOGIN_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                console.log('Admin login response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Admin login error:', errorData);
+                    throw new Error(errorData.message || 'خطأ في اسم المستخدم أو كلمة المرور');
+                }
+                
+                const data = await response.json();
+                console.log('Admin login successful, received data:', data);
+                return data;
+            } catch (error) {
+                console.error('Admin login fetch error:', error);
+                throw error;
+            }
+        },
+        
+        async clientLogin(phone, orderCode) {
+            console.log('Sending client login request to:', CLIENT_LOGIN_URL);
+            console.log('With credentials:', { phone, orderCode });
+            
+            try {
+                const response = await fetch(CLIENT_LOGIN_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, orderCode })
+                });
+                
+                console.log('Client login response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Client login error:', errorData);
+                    throw new Error(errorData.message || 'خطأ في رقم الموبايل أو كود الطلب');
+                }
+                
+                const data = await response.json();
+                console.log('Client login successful, received data:', data);
+                return data;
+            } catch (error) {
+                console.error('Client login fetch error:', error);
+                throw error;
+            }
+        }
+    };
+    
     // Handle form submission
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
@@ -105,33 +167,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // Call admin login API
-                    console.log('Attempting admin login with:', { username, password: '******' });
+                    console.log('Attempting admin login with username:', username);
                     
-                    const response = await fetch(ADMIN_LOGIN_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ username, password })
-                    });
-                    
-                    console.log('Admin login response status:', response.status);
-                    
-                    const responseText = await response.text();
-                    console.log('Raw admin response:', responseText);
-                    
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                        console.log('Admin login response data:', data);
-                    } catch (e) {
-                        console.error('Failed to parse JSON response:', responseText);
-                        throw new Error('خطأ في الاتصال بالخادم');
-                    }
-                    
-                    if (!response.ok) {
-                        throw new Error(data.message || 'خطأ في اسم المستخدم أو كلمة المرور');
-                    }
+                    const data = await loginApiService.adminLogin(username, password);
+                    console.log('Admin login successful');
                     
                     // Store admin info and token
                     const adminInfo = {
@@ -139,7 +178,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         username: data.user.username,
                         name: data.user.name,
                         role: data.user.role,
-                        token: data.token
+                        isLoggedIn: true,
+                        loginTime: new Date().getTime()
                     };
                     
                     // Save to storage based on remember me option
@@ -149,6 +189,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         sessionStorage.setItem('adminToken', data.token);
                         sessionStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+                    }
+                    
+                    // Update API service auth token if available
+                    if (window.apiService && typeof window.apiService.setAuthToken === 'function') {
+                        window.apiService.setAuthToken(data.token);
                     }
                     
                     // Redirect to admin dashboard
@@ -163,47 +208,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // Call client login API
-                    console.log('Attempting client login with:', { phone: phoneNumber, orderCode: '******' });
-                    console.log('Sending request to:', CLIENT_LOGIN_URL);
+                    console.log('Attempting client login with phone:', phoneNumber);
                     
-                    const response = await fetch(CLIENT_LOGIN_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ phone: phoneNumber, orderCode })
-                    });
+                    const responseData = await loginApiService.clientLogin(phoneNumber, orderCode);
+                    console.log('Client login successful');
                     
-                    console.log('Client login response status:', response.status);
-                    
-                    const responseText = await response.text();
-                    console.log('Raw client response:', responseText);
-                    
-                    let responseData;
-                    try {
-                        responseData = JSON.parse(responseText);
-                        console.log('Client login response data:', responseData);
-                    } catch (e) {
-                        console.error('Failed to parse JSON response:', responseText);
-                        throw new Error('خطأ في الاتصال بالخادم');
-                    }
-                    
-                    if (!response.ok) {
-                        throw new Error(responseData.message || 'خطأ في رقم الموبايل أو كود الطلب');
-                    }
-                    
-                    // If we got here, login was successful
                     // Store client info and token
+                    // The backend returns client object, not user
+                    console.log('Client login response data:', responseData);
+                    
+                    // Safely create client info object with null checks
                     const clientInfo = {
-                        clientId: responseData.client.id,
-                        name: responseData.client.name,
-                        phone: responseData.client.phone,
-                        email: responseData.client.email,
+                        clientId: responseData?.client?.id || 0,
+                        name: responseData?.client?.name || 'Client',
+                        phone: responseData?.client?.phone || '',
+                        email: responseData?.client?.email || '',
                         isLoggedIn: true,
                         loginTime: new Date().getTime()
                     };
                     
-                    console.log('Storing client info:', clientInfo);
+                    // Log the created client info for debugging
+                    console.log('Created client info object:', clientInfo);
                     
                     // Save to session or local storage based on "remember me" checkbox
                     if (rememberMe) {
@@ -214,13 +239,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         sessionStorage.setItem('clientToken', responseData.token);
                     }
                     
+                    // Update API service auth token if available
+                    if (window.apiService && typeof window.apiService.setAuthToken === 'function') {
+                        window.apiService.setAuthToken(responseData.token);
+                    }
+                    
                     // Redirect to client dashboard
-                    console.log('Login successful, redirecting to client dashboard');
                     window.location.href = 'client-dashboard.html';
                 }
             } catch (error) {
                 // Show error message
                 showError(error.message);
+                console.error('Login error:', error);
             } finally {
                 // Re-enable submit button
                 loginSubmitBtn.disabled = false;

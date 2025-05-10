@@ -5,27 +5,43 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is authenticated
+    if (typeof authMiddleware !== 'undefined') {
+        if (!authMiddleware.isAdminLoggedIn() && !authMiddleware.isClientLoggedIn()) {
+            window.location.href = 'index.html';
+            return;
+        }
+    }
+    
     // Initialize header component
     const header = new LpkHeader({
         containerId: 'header-container',
         activeItem: 'reports',
     });
     
-    // Initialize components
-    initCopyLink();
-    initStarRating();
-    initReviewForm();
-    initDeviceGallery();
-    initTechGallery();
-    
-    // Initialize step-by-step walkthrough
-    initReportWalkthrough();
-    
-    // Cache report data for offline access
-    cacheReportData();
-    
-    // Check for URL parameters to auto-scroll to specific section
-    handleUrlParameters();
+    // Fetch report data from API
+    fetchReportData()
+        .then(() => {
+            // Initialize components after data is loaded
+            initCopyLink();
+            initStarRating();
+            initReviewForm();
+            initDeviceGallery();
+            initTechGallery();
+            
+            // Initialize step-by-step walkthrough
+            initReportWalkthrough();
+            
+            // Cache report data for offline access
+            cacheReportData();
+            
+            // Check for URL parameters to auto-scroll to specific section
+            handleUrlParameters();
+        })
+        .catch(error => {
+            console.error('Error loading report:', error);
+            showErrorMessage('Failed to load report data. Please try again later.');
+        });
 });
 
 /**
@@ -93,9 +109,9 @@ function cacheReportData() {
  * @returns {string} The report ID
  */
 function getReportIdFromUrl() {
-    // In a real implementation, this would extract the report ID from the URL parameters
-    // For the prototype, we'll return a placeholder ID
-    return 'LAP-2025-0001';
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    return id || 'LAP-2025-0001';
 }
 
 /**
@@ -589,6 +605,192 @@ function highlightCurrentSection(sections, currentIndex) {
     if (sections[currentIndex]) {
         sections[currentIndex].classList.add('section-highlight');
     }
+}
+
+/**
+ * Fetch report data from the API
+ * @returns {Promise} Promise that resolves when data is loaded
+ */
+async function fetchReportData() {
+    const reportId = getReportIdFromUrl();
+    
+    try {
+        // Show loading indicator
+        showLoading(true);
+        
+        // Fetch report data from API
+        const reportData = await apiService.getReport(reportId);
+        
+        // Hide loading indicator
+        showLoading(false);
+        
+        // Populate the report with data
+        populateReportData(reportData);
+        
+        return reportData;
+    } catch (error) {
+        // Hide loading indicator
+        showLoading(false);
+        
+        // Show error message
+        throw error;
+    }
+}
+
+/**
+ * Populate the report with data from the API
+ * @param {Object} reportData - The report data from the API
+ */
+function populateReportData(reportData) {
+    // Basic information
+    document.querySelector('.order-number')?.textContent = reportData.orderNumber || '';
+    document.querySelector('.inspection-date')?.textContent = formatDate(new Date(reportData.inspectionDate)) || '';
+    document.querySelector('.device-model')?.textContent = reportData.deviceModel || '';
+    document.querySelector('.serial-number')?.textContent = reportData.serialNumber || '';
+    
+    // Client information if available
+    if (reportData.Client) {
+        document.querySelector('.customer-name')?.textContent = reportData.Client.name || '';
+        document.querySelector('.customer-phone')?.textContent = reportData.Client.phone || '';
+    }
+    
+    // Technician information if available
+    if (reportData.Technician) {
+        document.querySelector('.technician-name')?.textContent = reportData.Technician.name || '';
+    }
+    
+    // Technical tests
+    document.querySelector('.cpu-status')?.textContent = reportData.cpuStatus || 'Not tested';
+    document.querySelector('.gpu-status')?.textContent = reportData.gpuStatus || 'Not tested';
+    document.querySelector('.ram-status')?.textContent = reportData.ramStatus || 'Not tested';
+    document.querySelector('.storage-status')?.textContent = reportData.storageStatus || 'Not tested';
+    document.querySelector('.battery-status')?.textContent = reportData.batteryStatus || 'Not tested';
+    document.querySelector('.screen-status')?.textContent = reportData.screenStatus || 'Not tested';
+    document.querySelector('.keyboard-status')?.textContent = reportData.keyboardStatus || 'Not tested';
+    document.querySelector('.touchpad-status')?.textContent = reportData.touchpadStatus || 'Not tested';
+    document.querySelector('.wifi-status')?.textContent = reportData.wifiStatus || 'Not tested';
+    document.querySelector('.bluetooth-status')?.textContent = reportData.bluetoothStatus || 'Not tested';
+    
+    // External inspection
+    document.querySelector('.external-condition')?.textContent = reportData.externalCondition || '';
+    document.querySelector('.case-condition')?.textContent = reportData.caseCondition || '';
+    document.querySelector('.screen-condition')?.textContent = reportData.screenCondition || '';
+    document.querySelector('.keyboard-condition')?.textContent = reportData.keyboardCondition || '';
+    
+    // Notes
+    document.querySelector('.notes')?.textContent = reportData.notes || '';
+    
+    // Status
+    const statusBadge = document.querySelector('.status-badge');
+    if (statusBadge) {
+        statusBadge.textContent = reportData.status || 'pending';
+        
+        // Update badge color based on status
+        statusBadge.className = 'badge status-badge';
+        switch (reportData.status) {
+            case 'completed':
+                statusBadge.classList.add('bg-success');
+                break;
+            case 'in-progress':
+                statusBadge.classList.add('bg-warning');
+                break;
+            case 'cancelled':
+                statusBadge.classList.add('bg-danger');
+                break;
+            default:
+                statusBadge.classList.add('bg-secondary');
+        }
+    }
+    
+    // Update report ID in the walkthrough
+    const reportIdElements = document.querySelectorAll('.report-id');
+    reportIdElements.forEach(el => {
+        el.textContent = reportData.id || '';
+    });
+}
+
+/**
+ * Show loading indicator
+ * @param {boolean} show - Whether to show or hide loading
+ */
+function showLoading(show) {
+    // Get or create loading overlay
+    let loadingOverlay = document.getElementById('loadingOverlay');
+    
+    if (!loadingOverlay && show) {
+        // Create loading overlay if it doesn't exist
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'loadingOverlay';
+        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.innerHTML = `
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">جاري تحميل التقرير...</p>
+        `;
+        
+        // Add styles if not already in CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            .loading-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(255, 255, 255, 0.8);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Add to document
+        document.body.appendChild(loadingOverlay);
+    } else if (loadingOverlay && !show) {
+        // Remove loading overlay
+        loadingOverlay.remove();
+    }
+}
+
+/**
+ * Show error message
+ * @param {string} message - Error message to display
+ */
+function showErrorMessage(message) {
+    // Create alert container if it doesn't exist
+    let alertContainer = document.getElementById('alertContainer');
+    
+    if (!alertContainer) {
+        alertContainer = document.createElement('div');
+        alertContainer.id = 'alertContainer';
+        alertContainer.className = 'container mt-4';
+        
+        // Add to document before the main content
+        const mainContent = document.querySelector('.container.py-4');
+        document.body.insertBefore(alertContainer, mainContent);
+    }
+    
+    // Create alert
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-danger alert-dismissible fade show';
+    alert.role = 'alert';
+    alert.innerHTML = `
+        <i class="fas fa-exclamation-triangle me-2"></i> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Add alert to container
+    alertContainer.appendChild(alert);
+    
+    // Auto-dismiss after 10 seconds
+    setTimeout(() => {
+        alert.classList.remove('show');
+        setTimeout(() => alert.remove(), 300);
+    }, 10000);
 }
 
 /**

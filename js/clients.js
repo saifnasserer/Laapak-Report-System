@@ -7,6 +7,9 @@
 const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api';
 const CLIENTS_API_URL = `${API_BASE_URL}/clients`;
 
+// Store clients data globally to make it accessible across functions
+let clientsData = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     // Check if admin is logged in
     if (!authMiddleware.isAdminLoggedIn()) {
@@ -40,6 +43,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load clients from the backend
     loadClients();
+    
+    // Set up event delegation for client table actions
+    setupEventDelegation();
 
     // Form submission for client search
     const searchForm = document.getElementById('searchForm');
@@ -80,8 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('غير مصرح لك بإضافة عملاء');
                 }
                 
-                // Use ApiService to create client
-                await apiService.createClient({
+                // Use ApiService to create client - using the correct endpoint path
+                const newClient = await apiService.request('/api/clients', 'POST', {
                     name: clientName,
                     phone: clientPhone,
                     email: clientEmail,
@@ -98,8 +104,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 document.getElementById('addClientForm').reset();
                 
-                // Reload clients
-                loadClients();
+                // Add the new client to the clientsData array and refresh display
+                if (newClient) {
+                    if (Array.isArray(clientsData)) {
+                        clientsData.push(newClient);
+                        displayClients(clientsData);
+                    } else {
+                        // If something went wrong with the response, reload all clients
+                        loadClients();
+                    }
+                } else {
+                    // If no client data returned, reload all clients
+                    loadClients();
+                }
             } catch (error) {
                 console.error('Error adding client:', error);
                 alert(`خطأ: ${error.message}`);
@@ -128,8 +145,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('غير مصرح لك بتعديل بيانات العملاء');
                 }
                 
-                // Use ApiService to update client
-                await apiService.updateClient(clientId, {
+                // Use ApiService to update client - using the correct endpoint path
+                const updatedClient = await apiService.request(`/api/clients/${clientId}`, 'PUT', {
                     name: clientName,
                     phone: clientPhone,
                     email: clientEmail,
@@ -144,8 +161,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     modal.hide();
                 }
                 
-                // Reload clients
-                loadClients();
+                // Update the client in the clientsData array and refresh display
+                if (updatedClient) {
+                    const index = clientsData.findIndex(c => c.id == clientId);
+                    if (index !== -1) {
+                        clientsData[index] = updatedClient;
+                        displayClients(clientsData);
+                    } else {
+                        // If client not found in array, reload all clients
+                        loadClients();
+                    }
+                } else {
+                    // If no client data returned, reload all clients
+                    loadClients();
+                }
             } catch (error) {
                 console.error('Error updating client:', error);
                 alert(`خطأ: ${error.message}`);
@@ -153,18 +182,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle client actions (view, edit, share, delete)
-    document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (e.currentTarget.textContent.includes('حذف')) {
-                e.preventDefault();
-                if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
-                    // In a real implementation, this would delete the client
-                    console.log('Client deleted');
+    /**
+     * Setup event delegation for the client table
+     * This allows us to handle events for dynamically added elements
+     */
+    function setupEventDelegation() {
+        // Use event delegation for edit and delete buttons
+        const clientsTableBody = document.getElementById('clientsTableBody');
+        if (clientsTableBody) {
+            clientsTableBody.addEventListener('click', function(event) {
+                // Find the closest button to the clicked element
+                const button = event.target.closest('button');
+                if (!button) return; // Not a button click
+                
+                // Get client ID from the button's data attribute
+                const clientId = button.getAttribute('data-client-id');
+                if (!clientId) return; // No client ID found
+                
+                // Handle edit button click
+                if (button.classList.contains('edit-client-btn')) {
+                    openEditClientModal(clientId);
                 }
-            }
-        });
-    });
+                
+                // Handle delete button click
+                if (button.classList.contains('delete-client-btn')) {
+                    if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
+                        deleteClient(clientId);
+                    }
+                }
+            });
+        }
+    }
 
     /**
      * Load clients from the backend API
@@ -176,14 +224,88 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('غير مصرح لك بعرض بيانات العملاء');
             }
             
-            // Use ApiService to get clients
-            const data = await apiService.getClients(filters);
-            displayClients(data.clients || []);
+            // Show loading indicator
+            const tableBody = document.getElementById('clientsTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 mb-0">جاري تحميل البيانات...</p>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Build query string for filters
+            let queryParams = '';
+            if (Object.keys(filters).length > 0) {
+                queryParams = '?' + Object.entries(filters)
+                    .filter(([_, value]) => value) // Only include non-empty values
+                    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                    .join('&');
+            }
+            
+            // Use ApiService to get clients - using the correct endpoint path
+            console.log('Fetching clients with filters:', filters);
+            const data = await apiService.request(`/api/clients${queryParams}`);
+            console.log('Clients data received:', data);
+            
+            // Check if data has clients property or if the response is an array
+            if (Array.isArray(data)) {
+                clientsData = data;
+            } else if (data && data.clients && Array.isArray(data.clients)) {
+                clientsData = data.clients;
+            } else {
+                console.warn('Unexpected clients data format:', data);
+                clientsData = [];
+            }
+            
+            displayClients(clientsData);
         } catch (error) {
             console.error('Error loading clients:', error);
             // If API fails, try to load from mock data
-            displayClients(getMockClients());
+            clientsData = getMockClients();
+            displayClients(clientsData);
         }
+    }
+    
+    /**
+     * Get mock clients data for fallback
+     * @returns {Array} Array of mock client objects
+     */
+    function getMockClients() {
+        return [
+            {
+                id: 1,
+                name: 'أحمد محمد',
+                phone: '0501234567',
+                email: 'ahmed@example.com',
+                address: 'الرياض، السعودية',
+                status: 'active',
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: 2,
+                name: 'سارة علي',
+                phone: '0509876543',
+                email: 'sara@example.com',
+                address: 'جدة، السعودية',
+                status: 'active',
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: 3,
+                name: 'محمود خالد',
+                phone: '0553219876',
+                email: 'mahmoud@example.com',
+                address: 'الدمام، السعودية',
+                status: 'inactive',
+                createdAt: new Date().toISOString()
+            }
+        ];
     }
     
     /**
@@ -245,35 +367,19 @@ document.addEventListener('DOMContentLoaded', function() {
             tableBody.appendChild(row);
         });
         
-        // Add event listeners to edit buttons
-        const editButtons = document.querySelectorAll('.edit-client-btn');
-        editButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const clientId = this.getAttribute('data-client-id');
-                openEditClientModal(clientId, clients);
-            });
-        });
-        
-        // Add event listeners to delete buttons
-        const deleteButtons = document.querySelectorAll('.delete-client-btn');
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const clientId = this.getAttribute('data-client-id');
-                if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
-                    deleteClient(clientId);
-                }
-            });
-        });
+        // We no longer add event listeners here since we're using event delegation
     }
     
     /**
      * Open the edit client modal and populate with client data
      * @param {string} clientId - ID of the client to edit
-     * @param {Array} clients - Array of client objects
      */
-    function openEditClientModal(clientId, clients) {
-        const client = clients.find(c => c.id == clientId);
-        if (!client) return;
+    function openEditClientModal(clientId) {
+        const client = clientsData.find(c => c.id == clientId);
+        if (!client) {
+            console.error('Client not found with ID:', clientId);
+            return;
+        }
         
         // Set form values
         document.getElementById('editClientId').value = client.id;
@@ -304,14 +410,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('غير مصرح لك بحذف العملاء');
             }
             
-            // Use ApiService to delete client
-            await apiService.deleteClient(clientId);
+            // Use ApiService to delete client - using the correct endpoint path
+            await apiService.request(`/api/clients/${clientId}`, 'DELETE');
             
             // Show success message
             alert('تم حذف العميل بنجاح');
             
-            // Reload clients
-            loadClients();
+            // Remove the client from the clientsData array and refresh display
+            const index = clientsData.findIndex(c => c.id == clientId);
+            if (index !== -1) {
+                clientsData.splice(index, 1);
+                displayClients(clientsData);
+            } else {
+                // If client not found in array, reload all clients
+                loadClients();
+            }
         } catch (error) {
             console.error('Error deleting client:', error);
             alert(`خطأ: ${error.message}`);

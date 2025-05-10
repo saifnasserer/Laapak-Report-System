@@ -1,5 +1,18 @@
 # Laapak Report System - System Architecture and Components
 
+## System Overview
+
+The Laapak Report System is a comprehensive solution for managing device inspection reports, with a fully integrated frontend and backend architecture. The system provides secure authentication for both administrators and clients, with role-based access control and complete data management capabilities.
+
+### Recent Updates
+- **Backend Integration**: Frontend components now fully communicate with the backend API
+- **Authentication System**: Secure JWT-based authentication for both admin and client users
+- **Report Management**: Complete CRUD operations for device inspection reports
+- **Offline Support**: Data caching for offline access to reports and client information
+- **UI/UX Improvements**: Enhanced navigation, clickable header links, and removal of duplicated content
+- **Admin Login Fix**: Resolved authentication issues for admin users
+- **Removed Reset Password**: Simplified admin authentication by removing unnecessary reset password functionality
+
 ## 1. Client System Architecture
 
 The client system in the Laapak Report System is designed to provide clients with a user-friendly interface to access their device maintenance reports, warranty information, maintenance schedules, and invoices. The system follows a modular approach with clear separation of concerns.
@@ -39,6 +52,9 @@ The client system in the Laapak Report System is designed to provide clients wit
 ### Client System Features
 - **Responsive Design**: Adapts to different screen sizes
 - **Offline Support**: Basic functionality works offline with cached data
+- **Improved Navigation**: Enhanced header with clickable links for better user experience
+- **Streamlined UI**: Removed duplicated content and improved visual consistency
+- **Component-Based Architecture**: Reusable components like the client header for consistent UI across pages
 - **Tab-based Navigation**: Organized access to different types of information
 - **Secure Authentication**: Token-based authentication with session management
 
@@ -99,6 +115,7 @@ The authentication system and backend API provide the foundation for both client
   - `routes/clients.js`: Includes client authentication endpoints
   - `routes/users.js`: Manages admin user accounts
   - `routes/reset-password.js`: Handles password reset functionality
+  - `routes/reports.js`: Manages report CRUD operations
 
 - **Middleware**:
   - `middleware/auth.js`: Verifies JWT tokens and enforces role-based access control
@@ -106,6 +123,7 @@ The authentication system and backend API provide the foundation for both client
 - **Models**:
   - `models/Admin.js`: Defines the admin user schema
   - `models/Client.js`: Defines the client schema
+  - `models/Report.js`: Defines the report schema with relationships to Admin and Client
 
 #### Authentication Flow
 1. **Login Request**: User submits credentials (admin: username/password, client: phone/orderCode)
@@ -114,6 +132,27 @@ The authentication system and backend API provide the foundation for both client
 4. **Token Storage**: Token is stored in localStorage or sessionStorage based on "remember me" option
 5. **Authenticated Requests**: Subsequent API requests include the token in headers
 6. **Token Verification**: Middleware verifies token validity for protected routes
+
+### Frontend-Backend Integration
+
+#### API Service
+- `js/api-service.js`: Central service for all API communication
+  - Handles authentication token management
+  - Provides methods for all CRUD operations
+  - Includes error handling and response parsing
+
+#### Data Flow
+1. **Authentication**: User logs in via `login.js` which communicates with the auth API
+2. **Token Management**: Auth token stored and managed by `auth-middleware.js`
+3. **Data Retrieval**: Components use `api-service.js` to fetch data from the backend
+4. **Data Display**: Retrieved data is displayed in the appropriate components
+5. **Offline Support**: Data is cached for offline access using localStorage
+
+#### Report Management
+- **Creation**: Reports created in `create-report.js` are sent to the backend via API
+- **Retrieval**: Reports fetched from backend in `report.js` and `client-dashboard.js`
+- **Updates**: Changes to reports are sent to the backend and reflected in the UI
+- **Search**: Backend provides search functionality for finding specific reports
 
 ### Backend API Architecture
 

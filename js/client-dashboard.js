@@ -30,46 +30,94 @@ document.addEventListener('DOMContentLoaded', function() {
     // The logoutBtn event listener is set up in that component
     
     // Load client reports and related data
-    async function loadClientReports(clientId) {
-        if (!clientId) {
-            console.error('No client ID provided for loading reports');
-            return;
-        }
-        
-        console.log('Loading reports for client ID:', clientId);
-        
+    async function loadClientReports() {
         try {
-            // Get client token
-            const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
-            if (!clientToken) {
-                throw new Error('No authentication token found');
-            }
+            // Show loading indicator
+            showLoading(true);
             
-            // Try to fetch reports from the API
-            const response = await fetch(`${REPORTS_API_URL}/${clientId}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${clientToken}`
-                }
-            });
+            // Fetch reports from API
+            const reports = await apiService.getClientReports();
+            console.log('Reports data from API:', reports);
             
-            // If API fails, use mock data
-            if (!response.ok) {
-                console.warn('Failed to fetch reports from API, using mock data');
-                displayReportsAndInvoices(getMockReports(clientId), getMockInvoices(clientId));
-                return;
-            }
+            // Hide loading indicator
+            showLoading(false);
             
-            const data = await response.json();
-            console.log('Reports data from API:', data);
+            // Generate invoices from reports (in a real implementation, these would come from the API)
+            const invoices = generateInvoicesFromReports(reports);
             
             // Display the reports and invoices
-            displayReportsAndInvoices(data.reports || [], data.invoices || []);
+            displayReportsAndInvoices(reports, invoices);
+            
+            // Cache reports for offline use
+            cacheReportsForOffline(reports, invoices);
         } catch (error) {
             console.error('Error loading client reports:', error);
-            // Fallback to mock data if API fails
-            displayReportsAndInvoices(getMockReports(clientId), getMockInvoices(clientId));
+            showLoading(false);
+            
+            // Show error message
+            showErrorMessage('Failed to load reports. ' + (navigator.onLine ? 'Please try again later.' : 'You are currently offline.'));
+            
+            // Try to load cached reports if offline
+            loadCachedReports();
         }
+    }
+    
+    /**
+     * Load cached reports from localStorage when offline
+     */
+    function loadCachedReports() {
+        try {
+            const cachedReports = JSON.parse(localStorage.getItem('cached_client_reports') || '[]');
+            const cachedInvoices = JSON.parse(localStorage.getItem('cached_client_invoices') || '[]');
+            
+            if (cachedReports.length > 0) {
+                console.log('Loaded cached reports:', cachedReports.length);
+                displayReportsAndInvoices(cachedReports, cachedInvoices);
+            } else {
+                // If no cached data, use mock data as last resort
+                displayReportsAndInvoices(getMockReports(clientInfo.id), getMockInvoices(clientInfo.id));
+            }
+        } catch (error) {
+            console.error('Error loading cached reports:', error);
+            // Fall back to mock data
+            displayReportsAndInvoices(getMockReports(clientInfo.id), getMockInvoices(clientInfo.id));
+        }
+    }
+    
+    /**
+     * Cache reports for offline use
+     */
+    function cacheReportsForOffline(reports, invoices) {
+        try {
+            localStorage.setItem('cached_client_reports', JSON.stringify(reports));
+            localStorage.setItem('cached_client_invoices', JSON.stringify(invoices));
+            console.log('Reports cached for offline use');
+        } catch (error) {
+            console.error('Error caching reports:', error);
+        }
+    }
+    
+    /**
+     * Generate invoices from reports
+     * In a real implementation, these would come from the API
+     */
+    function generateInvoicesFromReports(reports) {
+        return reports.map(report => ({
+            id: 'INV-' + report.id,
+            reportId: report.id,
+            clientId: report.clientId,
+            date: report.inspectionDate,
+            items: [
+                { description: 'Inspection Fee', amount: 150 },
+                { description: 'Parts and Repairs', amount: report.invoiceAmount ? parseFloat(report.invoiceAmount) - 150 : 0 }
+            ],
+            subtotal: report.invoiceAmount ? parseFloat(report.invoiceAmount) : 150,
+            tax: report.invoiceAmount ? parseFloat(report.invoiceAmount) * 0.15 : 22.5,
+            total: report.invoiceAmount ? parseFloat(report.invoiceAmount) * 1.15 : 172.5,
+            paid: true,
+            paymentMethod: 'Credit Card',
+            paymentDate: report.invoiceDate || report.inspectionDate
+        }));
     }
 
     // Display reports and invoices in the UI
@@ -124,10 +172,103 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-
-    // API URLs for client data
-    const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api';
-    const REPORTS_API_URL = `${API_BASE_URL}/reports/client`;
+    
+    /**
+     * Show loading indicator
+     */
+    function showLoading(show) {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        if (!loadingOverlay && show) {
+            // Create loading overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'loadingOverlay';
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">جاري تحميل البيانات...</p>
+            `;
+            
+            // Add loading overlay to body
+            document.body.appendChild(overlay);
+            
+            // Add styles if not already in CSS
+            if (!document.getElementById('loadingStyles')) {
+                const style = document.createElement('style');
+                style.id = 'loadingStyles';
+                style.textContent = `
+                    .loading-overlay {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-color: rgba(255, 255, 255, 0.8);
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 9999;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        } else if (loadingOverlay && !show) {
+            // Remove loading overlay
+            loadingOverlay.remove();
+        }
+    }
+    
+    /**
+     * Show error message
+     */
+    function showErrorMessage(message) {
+        // Create alert if it doesn't exist
+        let alertEl = document.getElementById('dashboardAlert');
+        
+        if (!alertEl) {
+            alertEl = document.createElement('div');
+            alertEl.id = 'dashboardAlert';
+            alertEl.className = 'alert alert-danger alert-dismissible fade show';
+            alertEl.role = 'alert';
+            
+            // Add close button
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'btn-close';
+            closeBtn.setAttribute('data-bs-dismiss', 'alert');
+            closeBtn.setAttribute('aria-label', 'Close');
+            
+            // Add message and button to alert
+            alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
+            alertEl.appendChild(closeBtn);
+            
+            // Add alert to page
+            const container = document.querySelector('.container.py-4');
+            if (container) {
+                container.insertBefore(alertEl, container.firstChild);
+            }
+            
+            // Auto-dismiss after 10 seconds
+            setTimeout(() => {
+                if (alertEl.parentNode) {
+                    alertEl.classList.remove('show');
+                    setTimeout(() => alertEl.remove(), 300);
+                }
+            }, 10000);
+        } else {
+            // Update existing alert
+            alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'btn-close';
+            closeBtn.setAttribute('data-bs-dismiss', 'alert');
+            closeBtn.setAttribute('aria-label', 'Close');
+            alertEl.appendChild(closeBtn);
+        }
+    }
     
     // Check for offline status
     function updateOfflineStatus() {
@@ -149,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('offline', updateOfflineStatus);
     
     // Load client data
-    loadClientReports(clientInfo.clientId);
+    loadClientReports();
 });
 
 /**

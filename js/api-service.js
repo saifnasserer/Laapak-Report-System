@@ -126,6 +126,35 @@ class ApiService {
     async healthCheck() {
         return this.request('/api/health');
     }
+    
+    // Report API Methods
+    async getReports() {
+        return this.request('/api/reports');
+    }
+    
+    async getClientReports() {
+        return this.request('/api/reports/client');
+    }
+    
+    async getReport(id) {
+        return this.request(`/api/reports/${id}`);
+    }
+    
+    async createReport(reportData) {
+        return this.request('/api/reports', 'POST', reportData);
+    }
+    
+    async updateReport(id, reportData) {
+        return this.request(`/api/reports/${id}`, 'PUT', reportData);
+    }
+    
+    async deleteReport(id) {
+        return this.request(`/api/reports/${id}`, 'DELETE');
+    }
+    
+    async searchReports(query) {
+        return this.request(`/api/reports/search/${query}`);
+    }
 }
 
 // Create a global instance

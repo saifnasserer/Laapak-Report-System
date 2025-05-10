@@ -9,12 +9,13 @@ class LpkClientHeader {
         this.options = {
             showNavigation: options.showNavigation !== undefined ? options.showNavigation : true,
             navigationItems: options.navigationItems || [
+                { text: 'الرئيسية', href: 'client-dashboard.html', target: '#reports', icon: 'fas fa-home', id: 'dashboard-tab' },
                 { text: 'تقارير الصيانة', target: '#reports', icon: 'fas fa-laptop-medical', id: 'reports-tab' },
                 { text: 'تفاصيل الضمان', target: '#warranty', icon: 'fas fa-shield-alt', id: 'warranty-tab' },
                 { text: 'مواعيد الصيانة', target: '#maintenance', icon: 'fas fa-tools', id: 'maintenance-tab' },
                 { text: 'الفواتير', target: '#invoices', icon: 'fas fa-file-invoice-dollar', id: 'invoices-tab' }
             ],
-            activeItem: options.activeItem || 'reports-tab',
+            activeItem: options.activeItem || 'dashboard-tab',
             clientName: options.clientName || 'العميل'
         };
         
@@ -105,10 +106,16 @@ class LpkClientHeader {
         // Navigation items
         this.options.navigationItems.forEach(item => {
             const isActive = item.id === this.options.activeItem;
+            
+            // Check if this is a direct page link or a tab
+            const isPageLink = item.href && !item.target.startsWith('#');
+            
             html += `
                         <li class="nav-item px-1">
-                            <a href="${item.target}" class="nav-link client-nav-link${isActive ? ' active fw-bold' : ''} rounded-pill px-3 py-2 mx-1" 
-                               id="${item.id}" data-bs-toggle="tab" data-bs-target="${item.target}" role="tab"
+                            <a href="${isPageLink ? item.href : item.target}" 
+                               class="nav-link client-nav-link${isActive ? ' active fw-bold' : ''} rounded-pill px-3 py-2 mx-1" 
+                               id="${item.id}" 
+                               ${!isPageLink ? 'data-bs-toggle="tab" data-bs-target="' + item.target + '" role="tab"' : ''}
                                style="${isActive ? 'background-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15);' : 'transition: all 0.3s ease;'}">
                                 <i class="${item.icon} me-2"></i>${item.text}
                             </a>

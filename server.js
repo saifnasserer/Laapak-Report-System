@@ -18,8 +18,8 @@ const { initDatabase } = require('./config/dbInit');
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
 const healthRoutes = require('./routes/health');
-const resetPasswordRoutes = require('./routes/reset-password');
 const clientsRoutes = require('./routes/clients');
+const reportsRoutes = require('./routes/reports');
 const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
@@ -39,8 +39,8 @@ app.use(express.static('./'));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/health', healthRoutes);
-app.use('/api/reset-password', resetPasswordRoutes);
 app.use('/api/clients', clientsRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // Protected routes examples
 app.get('/api/protected', auth, (req, res) => {
