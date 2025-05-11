@@ -4,8 +4,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if client is logged in using auth-middleware
-    if (!authMiddleware.isClientLoggedIn()) {
+    // Check if client is logged in using Laravel API service
+    if (!apiService.isLoggedIn('client')) {
         console.log('Client not logged in, redirecting to login page');
         window.location.href = 'index.html';
         return;

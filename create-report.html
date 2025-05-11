@@ -79,7 +79,7 @@
                     </div>
                     
                     <!-- Step 1: Basic Information -->
-                    <div class="form-step" id="step1">
+                    <div class="form-step" id="step1" style="display: block;">
                         <h4 class="mb-4">المعلومات الأساسية</h4>
                         <div class="card-header bg-success bg-opacity-10">
                             <h5 class="mb-0 text-success"><i class="fas fa-user me-2"></i> بيانات العميل</h5>
@@ -206,8 +206,8 @@
                                     </div>
                                     
                                     <div class="form-navigation text-center">
-                                        <button type="button" class="btn btn-prev-step btn-secondary" style="display: none;">السابق</button>
-                                        <button type="button" class="btn btn-next-step btn-primary px-5">التالي</button>
+                                        <button type="button" class="btn btn-prev-step btn-secondary" style="display: none;" onclick="console.log('Prev button clicked'); if(typeof handlePrevButtonClick === 'function') handlePrevButtonClick(event); else alert('handlePrevButtonClick function not found');">السابق</button>
+                                        <button type="button" class="btn btn-next-step btn-primary px-5" onclick="console.log('Next button clicked'); if(typeof handleNextButtonClick === 'function') handleNextButtonClick(event); else alert('handleNextButtonClick function not found');">التالي</button>
                                     </div>
                                 </div>
                                 
@@ -904,17 +904,7 @@
                                             <div class="card bg-light">
                                                 <div class="card-body">
                                                     <h6 class="fw-bold mb-3">ملخص الفاتورة</h6>
-                                                    <!-- <div class="d-flex justify-content-between mb-2">
-                                                        <span>رسوم التشخيص والفحص:</span>
-                                                        <span id="diagnosticFeeDisplay">150.00 جنية</span>
-                                                    </div>
-                                                    <div class="d-flex justify-content-between mb-2">
-                                                        <span>أجور الصيانة والإصلاح:</span>
-                                                        <span id="laborFeeDisplay">100.00 جنية</span>
-                                                    </div> -->
-                                                        <!-- <span>قطع الغيار:</span>
-                                                        <span id="partsTotal">0.00 جنية</span>
-                                                    </div> -->
+                                                    
                                                     <div class="d-flex justify-content-between mb-2">
                                                         <span>المجموع الفرعي:</span>
                                                         <span id="subtotalDisplay">250.00 جنية</span>
@@ -1201,25 +1191,213 @@
     </script>
 
     <!-- JavaScript Files -->
+    <script src="js/laravel-api-service.js"></script>
     <script src="js/form-steps.js"></script>
     <script src="js/component-tests.js"></script>
     <script src="js/invoice-form.js"></script>
     <script src="js/invoice-generator.js"></script>
     <script src="js/create-report.js"></script>
     
-    <!-- Form navigation -->
+    <!-- Direct script to ensure buttons work properly -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const submitBtn = document.getElementById('submitBtn');
+        // Define these functions directly in the global scope
+        window.currentStep = 0;
+        
+        window.handleNextButtonClick = function(event) {
+            console.log('Next button clicked - direct implementation');
+            event.preventDefault();
             
-            // For the prototype, just simulate moving to next step
-            nextBtn.addEventListener('click', function() {
-                alert('سيتم الانتقال للخطوة التالية في الإصدار النهائي');
+            // Get all form steps
+            const formSteps = document.querySelectorAll('.form-step');
+            if (formSteps.length === 0) {
+                console.error('No form steps found');
+                return;
+            }
+            
+            // Hide current step
+            formSteps[window.currentStep].style.display = 'none';
+            
+            // Move to next step
+            window.currentStep++;
+            if (window.currentStep >= formSteps.length) {
+                window.currentStep = formSteps.length - 1;
+            }
+            
+            // Show next step
+            formSteps[window.currentStep].style.display = 'block';
+            
+            // Update progress bar
+            const progressBar = document.querySelector('.steps-progress-bar');
+            if (progressBar) {
+                const progressPercentage = (window.currentStep / (formSteps.length - 1)) * 100;
+                progressBar.style.width = progressPercentage + '%';
+            }
+            
+            // Update step indicators
+            const stepItems = document.querySelectorAll('.step-item');
+            stepItems.forEach((item, idx) => {
+                if (idx < window.currentStep) {
+                    // Completed steps
+                    item.classList.remove('active');
+                    item.classList.add('completed');
+                    const button = item.querySelector('.step-button');
+                    if (button) {
+                        button.classList.remove('btn-primary', 'btn-outline-primary');
+                        button.classList.add('btn-success');
+                    }
+                } else if (idx === window.currentStep) {
+                    // Current step
+                    item.classList.add('active');
+                    item.classList.remove('completed');
+                    const button = item.querySelector('.step-button');
+                    if (button) {
+                        button.classList.remove('btn-outline-primary', 'btn-success');
+                        button.classList.add('btn-primary');
+                    }
+                } else {
+                    // Future steps
+                    item.classList.remove('active', 'completed');
+                    const button = item.querySelector('.step-button');
+                    if (button) {
+                        button.classList.remove('btn-primary', 'btn-success');
+                        button.classList.add('btn-outline-primary');
+                    }
+                }
+            });
+            
+            // Show/hide prev button based on step
+            const prevButtons = document.querySelectorAll('.btn-prev-step');
+            if (window.currentStep === 0) {
+                prevButtons.forEach(btn => btn.style.display = 'none');
+            } else {
+                prevButtons.forEach(btn => btn.style.display = 'inline-block');
+            }
+            
+            // Change next button text on last step
+            const nextButtons = document.querySelectorAll('.btn-next-step');
+            if (window.currentStep === formSteps.length - 1) {
+                nextButtons.forEach(btn => btn.textContent = 'إنشاء التقرير');
+            } else {
+                nextButtons.forEach(btn => btn.textContent = 'التالي');
+            }
+        };
+        
+        window.handlePrevButtonClick = function(event) {
+            console.log('Prev button clicked - direct implementation');
+            event.preventDefault();
+            
+            // Get all form steps
+            const formSteps = document.querySelectorAll('.form-step');
+            if (formSteps.length === 0) {
+                console.error('No form steps found');
+                return;
+            }
+            
+            // Hide current step
+            formSteps[window.currentStep].style.display = 'none';
+            
+            // Move to previous step
+            window.currentStep--;
+            if (window.currentStep < 0) {
+                window.currentStep = 0;
+            }
+            
+            // Show previous step
+            formSteps[window.currentStep].style.display = 'block';
+            
+            // Update progress bar
+            const progressBar = document.querySelector('.steps-progress-bar');
+            if (progressBar) {
+                const progressPercentage = (window.currentStep / (formSteps.length - 1)) * 100;
+                progressBar.style.width = progressPercentage + '%';
+            }
+            
+            // Update step indicators
+            const stepItems = document.querySelectorAll('.step-item');
+            stepItems.forEach((item, idx) => {
+                if (idx < window.currentStep) {
+                    // Completed steps
+                    item.classList.remove('active');
+                    item.classList.add('completed');
+                    const button = item.querySelector('.step-button');
+                    if (button) {
+                        button.classList.remove('btn-primary', 'btn-outline-primary');
+                        button.classList.add('btn-success');
+                    }
+                } else if (idx === window.currentStep) {
+                    // Current step
+                    item.classList.add('active');
+                    item.classList.remove('completed');
+                    const button = item.querySelector('.step-button');
+                    if (button) {
+                        button.classList.remove('btn-outline-primary', 'btn-success');
+                        button.classList.add('btn-primary');
+                    }
+                } else {
+                    // Future steps
+                    item.classList.remove('active', 'completed');
+                    const button = item.querySelector('.step-button');
+                    if (button) {
+                        button.classList.remove('btn-primary', 'btn-success');
+                        button.classList.add('btn-outline-primary');
+                    }
+                }
+            });
+            
+            // Show/hide prev button based on step
+            const prevButtons = document.querySelectorAll('.btn-prev-step');
+            if (window.currentStep === 0) {
+                prevButtons.forEach(btn => btn.style.display = 'none');
+            } else {
+                prevButtons.forEach(btn => btn.style.display = 'inline-block');
+            }
+            
+            // Change next button text on last step
+            const nextButtons = document.querySelectorAll('.btn-next-step');
+            if (window.currentStep === formSteps.length - 1) {
+                nextButtons.forEach(btn => btn.textContent = 'إنشاء التقرير');
+            } else {
+                nextButtons.forEach(btn => btn.textContent = 'التالي');
+            }
+        };
+        
+        // Add this script to ensure the form navigation buttons work properly
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Direct button handler script loaded');
+            console.log('handleNextButtonClick defined:', typeof window.handleNextButtonClick === 'function');
+            console.log('handlePrevButtonClick defined:', typeof window.handlePrevButtonClick === 'function');
+            
+            // Get all form steps and initialize
+            const formSteps = document.querySelectorAll('.form-step');
+            console.log('Found', formSteps.length, 'form steps');
+            
+            // Initialize form steps
+            formSteps.forEach((step, index) => {
+                step.style.display = index === 0 ? 'block' : 'none';
+            });
+            
+            // Find all next/prev buttons
+            const nextButtons = document.querySelectorAll('.btn-next-step');
+            const prevButtons = document.querySelectorAll('.btn-prev-step');
+            
+            console.log('Direct script found next buttons:', nextButtons.length);
+            console.log('Direct script found prev buttons:', prevButtons.length);
+            
+            // Add direct onclick handlers to next buttons
+            nextButtons.forEach(function(button) {
+                button.onclick = window.handleNextButtonClick;
+                console.log('Added direct handler to next button:', button);
+            });
+            
+            // Add direct onclick handlers to prev buttons
+            prevButtons.forEach(function(button) {
+                button.onclick = window.handlePrevButtonClick;
+                console.log('Added direct handler to prev button:', button);
             });
         });
     </script>
+    
+    <!-- Form navigation is now handled by form-steps.js -->
     <!-- Add Client Modal -->
     <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

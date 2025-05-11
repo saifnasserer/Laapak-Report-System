@@ -1,5 +1,12 @@
 <?php
 
+// Check if the request is for the root URL
+if ($_SERVER['REQUEST_URI'] === '/' || $_SERVER['REQUEST_URI'] === '/index.php') {
+    // Redirect to the test-api.html page
+    header('Location: /test-api.html');
+    exit;
+}
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 

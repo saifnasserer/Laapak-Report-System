@@ -4,6 +4,21 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if admin is logged in using Laravel API service
+    if (!apiService.isLoggedIn('admin')) {
+        console.log('Admin not logged in, redirecting to login page');
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    // Display admin information
+    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || sessionStorage.getItem('adminInfo') || '{}');
+    const adminNameEl = document.getElementById('adminName');
+    
+    if (adminNameEl && adminInfo.name) {
+        adminNameEl.textContent = adminInfo.name;
+    }
+    
     // Initialize components
     initCreateReportButton();
     initSearchForm();
@@ -12,6 +27,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Cache reports list for offline access
     cacheReportsList();
+    
+    // Setup logout functionality
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            apiService.logout('admin');
+            window.location.href = 'index.html';
+        });
+    }
 });
 
 /**

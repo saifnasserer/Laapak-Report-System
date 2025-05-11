@@ -4,9 +4,9 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is authenticated
-    if (typeof authMiddleware !== 'undefined') {
-        if (!authMiddleware.isAdminLoggedIn()) {
+    // Check if user is authenticated using Laravel API service
+    if (typeof apiService !== 'undefined') {
+        if (!apiService.isLoggedIn('admin')) {
             window.location.href = 'index.html';
             return;
         }
@@ -38,8 +38,8 @@ function initReports() {
         loadingIndicator.classList.remove('d-none');
     }
     
-    // Fetch reports from API
-    apiService.getReports()
+    // Fetch reports from API using Laravel API service
+    apiService.request('reports', 'GET')
         .then(data => {
             // Hide loading indicator
             if (loadingIndicator) {

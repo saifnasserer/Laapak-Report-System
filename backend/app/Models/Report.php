@@ -13,11 +13,26 @@ class Report extends Model
     use HasFactory;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'reports';
+
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'id';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
+        'id',
         'order_number',
         'client_id',
         'device_id',
@@ -27,8 +42,9 @@ class Report extends Model
         'pdf_path',
         'whatsapp_sent',
         'whatsapp_sent_at',
+        'status'
     ];
-
+    
     /**
      * The attributes that should be cast.
      *
@@ -36,8 +52,10 @@ class Report extends Model
      */
     protected $casts = [
         'inspection_date' => 'date',
-        'whatsapp_sent_at' => 'datetime',
         'whatsapp_sent' => 'boolean',
+        'whatsapp_sent_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -45,23 +63,23 @@ class Report extends Model
      */
     public function client(): BelongsTo
     {
-        return $this->belongsTo(Client::class);
+        return $this->belongsTo(Client::class, 'client_id');
     }
 
     /**
-     * Get the device that the report is for.
+     * Get the technician (admin) who created the report.
+     */
+    public function technician(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'user_id');
+    }
+    
+    /**
+     * Get the device associated with the report.
      */
     public function device(): BelongsTo
     {
-        return $this->belongsTo(Device::class);
-    }
-
-    /**
-     * Get the user who created the report.
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Device::class, 'device_id');
     }
 
     /**
@@ -89,12 +107,12 @@ class Report extends Model
     }
 
     /**
-     * Generate a unique order number for a new report.
+     * Generate a unique order code for a new report.
      * Format: LAP-YYYY-XXXX (e.g., LAP-2025-0001)
      *
      * @return string
      */
-    public static function generateOrderNumber(): string
+    public static function generateOrderCode(): string
     {
         $year = date('Y');
         $latestReport = self::where('order_number', 'like', "LAP-{$year}-%")
@@ -131,8 +149,6 @@ class Report extends Model
             ->color(10, 175, 84) // Using our brand color #0eaf54
             ->generate($url, $fullPath);
 
-        $this->update(['qr_code_path' => $path]);
-
         return $path;
     }
 
@@ -147,24 +163,11 @@ class Report extends Model
     }
 
     /**
-     * Mark report as sent via WhatsApp
-     *
-     * @return void
+     * Scope a query to filter by order code.
      */
-    public function markAsSent(): void
+    public function scopeByOrderCode($query, $orderCode)
     {
-        $this->update([
-            'whatsapp_sent' => true,
-            'whatsapp_sent_at' => now(),
-        ]);
-    }
-
-    /**
-     * Scope a query to filter by order number.
-     */
-    public function scopeByOrderNumber($query, $orderNumber)
-    {
-        return $query->where('order_number', 'like', "%{$orderNumber}%");
+        return $query->where('order_number', 'like', "%{$orderCode}%");
     }
 
     /**

@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Client extends Model
+class Client extends Authenticatable
 {
-    use HasFactory;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -19,8 +21,20 @@ class Client extends Model
         'name',
         'phone',
         'email',
+        'order_code',
+        'address',
         'notes',
-        'active',
+        'status',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'order_code',
+        'remember_token',
     ];
 
     /**
@@ -32,6 +46,14 @@ class Client extends Model
     }
 
     /**
+     * Get the invoices associated with the client.
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    /**
      * Scope a query to only include active clients.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
@@ -39,6 +61,6 @@ class Client extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('active', true);
+        return $query->where('status', 'active');
     }
 }

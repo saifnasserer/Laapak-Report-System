@@ -8,51 +8,97 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('clientLoginForm');
     const loginError = document.getElementById('loginError');
     
+    // API base URL - dynamically determine the backend URL
+    const API_BASE_URL = 'http://localhost:8000';
+    const CLIENT_LOGIN_URL = `${API_BASE_URL}/api/auth/client`;
+    
     if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const phoneNumber = document.getElementById('phoneNumber').value;
+            const phone = document.getElementById('phoneNumber').value;
             const orderCode = document.getElementById('orderCode').value;
             const rememberMe = document.getElementById('rememberMe').checked;
             
-            // In a real implementation, this would validate against a database
-            // For prototype, we'll use mock data
-            
-            // Mock clients data (in real implementation, this would come from a server)
-            const mockClients = [
-                { phone: "0501234567", orderCode: "LP12345", clientId: "1", name: "أحمد محمد" },
-                { phone: "0509876543", orderCode: "LP67890", clientId: "2", name: "سارة علي" },
-                { phone: "0553219876", orderCode: "LP54321", clientId: "3", name: "محمود خالد" }
-            ];
-            
-            // Validate credentials
-            const client = mockClients.find(c => c.phone === phoneNumber && c.orderCode === orderCode);
-            
-            if (client) {
-                // Store client info in session/local storage
-                const clientInfo = {
-                    clientId: client.clientId,
-                    name: client.name,
-                    phone: client.phone,
-                    isLoggedIn: true,
-                    loginTime: new Date().getTime()
-                };
+            try {
+                // Call the API service for client authentication
+                console.log('Attempting client login with:', { phone, orderCode });
                 
-                // Save to session or local storage based on "remember me" checkbox
-                if (rememberMe) {
-                    localStorage.setItem('clientInfo', JSON.stringify(clientInfo));
+                // Use the apiService if available, otherwise fall back to direct fetch
+                let data;
+                if (window.apiService && typeof window.apiService.clientLogin === 'function') {
+                    data = await window.apiService.clientLogin(phone, orderCode);
                 } else {
-                    sessionStorage.setItem('clientInfo', JSON.stringify(clientInfo));
+                    // Fallback to direct fetch if apiService is not available
+                    const response = await fetch(CLIENT_LOGIN_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ phone, orderCode })
+                    });
+                    
+                    // Check if the response is JSON
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                    } else {
+                        // Handle non-JSON response
+                        const text = await response.text();
+                        console.error('Received non-JSON response:', text.substring(0, 150) + '...');
+                        throw new Error('Invalid response format from server');
+                    }
                 }
                 
-                // Redirect to client dashboard
-                window.location.href = 'client-dashboard.html';
-            } else {
-                // Show error message
+                if (data && data.token) {
+                    console.log('Client login successful, token received');
+                    
+                    // Store the token using consistent key names
+                    if (rememberMe) {
+                        localStorage.setItem('clientToken', data.token);
+                    } else {
+                        sessionStorage.setItem('clientToken', data.token);
+                    }
+                    
+                    // Store client info
+                    const clientInfo = {
+                        clientId: data.user.id,
+                        name: data.user.name,
+                        phone: data.user.phone,
+                        isLoggedIn: true,
+                        loginTime: new Date().getTime()
+                    };
+                    
+                    if (rememberMe) {
+                        localStorage.setItem('clientInfo', JSON.stringify(clientInfo));
+                    } else {
+                        sessionStorage.setItem('clientInfo', JSON.stringify(clientInfo));
+                    }
+                    
+                    // Update API service token if available
+                    if (window.apiService && typeof window.apiService.setAuthToken === 'function') {
+                        window.apiService.setAuthToken(data.token);
+                    }
+                    
+                    // Redirect to client dashboard
+                    window.location.href = 'client-dashboard.html';
+                } else {
+                    // Show error message
+                    loginError.textContent = data.message || 'Invalid phone number or order code';
+                    loginError.classList.remove('d-none');
+                    
+                    // Clear error after 4 seconds
+                    setTimeout(() => {
+                        loginError.classList.add('d-none');
+                    }, 4000);
+                }
+            } catch (error) {
+                console.error('Client login fetch error:', error);
+                loginError.textContent = 'Connection error. Please try again.';
                 loginError.classList.remove('d-none');
                 
-                // Clear error after 4 seconds
                 setTimeout(() => {
                     loginError.classList.add('d-none');
                 }, 4000);

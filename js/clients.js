@@ -1,18 +1,15 @@
 /**
  * Laapak Report System - Clients Management JavaScript
  * Handles client management functionality and initializes the header component
+ * Updated to use Laravel API service
  */
-
-// API URLs
-const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api';
-const CLIENTS_API_URL = `${API_BASE_URL}/clients`;
 
 // Store clients data globally to make it accessible across functions
 let clientsData = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if admin is logged in
-    if (!authMiddleware.isAdminLoggedIn()) {
+    if (!apiService.isLoggedIn('admin')) {
         console.log('Admin not logged in, redirecting to login page');
         window.location.href = 'index.html';
         return;
@@ -35,8 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
             { text: 'الإعدادات', url: 'settings.html', icon: 'fas fa-cog' },
             { text: 'تسجيل الخروج', url: '#', icon: 'fas fa-sign-out-alt', onClick: function() {
                 console.log('Logout clicked');
-                authMiddleware.logout();
-                // No need to redirect as auth-middleware.logout() handles it
+                apiService.logout('admin');
+                window.location.href = 'index.html';
             }}
         ]
     });
@@ -82,17 +79,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             try {
-                if (!authMiddleware.isAdminLoggedIn()) {
+                if (!apiService.isLoggedIn('admin')) {
                     throw new Error('غير مصرح لك بإضافة عملاء');
                 }
                 
-                // Use ApiService's createClient method
+                // Use Laravel API service to create client
                 const newClient = await apiService.createClient({
                     name: clientName,
                     phone: clientPhone,
                     email: clientEmail,
                     address: clientAddress,
-                    orderCode: clientOrderCode,
+                    order_code: clientOrderCode,
                     status: clientStatus
                 });
                 
@@ -104,19 +101,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 document.getElementById('addClientForm').reset();
                 
-                // Always reload all clients from the API to ensure we have the latest data
-                try {
-                    // Force a complete reload of clients from API
-                    await loadClients();
-                    console.log('Successfully refreshed client data after adding new client');
-                } catch (refreshError) {
-                    console.warn('Error refreshing client data, using local update:', refreshError);
-                    // Fall back to local update if API refresh fails
-                    if (newClient && Array.isArray(clientsData)) {
-                        clientsData.push(newClient);
-                        displayClients(clientsData);
-                    }
-                }
+                // Reload clients from API
+                await loadClients();
             } catch (error) {
                 console.error('Error adding client:', error);
                 alert(`خطأ: ${error.message}`);
@@ -141,11 +127,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             try {
-                if (!authMiddleware.isAdminLoggedIn()) {
+                if (!apiService.isLoggedIn('admin')) {
                     throw new Error('غير مصرح لك بتعديل بيانات العملاء');
                 }
                 
-                // Use ApiService's updateClient method
+                // Use Laravel API service to update client
                 const updatedClient = await apiService.updateClient(clientId, {
                     name: clientName,
                     phone: clientPhone,
@@ -161,22 +147,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     modal.hide();
                 }
                 
-                // Always reload all clients from the API to ensure we have the latest data
-                try {
-                    // Force a complete reload of clients from API
-                    await loadClients();
-                    console.log('Successfully refreshed client data after updating client');
-                } catch (refreshError) {
-                    console.warn('Error refreshing client data, using local update:', refreshError);
-                    // Fall back to local update if API refresh fails
-                    if (updatedClient) {
-                        const index = clientsData.findIndex(c => c.id == clientId);
-                        if (index !== -1) {
-                            clientsData[index] = updatedClient;
-                            displayClients(clientsData);
-                        }
-                    }
-                }
+                // Reload clients from API
+                await loadClients();
             } catch (error) {
                 console.error('Error updating client:', error);
                 alert(`خطأ: ${error.message}`);
@@ -199,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Get client ID from the button's data attribute
                 const clientId = button.getAttribute('data-client-id');
-                if (!clientId) return; // No client ID found
+                if (!clientId) return;
                 
                 // Handle edit button click
                 if (button.classList.contains('edit-client-btn')) {
@@ -215,77 +187,273 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-
+    
     /**
-     * Load clients from the backend API
-     * @param {Object} filters - Optional filters for searching clients
+     * Load clients from the Laravel API
+     * @param {Object} filters - Optional filters for clients
      */
     async function loadClients(filters = {}) {
         try {
-            if (!authMiddleware.isAdminLoggedIn()) {
+            // Check if admin is logged in
+            if (!apiService.isLoggedIn('admin')) {
                 throw new Error('غير مصرح لك بعرض بيانات العملاء');
             }
             
-            // Show loading indicator
-            const tableBody = document.getElementById('clientsTableBody');
-            if (tableBody) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="text-center py-5">
+            // Show loading state
+            document.getElementById('clientsTableBody').innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <div class="d-flex justify-content-center">
                             <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
+                                <span class="visually-hidden">جاري التحميل...</span>
                             </div>
-                            <p class="mt-2 mb-0">جاري تحميل البيانات...</p>
-                        </td>
-                    </tr>
-                `;
+                        </div>
+                        <p class="mt-2">جاري تحميل بيانات العملاء...</p>
+                    </td>
+                </tr>
+            `;
+            
+            // Fetch clients from Laravel API
+            const response = await apiService.getClients(filters);
+            
+            if (response.error) {
+                throw new Error(response.message || 'حدث خطأ أثناء تحميل بيانات العملاء');
             }
             
-            // Build query string for filters
-            let queryParams = '';
-            if (Object.keys(filters).length > 0) {
-                queryParams = '?' + Object.entries(filters)
-                    .filter(([_, value]) => value) // Only include non-empty values
-                    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                    .join('&');
-            }
-            
-            // Use ApiService's getClients method
-            console.log('Fetching clients with filters:', filters);
-            let data;
-            try {
-                if (typeof apiService !== 'undefined' && typeof apiService.getClients === 'function') {
-                    data = await apiService.getClients();
-                } else {
-                    throw new Error('API service not available');
-                }
-                console.log('Clients data received:', data);
-            } catch (apiError) {
-                console.error('Error calling API service:', apiError);
-                throw apiError; // Re-throw to be caught by the outer try-catch
-            }
-            
-            // Check if data has clients property or if the response is an array
-            if (Array.isArray(data)) {
-                clientsData = data;
-            } else if (data && data.clients && Array.isArray(data.clients)) {
-                clientsData = data.clients;
+            // Process the response data
+            if (Array.isArray(response)) {
+                clientsData = response;
+            } else if (response.data && Array.isArray(response.data)) {
+                clientsData = response.data;
+            } else if (response.clients && Array.isArray(response.clients)) {
+                clientsData = response.clients;
             } else {
-                console.warn('Unexpected clients data format:', data);
+                console.warn('Unexpected clients data format:', response);
                 clientsData = [];
             }
             
+            // Display clients in the table
             displayClients(clientsData);
+            
+            // Update pagination if available
+            if (response.meta && response.meta.pagination) {
+                updatePagination(response.meta.pagination);
+            }
         } catch (error) {
             console.error('Error loading clients:', error);
-            // If API fails, try to load from mock data
-            clientsData = getMockClients();
-            displayClients(clientsData);
+            document.getElementById('clientsTableBody').innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ${error.message || 'حدث خطأ أثناء تحميل بيانات العملاء'}
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            // If API fails, try to load from mock data for development purposes
+            if (window.location.hostname === 'localhost') {
+                clientsData = getMockClients();
+                displayClients(clientsData);
+            }
         }
     }
     
     /**
-     * Get mock clients data for fallback
+     * Display clients in the table
+     * @param {Array} clients - Array of client objects
+     */
+    function displayClients(clients) {
+        const tableBody = document.getElementById('clientsTableBody');
+        if (!tableBody) return;
+        
+        if (!clients || clients.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            لا يوجد عملاء لعرضهم
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // Generate table rows for each client
+        let html = '';
+        clients.forEach((client, index) => {
+            const statusClass = client.status === 'active' ? 'bg-success' : 'bg-secondary';
+            const statusText = client.status === 'active' ? 'نشط' : 'غير نشط';
+            const createdAt = new Date(client.created_at || client.createdAt || new Date()).toLocaleDateString('ar-SA');
+            
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${client.name || ''}</td>
+                    <td>${client.phone || ''}</td>
+                    <td>${client.email || ''}</td>
+                    <td>${client.address || ''}</td>
+                    <td><span class="badge ${statusClass}">${statusText}</span></td>
+                    <td>${createdAt}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary edit-client-btn me-1" data-client-id="${client.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-client-btn" data-client-id="${client.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tableBody.innerHTML = html;
+    }
+    
+    /**
+     * Open edit client modal and populate with client data
+     * @param {string|number} clientId - Client ID
+     */
+    async function openEditClientModal(clientId) {
+        try {
+            // Find client in the cached data first
+            let client = clientsData.find(c => c.id == clientId);
+            
+            // If not found in cache, fetch from API
+            if (!client) {
+                const response = await apiService.getClient(clientId);
+                if (response.error) {
+                    throw new Error(response.message || 'حدث خطأ أثناء تحميل بيانات العميل');
+                }
+                client = response.data || response;
+            }
+            
+            if (!client) {
+                throw new Error('لم يتم العثور على العميل');
+            }
+            
+            // Populate form fields
+            document.getElementById('editClientId').value = client.id;
+            document.getElementById('editClientName').value = client.name || '';
+            document.getElementById('editClientPhone').value = client.phone || '';
+            document.getElementById('editClientEmail').value = client.email || '';
+            document.getElementById('editClientAddress').value = client.address || '';
+            
+            // Set status radio button
+            const statusActive = document.getElementById('editStatusActive');
+            const statusInactive = document.getElementById('editStatusInactive');
+            if (client.status === 'active') {
+                statusActive.checked = true;
+            } else {
+                statusInactive.checked = true;
+            }
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('editClientModal'));
+            modal.show();
+        } catch (error) {
+            console.error('Error opening edit modal:', error);
+            alert(`خطأ: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Delete a client
+     * @param {string|number} clientId - Client ID
+     */
+    async function deleteClient(clientId) {
+        try {
+            if (!apiService.isLoggedIn('admin')) {
+                throw new Error('غير مصرح لك بحذف العملاء');
+            }
+            
+            // Delete client using Laravel API service
+            const response = await apiService.deleteClient(clientId);
+            
+            if (response.error) {
+                throw new Error(response.message || 'حدث خطأ أثناء حذف العميل');
+            }
+            
+            // Show success message
+            alert('تم حذف العميل بنجاح');
+            
+            // Reload clients from API
+            await loadClients();
+        } catch (error) {
+            console.error('Error deleting client:', error);
+            alert(`خطأ: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Update pagination controls
+     * @param {Object} pagination - Pagination metadata
+     */
+    function updatePagination(pagination) {
+        const paginationContainer = document.getElementById('clientsPagination');
+        if (!paginationContainer) return;
+        
+        const { current_page, last_page, total } = pagination;
+        
+        // Generate pagination HTML
+        let html = `
+            <div class="d-flex justify-content-between align-items-center">
+                <p class="mb-0">إجمالي: ${total} عميل</p>
+                <ul class="pagination mb-0">
+        `;
+        
+        // Previous page button
+        html += `
+            <li class="page-item ${current_page === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${current_page - 1}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        `;
+        
+        // Page numbers
+        for (let i = 1; i <= last_page; i++) {
+            html += `
+                <li class="page-item ${i === current_page ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+        
+        // Next page button
+        html += `
+            <li class="page-item ${current_page === last_page ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${current_page + 1}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        `;
+        
+        html += `
+                </ul>
+            </div>
+        `;
+        
+        paginationContainer.innerHTML = html;
+        
+        // Add event listeners to pagination links
+        const pageLinks = paginationContainer.querySelectorAll('.page-link');
+        pageLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                if (page) {
+                    loadClients({ page });
+                }
+            });
+        });
+    }
+    
+    /**
+     * Get mock clients data for development purposes
      * @returns {Array} Array of mock client objects
      */
     function getMockClients() {

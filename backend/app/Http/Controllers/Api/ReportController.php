@@ -24,7 +24,7 @@ class ReportController extends Controller
      */
     public function index()
     {
-        $reports = Report::with(['client', 'device', 'user'])
+        $reports = Report::with(['client', 'technician'])
             ->orderBy('inspection_date', 'desc')
             ->get();
         
@@ -47,9 +47,9 @@ class ReportController extends Controller
             'inspection_date' => 'required|date',
             'client' => 'required|array',
             'device' => 'required|array',
-            'componentTests' => 'sometimes|array',
-            'externalInspections' => 'sometimes|array',
-            'reportNotes' => 'sometimes|array',
+            'component_tests' => 'sometimes|array',
+            'external_inspections' => 'sometimes|array',
+            'report_notes' => 'sometimes|array',
         ]);
         
         if ($validator->fails()) {
@@ -115,17 +115,20 @@ class ReportController extends Controller
             
             // Create the report
             $report = new Report([
-                'inspection_date' => $request->input('inspection_date'),
-                'order_number' => Report::generateOrderNumber(),
-                'client_id' => $client->id,
-                'device_id' => $device->id,
-                'user_id' => Auth::id() ?? 1, // Use authenticated user or default to 1 if not available
+                'id' => time(), // Use timestamp as ID
+                'inspectionDate' => $request->input('inspectionDate'),
+                'orderCode' => Report::generateOrderCode(),
+                'clientId' => $client->id,
+                'deviceModel' => $request->input('deviceModel'),
+                'serialNumber' => $request->input('serialNumber'),
+                'technicianId' => Auth::id() ?? 1, // Use authenticated user or default to 1 if not available
+                'status' => 'pending'
             ]);
             
             $report->save();
             
-            // Generate QR code
-            $report->generateQrCode();
+            // Generate QR code if needed
+            $qrCodePath = $report->generateQrCode();
             
             // Process component tests
             if ($request->has('componentTests')) {
@@ -228,14 +231,15 @@ class ReportController extends Controller
      */
     public function show($identifier)
     {
-        // Check if the identifier is an order number or an ID
-        $isOrderNumber = !is_numeric($identifier);
+        // Check if the identifier is an order code or an ID
+        $isOrderCode = !is_numeric($identifier);
         
-        $report = $isOrderNumber
-            ? Report::where('order_number', $identifier)->firstOrFail()
+        $report = $isOrderCode
+            ? Report::where('orderCode', $identifier)->firstOrFail()
             : Report::findOrFail($identifier);
-            
-        $report->load(['client', 'device', 'user', 'componentTests', 'externalInspections', 'notes']);
+        
+        // Load relationships
+        $report->load(['client', 'technician', 'componentTests', 'externalInspections', 'notes']);
         
         return response()->json([
             'success' => true, 
@@ -249,10 +253,10 @@ class ReportController extends Controller
      * @param  string  $orderNumber
      * @return \Illuminate\Http\Response
      */
-    public function publicShow($orderNumber)
+    public function publicShow($orderCode)
     {
-        $report = Report::where('order_number', $orderNumber)
-            ->with(['client', 'device', 'componentTests', 'externalInspections', 'notes'])
+        $report = Report::where('order_number', $orderCode)
+            ->with(['client', 'componentTests', 'externalInspections', 'notes'])
             ->firstOrFail();
         
         return response()->json([
@@ -277,7 +281,7 @@ class ReportController extends Controller
             
             // Update basic report info
             $validator = Validator::make($request->all(), [
-                'inspection_date' => 'required|date',
+                'inspectionDate' => 'required|date',
             ]);
             
             if ($validator->fails()) {
@@ -288,7 +292,7 @@ class ReportController extends Controller
             }
             
             $report->update([
-                'inspection_date' => $request->input('inspection_date'),
+                'inspectionDate' => $request->input('inspectionDate'),
             ]);
             
             // Update client if provided
@@ -396,57 +400,122 @@ class ReportController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function search(Request $request)
+    public function search(Request $request, $query = null)
     {
-        $query = Report::with(['client', 'device']);
+        $reportQuery = Report::with(['client', 'device']);
         
-        // Search by order number
-        if ($request->has('order_number')) {
-            $query->where('order_number', 'like', '%' . $request->input('order_number') . '%');
-        }
-        
-        // Search by client name
-        if ($request->has('client_name')) {
-            $query->whereHas('client', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->input('client_name') . '%');
+        // If a direct query parameter is provided (from the /reports/search/{query} route)
+        if ($query) {
+            $reportQuery->where(function($q) use ($query) {
+                $q->where('order_number', 'like', "%{$query}%")
+                  ->orWhereHas('client', function($subq) use ($query) {
+                      $subq->where('name', 'like', "%{$query}%")
+                           ->orWhere('phone', 'like', "%{$query}%");
+                  })
+                  ->orWhereHas('device', function($subq) use ($query) {
+                      $subq->where('model', 'like', "%{$query}%")
+                           ->orWhere('serial_number', 'like', "%{$query}%");
+                  });
             });
-        }
-        
-        // Search by client phone
-        if ($request->has('client_phone')) {
-            $query->whereHas('client', function ($q) use ($request) {
-                $q->where('phone', 'like', '%' . $request->input('client_phone') . '%');
-            });
-        }
-        
-        // Search by device serial number
-        if ($request->has('serial_number')) {
-            $query->whereHas('device', function ($q) use ($request) {
-                $q->where('serial_number', 'like', '%' . $request->input('serial_number') . '%');
-            });
-        }
-        
-        // Search by date range
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $query->whereBetween('inspection_date', [
-                $request->input('start_date'),
-                $request->input('end_date')
-            ]);
+        } else {
+            // Search by order number
+            if ($request->has('order_number')) {
+                $reportQuery->where('order_number', 'like', '%' . $request->input('order_number') . '%');
+            }
+            
+            // Search by client name
+            if ($request->has('client_name')) {
+                $reportQuery->whereHas('client', function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->input('client_name') . '%');
+                });
+            }
+            
+            // Search by client phone
+            if ($request->has('client_phone')) {
+                $reportQuery->whereHas('client', function ($q) use ($request) {
+                    $q->where('phone', 'like', '%' . $request->input('client_phone') . '%');
+                });
+            }
+            
+            // Search by device serial number
+            if ($request->has('serial_number')) {
+                $reportQuery->whereHas('device', function ($q) use ($request) {
+                    $q->where('serial_number', 'like', '%' . $request->input('serial_number') . '%');
+                });
+            }
+            
+            // Search by date range
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $reportQuery->whereBetween('inspection_date', [
+                    $request->input('start_date'),
+                    $request->input('end_date')
+                ]);
+            }
         }
         
         // Sort results
         $sortField = $request->input('sort_by', 'inspection_date');
         $sortDirection = $request->input('sort_direction', 'desc');
-        $query->orderBy($sortField, $sortDirection);
+        $reportQuery->orderBy($sortField, $sortDirection);
         
         // Paginate results
         $perPage = $request->input('per_page', 15);
-        $reports = $query->paginate($perPage);
+        $reports = $reportQuery->paginate($perPage);
         
         return response()->json([
             'success' => true,
             'data' => $reports,
             'message' => 'تم البحث بنجاح'
+        ]);
+    }
+    
+    /**
+     * Get reports for the authenticated client
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function clientReports(Request $request)
+    {
+        $client = $request->user();
+        
+        $reports = Report::with(['device', 'componentTests', 'externalInspections'])
+            ->where('client_id', $client->id)
+            ->orderBy('inspection_date', 'desc')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $reports
+        ]);
+    }
+
+    /**
+     * Get a specific report for the authenticated client
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function clientReport(Request $request, $id)
+    {
+        $client = $request->user();
+        
+        $report = Report::with(['device', 'componentTests', 'externalInspections', 'notes'])
+            ->where('client_id', $client->id)
+            ->where('id', $id)
+            ->first();
+        
+        if (!$report) {
+            return response()->json([
+                'success' => false,
+                'message' => 'التقرير غير موجود أو ليس لديك صلاحية لعرضه'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => $report
         ]);
     }
 }

@@ -1,893 +1,677 @@
 /**
- * Laapak Report System
- * Multi-step form handling
+ * form-steps.js
+ * Handles multi-step form navigation, validation, and submission for the report creation form.
+ * Includes integration with backend API for report submission.
  */
 
+// Global variables
+let currentStep = 0;
+const totalSteps = 5;
+let reportData = {};
+let clientsData = [];
+
+// Initialize the form when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Get all form steps and navigation buttons
-    const formSteps = document.querySelectorAll('.form-step');
-    const stepButtons = document.querySelectorAll('.step-button');
-    const stepItems = document.querySelectorAll('.step-item');
-    const nextButtons = document.querySelectorAll('.btn-next-step');
-    const prevButtons = document.querySelectorAll('.btn-prev-step');
-    const progressBar = document.querySelector('.steps-progress-bar');
-    
-    let     currentStep = 0;
-    
-    // Initialize form
-    showStep(currentStep);
-    updateProgressBar();
-    
-    // Event listeners for next/prev buttons
-    nextButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            if (validateStep(currentStep)) {
-                currentStep++;
-                showStep(currentStep);
-                updateProgressBar();
-            }
-        });
-    });
-    
-    prevButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            currentStep--;
-            showStep(currentStep);
-            updateProgressBar();
-        });
-    });
-    
-    // Allow clicking directly on step indicators (if previous steps are complete)
-    stepButtons.forEach((button, index) => {
-        button.addEventListener('click', () => {
-            if (index < currentStep || validateStepsBeforeJump(index)) {
-                currentStep = index;
-                showStep(currentStep);
-                updateProgressBar();
-            }
-        });
-    });
-    
-    // Show specific step and update indicators
-    function showStep(stepIndex) {
-        // Hide all steps
-        formSteps.forEach(step => {
-            step.style.display = 'none';
-        });
-        
-        // Show current step
-        formSteps[stepIndex].style.display = 'block';
-        
-        // Update step indicators
-        stepItems.forEach((item, idx) => {
-            if (idx < stepIndex) {
-                // Completed steps
-                item.classList.remove('active');
-                item.classList.add('completed');
-                item.querySelector('.step-button').classList.remove('btn-outline-primary', 'btn-primary');
-                item.querySelector('.step-button').classList.add('btn-success');
-                // Add check icon
-                item.querySelector('.step-button').innerHTML = '<i class="fas fa-check"></i>';
-            } else if (idx === stepIndex) {
-                // Current step
-                item.classList.add('active');
-                item.classList.remove('completed');
-                item.querySelector('.step-button').classList.remove('btn-outline-primary', 'btn-success');
-                item.querySelector('.step-button').classList.add('btn-primary');
-                // Restore step number
-                item.querySelector('.step-button').textContent = idx + 1;
-            } else {
-                // Future steps
-                item.classList.remove('active', 'completed');
-                item.querySelector('.step-button').classList.remove('btn-primary', 'btn-success');
-                item.querySelector('.step-button').classList.add('btn-outline-primary');
-                // Restore step number
-                item.querySelector('.step-button').textContent = idx + 1;
-            }
-        });
-        
-        // Show/hide prev button based on step
-        if (stepIndex === 0) {
-            document.querySelectorAll('.btn-prev-step').forEach(btn => btn.style.display = 'none');
-        } else {
-            document.querySelectorAll('.btn-prev-step').forEach(btn => btn.style.display = 'inline-block');
-        }
-        
-        // Change next button text on last step
-        if (stepIndex === formSteps.length - 1) {
-            document.querySelectorAll('.btn-next-step').forEach(btn => btn.textContent = 'إنشاء التقرير');
-        } else {
-            document.querySelectorAll('.btn-next-step').forEach(btn => btn.textContent = 'التالي');
-        }
-    }
-    
-    // Update progress bar
-    function updateProgressBar() {
-        if (progressBar) {
-            const progressPercentage = (currentStep / (formSteps.length - 1)) * 100;
-            progressBar.style.width = progressPercentage + '%';
-        }
-    }
-    
-    // Validate current step fields with enhanced validation
-    function validateStep(stepIndex) {
-        const currentStepEl = formSteps[stepIndex];
-        let isValid = true;
-        let errorMessages = [];
-        
-        // Clear previous validation messages
-        const existingAlerts = currentStepEl.querySelectorAll('.validation-alert');
-        existingAlerts.forEach(alert => alert.remove());
-        
-        // Step-specific validation
-        switch(stepIndex) {
-            case 0: // Basic Information
-                isValid = validateBasicInfoStep(currentStepEl, errorMessages);
-                break;
-            case 1: // Technical Tests
-                isValid = validateTechnicalTestsStep(currentStepEl, errorMessages);
-                break;
-            case 2: // External Inspection
-                isValid = validateExternalInspectionStep(currentStepEl, errorMessages);
-                break;
-            case 3: // Notes
-                isValid = validateNotesStep(currentStepEl, errorMessages);
-                break;
-            case 4: // Invoice
-                isValid = validateInvoiceStep(currentStepEl, errorMessages);
-                break;
-            default:
-                // Default validation for required fields
-                isValid = validateRequiredFields(currentStepEl, errorMessages);
-        }
-        
-        if (!isValid) {
-            // Show validation message with specific errors
-            const alertEl = createValidationAlert(currentStepEl, errorMessages);
-            alertEl.style.display = 'block';
-            
-            // Scroll to the first error
-            const firstInvalidField = currentStepEl.querySelector('.is-invalid');
-            if (firstInvalidField) {
-                firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => firstInvalidField.focus(), 500);
-            } else {
-                alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-        
-        return isValid;
-    }
-    
-    // Validate basic information step
-    function validateBasicInfoStep(stepEl, errorMessages) {
-        let isValid = true;
-        
-        // Client validation
-        const clientSelect = stepEl.querySelector('#clientSelect');
-        if (clientSelect && !clientSelect.value) {
-            errorMessages.push('الرجاء اختيار عميل أو إضافة عميل جديد');
-            isValid = false;
-            highlightElement(clientSelect.parentNode);
-        }
-        
-        // Order number validation
-        const orderNumber = stepEl.querySelector('#orderNumber');
-        if (orderNumber && !orderNumber.value.trim()) {
-            errorMessages.push('الرجاء إدخال رقم الطلب');
-            isValid = false;
-            markInvalid(orderNumber, 'هذا الحقل مطلوب');
-        }
-        
-        // Inspection date validation
-        const inspectionDate = stepEl.querySelector('#inspectionDate');
-        if (inspectionDate && !inspectionDate.value) {
-            errorMessages.push('الرجاء تحديد تاريخ الفحص');
-            isValid = false;
-            markInvalid(inspectionDate, 'هذا الحقل مطلوب');
-        }
-        
-        // Device model validation
-        const deviceModel = stepEl.querySelector('#deviceModel');
-        if (deviceModel && !deviceModel.value.trim()) {
-            errorMessages.push('الرجاء إدخال موديل الجهاز');
-            isValid = false;
-            markInvalid(deviceModel, 'هذا الحقل مطلوب');
-        }
-        
-        // Serial number validation
-        const serialNumber = stepEl.querySelector('#serialNumber');
-        if (serialNumber && !serialNumber.value.trim()) {
-            errorMessages.push('الرجاء إدخال الرقم التسلسلي');
-            isValid = false;
-            markInvalid(serialNumber, 'هذا الحقل مطلوب');
-        }
-        
-        return isValid;
-    }
-    
-    // Validate technical tests step
-    function validateTechnicalTestsStep(stepEl, errorMessages) {
-        let isValid = true;
-        
-        // Check hardware components
-        const hardwareComponents = [
-            'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
-            'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
-            'card_reader_status', 'audio_jack_status'
-        ];
-        
-        const unselectedComponents = [];
-        
-        hardwareComponents.forEach(component => {
-            const checkedInput = stepEl.querySelector(`input[name="${component}"]:checked`);
-            if (!checkedInput) {
-                unselectedComponents.push(component.replace('_status', '').replace('_', ' '));
-                isValid = false;
-                
-                // Highlight the component row
-                const componentRow = stepEl.querySelector(`input[name="${component}"]`).closest('tr');
-                if (componentRow) {
-                    componentRow.classList.add('table-danger');
-                    
-                    // Remove highlight when a radio is selected
-                    const radios = componentRow.querySelectorAll('input[type="radio"]');
-                    radios.forEach(radio => {
-                        radio.addEventListener('change', function() {
-                            componentRow.classList.remove('table-danger');
-                        }, { once: true });
-                    });
-                }
-            }
-        });
-        
-        if (unselectedComponents.length > 0) {
-            errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedComponents.join('، ')}`);
-        }
-        
-        // Check system components if they exist
-        const systemComponents = [
-            { id: 'cpuStatus', label: 'المعالج' },
-            { id: 'gpuStatus', label: 'كرت الشاشة' },
-            { id: 'ramStatus', label: 'الذاكرة' },
-            { id: 'storageStatus', label: 'التخزين' },
-            { id: 'batteryStatus', label: 'البطارية' }
-        ];
-        
-        const unselectedSystemComponents = [];
-        
-        systemComponents.forEach(component => {
-            const select = stepEl.querySelector(`#${component.id}`);
-            if (select && !select.value) {
-                unselectedSystemComponents.push(component.label);
-                isValid = false;
-                markInvalid(select, 'الرجاء تحديد الحالة');
-            }
-        });
-        
-        if (unselectedSystemComponents.length > 0) {
-            errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedSystemComponents.join('، ')}`);
-        }
-        
-        return isValid;
-    }
-    
-    // Validate external inspection step
-    function validateExternalInspectionStep(stepEl, errorMessages) {
-        let isValid = true;
-        
-        // Check external condition fields if they exist
-        const conditionFields = [
-            { id: 'caseCondition', label: 'حالة الهيكل الخارجي' },
-            { id: 'screenCondition', label: 'حالة الشاشة' },
-            { id: 'keyboardCondition', label: 'حالة لوحة المفاتيح' },
-            { id: 'touchpadCondition', label: 'حالة لوحة اللمس' },
-            { id: 'portsCondition', label: 'حالة المنافذ' },
-            { id: 'hingesCondition', label: 'حالة المفصلات' }
-        ];
-        
-        const unselectedConditions = [];
-        
-        conditionFields.forEach(field => {
-            const select = stepEl.querySelector(`#${field.id}`);
-            if (select && select.required && !select.value) {
-                unselectedConditions.push(field.label);
-                isValid = false;
-                markInvalid(select, 'الرجاء تحديد الحالة');
-            }
-        });
-        
-        if (unselectedConditions.length > 0) {
-            errorMessages.push(`الرجاء تحديد ${unselectedConditions.join('، ')}`);
-        }
-        
-        return isValid;
-    }
-    
-    // Validate notes step
-    function validateNotesStep(stepEl, errorMessages) {
-        // Notes step typically doesn't have required fields
-        return validateRequiredFields(stepEl, errorMessages);
-    }
-    
-    // Validate invoice step
-    function validateInvoiceStep(stepEl, errorMessages) {
-        // Check if billing is enabled
-        const billingEnabled = document.getElementById('enableBilling')?.checked || false;
-        
-        // If billing is disabled, no validation needed
-        if (!billingEnabled) {
-            return true;
-        }
-        
-        // Validate required fields
-        return validateRequiredFields(stepEl, errorMessages);
-    }
-    
-    // General validation for required fields
-    function validateRequiredFields(stepEl, errorMessages, addMessages = true) {
-        const requiredFields = stepEl.querySelectorAll('[required]');
-        let isValid = true;
-        
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                isValid = false;
-                field.classList.add('is-invalid');
-                
-                // Add event listener to remove invalid class when user types
-                field.addEventListener('input', function() {
-                    if (this.value.trim()) {
-                        this.classList.remove('is-invalid');
-                    }
-                }, { once: true });
-                
-                // Add error message if needed
-                if (addMessages) {
-                    const fieldLabel = getFieldLabel(field);
-                    errorMessages.push(`الرجاء إدخال ${fieldLabel}`);
-                }
-            } else {
-                field.classList.remove('is-invalid');
-            }
-        });
-        
-        return isValid;
-    }
-    
-    // Mark a form input as invalid
-    function markInvalid(input, message) {
-        if (!input) return;
-        
-        input.classList.add('is-invalid');
-        
-        // Check if feedback element already exists
-        let feedbackEl = input.nextElementSibling;
-        if (!feedbackEl || !feedbackEl.classList.contains('invalid-feedback')) {
-            feedbackEl = document.createElement('div');
-            feedbackEl.className = 'invalid-feedback';
-            input.parentNode.insertBefore(feedbackEl, input.nextSibling);
-        }
-        
-        feedbackEl.textContent = message;
-        
-        // Add event listener to remove invalid class when user interacts
-        input.addEventListener('input', function() {
-            if ((this.type === 'text' || this.type === 'textarea' || this.type === 'email' || this.type === 'tel') && this.value.trim()) {
-                this.classList.remove('is-invalid');
-            } else if (this.type === 'select-one' && this.value) {
-                this.classList.remove('is-invalid');
-            }
-        }, { once: true });
-    }
-    
-    // Get field label for error messages
-    function getFieldLabel(field) {
-        // Try to find a label for this field
-        const id = field.id;
-        if (id) {
-            const label = document.querySelector(`label[for="${id}"]`);
-            if (label) {
-                return label.textContent;
-            }
-        }
-        
-        // If no label found, use placeholder or name
-        return field.placeholder || field.name || 'هذا الحقل';
-    }
-    
-    // Validate all steps before current one when jumping to a step
-    function validateStepsBeforeJump(targetIndex) {
-        for (let i = 0; i < targetIndex; i++) {
-            if (!validateStep(i)) return false;
-        }
-        return true;
-    }
-    
-    // Handle form submission for the final step
-    document.getElementById('reportForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        if (validateStep(currentStep)) {
-            // Use the collectReportData function from create-report.js
-            // This ensures consistent data collection across the application
-            if (typeof collectReportData === 'function') {
-                try {
-                    // Show loading indicator
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
-                    
-                    // Collect form data
-                    const reportData = collectReportData();
-                    
-                    // Check if billing is enabled
-                    const billingEnabled = document.getElementById('enableBilling')?.checked || false;
-                    reportData.billingEnabled = billingEnabled;
-                    
-                    // Prepare technical tests data
-                    const technicalTests = [];
-                    
-                    // Hardware components
-                    const hardwareComponents = [
-                        'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
-                        'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
-                        'card_reader_status', 'audio_jack_status'
-                    ];
-                    
-                    hardwareComponents.forEach(component => {
-                        const checkedInput = document.querySelector(`input[name="${component}"]:checked`);
-                        if (checkedInput) {
-                            technicalTests.push({
-                                componentName: component.replace('_status', ''),
-                                status: checkedInput.value,
-                                notes: ''
-                            });
-                        }
-                    });
-                    
-                    // System components
-                    const systemComponents = [
-                        { id: 'cpuStatus', name: 'cpu' },
-                        { id: 'gpuStatus', name: 'gpu' },
-                        { id: 'ramStatus', name: 'ram' },
-                        { id: 'storageStatus', name: 'storage' },
-                        { id: 'batteryStatus', name: 'battery' }
-                    ];
-                    
-                    systemComponents.forEach(component => {
-                        const select = document.getElementById(component.id);
-                        if (select && select.value) {
-                            technicalTests.push({
-                                componentName: component.name,
-                                status: select.value,
-                                notes: ''
-                            });
-                        }
-                    });
-                    
-                    // Prepare external inspection data
-                    const externalInspection = [];
-                    
-                    // External condition fields
-                    const conditionFields = [
-                        { id: 'caseCondition', name: 'case' },
-                        { id: 'screenCondition', name: 'screen' },
-                        { id: 'keyboardCondition', name: 'keyboard' },
-                        { id: 'touchpadCondition', name: 'touchpad' },
-                        { id: 'portsCondition', name: 'ports' },
-                        { id: 'hingesCondition', name: 'hinges' }
-                    ];
-                    
-                    conditionFields.forEach(field => {
-                        const select = document.getElementById(field.id);
-                        if (select && select.value) {
-                            externalInspection.push({
-                                componentName: field.name,
-                                status: select.value,
-                                notes: ''
-                            });
-                        }
-                    });
-                    
-                    // Add technical tests and external inspection to report data
-                    reportData.technicalTests = technicalTests;
-                    reportData.externalInspection = externalInspection;
-                    
-                    // Save report data to API
-                    let savedReport;
-                    if (window.apiService && typeof window.apiService.createReport === 'function') {
-                        try {
-                            savedReport = await window.apiService.createReport(reportData);
-                            console.log('Report saved to API:', savedReport);
-                        } catch (apiError) {
-                            console.error('Error saving report to API:', apiError);
-                            // Fall back to localStorage
-                            saveReportData(reportData);
-                            savedReport = reportData;
-                        }
-                    } else {
-                        // Fall back to localStorage
-                        saveReportData(reportData);
-                        savedReport = reportData;
-                    }
-                    
-                    // Generate invoice if needed
-                    let invoice = null;
-                    
-                    // If billing is enabled, generate invoice
-                    if (billingEnabled) {
-                        // Create basic invoice data
-                        const invoiceData = {
-                            reportId: savedReport.id,
-                            clientId: savedReport.clientId,
-                            subtotal: 0,
-                            tax: 0,
-                            total: 0,
-                            items: []
-                        };
-                        
-                        // Add device as an item
-                        if (savedReport.deviceModel) {
-                            invoiceData.items.push({
-                                description: savedReport.deviceModel + (savedReport.serialNumber ? ` (SN: ${savedReport.serialNumber})` : ''),
-                                type: 'laptop',
-                                amount: 0,
-                                quantity: 1,
-                                totalAmount: 0,
-                                serialNumber: savedReport.serialNumber
-                            });
-                        }
-                        
-                        // Save invoice to API
-                        if (typeof apiService !== 'undefined' && typeof apiService.createInvoice === 'function') {
-                            try {
-                                invoice = await apiService.createInvoice(invoiceData);
-                                console.log('Invoice saved to API:', invoice);
-                            } catch (apiError) {
-                                console.error('Error saving invoice to API:', apiError);
-                                // Fall back to localStorage
-                                invoice = generateInvoice(savedReport);
-                            }
-                        } else {
-                            // Fall back to localStorage
-                            invoice = generateInvoice(savedReport);
-                        }
-                    }
-                    
-                    // Update success modal with report and invoice info
-                    updateSuccessModal(savedReport, invoice);
-                    
-                    // Show success modal
-                    const successModal = new bootstrap.Modal(document.getElementById('reportCreatedModal'));
-                    successModal.show();
-                    
-                    // Reset form
-                    this.reset();
-                    currentStep = 0;
-                    showStep(currentStep);
-                    updateProgressBar();
-                } catch (error) {
-                    console.error('Error creating report:', error);
-                    alert('حدث خطأ أثناء إنشاء التقرير. الرجاء المحاولة مرة أخرى.');
-                    
-                    // Re-enable submit button
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'إنشاء التقرير';
-                }
-            } else {
-                console.error('collectReportData function not found. Make sure create-report.js is loaded before form-steps.js');
-                alert('خطأ في معالجة البيانات. الرجاء المحاولة مرة أخرى.');
-            }
-        }
-    });
-    
-    /**
-     * Save report data to storage
-     * @param {Object} reportData - The report data to save
-     */
-    function saveReportData(reportData) {
-        // Get existing reports from storage
-        let reports = JSON.parse(localStorage.getItem('lpk_reports') || '[]');
-        
-        // Add new report
-        reports.push(reportData);
-        
-        // Save back to storage
-        localStorage.setItem('lpk_reports', JSON.stringify(reports));
-        
-        // Also save to client-specific reports if clientId exists
-        if (reportData.clientId) {
-            let clientReports = JSON.parse(localStorage.getItem(`lpk_client_${reportData.clientId}_reports`) || '[]');
-            clientReports.push(reportData);
-            localStorage.setItem(`lpk_client_${reportData.clientId}_reports`, JSON.stringify(clientReports));
-        }
-    }
-    
-    /**
-     * Generate a unique invoice number
-     * @returns {string} The generated invoice number
-     */
-    function generateInvoiceNumber() {
-        const date = new Date();
-        const year = date.getFullYear().toString().slice(-2);
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        const random = Math.floor(1000 + Math.random() * 9000);
-        
-        return `INV-${year}${month}${day}-${random}`;
-    }
-    
-    /**
-     * Update success modal with report and invoice information
-     * @param {Object} reportData - The saved report data
-     * @param {Object} invoice - The generated invoice
-     */
-    function updateSuccessModal(reportData, invoice) {
-        const modal = document.getElementById('reportCreatedModal');
-        if (!modal) return;
-        
-        // Update report ID
-        const reportIdEl = modal.querySelector('#createdReportId');
-        if (reportIdEl) reportIdEl.textContent = reportData.id;
-        
-        // Update report link
-        const reportLinkEl = modal.querySelector('#reportLink');
-        if (reportLinkEl) reportLinkEl.value = `${window.location.origin}/report.html?id=${reportData.id}`;
-        
-        // Update invoice information if available
-        const invoiceInfoEl = modal.querySelector('#invoiceInfo');
-        if (invoiceInfoEl) {
-            if (invoice) {
-                invoiceInfoEl.innerHTML = `
-                    <div class="alert alert-success">
-                        <i class="fas fa-file-invoice me-2"></i>
-                        تم إنشاء الفاتورة رقم <strong>${invoice.id}</strong>
-                    </div>
-                `;
-            } else if (reportData.billingEnabled) {
-                invoiceInfoEl.innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        تم تفعيل الفوترة لهذا التقرير. يمكنك إنشاء فاتورة من صفحة <a href="create-invoice.html" class="alert-link">إنشاء فاتورة</a>.
-                    </div>
-                `;
-            } else {
-                invoiceInfoEl.innerHTML = '';
-            }
-        }
-        
-        // Set up view report button
-        const viewReportBtn = modal.querySelector('#viewReportBtn');
-        if (viewReportBtn) {
-            viewReportBtn.onclick = function(e) {
-                e.preventDefault();
-                window.location.href = `report.html?id=${reportData.id}`;
-            };
-        }
-        
-        // Set up create invoice button if billing is enabled but no invoice was created
-        const createInvoiceBtn = modal.querySelector('#createInvoiceBtn');
-        if (createInvoiceBtn) {
-            if (reportData.billingEnabled && !invoice) {
-                createInvoiceBtn.style.display = 'inline-block';
-                createInvoiceBtn.onclick = function(e) {
-                    e.preventDefault();
-                    window.location.href = 'create-invoice.html';
-                };
-            } else {
-                createInvoiceBtn.style.display = 'none';
-            }
-        }
-    }
-    
-    /**
-     * Populate invoice modal with invoice data
-     * @param {Object} invoice - The invoice data
-     */
-    function populateInvoiceModal(invoice) {
-        const invoiceModalContent = document.getElementById('invoiceModalContent');
-        const invoiceDate = new Date(invoice.date);
-        
-        if (invoiceModalContent) {
-            invoiceModalContent.innerHTML = `
-                <div class="mb-4 text-center">
-                    <img src="img/logo.png" alt="Laapak" width="120" class="mb-3">
-                    <h5 class="mb-0 fw-bold">فاتورة صيانة</h5>
-                    <p class="text-muted small">رقم الفاتورة: ${invoice.id}</p>
-                </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-6 mb-3 mb-md-0">
-                        <h6 class="fw-bold mb-2">معلومات العميل</h6>
-                        <p class="mb-1">الاسم: ${invoice.clientName}</p>
-                        <p class="mb-0">رقم الهاتف: ${invoice.clientPhone}</p>
-                    </div>
-                    <div class="col-md-6 text-md-end">
-                        <h6 class="fw-bold mb-2">معلومات الفاتورة</h6>
-                        <p class="mb-1">التاريخ: ${formatDate(invoiceDate)}</p>
-                        <p class="mb-0">رقم التقرير: ${invoice.reportId}</p>
-                    </div>
-                </div>
-                
-                <div class="card mb-4 border-0 bg-light">
-                    <div class="card-body">
-                        <h6 class="card-title mb-3 text-primary"><i class="fas fa-list me-2"></i> تفاصيل الفاتورة</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>البيان</th>
-                                        <th class="text-end">المبلغ (ريال)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${invoice.items.map(item => `
-                                        <tr>
-                                            <td>${item.description}</td>
-                                            <td class="text-end">${item.amount.toFixed(2)}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <th>المجموع الفرعي</th>
-                                        <th class="text-end">${invoice.subtotal.toFixed(2)}</th>
-                                    </tr>
-                                    <tr>
-                                        <th>الضريبة (15%)</th>
-                                        <th class="text-end">${invoice.tax.toFixed(2)}</th>
-                                    </tr>
-                                    <tr>
-                                        <th>المجموع الكلي</th>
-                                        <th class="text-end">${invoice.total.toFixed(2)}</th>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card mb-4 border-0 bg-light">
-                    <div class="card-body">
-                        <h6 class="card-title mb-3 text-primary"><i class="fas fa-money-check-alt me-2"></i> معلومات الدفع</h6>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <p class="mb-1 fw-bold small">الحالة</p>
-                                <p class="mb-0">
-                                    <span class="badge ${invoice.paid ? 'bg-success' : 'bg-danger'} p-2">
-                                        ${invoice.paid ? 'مدفوعة' : 'غير مدفوعة'}
-                                    </span>
-                                </p>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <p class="mb-1 fw-bold small">طريقة الدفع</p>
-                                <p class="mb-0">${invoice.paymentMethod || 'غير محدد'}</p>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <p class="mb-1 fw-bold small">تاريخ الدفع</p>
-                                <p class="mb-0">${invoice.paid ? formatDate(new Date(invoice.paymentDate)) : 'لم يتم الدفع بعد'}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-center mt-4">
-                    <p class="mb-1 small fw-bold text-muted">Laapak للصيانة والدعم الفني</p>
-                    <p class="mb-0 small text-muted">الرياض، المملكة العربية السعودية</p>
-                    <p class="mb-0 small text-muted">هاتف: 0595555555</p>
-                </div>
-            `;
-        }
-    }
-    
-    /**
-     * Format date to local string
-     * @param {Date} date - The date to format
-     * @returns {string} Formatted date string
-     */
-    function formatDate(date) {
-        try {
-            return date.toLocaleDateString('ar-SA');
-        } catch (e) {
-            return date.toLocaleDateString();
-        }
-    }
-    
-    // Video upload handling
-    if (document.getElementById('deviceVideo')) {
-        document.getElementById('deviceVideo').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            // Show video preview
-            const videoPreviewContainer = document.getElementById('videoPreviewContainer');
-            const videoPreview = document.getElementById('videoPreview');
-            const videoFileName = document.getElementById('videoFileName');
-            
-            // Create object URL for the file
-            const videoURL = URL.createObjectURL(file);
-            videoPreview.src = videoURL;
-            videoFileName.textContent = file.name;
-            
-            // Show the preview container
-            videoPreviewContainer.classList.remove('d-none');
-        });
-    }
-    
-    // Component test add/remove handlers
-    if (document.getElementById('addComponentTest')) {
-        // document.getElementById('addComponentTest').addEventListener('click', function() {
-            // Show component selection dialog
-            // This would be implemented later
-            // alert('سيتم إضافة فحص جديد قريباً...');
-        // });
-        
-        // Add event listeners to remove buttons
-        document.querySelectorAll('.remove-test-btn').forEach(btn => {
-            if (!btn.disabled) {
-                btn.addEventListener('click', function() {
-                    const card = this.closest('.component-test-card');
-                    if (card) {
-                        // Add fade out animation
-                        card.style.opacity = '1';
-                        card.style.transition = 'opacity 0.3s ease';
-                        card.style.opacity = '0';
-                        
-                        // Remove after animation completes
-                        setTimeout(() => {
-                            card.remove();
-                        }, 300);
-                    }
-                });
-            }
-        });
-    }
-    
-    // Success modal functionality
-    if (document.getElementById('copyLinkBtn')) {
-        document.getElementById('copyLinkBtn').addEventListener('click', function() {
-            const reportLink = document.getElementById('reportLink');
-            reportLink.select();
-            document.execCommand('copy');
-            
-            // Show copy success message
-            this.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-copy"></i>';
-            }, 2000);
-        });
-    }
-    
-    if (document.getElementById('whatsappShareBtn')) {
-        document.getElementById('whatsappShareBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            const reportLink = document.getElementById('reportLink').value;
-            const whatsappLink = `https://wa.me/?text=${encodeURIComponent('تقرير الفحص الخاص بك من Laapak: ' + reportLink)}`;
-            window.open(whatsappLink, '_blank');
-        });
-    }
-    
-    if (document.getElementById('copyLinkBtn')) {
-        document.getElementById('copyLinkBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            // Get the current URL
-            const reportUrl = window.location.href;
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(reportUrl).then(function() {
-                // Show success message
-                alert('تم نسخ رابط التقرير بنجاح');
-            }).catch(function() {
-                // Fallback for browsers that don't support clipboard API
-                const textArea = document.createElement('textarea');
-                textArea.value = reportUrl;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert('تم نسخ رابط التقرير بنجاح');
-            });
-        });
-    }
+    initializeFormSteps();
+    setupEventListeners();
+    checkOnlineStatus();
 });
 
+/**
+ * Initialize the form steps and set up the initial state
+ */
+function initializeFormSteps() {
+    // Set the first step as active
+    showStep(0);
+    updateProgressBar();
+    
+    // Set today's date automatically for the inspection date field
+    const today = new Date();
+    const formattedDate = today.toISOString().substr(0, 10);
+    const inspectionDateField = document.getElementById('inspectionDate');
+    if (inspectionDateField) {
+        inspectionDateField.value = formattedDate;
+    }
+}
+
+/**
+ * Set up event listeners for form navigation and submission
+ */
+function setupEventListeners() {
+    // Set up next buttons
+    const nextButtons = document.querySelectorAll('.btn-next-step');
+    nextButtons.forEach(function(button) {
+        button.addEventListener('click', handleNextButtonClick);
+    });
+    
+    // Set up previous buttons
+    const prevButtons = document.querySelectorAll('.btn-prev-step');
+    prevButtons.forEach(function(button) {
+        button.addEventListener('click', handlePrevButtonClick);
+    });
+    
+    // Set up form submission
+    const reportForm = document.getElementById('reportForm');
+    if (reportForm) {
+        reportForm.addEventListener('submit', handleFormSubmit);
+    }
+    
+    // Set up step indicators for direct navigation
+    const stepButtons = document.querySelectorAll('.step-button');
+    stepButtons.forEach(function(button, index) {
+        button.addEventListener('click', function() {
+            // Only allow going to steps that have been completed or are next
+            if (index <= currentStep + 1) {
+                showStep(index);
+            }
+        });
+    });
+    
+    // Set up billing toggle
+    setupBillingToggle();
+}
+
+/**
+ * Configure the billing toggle functionality
+ */
+function setupBillingToggle() {
+    const enableBillingCheckbox = document.getElementById('enableBilling');
+    const paymentInfoSection = document.getElementById('paymentInfoSection');
+    const invoicePreviewSection = document.querySelector('.card.bg-light');
+    const submitButton = document.getElementById('submitReportBtn');
+    
+    if (!enableBillingCheckbox || !paymentInfoSection || !invoicePreviewSection || !submitButton) return;
+    
+    // Function to update UI based on checkbox state
+    function updateBillingUI() {
+        const isEnabled = enableBillingCheckbox.checked;
+        
+        // Show/hide payment info section
+        paymentInfoSection.style.display = isEnabled ? 'block' : 'none';
+        
+        // Show/hide invoice preview section
+        invoicePreviewSection.style.display = isEnabled ? 'block' : 'none';
+        
+        // Update submit button text
+        submitButton.textContent = isEnabled ? 'إنشاء التقرير والفاتورة' : 'إنشاء التقرير';
+    }
+    
+    // Set initial state
+    updateBillingUI();
+    
+    // Add event listener for checkbox changes
+    enableBillingCheckbox.addEventListener('change', updateBillingUI);
+}
+
+/**
+ * Handle click on the Next button
+ * @param {Event} event - The click event
+ */
+window.handleNextButtonClick = function(event) {
+    event.preventDefault();
+    
+    // Validate the current step
+    if (validateStep(currentStep)) {
+        // If validation passes, go to the next step
+        if (currentStep < totalSteps - 1) {
+            showStep(currentStep + 1);
+        }
+    }
+};
+
+/**
+ * Handle click on the Previous button
+ * @param {Event} event - The click event
+ */
+window.handlePrevButtonClick = function(event) {
+    event.preventDefault();
+    
+    // Go to the previous step without validation
+    if (currentStep > 0) {
+        showStep(currentStep - 1);
+    }
+};
+
+/**
+ * Display the specified step and hide others
+ * @param {number} stepIndex - The index of the step to show
+ */
+function showStep(stepIndex) {
+    // Get all form steps
+    const formSteps = document.querySelectorAll('.form-step');
+    
+    // Hide all steps
+    formSteps.forEach(function(step) {
+        step.style.display = 'none';
+    });
+    
+    // Show the specified step
+    if (formSteps[stepIndex]) {
+        formSteps[stepIndex].style.display = 'block';
+    }
+    
+    // Update the current step
+    currentStep = stepIndex;
+    
+    // Update the progress bar and step indicators
+    updateProgressBar();
+    updateStepButtons();
+    updateNavigationButtons();
+}
+
+/**
+ * Update the progress bar based on the current step
+ */
+function updateProgressBar() {
+    const progressBar = document.querySelector('.steps-progress-bar');
+    if (progressBar) {
+        const progressPercentage = (currentStep / (totalSteps - 1)) * 100;
+        progressBar.style.width = progressPercentage + '%';
+    }
+}
+
+/**
+ * Update the step indicator buttons based on the current step
+ */
+function updateStepButtons() {
+    const stepItems = document.querySelectorAll('.step-item');
+    const stepButtons = document.querySelectorAll('.step-button');
+    
+    stepItems.forEach(function(item, index) {
+        // Remove all classes first
+        item.classList.remove('active', 'completed');
+        
+        // Add appropriate classes based on step status
+        if (index < currentStep) {
+            item.classList.add('completed');
+            stepButtons[index].classList.remove('btn-outline-primary');
+            stepButtons[index].classList.add('btn-success');
+        } else if (index === currentStep) {
+            item.classList.add('active');
+            stepButtons[index].classList.remove('btn-outline-primary', 'btn-success');
+            stepButtons[index].classList.add('btn-primary');
+        } else {
+            stepButtons[index].classList.remove('btn-primary', 'btn-success');
+            stepButtons[index].classList.add('btn-outline-primary');
+        }
+    });
+}
+
+/**
+ * Update the navigation buttons based on the current step
+ */
+function updateNavigationButtons() {
+    const prevButtons = document.querySelectorAll('.btn-prev-step');
+    const nextButtons = document.querySelectorAll('.btn-next-step');
+    const submitButton = document.getElementById('submitReportBtn');
+    
+    // Show/hide previous buttons
+    prevButtons.forEach(function(button) {
+        button.style.display = currentStep > 0 ? 'inline-block' : 'none';
+    });
+    
+    // Show/hide next buttons and submit button
+    nextButtons.forEach(function(button) {
+        button.style.display = currentStep < totalSteps - 1 ? 'inline-block' : 'none';
+    });
+    
+    if (submitButton) {
+        submitButton.style.display = currentStep === totalSteps - 1 ? 'inline-block' : 'none';
+    }
+}
+
+/**
+ * Validate the current step
+ * @param {number} stepIndex - The index of the step to validate
+ * @returns {boolean} - Whether the step is valid
+ */
+function validateStep(stepIndex) {
+    const stepEl = document.querySelectorAll('.form-step')[stepIndex];
+    const errorMessages = [];
+    
+    let isValid = false;
+    
+    // Validate based on step type
+    switch(stepIndex) {
+        case 0: // Basic Info
+            isValid = validateBasicInfoStep(stepEl, errorMessages);
+            break;
+        case 1: // Technical Tests
+            isValid = validateTechnicalStep(stepEl, errorMessages);
+            break;
+        case 2: // External Inspection
+            isValid = validateExternalStep(stepEl, errorMessages);
+            break;
+        case 3: // Notes
+            isValid = validateNotesStep(stepEl, errorMessages);
+            break;
+        case 4: // Invoice
+            isValid = validateInvoiceStep(stepEl, errorMessages);
+            break;
+    }
+    
+    // Display or clear error messages
+    displayErrorMessages(stepEl, errorMessages);
+    
+    return isValid;
+}
+
+/**
+ * Validate the basic information step
+ * @param {HTMLElement} stepEl - The step element
+ * @param {Array} errorMessages - Array to store error messages
+ * @returns {boolean} - Whether the step is valid
+ */
+function validateBasicInfoStep(stepEl, errorMessages) {
+    // Check if client is selected
+    const clientSelect = document.getElementById('clientSelect');
+    if (!clientSelect || !clientSelect.value) {
+        errorMessages.push('يرجى اختيار عميل أو إضافة عميل جديد');
+    }
+    
+    // Check required fields
+    const requiredFields = [
+        { id: 'orderNumber', message: 'يرجى إدخال رقم الطلب' },
+        { id: 'inspectionDate', message: 'يرجى إدخال تاريخ الفحص' },
+        { id: 'deviceModel', message: 'يرجى إدخال موديل الجهاز' },
+        { id: 'serialNumber', message: 'يرجى إدخال الرقم التسلسلي' }
+    ];
+    
+    requiredFields.forEach(field => {
+        const element = document.getElementById(field.id);
+        if (!element || !element.value.trim()) {
+            errorMessages.push(field.message);
+        }
+    });
+    
+    return errorMessages.length === 0;
+}
+
+/**
+ * Validate the technical tests step
+ * @param {HTMLElement} stepEl - The step element
+ * @param {Array} errorMessages - Array to store error messages
+ * @returns {boolean} - Whether the step is valid
+ */
+function validateTechnicalStep(stepEl, errorMessages) {
+    // Check if at least one hardware component is checked
+    const hardwareTable = document.getElementById('hardwareComponentsTable');
+    if (hardwareTable) {
+        const radioGroups = hardwareTable.querySelectorAll('input[type="radio"]:checked');
+        if (radioGroups.length === 0) {
+            errorMessages.push('يرجى تحديد حالة مكون واحد على الأقل');
+        }
+    }
+    
+    // Check if CPU test description is filled
+    const cpuDescription = document.getElementById('cpuDescription');
+    if (!cpuDescription || !cpuDescription.value.trim()) {
+        errorMessages.push('يرجى إدخال وصف اختبار المعالج');
+    }
+    
+    return errorMessages.length === 0;
+}
+
+/**
+ * Validate the external inspection step
+ * @param {HTMLElement} stepEl - The step element
+ * @param {Array} errorMessages - Array to store error messages
+ * @returns {boolean} - Whether the step is valid
+ */
+function validateExternalStep(stepEl, errorMessages) {
+    // External inspection is optional, so always valid
+    return true;
+}
+
+/**
+ * Validate the notes step
+ * @param {HTMLElement} stepEl - The step element
+ * @param {Array} errorMessages - Array to store error messages
+ * @returns {boolean} - Whether the step is valid
+ */
+function validateNotesStep(stepEl, errorMessages) {
+    // Notes are optional, so always valid
+    return true;
+}
+
+/**
+ * Validate the invoice step
+ * @param {HTMLElement} stepEl - The step element
+ * @param {Array} errorMessages - Array to store error messages
+ * @returns {boolean} - Whether the step is valid
+ */
+function validateInvoiceStep(stepEl, errorMessages) {
+    const billingEnabled = document.getElementById('enableBilling')?.checked || false;
+    if (!billingEnabled) {
+        return true; // Skip validation if billing is disabled
+    }
+    
+    // Check if payment status is selected when billing is enabled
+    const paymentStatus = document.getElementById('paymentStatus');
+    if (!paymentStatus || !paymentStatus.value) {
+        errorMessages.push('يرجى اختيار حالة الدفع');
+    }
+    
+    // If payment status is 'paid' or 'partial', payment method must be selected
+    if (paymentStatus && (paymentStatus.value === 'paid' || paymentStatus.value === 'partial')) {
+        const paymentMethod = document.getElementById('paymentMethod');
+        if (!paymentMethod || !paymentMethod.value) {
+            errorMessages.push('يرجى اختيار طريقة الدفع');
+        }
+    }
+    
+    return errorMessages.length === 0;
+}
+
+/**
+ * Display error messages for a step
+ * @param {HTMLElement} stepEl - The step element
+ * @param {Array} errorMessages - Array of error messages
+ */
+function displayErrorMessages(stepEl, errorMessages) {
+    // Remove any existing error message container
+    const existingErrorContainer = stepEl.querySelector('.error-container');
+    if (existingErrorContainer) {
+        existingErrorContainer.remove();
+    }
+    
+    // If there are error messages, create and display them
+    if (errorMessages.length > 0) {
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'error-container alert alert-danger mt-3';
+        
+        const errorList = document.createElement('ul');
+        errorList.className = 'mb-0';
+        
+        errorMessages.forEach(message => {
+            const errorItem = document.createElement('li');
+            errorItem.textContent = message;
+            errorList.appendChild(errorItem);
+        });
+        
+        errorContainer.appendChild(errorList);
+        stepEl.appendChild(errorContainer);
+        
+        // Scroll to the error messages
+        errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+/**
+ * Handle form submission
+ * @param {Event} event - The submit event
+ */
+async function handleFormSubmit(event) {
+    event.preventDefault();
+    
+    // Validate all steps before submission
+    let allValid = true;
+    for (let i = 0; i < totalSteps; i++) {
+        if (!validateStep(i)) {
+            allValid = false;
+            showStep(i);
+            break;
+        }
+    }
+    
+    if (!allValid) return;
+    
+    // Collect all form data
+    const reportData = window.collectReportData();
+    
+    try {
+        // Show loading state
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الحفظ...';
+        
+        // Save report to API or localStorage
+        const result = await saveReport(reportData);
+        
+        // Show success message
+        showSuccessModal(reportData, reportData.invoice);
+        
+        // Reset form
+        resetForm();
+    } catch (error) {
+        console.error('Error saving report:', error);
+        showToast('حدث خطأ أثناء حفظ التقرير. يرجى المحاولة مرة أخرى.', 'error');
+    } finally {
+        // Restore button state
+        const submitBtn = document.querySelector('button[type="submit"]');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
+
+/**
+ * Save the report data to the backend API or localStorage
+ * @param {Object} reportData - The collected report data
+ * @returns {Promise} - A promise that resolves when the report is saved
+ */
+async function saveReport(reportData) {
+    try {
+        // Check if online
+        if (navigator.onLine) {
+            // Try to save to API using the apiService
+            if (typeof apiService !== 'undefined' && apiService.createReport) {
+                const result = await apiService.createReport(reportData);
+                return result;
+            } else {
+                // Fallback to localStorage if apiService is not available
+                return saveReportToLocalStorage(reportData);
+            }
+        } else {
+            // Save to localStorage if offline
+            return saveReportToLocalStorage(reportData);
+        }
+    } catch (error) {
+        console.error('Error in saveReport:', error);
+        // Fallback to localStorage if API call fails
+        return saveReportToLocalStorage(reportData);
+    }
+}
+
+/**
+ * Save the report data to localStorage as a fallback
+ * @param {Object} reportData - The collected report data
+ * @returns {Object} - The saved report data with a generated ID
+ */
+function saveReportToLocalStorage(reportData) {
+    // Generate a unique ID for the report
+    reportData.id = 'local_' + Date.now();
+    reportData.createdAt = new Date().toISOString();
+    
+    // Get existing reports from localStorage
+    let reports = JSON.parse(localStorage.getItem('reports') || '[]');
+    
+    // Add the new report
+    reports.push(reportData);
+    
+    // Save back to localStorage
+    localStorage.setItem('reports', JSON.stringify(reports));
+    
+    // Show offline notification
+    showToast('تم حفظ التقرير محليًا. سيتم مزامنته عند استعادة الاتصال.', 'warning');
+    
+    return reportData;
+}
+
+/**
+ * Show a success modal after report submission
+ * @param {Object} reportData - The submitted report data
+ * @param {Object} invoice - The invoice data if billing was enabled
+ */
+function showSuccessModal(reportData, invoice) {
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="reportSuccessModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">تم إنشاء التقرير بنجاح</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-4">
+                            <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                            <h4>تم إنشاء التقرير بنجاح</h4>
+                            <p class="text-muted">رقم التقرير: <strong>${reportData.id}</strong></p>
+                        </div>
+                        <div class="d-flex justify-content-center">
+                            <a href="report.html?id=${reportData.id}" class="btn btn-primary me-2">
+                                <i class="fas fa-eye me-1"></i> عرض التقرير
+                            </a>
+                            ${invoice ? `
+                                <a href="invoice.html?id=${reportData.id}" class="btn btn-outline-primary">
+                                    <i class="fas fa-file-invoice me-1"></i> عرض الفاتورة
+                                </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add the modal to the document
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer.firstElementChild);
+    
+    // Initialize and show the modal
+    const modal = new bootstrap.Modal(document.getElementById('reportSuccessModal'));
+    modal.show();
+    
+    // Remove the modal from the DOM when it's hidden
+    document.getElementById('reportSuccessModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+/**
+ * Reset the form after successful submission
+ */
+function resetForm() {
+    // Reset to the first step
+    showStep(0);
+    
+    // Clear form fields
+    document.getElementById('reportForm').reset();
+    
+    // Clear client selection
+    const clientSelect = document.getElementById('clientSelect');
+    if (clientSelect) {
+        clientSelect.value = '';
+    }
+    
+    // Hide selected client info
+    const selectedClientInfo = document.getElementById('selectedClientInfo');
+    if (selectedClientInfo) {
+        selectedClientInfo.style.display = 'none';
+    }
+    
+    // Reset hardware component status
+    const radioButtons = document.querySelectorAll('#hardwareComponentsTable input[type="radio"]');
+    radioButtons.forEach(radio => {
+        radio.checked = false;
+    });
+    
+    // Clear file inputs
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    fileInputs.forEach(input => {
+        input.value = '';
+    });
+    
+    // Clear image previews
+    const externalImagesPreview = document.getElementById('externalImagesPreview');
+    if (externalImagesPreview) {
+        externalImagesPreview.innerHTML = '';
+    }
+    
+    // Reset video preview
+    const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+    if (videoPreviewContainer) {
+        videoPreviewContainer.classList.add('d-none');
+    }
+    
+    // Set today's date for inspection date
+    const today = new Date();
+    const formattedDate = today.toISOString().substr(0, 10);
+    const inspectionDateField = document.getElementById('inspectionDate');
+    if (inspectionDateField) {
+        inspectionDateField.value = formattedDate;
+    }
+}
+
+/**
+ * Show a toast notification
+ * @param {string} message - The message to display
+ * @param {string} type - The type of toast (success, error, warning, info)
+ */
+function showToast(message, type = 'success') {
+    // Create toast HTML
+    const toastId = 'toast-' + Date.now();
+    const toastHTML = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'}" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+    
+    // Create toast container if it doesn't exist
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Add the toast to the container
+    const toastElement = document.createElement('div');
+    toastElement.innerHTML = toastHTML;
+    toastContainer.appendChild(toastElement.firstElementChild);
+    
+    // Initialize and show the toast
+    const toast = new bootstrap.Toast(document.getElementById(toastId), {
+        autohide: true,
+        delay: 5000
+    });
+    toast.show();
+    
+    // Remove the toast from the DOM when it's hidden
+    document.getElementById(toastId).addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+/**
+ * Check online status and update UI accordingly
+ */
+function checkOnlineStatus() {
+    const offlineAlert = document.getElementById('offlineAlert');
+    
+    function updateOnlineStatus() {
+        if (navigator.onLine) {
+            if (offlineAlert) {
+                offlineAlert.style.display = 'none';
+            }
+        } else {
+            if (offlineAlert) {
+                offlineAlert.style.display = 'block';
+            }
+        }
+    }
+    
+    // Initial check
+    updateOnlineStatus();
+    
+    // Set up event listeners for online/offline events
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+}

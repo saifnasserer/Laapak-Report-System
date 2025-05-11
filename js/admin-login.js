@@ -8,52 +8,98 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('adminLoginForm');
     const loginError = document.getElementById('loginError');
     
+    // API base URL - dynamically determine the backend URL
+    const API_BASE_URL = 'http://localhost:8000';
+    const ADMIN_LOGIN_URL = `${API_BASE_URL}/api/auth/admin`;
+    
     if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const rememberMe = document.getElementById('rememberMe').checked;
             
-            // In a real implementation, this would validate against a database
-            // For prototype, we'll use mock data
-            
-            // Mock admin users data (in real implementation, this would come from a server)
-            const mockAdmins = [
-                { username: "admin", password: "admin123", userId: "1", name: "مدير النظام", role: "admin" },
-                { username: "tech", password: "tech123", userId: "2", name: "فني الصيانة", role: "technician" },
-                { username: "viewer", password: "viewer123", userId: "3", name: "مشاهد", role: "viewer" }
-            ];
-            
-            // Validate credentials
-            const admin = mockAdmins.find(a => a.username === username && a.password === password);
-            
-            if (admin) {
-                // Store admin info in session/local storage
-                const adminInfo = {
-                    userId: admin.userId,
-                    name: admin.name,
-                    username: admin.username,
-                    role: admin.role,
-                    isLoggedIn: true,
-                    loginTime: new Date().getTime()
-                };
+            try {
+                // Call the API service for admin authentication
+                console.log('Attempting admin login with username:', username);
                 
-                // Save to session or local storage based on "remember me" checkbox
-                if (rememberMe) {
-                    localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+                // Use the apiService if available, otherwise fall back to direct fetch
+                let data;
+                if (window.apiService && typeof window.apiService.adminLogin === 'function') {
+                    data = await window.apiService.adminLogin(username, password);
                 } else {
-                    sessionStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+                    // Fallback to direct fetch if apiService is not available
+                    const response = await fetch(ADMIN_LOGIN_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+                    
+                    // Check if the response is JSON
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                    } else {
+                        // Handle non-JSON response
+                        const text = await response.text();
+                        console.error('Received non-JSON response:', text.substring(0, 150) + '...');
+                        throw new Error('Invalid response format from server');
+                    }
                 }
                 
-                // Redirect to admin dashboard
-                window.location.href = 'admin.html';
-            } else {
-                // Show error message
+                if (data && data.token) {
+                    console.log('Admin login successful, token received');
+                    
+                    // Store the token using consistent key names
+                    if (rememberMe) {
+                        localStorage.setItem('adminToken', data.token);
+                    } else {
+                        sessionStorage.setItem('adminToken', data.token);
+                    }
+                    
+                    // Store admin info
+                    const adminInfo = {
+                        userId: data.user.id,
+                        name: data.user.name,
+                        username: data.user.username,
+                        role: data.user.role,
+                        isLoggedIn: true,
+                        loginTime: new Date().getTime()
+                    };
+                    
+                    if (rememberMe) {
+                        localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+                    } else {
+                        sessionStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+                    }
+                    
+                    // Update API service token if available
+                    if (window.apiService && typeof window.apiService.setAuthToken === 'function') {
+                        window.apiService.setAuthToken(data.token);
+                    }
+                    
+                    // Redirect to admin dashboard
+                    window.location.href = 'admin.html';
+                } else {
+                    // Show error message
+                    loginError.textContent = data.message || 'Invalid username or password';
+                    loginError.classList.remove('d-none');
+                    
+                    // Clear error after 4 seconds
+                    setTimeout(() => {
+                        loginError.classList.add('d-none');
+                    }, 4000);
+                }
+            } catch (error) {
+                console.error('Admin login fetch error:', error);
+                loginError.textContent = 'Connection error. Please try again.';
                 loginError.classList.remove('d-none');
                 
-                // Clear error after 4 seconds
                 setTimeout(() => {
                     loginError.classList.add('d-none');
                 }, 4000);

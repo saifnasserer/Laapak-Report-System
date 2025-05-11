@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\Report;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class ClientController extends Controller
 {
@@ -116,7 +120,7 @@ class ClientController extends Controller
         $client = Client::findOrFail($id);
         
         // Set client to inactive instead of deleting
-        $client->update(['active' => false]);
+        $client->update(['status' => 'inactive']);
 
         return response()->json([
             'success' => true,
@@ -134,7 +138,7 @@ class ClientController extends Controller
     {
         $query = $request->get('query');
         
-        $clients = Client::where('active', true)
+        $clients = Client::where('status', 'active')
             ->where(function($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
                     ->orWhere('phone', 'like', "%{$query}%")
@@ -146,6 +150,97 @@ class ClientController extends Controller
         return response()->json([
             'success' => true,
             'data' => $clients
+        ]);
+    }
+    
+    /**
+     * Get the authenticated client's profile.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function profile(Request $request)
+    {
+        $client = $request->user();
+        
+        // Count reports by status
+        $reportStats = [
+            'total' => Report::where('client_id', $client->id)->count(),
+            'completed' => Report::where('client_id', $client->id)->where('status', 'completed')->count(),
+            'in_progress' => Report::where('client_id', $client->id)->where('status', 'in-progress')->count(),
+            'pending' => Report::where('client_id', $client->id)->where('status', 'pending')->count()
+        ];
+        
+        // Get recent reports
+        $recentReports = Report::with(['device'])
+            ->where('client_id', $client->id)
+            ->orderBy('inspection_date', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // Get unpaid invoices
+        $unpaidInvoices = Invoice::where('client_id', $client->id)
+            ->whereIn('status', ['pending', 'overdue'])
+            ->count();
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'client' => $client,
+                'stats' => $reportStats,
+                'recent_reports' => $recentReports,
+                'unpaid_invoices' => $unpaidInvoices
+            ]
+        ]);
+    }
+    
+    /**
+     * Update the authenticated client's profile.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function updateProfile(Request $request)
+    {
+        $client = $request->user();
+        
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|nullable|email|max:255',
+            'address' => 'sometimes|nullable|string|max:255',
+            'order_code' => 'sometimes|nullable|string|max:50',
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        // Update fields if provided
+        if ($request->has('name')) {
+            $client->name = $request->name;
+        }
+        
+        if ($request->has('email')) {
+            $client->email = $request->email;
+        }
+        
+        if ($request->has('address')) {
+            $client->address = $request->address;
+        }
+        
+        if ($request->has('order_code')) {
+            $client->order_code = $request->order_code;
+        }
+        
+        $client->save();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $client,
+            'message' => 'تم تحديث الملف الشخصي بنجاح'
         ]);
     }
 }

@@ -90,27 +90,43 @@ class LpkHeader {
     }
     
     generateHeaderHTML() {
-        // Get admin info from storage
-        let adminName = 'المدير';
-        let adminEmail = 'admin@laapak.com';
+        // Get user info
+        let adminName = 'المستخدم';
+        let adminEmail = 'user@example.com';
         let adminRole = 'مدير';
         
         try {
-            const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || sessionStorage.getItem('adminInfo') || '{}');
-            if (adminInfo) {
-                if (adminInfo.name) adminName = adminInfo.name;
-                if (adminInfo.username) adminEmail = adminInfo.username;
-                if (adminInfo.role) {
-                    switch(adminInfo.role) {
-                        case 'admin': adminRole = 'مدير'; break;
-                        case 'technician': adminRole = 'فني'; break;
-                        case 'viewer': adminRole = 'مشاهد'; break;
-                        default: adminRole = adminInfo.role;
+            // Check if user is logged in using Laravel API service
+            if (typeof apiService !== 'undefined' && apiService.isLoggedIn('admin')) {
+                // Get admin info from localStorage or sessionStorage
+                const adminInfoStr = localStorage.getItem('adminInfo') || sessionStorage.getItem('adminInfo');
+                
+                if (adminInfoStr) {
+                    const adminInfo = JSON.parse(adminInfoStr);
+                    if (adminInfo.name) adminName = adminInfo.name;
+                    if (adminInfo.username) adminEmail = adminInfo.username;
+                    if (adminInfo.role) {
+                        switch(adminInfo.role) {
+                            case 'admin': adminRole = 'مدير'; break;
+                            case 'technician': adminRole = 'فني'; break;
+                            case 'viewer': adminRole = 'مشاهد'; break;
+                            default: adminRole = adminInfo.role;
+                        }
                     }
+                }
+            } else if (typeof apiService !== 'undefined' && apiService.isLoggedIn('client')) {
+                // Get client info from localStorage or sessionStorage
+                const clientInfoStr = localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo');
+                
+                if (clientInfoStr) {
+                    const clientInfo = JSON.parse(clientInfoStr);
+                    if (clientInfo.name) adminName = clientInfo.name;
+                    if (clientInfo.phone) adminEmail = clientInfo.phone;
+                    adminRole = 'عميل';
                 }
             }
         } catch (e) {
-            console.error('Error parsing admin info:', e);
+            console.error('Error parsing user info:', e);
         }
         
         let html = `

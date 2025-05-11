@@ -16,6 +16,7 @@ The Laapak Report System is a comprehensive solution for managing device inspect
 - **Report Management**: Complete CRUD operations for device inspection reports
 - **Offline Support**: Data caching for offline access to reports and client information
 - **UI/UX Improvements**: Enhanced navigation, clickable header links, and removal of duplicated content
+- **Form Navigation Fix**: Implemented direct button handlers in HTML to fix navigation issues in multi-step forms
 
 ## 1. Client System Architecture
 
@@ -749,6 +750,80 @@ async function handleFormSubmit(event) {
     }
 }
 ```
+
+## Form Navigation Button Fix Implementation
+
+The multi-step form navigation in the Laapak Report System was experiencing issues with the "Next" (التالي) and "Previous" (السابق) buttons not functioning properly. This was causing users to be unable to navigate through the form steps, preventing them from completing reports.
+
+### Problem Identification
+
+The main issues identified were:
+
+1. **Function Availability**: The `handleNextButtonClick` and `handlePrevButtonClick` functions were not properly defined in the global scope
+2. **Event Binding Conflicts**: Multiple scripts were attempting to bind events to the same buttons
+3. **Script Loading Order**: Dependencies between `form-steps.js` and `create-report.js` were causing timing issues
+4. **Event Propagation**: Events were not properly propagating to the button handlers
+
+### Solution Implementation
+
+To resolve these issues, a direct implementation approach was taken:
+
+1. **Direct Function Definition**: The navigation functions were defined directly in the global scope within the HTML file:
+   ```javascript
+   window.currentStep = 0;
+   
+   window.handleNextButtonClick = function(event) {
+       console.log('Next button clicked - direct implementation');
+       event.preventDefault();
+       
+       // Get all form steps
+       const formSteps = document.querySelectorAll('.form-step');
+       // Hide current step
+       formSteps[window.currentStep].style.display = 'none';
+       
+       // Move to next step
+       window.currentStep++;
+       if (window.currentStep >= formSteps.length) {
+           window.currentStep = formSteps.length - 1;
+       }
+       
+       // Show next step
+       formSteps[window.currentStep].style.display = 'block';
+       
+       // Update UI elements (progress bar, step indicators, button text)
+       // ...
+   };
+   ```
+
+2. **Direct Event Binding**: Event handlers were attached directly to the buttons using inline assignment:
+   ```javascript
+   nextButtons.forEach(function(button) {
+       button.onclick = window.handleNextButtonClick;
+       console.log('Added direct handler to next button:', button);
+   });
+   ```
+
+3. **Initialization in DOMContentLoaded**: All initialization was moved to the DOMContentLoaded event to ensure DOM elements are available:
+   ```javascript
+   document.addEventListener('DOMContentLoaded', function() {
+       console.log('Direct button handler script loaded');
+       // Initialize form steps and attach event handlers
+       // ...
+   });
+   ```
+
+4. **Simplified External Script Dependencies**: Removed dependencies on external scripts by implementing all necessary functionality directly in the HTML file
+
+### Results
+
+This implementation successfully resolved the navigation issues by:
+
+1. Ensuring the navigation functions are always available in the global scope
+2. Eliminating conflicts between different scripts trying to control the same buttons
+3. Providing detailed console logging for debugging purposes
+4. Implementing a self-contained solution that doesn't rely on external script loading order
+
+The form steps now function correctly, allowing users to navigate through the multi-step form and submit reports successfully.
 
 ### Success Modal and Post-Submission Options
 

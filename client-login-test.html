@@ -39,16 +39,39 @@
                             <h5>نتيجة تسجيل الدخول:</h5>
                             <pre id="loginResult" class="bg-light p-3 mt-2" style="direction: ltr; text-align: left; max-height: 300px; overflow: auto;"></pre>
                         </div>
+                        <div id="actionButtons" class="mt-3 d-none">
+                            <a href="client-dashboard.html" class="btn btn-success btn-sm">Go to Dashboard</a>
+                            <button class="btn btn-danger btn-sm ms-2" id="logoutBtn">Logout</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
+    <script src="js/laravel-api-service.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const loginBtn = document.getElementById('loginBtn');
             const loginResult = document.getElementById('loginResult');
+            const actionButtons = document.getElementById('actionButtons');
+            
+            // Check if already logged in as client
+            if (apiService.isLoggedIn('client')) {
+                const clientInfo = JSON.parse(localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo'));
+                loginResult.textContent = `Already logged in as: ${clientInfo.name} (${clientInfo.phone})`;
+                actionButtons.classList.remove('d-none');
+            }
+            
+            // Add logout functionality
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                apiService.clearToken('client');
+                loginResult.textContent = 'Logged out successfully';
+                actionButtons.classList.add('d-none');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            });
             
             loginBtn.addEventListener('click', async function() {
                 const phone = document.getElementById('phone').value;
@@ -59,55 +82,34 @@
                     return;
                 }
                 
-                loginResult.textContent = 'Logging in...';
+                loginResult.textContent = 'Logging in with Laravel backend...';
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
                 
                 try {
-                    // Make the login request
-                    const response = await fetch('/api/clients/auth', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ phone, orderCode })
-                    });
+                    // Make the login request using the Laravel API service
+                    const response = await apiService.clientLogin(phone, orderCode, false);
                     
-                    // Get the response data
-                    const data = await response.json();
+                    // Display the response
+                    loginResult.innerHTML = `<strong>Login Successful!</strong><br>
+<pre>{
+  "success": true,
+  "client": {
+    "id": ${response.client?.id || 0},
+    "name": "${response.client?.name || 'Unknown'}",
+    "phone": "${response.client?.phone || phone}"
+  },
+  "token": "${response.token ? response.token.substring(0, 20) + '...' : 'No token'}"
+}</pre>`;
                     
-                    // Display the result
-                    loginResult.textContent = JSON.stringify(data, null, 2);
-                    
-                    // If successful, store the token and client info
-                    if (response.ok && data.token) {
-                        // Clear any existing tokens
-                        localStorage.removeItem('clientToken');
-                        localStorage.removeItem('clientInfo');
-                        sessionStorage.removeItem('clientToken');
-                        sessionStorage.removeItem('clientInfo');
-                        
-                        // Store the new token and client info
-                        localStorage.setItem('clientToken', data.token);
-                        
-                        // Create client info object
-                        const clientInfo = {
-                            clientId: data.client?.id,
-                            name: data.client?.name,
-                            phone: data.client?.phone,
-                            email: data.client?.email || '',
-                            isLoggedIn: true,
-                            loginTime: new Date().getTime()
-                        };
-                        
-                        localStorage.setItem('clientInfo', JSON.stringify(clientInfo));
-                        
-                        // Add a link to the client dashboard
-                        const dashboardLink = document.createElement('div');
-                        dashboardLink.className = 'mt-3';
-                        dashboardLink.innerHTML = '<a href="client-dashboard.html" class="btn btn-success w-100">الذهاب إلى لوحة التحكم</a>';
-                        loginResult.parentNode.appendChild(dashboardLink);
-                    }
+                    // Show action buttons
+                    actionButtons.classList.remove('d-none');
                 } catch (error) {
                     loginResult.textContent = `Error: ${error.message}`;
+                    actionButtons.classList.add('d-none');
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'تسجيل الدخول';
                 }
             });
         });
