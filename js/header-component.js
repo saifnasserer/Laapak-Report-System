@@ -1,231 +1,261 @@
 /**
- * Laapak Report System
- * Reusable Header Component
+ * Header Component for Laapak Report System
+ * Creates a consistent header across all pages with dynamic navigation based on user role
  */
 
-class LpkHeader {
-    constructor(options = {}) {
-        this.containerId = options.containerId || 'header-container';
-        this.options = {
-            showNavigation: options.showNavigation !== undefined ? options.showNavigation : true,
-            navigationItems: options.navigationItems || [
-                { text: 'الرئيسية', url: 'admin.html', icon: 'fas fa-tachometer-alt', id: 'dashboard' },
-                { text: 'تقرير جديد', url: 'create-report.html', icon: 'fas fa-plus-circle', id: 'create-report' },
-                { text: 'التقارير', url: 'reports.html', icon: 'fas fa-file-alt', id: 'reports' },
-                { text: 'إنشاء فاتورة', url: 'create-invoice.html', icon: 'fas fa-file-invoice-dollar', id: 'create-invoice' },
-                { text: 'العملاء', url: 'clients.html', icon: 'fas fa-users', id: 'clients' },
-                { text: 'الإعدادات', url: 'settings.html', icon: 'fas fa-cog', id: 'settings' }
-            ],
-            showUserMenu: options.showUserMenu !== undefined ? options.showUserMenu : true,
-            userMenuItems: options.userMenuItems || [
-                { text: 'الملف الشخصي', url: '#', icon: 'fas fa-user-circle' },
-                { text: 'الإعدادات', url: 'settings.html', icon: 'fas fa-cog', id: 'settings' },
-                { text: 'تسجيل الخروج', url: 'index.html', icon: 'fas fa-sign-out-alt' }
-            ],
-            activeItem: options.activeItem || ''
-        };
-        
-        this.render();
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize header
+    initHeader();
     
-    render() {
-        // Find container
-        const container = document.getElementById(this.containerId);
-        if (!container) {
-            console.error(`Header container with ID '${this.containerId}' not found`);
+    /**
+     * Initialize header component
+     */
+    function initHeader() {
+        const headerContainer = document.getElementById('header-container');
+        
+        if (!headerContainer) {
+            console.error('Header container not found');
             return;
         }
         
-        // Generate header HTML
-        const headerHTML = this.generateHeaderHTML();
+        // Create header HTML
+        headerContainer.innerHTML = createHeaderHTML();
         
-        // Insert into container
-        container.innerHTML = headerHTML;
+        // Add event listeners
+        addHeaderEventListeners();
         
-        // Add event listeners for active state
-        this.setupActiveStateHandlers();
+        // Update header based on authentication status
+        updateHeaderForAuthStatus();
     }
     
-    setupActiveStateHandlers() {
-        // Get all navigation links
-        const navLinks = document.querySelectorAll('#mainNavbar .nav-link:not(.dropdown-toggle)');
-        
-        // Add click event listener to each link
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                // Remove active class from all links
-                navLinks.forEach(l => {
-                    l.classList.remove('active', 'fw-bold');
-                    l.style.backgroundColor = '';
-                    l.style.boxShadow = '';
-                });
-                
-                // Add active class to clicked link
-                link.classList.add('active', 'fw-bold');
-                link.style.backgroundColor = 'rgba(255,255,255,0.3)';
-                link.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-            });
-        });
-        
-        // Setup logout button
-        const logoutBtn = document.getElementById('adminLogoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log('Admin logout button clicked');
-                // Use auth-middleware for logout if available
-                if (typeof authMiddleware !== 'undefined' && authMiddleware.logout) {
-                    authMiddleware.logout();
-                } else {
-                    // Fallback logout if auth-middleware is not available
-                    console.log('Auth middleware not available, using fallback logout');
-                    localStorage.removeItem('adminToken');
-                    localStorage.removeItem('adminInfo');
-                    sessionStorage.removeItem('adminToken');
-                    sessionStorage.removeItem('adminInfo');
-                    window.location.href = 'index.html';
-                }
-            });
-        }
-    }
-    
-    generateHeaderHTML() {
-        // Get user info
-        let adminName = 'المستخدم';
-        let adminEmail = 'user@example.com';
-        let adminRole = 'مدير';
-        
-        try {
-            // Check if user is logged in using Laravel API service
-            if (typeof apiService !== 'undefined' && apiService.isLoggedIn('admin')) {
-                // Get admin info from localStorage or sessionStorage
-                const adminInfoStr = localStorage.getItem('adminInfo') || sessionStorage.getItem('adminInfo');
-                
-                if (adminInfoStr) {
-                    const adminInfo = JSON.parse(adminInfoStr);
-                    if (adminInfo.name) adminName = adminInfo.name;
-                    if (adminInfo.username) adminEmail = adminInfo.username;
-                    if (adminInfo.role) {
-                        switch(adminInfo.role) {
-                            case 'admin': adminRole = 'مدير'; break;
-                            case 'technician': adminRole = 'فني'; break;
-                            case 'viewer': adminRole = 'مشاهد'; break;
-                            default: adminRole = adminInfo.role;
-                        }
-                    }
-                }
-            } else if (typeof apiService !== 'undefined' && apiService.isLoggedIn('client')) {
-                // Get client info from localStorage or sessionStorage
-                const clientInfoStr = localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo');
-                
-                if (clientInfoStr) {
-                    const clientInfo = JSON.parse(clientInfoStr);
-                    if (clientInfo.name) adminName = clientInfo.name;
-                    if (clientInfo.phone) adminEmail = clientInfo.phone;
-                    adminRole = 'عميل';
-                }
-            }
-        } catch (e) {
-            console.error('Error parsing user info:', e);
-        }
-        
-        let html = `
-        <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #0d964e 0%, #0a572b 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <div class="container py-2">
-                <!-- Logo and title -->
-                <a class="navbar-brand d-flex align-items-center" href="admin.html">
-                    <img src="img/logo-white.png" alt="Laapak" height="40">
-                    <h4 class="ms-3 mb-0 fw-bold d-none d-md-block">لوحة التحكم</h4>
-                </a>
-                
-                <!-- Mobile toggle -->
-                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                
-                <!-- Navigation and user info -->
-                <div class="collapse navbar-collapse" id="mainNavbar">
-                    <!-- Navigation items -->
-                    <ul class="navbar-nav mx-auto">`;
+    /**
+     * Create header HTML
+     * @returns {string} - Header HTML
+     */
+    function createHeaderHTML() {
+        return `
+            <header class="header shadow-sm">
+                <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+                    <div class="container-fluid">
+                        <a class="navbar-brand d-flex align-items-center" href="index.html">
+                            <img src="img/logo-white.png" alt="Laapak" width="40" class="me-2">
+                            <span class="fw-bold">Laapak</span>
+                        </a>
                         
-        // Navigation items
-        this.options.navigationItems.forEach(item => {
-            const isActive = item.id === this.options.activeItem;
-            html += `
-                        <li class="nav-item px-1">
-                            <a href="${item.url}" class="nav-link${isActive ? ' active fw-bold' : ''} rounded-pill px-3 py-2 mx-1" 
-                               style="${isActive ? 'background-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15);' : 'transition: all 0.3s ease;'}">
-                                <i class="${item.icon} me-2"></i>${item.text}
-                            </a>
-                        </li>`;
-        });
-        
-        // Add user profile dropdown
-        html += `
-                    </ul>
-                    <div class="d-flex align-items-center">
-                        <div class="dropdown">
-                            <a class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center me-2" 
-                                     style="width: 32px; height: 32px;">
-                                    <i class="fas fa-user-circle"></i>
-                                </div>
-                                <span class="d-none d-md-inline">${adminName}</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 240px; border-radius: 12px; margin-top: 10px;">
-                                <li class="dropdown-header p-3 border-bottom">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-light text-center me-3" style="width: 45px; height: 45px; line-height: 45px;">
-                                            <i class="fas fa-user-circle text-success" style="font-size: 1.8rem;"></i>
-                                        </div>
-                                        <div>
-                                            <h6 class="mb-0 fw-bold">${adminName}</h6>
-                                            <small class="text-muted">${adminEmail}</small>
-                                            <div><span class="badge bg-success">${adminRole}</span></div>
-                                        </div>
-                                    </div>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <!-- Admin Navigation -->
+                            <ul class="navbar-nav me-auto admin-only" style="display: none;">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="admin.html">
+                                        <i class="fas fa-tachometer-alt me-1"></i> لوحة التحكم
+                                    </a>
                                 </li>
-                                <li><a class="dropdown-item py-2" href="settings.html"><i class="fas fa-user-cog me-2 text-primary"></i> إعدادات الحساب</a></li>
-                                <li><a class="dropdown-item py-2" href="#"><i class="fas fa-bell me-2 text-warning"></i> الإشعارات</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item py-2 text-danger" href="#" id="adminLogoutBtn"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="reports.html">
+                                        <i class="fas fa-clipboard-list me-1"></i> التقارير
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="clients.html">
+                                        <i class="fas fa-users me-1"></i> العملاء
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="create-report.html">
+                                        <i class="fas fa-plus-circle me-1"></i> تقرير جديد
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="settings.html">
+                                        <i class="fas fa-cog me-1"></i> الإعدادات
+                                    </a>
+                                </li>
+                            </ul>
+                            
+                            <!-- Client Navigation -->
+                            <ul class="navbar-nav me-auto client-only" style="display: none;">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="client-dashboard.html">
+                                        <i class="fas fa-tachometer-alt me-1"></i> لوحة العميل
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="client-dashboard.html#reports">
+                                        <i class="fas fa-clipboard-list me-1"></i> تقاريري
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="client-dashboard.html#warranty">
+                                        <i class="fas fa-shield-alt me-1"></i> الضمان
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="client-dashboard.html#maintenance">
+                                        <i class="fas fa-tools me-1"></i> الصيانة
+                                    </a>
+                                </li>
+                            </ul>
+                            
+                            <!-- Unauthenticated Navigation -->
+                            <ul class="navbar-nav me-auto unauth-only">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="index.html">
+                                        <i class="fas fa-home me-1"></i> الرئيسية
+                                    </a>
+                                </li>
+                            </ul>
+                            
+                            <!-- User Menu -->
+                            <ul class="navbar-nav auth-only" style="display: none;">
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-user-circle me-1"></i> <span class="user-name">المستخدم</span>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                        <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> الإعدادات</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                            
+                            <!-- Login Button for Unauthenticated Users -->
+                            <ul class="navbar-nav unauth-only">
+                                <li class="nav-item">
+                                    <a class="nav-link btn btn-outline-light btn-sm px-3 py-1 mt-1" href="index.html">
+                                        <i class="fas fa-sign-in-alt me-1"></i> تسجيل الدخول
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </div>
-                </div>
-            </div>
-        </nav>`;
+                </nav>
+            </header>
+        `;
+    }
+    
+    /**
+     * Add event listeners to header elements
+     */
+    function addHeaderEventListeners() {
+        // Logout button
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                handleLogout();
+            });
+        }
         
-        return html;
-    }
-}
-
-// Initialize the header when the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Determine current page from URL
-    const currentPath = window.location.pathname;
-    const filename = currentPath.split('/').pop();
-    
-    // Determine active item based on current page
-    let activeItem = '';
-    if (filename === 'admin.html' || filename === '' || filename === 'index.html') {
-        activeItem = 'dashboard';
-    } else if (filename === 'reports.html') {
-        activeItem = 'reports';
-    } else if (filename === 'create-report.html') {
-        activeItem = 'create-report';
-    } else if (filename === 'clients.html') {
-        activeItem = 'clients';
-    } else if (filename === 'settings.html') {
-        activeItem = 'settings';
-    } else if (filename === 'report.html') {
-        activeItem = 'reports'; // On individual report page, highlight reports
-    }
-    
-    // Initialize if header container exists
-    if (document.getElementById('header-container')) {
-        new LpkHeader({
-            activeItem: activeItem
+        // Add active class to current page link
+        const currentPage = window.location.pathname.split('/').pop();
+        const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href === currentPage) {
+                link.classList.add('active');
+            }
         });
+    }
+    
+    /**
+     * Update header based on authentication status
+     */
+    function updateHeaderForAuthStatus() {
+        if (window.authUtils) {
+            window.authUtils.updateUIForAuthStatus();
+        } else {
+            // Fallback if authUtils is not available
+            const isAuthenticated = !!localStorage.getItem('auth_token') || !!sessionStorage.getItem('auth_token');
+            const userType = localStorage.getItem('user_type') || sessionStorage.getItem('user_type');
+            
+            // Elements that should only be visible to authenticated users
+            const authElements = document.querySelectorAll('.auth-only');
+            
+            // Elements that should only be visible to unauthenticated users
+            const unauthElements = document.querySelectorAll('.unauth-only');
+            
+            // Elements that should only be visible to admin users
+            const adminElements = document.querySelectorAll('.admin-only');
+            
+            // Elements that should only be visible to client users
+            const clientElements = document.querySelectorAll('.client-only');
+            
+            // Update visibility based on authentication status
+            authElements.forEach(el => {
+                el.style.display = isAuthenticated ? '' : 'none';
+            });
+            
+            unauthElements.forEach(el => {
+                el.style.display = isAuthenticated ? 'none' : '';
+            });
+            
+            // Update visibility based on user type
+            adminElements.forEach(el => {
+                el.style.display = (isAuthenticated && userType === 'admin') ? '' : 'none';
+            });
+            
+            clientElements.forEach(el => {
+                el.style.display = (isAuthenticated && userType === 'client') ? '' : 'none';
+            });
+            
+            // Update user name if available
+            const userNameElements = document.querySelectorAll('.user-name');
+            const userDataStr = localStorage.getItem('user_data') || sessionStorage.getItem('user_data');
+            
+            if (userDataStr) {
+                try {
+                    const userData = JSON.parse(userDataStr);
+                    userNameElements.forEach(el => {
+                        if (userType === 'admin') {
+                            el.textContent = userData.name || userData.username;
+                        } else if (userType === 'client') {
+                            el.textContent = userData.name;
+                        }
+                    });
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Handle logout
+     */
+    async function handleLogout() {
+        try {
+            if (window.authUtils) {
+                await window.authUtils.logout();
+            } else if (window.apiService) {
+                await window.apiService.logout();
+                
+                // Clear auth data
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_type');
+                localStorage.removeItem('user_data');
+                localStorage.removeItem('remember_me');
+                
+                sessionStorage.removeItem('auth_token');
+                sessionStorage.removeItem('user_type');
+                sessionStorage.removeItem('user_data');
+                
+                // Redirect to login page
+                window.location.href = 'index.html';
+            } else {
+                // Fallback logout
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            alert('حدث خطأ أثناء تسجيل الخروج. يرجى المحاولة مرة أخرى.');
+        }
     }
 });
