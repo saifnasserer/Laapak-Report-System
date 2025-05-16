@@ -52,6 +52,11 @@ self.addEventListener('activate', event => {
 
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', event => {
+  // Skip caching for API requests
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -76,8 +81,9 @@ self.addEventListener('fetch', event => {
             // Open cache and store response
             caches.open(CACHE_NAME)
               .then(cache => {
-                // Only cache same-origin requests
-                if (event.request.url.startsWith(self.location.origin)) {
+                // Only cache same-origin requests and non-API requests
+                if (event.request.url.startsWith(self.location.origin) && 
+                    !event.request.url.includes('/api/')) {
                   cache.put(event.request, responseToCache);
                 }
               });

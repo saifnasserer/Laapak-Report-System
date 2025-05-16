@@ -77,16 +77,7 @@ async function ensureTables(closeConnection = false) {
             console.log('Reports table already exists.');
         }
         
-        // Check if report_technical_tests table exists
-        const technicalTestsExists = await tableExists('report_technical_tests');
-        if (!technicalTestsExists) {
-            console.log('Report technical tests table does not exist. Creating...');
-            await executeSqlFile(path.join(migrationsPath, '002_create_report_technical_tests_table.sql'));
-        } else {
-            console.log('Report technical tests table already exists.');
-        }
-        
-        // External inspection table check removed as it's not used in the application
+        // Technical tests and external inspection tables check removed as they're not used in the application
         
         console.log('All required tables exist.');
     } catch (error) {

@@ -15,14 +15,37 @@ router.get('/', adminAuth, async (req, res) => {
         const invoices = await Invoice.findAll({
             include: [
                 { model: Client, attributes: ['id', 'name', 'phone'] },
-                { model: Report, attributes: ['id', 'deviceModel', 'serialNumber'] }
+                { model: Report, attributes: ['id', 'device_model', 'serial_number'] }
             ],
-            order: [['createdAt', 'DESC']]
+            order: [['created_at', 'DESC']]
         });
         res.json(invoices);
     } catch (error) {
         console.error('Error fetching invoices:', error);
-        res.status(500).json({ message: 'Server error' });
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        
+        // Check for specific error types
+        if (error.name === 'SequelizeEagerLoadingError') {
+            return res.status(500).json({
+                message: 'Failed to load associated data',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Failed to fetch invoices', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 });
 
@@ -30,16 +53,39 @@ router.get('/', adminAuth, async (req, res) => {
 router.get('/client', clientAuth, async (req, res) => {
     try {
         const invoices = await Invoice.findAll({
-            where: { clientId: req.user.id },
+            where: { client_id: req.user.id },
             include: [
-                { model: Report, attributes: ['id', 'deviceModel', 'serialNumber'] }
+                { model: Report, attributes: ['id', 'device_model', 'serial_number'] }
             ],
-            order: [['createdAt', 'DESC']]
+            order: [['created_at', 'DESC']]
         });
         res.json(invoices);
     } catch (error) {
         console.error('Error fetching client invoices:', error);
-        res.status(500).json({ message: 'Server error' });
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        
+        // Check for specific error types
+        if (error.name === 'SequelizeEagerLoadingError') {
+            return res.status(500).json({
+                message: 'Failed to load associated data',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Failed to fetch client invoices', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 });
 
@@ -49,7 +95,7 @@ router.get('/:id', auth, async (req, res) => {
         const invoice = await Invoice.findByPk(req.params.id, {
             include: [
                 { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
-                { model: Report, attributes: ['id', 'deviceModel', 'serialNumber'] },
+                { model: Report, attributes: ['id', 'device_model', 'serial_number'] },
                 { model: InvoiceItem }
             ]
         });
@@ -59,14 +105,37 @@ router.get('/:id', auth, async (req, res) => {
         }
         
         // Check if user has permission to view this invoice
-        if (!req.user.isAdmin && invoice.clientId !== req.user.id) {
+        if (!req.user.isAdmin && invoice.client_id !== req.user.id) {
             return res.status(403).json({ message: 'Not authorized to view this invoice' });
         }
         
         res.json(invoice);
     } catch (error) {
         console.error('Error fetching invoice:', error);
-        res.status(500).json({ message: 'Server error' });
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        
+        // Check for specific error types
+        if (error.name === 'SequelizeEagerLoadingError') {
+            return res.status(500).json({
+                message: 'Failed to load associated data',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Failed to fetch invoice', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 });
 
@@ -75,69 +144,94 @@ router.post('/', adminAuth, async (req, res) => {
     const transaction = await sequelize.transaction();
     
     try {
-        console.log('Creating invoice with data:', JSON.stringify(req.body, null, 2));
+        console.log('CREATE INVOICE REQUEST BODY:', JSON.stringify(req.body, null, 2));
         
-        const {
-            reportId,
-            clientId,
-            subtotal,
-            discount,
-            taxRate,
-            tax,
-            total,
-            paymentStatus,
-            paymentMethod,
-            items
+        // Extract data from request body
+        const { 
+            report_id: reportId, 
+            client_id: clientId, 
+            client_name: clientName, 
+            client_phone: clientPhone, 
+            client_email: clientEmail, 
+            client_address: clientAddress, 
+            items, 
+            subtotal, 
+            tax, 
+            discount, 
+            total, 
+            notes, 
+            status 
         } = req.body;
         
         // Validate required fields
         if (!clientId) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: 'معرف العميل مطلوب',
-                error: 'Client ID is required'
+                error: 'client_id is required'
             });
         }
         
-        if (!reportId) {
-            return res.status(400).json({ 
-                message: 'معرف التقرير مطلوب',
-                error: 'Report ID is required'
+        // Validate client_id is a number
+        const clientIdNum = Number(clientId);
+        if (isNaN(clientIdNum)) {
+            return res.status(400).json({
+                message: 'معرف العميل يجب أن يكون رقمًا',
+                error: 'client_id must be a number'
             });
         }
         
-        // Generate a unique invoice ID
-        const invoiceId = 'INV' + Date.now().toString().slice(-6);
-        console.log('Generated invoice ID:', invoiceId);
+        // Validate items array
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({
+                message: 'يجب توفير عناصر الفاتورة',
+                error: 'Invoice items are required'
+            });
+        }
         
-        // Create invoice
+        // Generate a unique invoice number
+        const invoiceNumber = 'INV' + Date.now().toString() + Math.floor(Math.random() * 1000);
+        console.log('Creating invoice with number:', invoiceNumber);
+        
+        // Handle empty email to be null (to pass validation)
+        const validatedEmail = clientEmail?.trim() === '' ? null : clientEmail;
+        
+        // Create the invoice
         const invoice = await Invoice.create({
-            id: invoiceId,
-            reportId,
-            clientId,
-            date: new Date(),
-            subtotal,
-            discount: discount || 0,
-            taxRate: taxRate || 14.00,
-            tax,
-            total,
-            paymentStatus: paymentStatus || 'unpaid',
-            paymentMethod,
-            paymentDate: paymentStatus === 'paid' ? new Date() : null
+            invoice_number: invoiceNumber,
+            report_id: reportId || null,
+            client_id: clientIdNum,
+            client_name: clientName || '',
+            client_phone: clientPhone || '',
+            client_email: validatedEmail,
+            client_address: clientAddress || '',
+            subtotal: Number(subtotal || 0),
+            tax: Number(tax || 0),
+            discount: Number(discount || 0),
+            total: Number(total || 0),
+            notes: notes || '',
+            status: status || 'pending',
+            created_by: req.user.id
         }, { transaction });
         
         // Create invoice items
         if (items && items.length > 0) {
-            await Promise.all(items.map(item => 
-                InvoiceItem.create({
-                    invoiceId: invoice.id,
-                    description: item.description,
-                    type: item.type,
-                    amount: item.amount,
-                    quantity: item.quantity || 1,
-                    totalAmount: item.totalAmount,
-                    serialNumber: item.serialNumber
-                }, { transaction })
-            ));
+            console.log('Creating invoice items:', JSON.stringify(items, null, 2));
+            
+            try {
+                await Promise.all(items.map(item => 
+                    InvoiceItem.create({
+                        invoice_id: invoice.id,
+                        description: item.description || '',
+                        quantity: Number(item.quantity || 1),
+                        unit_price: Number(item.unit_price || 0),
+                        total: Number(item.total || 0)
+                    }, { transaction })
+                ));
+                console.log(`Created ${items.length} invoice items successfully`);
+            } catch (itemError) {
+                console.error('Error creating invoice items:', itemError);
+                throw new Error(`Failed to create invoice items: ${itemError.message}`);
+            }
         }
         
         // Update report to mark it as having an invoice and update billing status
@@ -166,7 +260,7 @@ router.post('/', adminAuth, async (req, res) => {
         const completeInvoice = await Invoice.findByPk(invoice.id, {
             include: [
                 { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
-                { model: Report, attributes: ['id', 'deviceModel', 'serialNumber'] },
+                { model: Report, attributes: ['id', 'device_model', 'serial_number'] },
                 { model: InvoiceItem }
             ]
         });
@@ -175,7 +269,53 @@ router.post('/', adminAuth, async (req, res) => {
     } catch (error) {
         await transaction.rollback();
         console.error('Error creating invoice:', error);
-        res.status(500).json({ message: 'Server error' });
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        if (error.parent) {
+            console.error('Parent error:', error.parent.message);
+            console.error('SQL error code:', error.parent.code);
+            if (error.parent.sql) console.error('SQL query:', error.parent.sql);
+        }
+        if (error.errors) console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
+        
+        // Check for specific error types
+        if (error.name === 'SequelizeForeignKeyConstraintError') {
+            return res.status(400).json({
+                message: 'العميل المحدد غير موجود', // Selected client does not exist
+                error: 'Foreign key constraint error: ' + error.message,
+                details: {
+                    field: error.fields?.[0] || 'client_id',
+                    table: error.table,
+                    value: error.value
+                }
+            });
+        }
+        
+        // Validation error
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({
+                message: 'خطأ في التحقق من صحة البيانات', // Data validation error
+                error: error.message,
+                details: error.errors.map(err => ({ field: err.path, message: err.message }))
+            });
+        }
+        
+        // Database connection error
+        if (error.name === 'SequelizeConnectionError' || error.name === 'SequelizeConnectionRefusedError') {
+            return res.status(503).json({
+                message: 'فشل الاتصال بقاعدة البيانات', // Database connection failed
+                error: error.message
+            });
+        }
+        
+        // Generic error
+        res.status(500).json({
+            message: 'خطأ في الخادم', // Server error
+            error: error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

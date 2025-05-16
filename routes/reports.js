@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { Report, Client, Admin, ReportTechnicalTest, ReportExternalInspection, sequelize } = require('../models');
+const { Report, Client, Admin, sequelize } = require('../models');
 const { auth, adminAuth, clientAuth } = require('../middleware/auth');
 const { Op } = require('sequelize');
 
@@ -18,49 +18,79 @@ router.get('/', adminAuth, async (req, res) => {
         const count = await Report.count();
         console.log(`Found ${count} reports in database`);
         
-        // Use a simpler query first to avoid potential issues with associations
+        // Use proper associations with correct field names
         const reports = await Report.findAll({
-            attributes: ['id', 'orderCode', 'deviceModel', 'serialNumber', 'inspectionDate', 'status', 'createdAt'],
-            order: [['createdAt', 'DESC']]
+            include: [
+                { model: Client } // Using the correct association defined in models/index.js
+                // Admin association removed as it's not properly defined
+            ],
+            order: [['created_at', 'DESC']]
         });
         
-        // Map the results to include client and technician names if needed
-        const mappedReports = await Promise.all(reports.map(async (report) => {
+        // Parse JSON fields stored as TEXT for each report
+        const mappedReports = reports.map(report => {
             const reportJson = report.toJSON();
             
-            try {
-                // Get client info if available
-                if (report.clientId) {
-                    const client = await Client.findByPk(report.clientId);
-                    if (client) {
-                        reportJson.clientName = client.name;
-                    }
+            // Parse hardware_status if it exists
+            if (reportJson.hardware_status) {
+                try {
+                    reportJson.hardware_status = JSON.parse(reportJson.hardware_status);
+                } catch (e) {
+                    console.error(`Error parsing hardware_status for report ${reportJson.id}:`, e);
+                    reportJson.hardware_status = [];
                 }
-                
-                // Get technician info if available
-                if (report.technicianId) {
-                    const technician = await Admin.findByPk(report.technicianId);
-                    if (technician) {
-                        reportJson.technicianName = technician.name;
-                    }
+            }
+            
+            // Parse external_images if it exists
+            if (reportJson.external_images) {
+                try {
+                    reportJson.external_images = JSON.parse(reportJson.external_images);
+                } catch (e) {
+                    console.error(`Error parsing external_images for report ${reportJson.id}:`, e);
+                    reportJson.external_images = [];
                 }
-            } catch (innerError) {
-                console.error('Error fetching related data for report:', innerError);
-                // Continue even if we can't get related data
             }
             
             return reportJson;
-        }));
+        });
         
         console.log(`Successfully mapped ${mappedReports.length} reports`);
         res.json(mappedReports);
     } catch (error) {
         console.error('Error fetching reports:', error);
-        // Send more detailed error information for debugging
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        
+        // Check for specific error types
+        if (error.name === 'SequelizeConnectionError' || error.name === 'SequelizeConnectionRefusedError') {
+            return res.status(503).json({
+                message: 'Failed to connect to database',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        // Association errors
+        if (error.name === 'SequelizeEagerLoadingError') {
+            return res.status(500).json({
+                message: 'Failed to load associated data',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        // Generic database errors
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        // Generic error response
         res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            message: 'Failed to fetch reports', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
@@ -68,15 +98,55 @@ router.get('/', adminAuth, async (req, res) => {
 // Get reports for a specific client
 router.get('/client', clientAuth, async (req, res) => {
     try {
+        // Use correct field name client_id instead of clientId
         const reports = await Report.findAll({
-            where: { clientId: req.user.id },
-            include: [{ model: Admin, as: 'Technician' }],
-            order: [['createdAt', 'DESC']]
+            where: { client_id: req.user.id },
+            order: [['created_at', 'DESC']]
         });
-        res.json(reports);
+        
+        // Parse JSON fields stored as TEXT for each report
+        const parsedReports = reports.map(report => {
+            const reportJson = report.toJSON();
+            
+            // Parse hardware_status if it exists
+            if (reportJson.hardware_status) {
+                try {
+                    reportJson.hardware_status = JSON.parse(reportJson.hardware_status);
+                } catch (e) {
+                    console.error(`Error parsing hardware_status for report ${reportJson.id}:`, e);
+                    reportJson.hardware_status = [];
+                }
+            }
+            
+            // Parse external_images if it exists
+            if (reportJson.external_images) {
+                try {
+                    reportJson.external_images = JSON.parse(reportJson.external_images);
+                } catch (e) {
+                    console.error(`Error parsing external_images for report ${reportJson.id}:`, e);
+                    reportJson.external_images = [];
+                }
+            }
+            
+            return reportJson;
+        });
+        
+        res.json(parsedReports);
     } catch (error) {
         console.error('Error fetching client reports:', error);
-        res.status(500).json({ message: 'Server error' });
+        
+        // Improved error handling
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Failed to fetch client reports', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 });
 
@@ -84,54 +154,136 @@ router.get('/client', clientAuth, async (req, res) => {
 router.get('/without-invoice', adminAuth, async (req, res) => {
     try {
         const reports = await Report.findAll({
-            where: { hasInvoice: false },
+            where: { billing_enabled: true },
             include: [
-                { model: Client },
-                { model: Admin, as: 'Technician' }
+                { model: Client } // Using the correct association defined in models/index.js
+                // Admin association removed as it's not properly defined
             ],
-            order: [['createdAt', 'DESC']]
+            order: [['created_at', 'DESC']]
         });
-        res.json(reports);
+        
+        // Parse JSON fields stored as TEXT for each report
+        const parsedReports = reports.map(report => {
+            const reportJson = report.toJSON();
+            
+            // Parse hardware_status if it exists
+            if (reportJson.hardware_status) {
+                try {
+                    reportJson.hardware_status = JSON.parse(reportJson.hardware_status);
+                } catch (e) {
+                    console.error(`Error parsing hardware_status for report ${reportJson.id}:`, e);
+                    reportJson.hardware_status = [];
+                }
+            }
+            
+            // Parse external_images if it exists
+            if (reportJson.external_images) {
+                try {
+                    reportJson.external_images = JSON.parse(reportJson.external_images);
+                } catch (e) {
+                    console.error(`Error parsing external_images for report ${reportJson.id}:`, e);
+                    reportJson.external_images = [];
+                }
+            }
+            
+            return reportJson;
+        });
+        
+        res.json(parsedReports);
     } catch (error) {
         console.error('Error fetching reports without invoices:', error);
-        res.status(500).json({ message: 'Server error' });
+        
+        // Improved error handling
+        if (error.name === 'SequelizeEagerLoadingError') {
+            return res.status(500).json({
+                message: 'Failed to load associated data',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Failed to fetch reports without invoices', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 });
 
 // Get a specific report
 router.get('/:id', auth, async (req, res) => {
     try {
+        // Include Client association with the query
         const report = await Report.findByPk(req.params.id, {
-            include: [
-                { model: Client },
-                { model: Admin, as: 'Technician' },
-                { model: ReportTechnicalTest },
-                { model: ReportExternalInspection }
-            ]
+            include: [{ model: Client }]
         });
         
         if (!report) {
             return res.status(404).json({ message: 'Report not found' });
         }
         
-        // Check if user has permission to view this report
-        if (req.user.isAdmin || req.user.id === report.clientId) {
-            res.json(report);
-        } else {
-            res.status(403).json({ message: 'Not authorized to view this report' });
+        // Parse JSON fields stored as TEXT
+        const parsedReport = report.toJSON();
+        
+        // Parse hardware_status if it exists
+        if (parsedReport.hardware_status) {
+            try {
+                parsedReport.hardware_status = JSON.parse(parsedReport.hardware_status);
+            } catch (e) {
+                console.error('Error parsing hardware_status:', e);
+                parsedReport.hardware_status = [];
+            }
         }
+        
+        // Parse external_images if it exists
+        if (parsedReport.external_images) {
+            try {
+                parsedReport.external_images = JSON.parse(parsedReport.external_images);
+            } catch (e) {
+                console.error('Error parsing external_images:', e);
+                parsedReport.external_images = [];
+            }
+        }
+        
+        res.json(parsedReport);
     } catch (error) {
         console.error('Error fetching report:', error);
-        res.status(500).json({ message: 'Server error' });
+        
+        // Improved error handling
+        if (error.name === 'SequelizeEagerLoadingError') {
+            return res.status(500).json({
+                message: 'Failed to load associated data',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Failed to fetch report', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 });
 
-// Create a new report (admin only)
+// Create a new report (accessible without authentication for now)
 router.post('/', async (req, res) => {
     // Start a transaction to ensure data consistency
     const transaction = await sequelize.transaction();
     
     try {
+        console.log('CREATE REPORT REQUEST BODY:', JSON.stringify(req.body, null, 2));
+        
         // Extract only the fields that exist in the database from request body
         const { 
             id, 
@@ -140,16 +292,16 @@ router.post('/', async (req, res) => {
             client_phone: clientPhone,
             client_email: clientEmail,
             client_address: clientAddress,
-            order_number: orderNumber, 
-            device_model: deviceModel, 
-            serial_number: serialNumber, 
-            inspection_date: inspectionDate, 
-            notes, 
-            billing_enabled: billingEnabled, 
-            amount,
-            status,
+            order_number: orderNumber,
+            device_model: deviceModel,
+            serial_number: serialNumber,
+            inspection_date: inspectionDate,
             hardware_status: hardwareComponents,
-            external_images: externalImages
+            external_images: externalImages,
+            notes,
+            billing_enabled: billingEnabled,
+            amount,
+            status
         } = req.body;
         
         // Validate required fields
@@ -161,26 +313,37 @@ router.post('/', async (req, res) => {
         }
         
         // Generate a unique report ID if not provided
-        const reportId = id || `RPT${Math.floor(Math.random() * 1000000000)}`;
-        
+        const reportId = id || 'RPT' + Date.now().toString() + Math.floor(Math.random() * 1000);
         console.log('Creating report with ID:', reportId);
         
-        // Prepare the report data - ONLY include fields that exist in the database table
         // Table fields from database:
         // id (varchar 50), client_id (int), client_name (varchar 100), client_phone (varchar 20),
         // client_email (varchar 100), client_address (text), order_number (varchar 20),
         // device_model (varchar 100), serial_number (varchar 100), inspection_date (datetime),
         // hardware_status (longtext), external_images (longtext), notes (text),
-        // billing_enabled (tinyint), amount (decimal 10,2), status (enum),
-        // created_at (datetime), updated_at (datetime)
         
-        // Ensure inspection_date is a proper datetime object
+        // Validate client_id is a number
+        const clientIdNum = Number(clientId);
+        if (isNaN(clientIdNum)) {
+            return res.status(400).json({
+                message: 'معرف العميل يجب أن يكون رقمًا',
+                error: 'client_id must be a number'
+            });
+        }
+        
+        // Handle empty email to be null (to pass validation)
+        const validatedEmail = clientEmail?.trim() === '' ? null : clientEmail;
+        
+        // Parse inspection date
         let inspectionDateObj;
         try {
-            inspectionDateObj = new Date(inspectionDate);
-            if (isNaN(inspectionDateObj.getTime())) {
-                // If invalid date, use current date
-                console.warn('Invalid inspection date received, using current date');
+            if (inspectionDate) {
+                inspectionDateObj = new Date(inspectionDate);
+                if (isNaN(inspectionDateObj.getTime())) {
+                    console.warn('Invalid inspection date format, using current date');
+                    inspectionDateObj = new Date();
+                }
+            } else {
                 inspectionDateObj = new Date();
             }
         } catch (e) {
@@ -188,26 +351,62 @@ router.post('/', async (req, res) => {
             inspectionDateObj = new Date();
         }
         
+        // Process hardware_status - ensure it's a properly formatted JSON string
+        let processedHardwareStatus = null;
+        if (hardwareComponents) {
+            try {
+                // If it's already a string, check if it's valid JSON
+                if (typeof hardwareComponents === 'string') {
+                    // Try to parse and re-stringify to ensure valid JSON format
+                    const parsed = JSON.parse(hardwareComponents);
+                    processedHardwareStatus = JSON.stringify(parsed);
+                } else {
+                    // If it's an object/array, stringify it
+                    processedHardwareStatus = JSON.stringify(hardwareComponents);
+                }
+            } catch (e) {
+                console.error('Error processing hardware_status:', e);
+                processedHardwareStatus = '[]';
+            }
+        }
+        
+        // Process external_images - ensure it's a properly formatted JSON string
+        let processedExternalImages = null;
+        if (externalImages) {
+            try {
+                // If it's already a string, check if it's valid JSON
+                if (typeof externalImages === 'string') {
+                    // Try to parse and re-stringify to ensure valid JSON format
+                    const parsed = JSON.parse(externalImages);
+                    processedExternalImages = JSON.stringify(parsed);
+                } else {
+                    // If it's an object/array, stringify it
+                    processedExternalImages = JSON.stringify(externalImages);
+                }
+            } catch (e) {
+                console.error('Error processing external_images:', e);
+                processedExternalImages = '[]';
+            }
+        }
+        
         const reportData = {
             id: reportId,
-            client_id: clientId,
+            client_id: clientIdNum,
             client_name: clientName || '',
             client_phone: clientPhone || '',
-            client_email: clientEmail || '',
+            client_email: validatedEmail,
             client_address: clientAddress || '',
-            order_number: orderNumber,
-            device_model: deviceModel,
+            order_number: orderNumber || '',
+            device_model: deviceModel || '',
             serial_number: serialNumber || '',
-            inspection_date: inspectionDateObj, // Proper datetime object
-            // The hardware_status and external_images are already stringified on the client side
-            // We're receiving them as JSON strings, which matches our longtext database field type
-            hardware_status: hardwareComponents,
-            external_images: externalImages,
+            inspection_date: inspectionDateObj,
+            hardware_status: processedHardwareStatus,
+            external_images: processedExternalImages,
             notes: notes || '',
             billing_enabled: billingEnabled === true,
-            amount: parseFloat(amount || 0),
+            amount: Number(amount || 0),
             status: status || 'active'
-            // created_at and updated_at are handled automatically by Sequelize
+            // Let Sequelize handle created_at and updated_at
         };
         
         // Log the exact data being sent to the database
@@ -266,74 +465,76 @@ router.post('/', async (req, res) => {
         await transaction.commit();
         console.log('Transaction committed successfully');
         
-        // Fetch the complete report with all associations
-        const completeReport = await Report.findByPk(report.id, {
-            include: [
-                { model: Client },
-                { model: ReportTechnicalTest },
-                { model: ReportExternalInspection }
-            ]
-        });
+        // Fetch the complete report
+        const completeReport = await Report.findByPk(report.id);
+        
+        // Parse JSON fields stored as TEXT
+        const parsedReport = completeReport.toJSON();
+        if (parsedReport.hardware_status) {
+            try {
+                parsedReport.hardware_status = JSON.parse(parsedReport.hardware_status);
+            } catch (e) {
+                console.error('Error parsing hardware_status:', e);
+            }
+        }
+        
+        if (parsedReport.external_images) {
+            try {
+                parsedReport.external_images = JSON.parse(parsedReport.external_images);
+            } catch (e) {
+                console.error('Error parsing external_images:', e);
+            }
+        }
         
         console.log('Report created successfully with ID:', reportId);
-        res.status(201).json(completeReport);
+        res.status(201).json(parsedReport);
     } catch (error) {
         await transaction.rollback();
-        console.error('Error creating report:', error);
+        console.error('CREATE REPORT ERROR:', error);
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        if (error.parent) {
+            console.error('Parent error:', error.parent.message);
+            console.error('SQL error code:', error.parent.code);
+            if (error.parent.sql) console.error('SQL query:', error.parent.sql);
+        }
+        if (error.errors) console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
         
         // Check for specific error types
         if (error.name === 'SequelizeForeignKeyConstraintError') {
             return res.status(400).json({
                 message: 'العميل المحدد غير موجود', // Selected client does not exist
-                error: 'Foreign key constraint error: ' + error.message
+                error: 'Foreign key constraint error: ' + error.message,
+                details: {
+                    field: error.fields?.[0] || 'client_id',
+                    table: error.table,
+                    value: error.value
+                }
             });
         }
         
         // Validation error
         if (error.name === 'SequelizeValidationError') {
             return res.status(400).json({
-                message: 'بيانات التقرير غير صالحة', // Invalid report data
-                error: 'Validation error: ' + error.message
-            });
-        }
-        
-        // Hardware components error
-        if (error.message && error.message.includes('hardware components')) {
-            return res.status(500).json({
-                message: 'حدث خطأ أثناء معالجة مكونات الأجهزة', // Error processing hardware components
-                error: error.message
-            });
-        }
-        
-        // External images error
-        if (error.message && error.message.includes('external images')) {
-            return res.status(500).json({
-                message: 'حدث خطأ أثناء معالجة الصور الخارجية', // Error processing external images
-                error: error.message
+                message: 'خطأ في التحقق من صحة البيانات', // Data validation error
+                error: error.message,
+                details: error.errors.map(err => ({ field: err.path, message: err.message }))
             });
         }
         
         // Database connection error
-        if (error.message && error.message.includes('Database connection failed')) {
-            console.error('Database connection error:', error);
-            return res.status(500).json({ 
+        if (error.name === 'SequelizeConnectionError' || error.name === 'SequelizeConnectionRefusedError') {
+            return res.status(503).json({
                 message: 'فشل الاتصال بقاعدة البيانات', // Database connection failed
-                error: error.message,
-                details: 'Check that MySQL is running and credentials are correct.'
+                error: error.message
             });
         }
         
-        // Generic database error
-        if (error.name && error.name.includes('Sequelize')) {
-            console.error('Database error details:', error);
-            if (error.parent) {
-                console.error('SQL error code:', error.parent.code);
-                console.error('SQL error message:', error.parent.message);
-                console.error('SQL statement:', error.parent.sql);
-            }
-            
-            // Check for specific database errors
-            if (error.parent && error.parent.code === 'ER_NO_SUCH_TABLE') {
+        // Check for specific database errors
+        if (error.parent) {
+            if (error.parent.code === 'ER_NO_SUCH_TABLE') {
                 return res.status(500).json({ 
                     message: 'جدول قاعدة البيانات غير موجود', // Database table does not exist
                     error: error.message,
@@ -341,33 +542,18 @@ router.post('/', async (req, res) => {
                 });
             }
             
-            if (error.parent && error.parent.code === 'ER_BAD_FIELD_ERROR') {
+            if (error.parent.code === 'ER_BAD_FIELD_ERROR') {
                 return res.status(500).json({ 
                     message: 'خطأ في حقول قاعدة البيانات', // Database field error
                     error: error.message,
                     details: 'Field does not exist in database table. Check model definition.'
                 });
             }
-            
-            // Connection error
-            if (error.parent && (error.parent.code === 'ECONNREFUSED' || error.parent.code === 'ER_ACCESS_DENIED_ERROR')) {
-                return res.status(500).json({ 
-                    message: 'فشل الاتصال بقاعدة البيانات', // Database connection failed
-                    error: error.message,
-                    details: 'Check that MySQL is running and credentials are correct.'
-                });
-            }
-            
-            return res.status(500).json({ 
-                message: 'حدث خطأ في قاعدة البيانات', // Database error
-                error: error.message,
-                details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-            });
         }
         
         // Generic error
-        return res.status(500).json({ 
-            message: 'حدث خطأ أثناء إنشاء التقرير', // An error occurred while creating the report
+        res.status(500).json({
+            message: 'خطأ في الخادم', // Server error
             error: error.message,
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });

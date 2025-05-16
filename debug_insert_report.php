@@ -13,13 +13,13 @@ $charset = 'utf8mb4';
 
 // Sample report data based on the provided object
 $reportData = [
-    'id' => 'RPT' . time() . rand(100, 999),
-    'client_id' => 4,
-    'client_name' => 'سيف ناصر محمود',
-    'client_phone' => '01120352161',
-    'client_email' => '',
+    'id' => 'LPK123' . time() . rand(100, 999),
+    'client_id' => 1,
+    'client_name' => 'محمود ناصر محمود',
+    'client_phone' => '01120352162',
+    'client_email' => '',   
     'client_address' => 'التحرير',
-    'order_number' => '202',
+    'order_number' => '203',
     'device_model' => 'xx',
     'serial_number' => 'c',
     'inspection_date' => date('Y-m-d H:i:s'), // Current date/time in MySQL format

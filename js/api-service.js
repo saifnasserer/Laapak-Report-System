@@ -4,10 +4,32 @@
  */
 
 class ApiService {
-    constructor() {
-        // Set the backend API URL to match the .env PORT setting
-        this.baseUrl = 'http://localhost:3001';
+    constructor(baseUrl = '') {
+        this.baseUrl = baseUrl || window.location.origin;
         this.authToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+    }
+    
+    /**
+     * Helper method to format a value as a JSON string
+     * @param {*} value - The value to format as JSON
+     * @returns {string} - A properly formatted JSON string
+     */
+    _formatJsonField(value) {
+        try {
+            // If it's already a string, check if it's valid JSON
+            if (typeof value === 'string') {
+                // Try to parse and re-stringify to ensure valid JSON format
+                const parsed = JSON.parse(value);
+                return JSON.stringify(parsed);
+            } else {
+                // If it's an object/array, stringify it
+                return JSON.stringify(value);
+            }
+        } catch (e) {
+            console.error('Error formatting JSON field:', e);
+            // Return empty array as fallback
+            return '[]';
+        }
     }
 
     // Helper method to get auth headers
@@ -188,7 +210,59 @@ class ApiService {
     async createReport(reportData) {
         console.log('Creating report with data:', reportData);
         try {
-            const result = await this.request('/api/reports', 'POST', reportData);
+            // Make sure we're using the correct field names that match the database
+            const formattedData = {
+                id: reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000)),
+                client_id: Number(reportData.client_id || reportData.clientId || 0),
+                client_name: reportData.client_name || reportData.clientName || '',
+                client_phone: reportData.client_phone || reportData.clientPhone || '',
+                client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
+                client_address: reportData.client_address || reportData.clientAddress || '',
+                order_number: reportData.order_number || reportData.orderNumber || '',
+                device_model: reportData.device_model || reportData.deviceModel || '',
+                serial_number: reportData.serial_number || reportData.serialNumber || '',
+                inspection_date: reportData.inspection_date instanceof Date ? 
+                    reportData.inspection_date.toISOString() : 
+                    new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),
+                // Ensure hardware_status is properly formatted as JSON string
+                hardware_status: this._formatJsonField(reportData.hardware_status || reportData.hardwareStatus || []),
+                // Ensure external_images is properly formatted as JSON string
+                external_images: this._formatJsonField(reportData.external_images || reportData.externalImages || []),
+                notes: reportData.notes || '',
+                billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
+                amount: Number(reportData.amount || 0),
+                status: reportData.status || 'active'
+                // Don't send created_at or updated_at - let Sequelize handle these
+            };
+            
+            // Validate client_id is a number and greater than 0
+            if (isNaN(formattedData.client_id) || formattedData.client_id <= 0) {
+                throw new Error('Client ID must be a valid number');
+            }
+            
+            // Make a direct fetch request without authentication headers
+            const url = `${this.baseUrl}/api/reports`;
+            const options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formattedData)
+            };
+            
+            console.log(`Direct API Request: POST ${url}`);
+            console.log('Formatted data being sent:', formattedData);
+            
+            const response = await fetch(url, options);
+            console.log(`API Response status: ${response.status}`);
+            
+            // Handle the response
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `فشل طلب API بحالة ${response.status}`);
+            }
+            
+            const result = await response.json();
             console.log('Report created successfully:', result);
             return result;
         } catch (error) {
@@ -225,7 +299,47 @@ class ApiService {
     }
     
     async createInvoice(invoiceData) {
-        return this.request('/api/invoices', 'POST', invoiceData);
+        console.log('Creating invoice with data:', invoiceData);
+        try {
+            // Make sure we're using the correct field names that match the database
+            const formattedData = {
+                invoice_number: invoiceData.invoice_number || ('INV' + Date.now() + Math.floor(Math.random() * 1000)),
+                report_id: invoiceData.report_id || invoiceData.reportId || null,
+                client_id: Number(invoiceData.client_id || invoiceData.clientId || 0),
+                client_name: invoiceData.client_name || invoiceData.clientName || '',
+                client_phone: invoiceData.client_phone || invoiceData.clientPhone || '',
+                client_email: (invoiceData.client_email || invoiceData.clientEmail || '').trim() === '' ? null : (invoiceData.client_email || invoiceData.clientEmail),
+                client_address: invoiceData.client_address || invoiceData.clientAddress || '',
+                subtotal: Number(invoiceData.subtotal || 0),
+                tax: Number(invoiceData.tax || 0),
+                discount: Number(invoiceData.discount || 0),
+                total: Number(invoiceData.total || 0),
+                notes: invoiceData.notes || '',
+                status: invoiceData.status || 'pending',
+                items: Array.isArray(invoiceData.items) ? invoiceData.items.map(item => ({
+                    description: item.description || '',
+                    quantity: Number(item.quantity || 1),
+                    unit_price: Number(item.unit_price || 0),
+                    total: Number(item.total || 0)
+                })) : []
+            };
+            
+            // Validate client_id is a number and greater than 0
+            if (isNaN(formattedData.client_id) || formattedData.client_id <= 0) {
+                throw new Error('Client ID must be a valid number');
+            }
+            
+            // Validate items array
+            if (!formattedData.items || formattedData.items.length === 0) {
+                throw new Error('Invoice must have at least one item');
+            }
+            
+            console.log('Creating invoice with formatted data:', formattedData);
+            return this.request('/api/invoices', 'POST', formattedData);
+        } catch (error) {
+            console.error('Error formatting invoice data:', error);
+            throw error;
+        }
     }
     
     async updateInvoicePayment(id, paymentData) {

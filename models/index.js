@@ -7,39 +7,29 @@ const { sequelize } = require('../config/db');
 const Admin = require('./Admin');
 const Client = require('./Client');
 const Report = require('./Report');
-const ReportTechnicalTest = require('./ReportTechnicalTest');
-// ReportExternalInspection model is not used
+// Removed ReportTechnicalTest
 const Invoice = require('./Invoice');
 const InvoiceItem = require('./InvoiceItem');
 
 // Define relationships between models
 
-// Admin relationships
-Admin.hasMany(Report, { foreignKey: 'technicianId' });
-
-// Client relationships
-Client.hasMany(Report, { foreignKey: 'clientId' });
-Client.hasMany(Invoice, { foreignKey: 'clientId' });
+// Client relationships - removed direct relationship to Report
+Client.hasMany(Invoice, { foreignKey: 'client_id' });
 
 // Report relationships
-Report.belongsTo(Admin, { foreignKey: 'technicianId', as: 'Technician' });
-Report.belongsTo(Client, { foreignKey: 'clientId' });
-Report.hasMany(ReportTechnicalTest, { foreignKey: 'reportId', onDelete: 'CASCADE' });
-// External inspection relationship removed
-Report.hasOne(Invoice, { foreignKey: 'reportId' });
+Report.belongsTo(Client, { foreignKey: 'client_id' });
+Report.belongsTo(Admin, { foreignKey: 'admin_id', as: 'technician' });
+Report.hasOne(Invoice, { foreignKey: 'report_id' });
 
 // Invoice relationships
-Invoice.belongsTo(Report, { foreignKey: 'reportId' });
-Invoice.belongsTo(Client, { foreignKey: 'clientId' });
-Invoice.hasMany(InvoiceItem, { foreignKey: 'invoiceId', onDelete: 'CASCADE' });
+Invoice.belongsTo(Report, { foreignKey: 'report_id' });
+Invoice.belongsTo(Client, { foreignKey: 'client_id' });
+Invoice.hasMany(InvoiceItem, { foreignKey: 'invoice_id', onDelete: 'CASCADE' });
 
 // Invoice Item relationships
-InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoiceId' });
+InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoice_id' });
 
-// Technical Test relationships
-ReportTechnicalTest.belongsTo(Report, { foreignKey: 'reportId' });
-
-// External Inspection relationships removed
+// Removed Technical Test relationships
 
 // Export models
 module.exports = {
@@ -47,8 +37,7 @@ module.exports = {
     Admin,
     Client,
     Report,
-    ReportTechnicalTest,
-    // ReportExternalInspection removed,
+    // ReportTechnicalTest removed,
     Invoice,
     InvoiceItem
 };

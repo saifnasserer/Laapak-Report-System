@@ -1,12 +1,6 @@
-/**
- * Laapak Report System - Client Model
- * Defines the Client user schema for the database
- */
-
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 
-// Define Client model
 const Client = sequelize.define('Client', {
     id: {
         type: DataTypes.INTEGER,
@@ -20,24 +14,17 @@ const Client = sequelize.define('Client', {
     phone: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
-        validate: {
-            notEmpty: true
-        }
+        validate: { notEmpty: true }
     },
     orderCode: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-            notEmpty: true
-        }
+        validate: { notEmpty: true }
     },
     email: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: {
-            isEmail: true
-        }
+        validate: { isEmail: true }
     },
     address: {
         type: DataTypes.TEXT,
@@ -50,11 +37,14 @@ const Client = sequelize.define('Client', {
     },
     lastLogin: {
         type: DataTypes.DATE,
-        allowNull: true
+        allowNull: true,
+        field: 'lastLogin'
     }
 }, {
     tableName: 'clients',
-    timestamps: true
+    timestamps: true,
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
 });
 
 module.exports = Client;
