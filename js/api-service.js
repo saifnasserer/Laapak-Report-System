@@ -210,32 +210,86 @@ class ApiService {
     async createReport(reportData) {
         console.log('Creating report with data:', reportData);
         try {
-            // Make sure we're using the correct field names that match the database
+            // Format hardware_status as a JSON string if it's not already
+            let hardwareStatus;
+            try {
+                if (typeof reportData.hardware_status === 'string') {
+                    // Validate it's valid JSON by parsing and re-stringifying
+                    hardwareStatus = JSON.stringify(JSON.parse(reportData.hardware_status));
+                } else if (Array.isArray(reportData.hardware_status)) {
+                    hardwareStatus = JSON.stringify(reportData.hardware_status);
+                } else if (reportData.hardwareStatus) {
+                    if (typeof reportData.hardwareStatus === 'string') {
+                        hardwareStatus = JSON.stringify(JSON.parse(reportData.hardwareStatus));
+                    } else {
+                        hardwareStatus = JSON.stringify(reportData.hardwareStatus);
+                    }
+                } else {
+                    hardwareStatus = '[]';
+                }
+            } catch (e) {
+                console.error('Error formatting hardware_status:', e);
+                hardwareStatus = '[]';
+            }
+            
+            // Format external_images as a JSON string if it's not already
+            let externalImages;
+            try {
+                if (typeof reportData.external_images === 'string' && reportData.external_images) {
+                    // Validate it's valid JSON
+                    externalImages = JSON.stringify(JSON.parse(reportData.external_images));
+                } else if (Array.isArray(reportData.external_images)) {
+                    externalImages = JSON.stringify(reportData.external_images);
+                } else if (reportData.externalImages) {
+                    if (typeof reportData.externalImages === 'string' && reportData.externalImages) {
+                        externalImages = JSON.stringify(JSON.parse(reportData.externalImages));
+                    } else {
+                        externalImages = JSON.stringify(reportData.externalImages);
+                    }
+                } else {
+                    externalImages = null;
+                }
+            } catch (e) {
+                console.error('Error formatting external_images:', e);
+                externalImages = null;
+            }
+            
+            // Generate a title from device model or client name if not provided
+            const title = reportData.title || 
+                          `Report for ${reportData.device_model || reportData.deviceModel || ''} - ${reportData.client_name || reportData.clientName || 'Client'}`;
+            
+            // Structure the data exactly as expected by the backend route
+            // The route expects: { clientId, title, description, data }
             const formattedData = {
-                id: reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000)),
-                client_id: Number(reportData.client_id || reportData.clientId || 0),
-                client_name: reportData.client_name || reportData.clientName || '',
-                client_phone: reportData.client_phone || reportData.clientPhone || '',
-                client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
-                client_address: reportData.client_address || reportData.clientAddress || '',
-                order_number: reportData.order_number || reportData.orderNumber || '',
-                device_model: reportData.device_model || reportData.deviceModel || '',
-                serial_number: reportData.serial_number || reportData.serialNumber || '',
-                inspection_date: reportData.inspection_date instanceof Date ? 
-                    reportData.inspection_date.toISOString() : 
-                    new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),
-                // Ensure hardware_status is properly formatted as JSON string
-                hardware_status: this._formatJsonField(reportData.hardware_status || reportData.hardwareStatus || []),
-                // Ensure external_images is properly formatted as JSON string
-                external_images: this._formatJsonField(reportData.external_images || reportData.externalImages || []),
-                notes: reportData.notes || '',
-                billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
-                amount: Number(reportData.amount || 0),
-                status: reportData.status || 'active'
-                // Don't send created_at or updated_at - let Sequelize handle these
+                // Required fields for the route handler
+                clientId: Number(reportData.client_id || reportData.clientId || 0),
+                title: title,
+                description: reportData.notes || '',
+                
+                // All other fields go in the data object
+                data: {
+                    id: reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000)),
+                    client_id: Number(reportData.client_id || reportData.clientId || 0),
+                    client_name: reportData.client_name || reportData.clientName || '',
+                    client_phone: reportData.client_phone || reportData.clientPhone || '',
+                    client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
+                    client_address: reportData.client_address || reportData.clientAddress || '',
+                    order_number: reportData.order_number || reportData.orderNumber || '',
+                    device_model: reportData.device_model || reportData.deviceModel || '',
+                    serial_number: reportData.serial_number || reportData.serialNumber || '',
+                    inspection_date: reportData.inspection_date instanceof Date ? 
+                        reportData.inspection_date.toISOString() : 
+                        new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),
+                    hardware_status: hardwareStatus,
+                    external_images: externalImages,
+                    notes: reportData.notes || '',
+                    billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
+                    amount: Number(reportData.amount || 0),
+                    status: reportData.status || 'active'
+                }
             };
             
-            // Validate client_id is a number and greater than 0
+            // Validate clientId is a number and greater than 0
             if (isNaN(formattedData.client_id) || formattedData.client_id <= 0) {
                 throw new Error('Client ID must be a valid number');
             }
@@ -259,7 +313,7 @@ class ApiService {
             // Handle the response
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || `فشل طلب API بحالة ${response.status}`);
+                throw new Error(errorData.message || errorData.error || `API request failed with status ${response.status}`);
             }
             
             const result = await response.json();
@@ -269,7 +323,7 @@ class ApiService {
             console.error('Error creating report:', error);
             // Provide a more user-friendly error message
             if (error.message.includes('database')) {
-                throw new Error('فشل في حفظ التقرير في قاعدة البيانات. يرجى التأكد من وجود جدول التقارير.');
+                throw new Error('Failed to save report to database. Please check database connection.');
             }
             throw error;
         }
