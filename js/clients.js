@@ -10,6 +10,11 @@ const CLIENTS_API_URL = `${API_BASE_URL}/clients`;
 // Store clients data globally to make it accessible across functions
 let clientsData = [];
 
+// Pagination settings
+const CLIENTS_PER_PAGE = 20;
+let currentPage = 1;
+let totalClients = 0;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Check if admin is logged in
     if (!authMiddleware.isAdminLoggedIn()) {
@@ -46,6 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up event delegation for client table actions
     setupEventDelegation();
+    
+    // Initialize pagination
+    initPagination();
 
     // Form submission for client search
     const searchForm = document.getElementById('searchForm');
@@ -323,10 +331,19 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Display clients in the table
      * @param {Array} clients - Array of client objects
+     * @param {boolean} updatePagination - Whether to update pagination controls
      */
-    function displayClients(clients) {
+    function displayClients(clients, updatePagination = true) {
         const tableBody = document.getElementById('clientsTableBody');
         if (!tableBody) return;
+        
+        // Store all clients for pagination
+        if (updatePagination) {
+            clientsData = clients;
+            totalClients = clients.length;
+            // Reset to first page when new data is loaded
+            currentPage = 1;
+        }
         
         // Clear existing rows
         tableBody.innerHTML = '';
@@ -340,11 +357,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     </td>
                 </tr>
             `;
+            
+            // Hide pagination if no clients
+            const paginationContainer = document.getElementById('clientsPagination');
+            if (paginationContainer) {
+                paginationContainer.parentElement.classList.add('d-none');
+            }
             return;
         }
         
-        // Add client rows
-        clients.forEach((client, index) => {
+        // Show pagination if we have clients
+        const paginationContainer = document.getElementById('clientsPagination');
+        if (paginationContainer) {
+            paginationContainer.parentElement.classList.remove('d-none');
+        }
+        
+        // Calculate pagination
+        const startIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
+        const endIndex = Math.min(startIndex + CLIENTS_PER_PAGE, clients.length);
+        const paginatedClients = clients.slice(startIndex, endIndex);
+        
+        // Update pagination controls if needed
+        if (updatePagination) {
+            updatePaginationControls();
+        }
+        
+        // Add client rows for current page only
+        paginatedClients.forEach((client, index) => {
             const row = document.createElement('tr');
             
             // Format date
@@ -354,8 +393,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const statusClass = client.status === 'active' ? 'bg-success' : 'bg-secondary';
             const statusText = client.status === 'active' ? 'نشط' : 'غير نشط';
             
+            // Calculate the correct row number based on pagination
+            const rowNumber = (currentPage - 1) * CLIENTS_PER_PAGE + index + 1;
+            
             row.innerHTML = `
-                <td class="py-3">${index + 1}</td>
+                <td class="py-3">${rowNumber}</td>
                 <td class="py-3">${client.name || 'غير محدد'}</td>
                 <td class="py-3">${client.phone || 'غير محدد'}</td>
                 <td class="py-3">${client.email || 'غير محدد'}</td>
@@ -506,4 +548,109 @@ document.addEventListener('DOMContentLoaded', function() {
     // Listen for online/offline events
     window.addEventListener('online', updateOfflineStatus);
     window.addEventListener('offline', updateOfflineStatus);
+    
+    /**
+     * Initialize pagination functionality
+     */
+    function initPagination() {
+        // Get pagination elements
+        const prevPageBtn = document.querySelector('#clientsPagination .page-item:first-child .page-link');
+        const nextPageBtn = document.querySelector('#clientsPagination .page-item:last-child .page-link');
+        
+        // Add event listeners for pagination controls
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayClients(clientsData, false);
+                    updatePaginationControls();
+                }
+            });
+        }
+        
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const totalPages = Math.ceil(totalClients / CLIENTS_PER_PAGE);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayClients(clientsData, false);
+                    updatePaginationControls();
+                }
+            });
+        }
+    }
+
+    /**
+     * Update pagination controls based on current page and total clients
+     */
+    function updatePaginationControls() {
+        const paginationContainer = document.getElementById('clientsPagination');
+        if (!paginationContainer) return;
+        
+        // Calculate total pages
+        const totalPages = Math.ceil(totalClients / CLIENTS_PER_PAGE);
+        
+        // Clear existing page number buttons (keep prev/next buttons)
+        const pageItems = paginationContainer.querySelectorAll('.page-item');
+        for (let i = 1; i < pageItems.length - 1; i++) {
+            pageItems[i].remove();
+        }
+        
+        // Get prev/next buttons
+        const prevPageItem = paginationContainer.querySelector('.page-item:first-child');
+        const nextPageItem = paginationContainer.querySelector('.page-item:last-child');
+        
+        // Create page number buttons
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        // Adjust if we're near the end
+        if (endPage - startPage + 1 < maxVisiblePages && startPage > 1) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // Create page number elements
+        for (let i = startPage; i <= endPage; i++) {
+            const pageItem = document.createElement('li');
+            pageItem.className = `page-item${i === currentPage ? ' active' : ''}`;
+            
+            const pageLink = document.createElement('a');
+            pageLink.className = 'page-link';
+            pageLink.href = '#';
+            pageLink.textContent = i;
+            
+            // Add click event
+            pageLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                currentPage = i;
+                displayClients(clientsData, false);
+                updatePaginationControls();
+            });
+            
+            pageItem.appendChild(pageLink);
+            
+            // Insert before the next button
+            paginationContainer.insertBefore(pageItem, nextPageItem);
+        }
+        
+        // Update prev/next button states
+        if (prevPageItem) {
+            if (currentPage <= 1) {
+                prevPageItem.classList.add('disabled');
+            } else {
+                prevPageItem.classList.remove('disabled');
+            }
+        }
+        
+        if (nextPageItem) {
+            if (currentPage >= totalPages) {
+                nextPageItem.classList.add('disabled');
+            } else {
+                nextPageItem.classList.remove('disabled');
+            }
+        }
+    }
 });

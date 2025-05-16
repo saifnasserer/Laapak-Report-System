@@ -3,6 +3,12 @@
  * Handles functionality for the reports listing page
  */
 
+// Pagination settings
+const REPORTS_PER_PAGE = 20;
+let currentPage = 1;
+let totalReports = 0;
+let allReports = [];
+
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is authenticated
     if (typeof authMiddleware !== 'undefined') {
@@ -23,6 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize search form
     initSearchForm();
+    
+    // Initialize pagination
+    initPagination();
 });
 
 /**
@@ -161,11 +170,20 @@ async function checkServerConnection() {
 /**
  * Populate the reports table with data
  * @param {Array} reports - Array of report objects
+ * @param {boolean} updatePagination - Whether to update pagination controls
  */
-function populateReportsTable(reports) {
+function populateReportsTable(reports, updatePagination = true) {
     const reportsTableBody = document.getElementById('reportsTableBody');
     
     if (!reportsTableBody) return;
+    
+    // Store all reports for pagination
+    if (updatePagination) {
+        allReports = reports;
+        totalReports = reports.length;
+        // Reset to first page when new data is loaded
+        currentPage = 1;
+    }
     
     // Clear existing rows
     reportsTableBody.innerHTML = '';
@@ -186,11 +204,33 @@ function populateReportsTable(reports) {
             </td>
         `;
         reportsTableBody.appendChild(noDataRow);
+        
+        // Hide pagination if no reports
+        const paginationContainer = document.querySelector('nav[aria-label="Page navigation"]');
+        if (paginationContainer) {
+            paginationContainer.classList.add('d-none');
+        }
         return;
     }
     
-    // Add report rows
-    reports.forEach(report => {
+    // Show pagination if we have reports
+    const paginationContainer = document.querySelector('nav[aria-label="Page navigation"]');
+    if (paginationContainer) {
+        paginationContainer.classList.remove('d-none');
+    }
+    
+    // Calculate pagination
+    const startIndex = (currentPage - 1) * REPORTS_PER_PAGE;
+    const endIndex = Math.min(startIndex + REPORTS_PER_PAGE, reports.length);
+    const paginatedReports = reports.slice(startIndex, endIndex);
+    
+    // Update pagination controls if needed
+    if (updatePagination) {
+        updatePaginationControls();
+    }
+    
+    // Add report rows for current page only
+    paginatedReports.forEach(report => {
         const row = document.createElement('tr');
         
         // Map backend field names to frontend expected names
@@ -303,6 +343,111 @@ function showErrorMessage(message) {
     if (errorContainer) {
         errorContainer.innerHTML = message;
         errorContainer.classList.remove('d-none');
+    }
+}
+
+/**
+ * Initialize pagination functionality
+ */
+function initPagination() {
+    // Get pagination elements
+    const prevPageBtn = document.querySelector('.pagination .page-item:first-child .page-link');
+    const nextPageBtn = document.querySelector('.pagination .page-item:last-child .page-link');
+    
+    // Add event listeners for pagination controls
+    if (prevPageBtn) {
+        prevPageBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (currentPage > 1) {
+                currentPage--;
+                populateReportsTable(allReports, false);
+                updatePaginationControls();
+            }
+        });
+    }
+    
+    if (nextPageBtn) {
+        nextPageBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const totalPages = Math.ceil(totalReports / REPORTS_PER_PAGE);
+            if (currentPage < totalPages) {
+                currentPage++;
+                populateReportsTable(allReports, false);
+                updatePaginationControls();
+            }
+        });
+    }
+}
+
+/**
+ * Update pagination controls based on current page and total reports
+ */
+function updatePaginationControls() {
+    const paginationContainer = document.querySelector('.pagination');
+    if (!paginationContainer) return;
+    
+    // Calculate total pages
+    const totalPages = Math.ceil(totalReports / REPORTS_PER_PAGE);
+    
+    // Clear existing page number buttons (keep prev/next buttons)
+    const pageItems = paginationContainer.querySelectorAll('.page-item');
+    for (let i = 1; i < pageItems.length - 1; i++) {
+        pageItems[i].remove();
+    }
+    
+    // Get prev/next buttons
+    const prevPageItem = paginationContainer.querySelector('.page-item:first-child');
+    const nextPageItem = paginationContainer.querySelector('.page-item:last-child');
+    
+    // Create page number buttons
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages && startPage > 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    // Create page number elements
+    for (let i = startPage; i <= endPage; i++) {
+        const pageItem = document.createElement('li');
+        pageItem.className = `page-item${i === currentPage ? ' active' : ''}`;
+        
+        const pageLink = document.createElement('a');
+        pageLink.className = 'page-link';
+        pageLink.href = '#';
+        pageLink.textContent = i;
+        
+        // Add click event
+        pageLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentPage = i;
+            populateReportsTable(allReports, false);
+            updatePaginationControls();
+        });
+        
+        pageItem.appendChild(pageLink);
+        
+        // Insert before the next button
+        paginationContainer.insertBefore(pageItem, nextPageItem);
+    }
+    
+    // Update prev/next button states
+    if (prevPageItem) {
+        if (currentPage <= 1) {
+            prevPageItem.classList.add('disabled');
+        } else {
+            prevPageItem.classList.remove('disabled');
+        }
+    }
+    
+    if (nextPageItem) {
+        if (currentPage >= totalPages) {
+            nextPageItem.classList.add('disabled');
+        } else {
+            nextPageItem.classList.remove('disabled');
+        }
     }
 }
 
