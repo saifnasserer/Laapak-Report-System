@@ -5,7 +5,7 @@
 
 class ApiService {
     constructor() {
-        // Set the backend API URL to match the test script
+        // Set the backend API URL to match the .env PORT setting
         this.baseUrl = 'http://localhost:3001';
         this.authToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
     }

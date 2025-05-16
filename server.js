@@ -77,10 +77,11 @@ const startServer = async () => {
             process.exit(1);
         }
         
-        // Ensure all required tables exist (reports, report_technical_tests, report_external_inspection)
+        // Ensure all required tables exist (reports, report_technical_tests)
         try {
             console.log('Ensuring all required tables exist...');
-            await ensureTables();
+            // Pass false to prevent closing the database connection
+            await ensureTables(false);
             console.log('All required tables verified successfully.');
         } catch (tableError) {
             console.error('Error ensuring required tables:', tableError);

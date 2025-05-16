@@ -5,9 +5,9 @@
 
 class LaravelApiService {
     constructor() {
-        // Set the Laravel backend API URL
-        this.baseUrl = 'http://localhost:8000/api';
-        this.authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        // Set the Laravel backend API URL to match the Node.js API port
+        this.baseUrl = 'http://localhost:3001/api';
+        this.authToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
     }
 
     // Helper method to get auth headers
@@ -15,7 +15,7 @@ class LaravelApiService {
         return {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Authorization': `Bearer ${this.authToken}`
+            'x-auth-token': this.authToken
         };
     }
 
@@ -23,9 +23,11 @@ class LaravelApiService {
     setAuthToken(token) {
         this.authToken = token;
         if (token) {
-            localStorage.setItem('authToken', token);
+            localStorage.setItem('adminToken', token);
+            sessionStorage.setItem('adminToken', token);
         } else {
-            localStorage.removeItem('authToken');
+            localStorage.removeItem('adminToken');
+            sessionStorage.removeItem('adminToken');
         }
     }
 

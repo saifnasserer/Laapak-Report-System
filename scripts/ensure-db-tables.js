@@ -60,8 +60,9 @@ async function tableExists(tableName) {
 
 /**
  * Ensure all required tables exist
+ * @param {boolean} closeConnection - Whether to close the connection after checking tables
  */
-async function ensureTables() {
+async function ensureTables(closeConnection = false) {
     try {
         console.log('Checking database connection...');
         await sequelize.authenticate();
@@ -85,28 +86,25 @@ async function ensureTables() {
             console.log('Report technical tests table already exists.');
         }
         
-        // Check if report_external_inspection table exists
-        const externalInspectionExists = await tableExists('report_external_inspection');
-        if (!externalInspectionExists) {
-            console.log('Report external inspection table does not exist. Creating...');
-            await executeSqlFile(path.join(migrationsPath, '003_create_report_external_inspection_table.sql'));
-        } else {
-            console.log('Report external inspection table already exists.');
-        }
+        // External inspection table check removed as it's not used in the application
         
         console.log('All required tables exist.');
     } catch (error) {
         console.error('Error ensuring tables exist:', error);
-        process.exit(1);
+        throw error; // Throw instead of exiting to allow caller to handle
     } finally {
-        // Close database connection
-        await sequelize.close();
+        // Only close the connection if explicitly requested
+        // This prevents closing when called from server.js
+        if (closeConnection) {
+            await sequelize.close();
+        }
     }
 }
 
 // Run the function if this script is executed directly
 if (require.main === module) {
-    ensureTables()
+    // Pass true to close the connection when run as a standalone script
+    ensureTables(true)
         .then(() => {
             console.log('Database initialization completed successfully.');
             process.exit(0);

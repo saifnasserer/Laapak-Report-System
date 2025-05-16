@@ -8,7 +8,7 @@ const Admin = require('./Admin');
 const Client = require('./Client');
 const Report = require('./Report');
 const ReportTechnicalTest = require('./ReportTechnicalTest');
-const ReportExternalInspection = require('./ReportExternalInspection');
+// ReportExternalInspection model is not used
 const Invoice = require('./Invoice');
 const InvoiceItem = require('./InvoiceItem');
 
@@ -25,7 +25,7 @@ Client.hasMany(Invoice, { foreignKey: 'clientId' });
 Report.belongsTo(Admin, { foreignKey: 'technicianId', as: 'Technician' });
 Report.belongsTo(Client, { foreignKey: 'clientId' });
 Report.hasMany(ReportTechnicalTest, { foreignKey: 'reportId', onDelete: 'CASCADE' });
-Report.hasMany(ReportExternalInspection, { foreignKey: 'reportId', onDelete: 'CASCADE' });
+// External inspection relationship removed
 Report.hasOne(Invoice, { foreignKey: 'reportId' });
 
 // Invoice relationships
@@ -39,8 +39,7 @@ InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoiceId' });
 // Technical Test relationships
 ReportTechnicalTest.belongsTo(Report, { foreignKey: 'reportId' });
 
-// External Inspection relationships
-ReportExternalInspection.belongsTo(Report, { foreignKey: 'reportId' });
+// External Inspection relationships removed
 
 // Export models
 module.exports = {
@@ -49,7 +48,7 @@ module.exports = {
     Client,
     Report,
     ReportTechnicalTest,
-    ReportExternalInspection,
+    // ReportExternalInspection removed,
     Invoice,
     InvoiceItem
 };
