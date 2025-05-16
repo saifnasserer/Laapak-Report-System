@@ -3,7 +3,25 @@
  * Multi-step form handling
  */
 
+// Get a reference to the global apiService if it exists
+let formApiService;
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Try to get apiService from global scope
+    formApiService = window.apiService || (typeof apiService !== 'undefined' ? apiService : null);
+    // Make sure error containers are hidden on page load
+    if (typeof hideAllStepErrors === 'function') {
+        hideAllStepErrors();
+    } else {
+        console.error('hideAllStepErrors function not found. Make sure form-steps-utils.js is loaded before form-steps.js');
+        // Fallback implementation
+        for (let i = 1; i <= 5; i++) {
+            const errorContainer = document.getElementById(`step${i}ErrorContainer`);
+            if (errorContainer) {
+                errorContainer.style.display = 'none';
+            }
+        }
+    }
     // Get all form steps and navigation buttons
     const formSteps = document.querySelectorAll('.form-step');
     const stepButtons = document.querySelectorAll('.step-button');
@@ -20,11 +38,157 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Event listeners for next/prev buttons
     nextButtons.forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', function() {
+            // Hide all step errors before validation
+            if (typeof hideAllStepErrors === 'function') {
+                hideAllStepErrors();
+            } else {
+                // Fallback implementation
+                for (let i = 1; i <= 5; i++) {
+                    const errorContainer = document.getElementById(`step${i}ErrorContainer`);
+                    if (errorContainer) {
+                        errorContainer.style.display = 'none';
+                    }
+                }
+            }
+            
+            // Special handling for step 1 - client validation
+            if (currentStep === 0) {
+                const clientSelect = document.getElementById('clientSelect');
+                if (clientSelect && !clientSelect.value) {
+                    // Show error in step1 error container
+                    const errorContainer = document.getElementById('step1ErrorContainer');
+                    const errorText = document.getElementById('step1ErrorText');
+                    if (errorContainer && errorText) {
+                        errorText.textContent = 'يجب اختيار عميل قبل المتابعة';
+                        errorContainer.style.display = 'block';
+                        errorContainer.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    
+                    // Add red border to the client select
+                    if (clientSelect.parentNode) {
+                        clientSelect.parentNode.classList.add('border', 'border-danger');
+                    }
+                    
+                    return false; // Stop here, don't proceed to next step
+                }
+            }
+            
             if (validateStep(currentStep)) {
+                // If we're on step 1, update global device details and client details before moving to next step
+                if (currentStep === 0) {
+                    // Direct update to window.globalDeviceDetails
+                    window.globalDeviceDetails = {
+                        orderNumber: document.getElementById('orderNumber')?.value || '',
+                        inspectionDate: document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0],
+                        deviceModel: document.getElementById('deviceModel')?.value || '',
+                        serialNumber: document.getElementById('serialNumber')?.value || ''
+                    };
+                    
+                    // Store client selection in global variable
+                    const clientSelect = document.getElementById('clientSelect');
+                    if (clientSelect && clientSelect.value) {
+                        // Create global client details object if it doesn't exist
+                        if (!window.globalClientDetails) {
+                            window.globalClientDetails = {};
+                        }
+                        
+                        window.globalClientDetails.clientId = clientSelect.value;
+                        console.log('Selected client ID stored globally:', window.globalClientDetails.clientId);
+                        
+                        // If we have client data available, store more details
+                        if (Array.isArray(window.clientsData)) {
+                            const selectedClient = window.clientsData.find(client => client.id == clientSelect.value);
+                            if (selectedClient) {
+                                window.globalClientDetails.clientName = selectedClient.name;
+                                window.globalClientDetails.clientPhone = selectedClient.phone;
+                                window.globalClientDetails.clientEmail = selectedClient.email || '';
+                                window.globalClientDetails.clientAddress = selectedClient.address || '';
+                                console.log('Full client details stored globally:', window.globalClientDetails);
+                            }
+                        }
+                    }
+                    
+                    // Call the update function if it exists
+                    if (typeof updateGlobalDeviceDetails === 'function') {
+                        updateGlobalDeviceDetails();
+                    }
+                    
+                    console.log('Step 1 → Step 2: Updated device details:', window.globalDeviceDetails);
+                }
+                
                 currentStep++;
                 showStep(currentStep);
                 updateProgressBar();
+                
+                // For step 5 (invoice), auto-populate device details from global variables
+                if (currentStep === 4) { // Zero-based index, so 4 is the fifth step
+                    const invoiceDeviceInput = document.getElementById('invoiceDeviceName');
+                    const invoiceSerialInput = document.getElementById('invoiceSerialNumber');
+                    const invoicePriceInput = document.getElementById('invoicePrice');
+                    
+                    console.log('Populating invoice device fields from global device details');
+                    console.log('Global device details:', window.globalDeviceDetails);
+                    
+                    // Force update global device details from the first step
+                    if (typeof updateGlobalDeviceDetails === 'function') {
+                        updateGlobalDeviceDetails();
+                        console.log('Updated global device details before populating invoice fields:', window.globalDeviceDetails);
+                    }
+                    
+                    // Always use window.globalDeviceDetails to ensure we're accessing the global variable
+                    if (window.globalDeviceDetails && invoiceDeviceInput && invoiceSerialInput) {
+                        // Auto-fill device details from global variables
+                        // Get device model from the first step
+                        const deviceModelInput = document.getElementById('deviceModel');
+                        if (deviceModelInput && deviceModelInput.value) {
+                            invoiceDeviceInput.value = deviceModelInput.value;
+                            console.log('Auto-filled device model from form:', deviceModelInput.value);
+                        } else if (window.globalDeviceDetails.deviceModel) {
+                            invoiceDeviceInput.value = window.globalDeviceDetails.deviceModel;
+                            console.log('Auto-filled device model from global:', window.globalDeviceDetails.deviceModel);
+                        }
+                        
+                        // Get serial number from the first step
+                        const serialNumberInput = document.getElementById('serialNumber');
+                        if (serialNumberInput && serialNumberInput.value) {
+                            invoiceSerialInput.value = serialNumberInput.value;
+                            console.log('Auto-filled serial number from form:', serialNumberInput.value);
+                        } else if (window.globalDeviceDetails.serialNumber) {
+                            invoiceSerialInput.value = window.globalDeviceDetails.serialNumber;
+                            console.log('Auto-filled serial number from global:', window.globalDeviceDetails.serialNumber);
+                        }
+                        
+                        // Get price from the first step
+                        const priceInput = document.getElementById('invoicePrice');
+                        if (priceInput) {
+                            // Get price from the first step
+                            const devicePriceInput = document.getElementById('devicePrice');
+                            if (devicePriceInput && devicePriceInput.value) {
+                                priceInput.value = devicePriceInput.value;
+                                console.log('Auto-filled price from form:', devicePriceInput.value);
+                            } else if (window.globalDeviceDetails.devicePrice) {
+                                priceInput.value = window.globalDeviceDetails.devicePrice;
+                                console.log('Auto-filled price from global:', window.globalDeviceDetails.devicePrice);
+                            }
+                        }
+                    } else {
+                        // Fallback to direct DOM access if global variables aren't available
+                        const deviceModelInput = document.getElementById('deviceModel');
+                        const serialNumberInput = document.getElementById('serialNumber');
+                        
+                        if (deviceModelInput && serialNumberInput && invoiceDeviceInput && invoiceSerialInput) {
+                            // Auto-fill device details from step 1
+                            if (deviceModelInput.value) {
+                                invoiceDeviceInput.value = deviceModelInput.value;
+                            }
+                            
+                            if (serialNumberInput.value) {
+                                invoiceSerialInput.value = serialNumberInput.value;
+                            }
+                        }
+                    }
+                }
             }
         });
     });
@@ -119,6 +283,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const existingAlerts = currentStepEl.querySelectorAll('.validation-alert');
         existingAlerts.forEach(alert => alert.remove());
         
+        // Hide step-specific error container
+        const stepErrorContainer = document.getElementById(`step${stepIndex + 1}ErrorContainer`);
+        if (stepErrorContainer) {
+            stepErrorContainer.style.display = 'none';
+        }
+        
         // Step-specific validation
         switch(stepIndex) {
             case 0: // Basic Information
@@ -142,17 +312,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (!isValid) {
-            // Show validation message with specific errors
-            const alertEl = createValidationAlert(currentStepEl, errorMessages);
-            alertEl.style.display = 'block';
+            // Show error in the step-specific error container
+            if (stepErrorContainer && document.getElementById(`step${stepIndex + 1}ErrorText`)) {
+                const errorText = document.getElementById(`step${stepIndex + 1}ErrorText`);
+                errorText.textContent = errorMessages.join('، ');
+                stepErrorContainer.style.display = 'block';
+                stepErrorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                // Fallback to old method if error container doesn't exist
+                const alertEl = createValidationAlert(currentStepEl, errorMessages);
+                alertEl.style.display = 'block';
+            }
             
-            // Scroll to the first error
+            // Scroll to the first error field
             const firstInvalidField = currentStepEl.querySelector('.is-invalid');
             if (firstInvalidField) {
                 firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 setTimeout(() => firstInvalidField.focus(), 500);
-            } else {
-                alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
         
@@ -163,12 +339,44 @@ document.addEventListener('DOMContentLoaded', function() {
     function validateBasicInfoStep(stepEl, errorMessages) {
         let isValid = true;
         
-        // Client validation
+        // Client validation - this is now a critical requirement
         const clientSelect = stepEl.querySelector('#clientSelect');
         if (clientSelect && !clientSelect.value) {
             errorMessages.push('الرجاء اختيار عميل أو إضافة عميل جديد');
             isValid = false;
-            highlightElement(clientSelect.parentNode);
+            
+            // Add red border to the client select
+            if (clientSelect.parentNode) {
+                clientSelect.parentNode.classList.add('border', 'border-danger');
+                
+                // Remove highlight when client is selected
+                clientSelect.addEventListener('change', function() {
+                    if (this.value) {
+                        this.parentNode.classList.remove('border', 'border-danger');
+                    }
+                }, { once: true });
+            }
+            
+            // Show specific error in step1 error container
+            const stepErrorContainer = document.getElementById('step1ErrorContainer');
+            const stepErrorText = document.getElementById('step1ErrorText');
+            if (stepErrorContainer && stepErrorText) {
+                stepErrorText.textContent = 'يجب اختيار عميل قبل المتابعة';
+                stepErrorContainer.style.display = 'block';
+                stepErrorContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Add event listener to hide error when client is selected
+            clientSelect.addEventListener('change', function() {
+                if (this.value) {
+                    const errorContainer = document.getElementById('step1ErrorContainer');
+                    if (errorContainer) {
+                        errorContainer.style.display = 'none';
+                    }
+                }
+            }, { once: true });
+            
+            return false; // Stop validation here as client selection is required
         }
         
         // Order number validation
@@ -245,6 +453,50 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedComponents.join('، ')}`);
         }
         
+        // Check component images
+        const componentImageInputs = stepEl.querySelectorAll('.component-image-upload');
+        const missingImages = [];
+        
+        componentImageInputs.forEach(input => {
+            const componentName = input.getAttribute('data-component-name');
+            const isRequired = input.hasAttribute('required');
+            
+            // Check if input has files or if there's a preview image already
+            const hasFiles = input.files && input.files.length > 0;
+            const previewContainer = input.closest('.component-container').querySelector('.image-preview');
+            const hasPreview = previewContainer && previewContainer.querySelector('img');
+            
+            if (isRequired && !hasFiles && !hasPreview) {
+                missingImages.push(componentName || 'مكون');
+                isValid = false;
+                
+                // Highlight the component image container
+                const container = input.closest('.component-container');
+                if (container) {
+                    container.classList.add('border-danger');
+                    
+                    // Remove highlight when an image is selected
+                    input.addEventListener('change', function() {
+                        if (this.files && this.files.length > 0) {
+                            container.classList.remove('border-danger');
+                        }
+                    }, { once: true });
+                }
+            }
+        });
+        
+        if (missingImages.length > 0) {
+            errorMessages.push(`الرجاء إضافة صور للمكونات التالية: ${missingImages.join('، ')}`);
+            
+            // Show specific error in step2 error container
+            const stepErrorContainer = document.getElementById('step2ErrorContainer');
+            const stepErrorText = document.getElementById('step2ErrorText');
+            if (stepErrorContainer && stepErrorText) {
+                stepErrorText.textContent = `يجب إضافة صور للمكونات المطلوبة قبل المتابعة`;
+                stepErrorContainer.style.display = 'block';
+            }
+        }
+        
         // Check system components if they exist
         const systemComponents = [
             { id: 'cpuStatus', label: 'المعالج' },
@@ -318,6 +570,37 @@ document.addEventListener('DOMContentLoaded', function() {
         // If billing is disabled, no validation needed
         if (!billingEnabled) {
             return true;
+        }
+        
+        // Auto-fill device details from global variables if they exist
+        const invoiceDeviceInput = document.getElementById('invoiceDeviceName');
+        const invoiceSerialInput = document.getElementById('invoiceSerialNumber');
+        
+        // Check if global device details are available (from create-report.js)
+        if (typeof globalDeviceDetails !== 'undefined') {
+            // Only auto-fill if the invoice fields are empty
+            if (invoiceDeviceInput && !invoiceDeviceInput.value && globalDeviceDetails.deviceModel) {
+                invoiceDeviceInput.value = globalDeviceDetails.deviceModel;
+            }
+            
+            if (invoiceSerialInput && !invoiceSerialInput.value && globalDeviceDetails.serialNumber) {
+                invoiceSerialInput.value = globalDeviceDetails.serialNumber;
+            }
+        } else {
+            // Fallback to direct DOM access if global variables aren't available
+            const deviceModelInput = document.getElementById('deviceModel');
+            const serialNumberInput = document.getElementById('serialNumber');
+            
+            if (deviceModelInput && serialNumberInput && invoiceDeviceInput && invoiceSerialInput) {
+                // Only auto-fill if the invoice fields are empty
+                if (!invoiceDeviceInput.value && deviceModelInput.value) {
+                    invoiceDeviceInput.value = deviceModelInput.value;
+                }
+                
+                if (!invoiceSerialInput.value && serialNumberInput.value) {
+                    invoiceSerialInput.value = serialNumberInput.value;
+                }
+            }
         }
         
         // Validate required fields
@@ -410,6 +693,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Use the collectReportData function from create-report.js
             // This ensures consistent data collection across the application
             if (typeof collectReportData === 'function') {
+                // Use the apiService reference defined at the top of the file
+                const currentApiService = formApiService;
                 try {
                     // Show loading indicator
                     const submitBtn = this.querySelector('button[type="submit"]');
@@ -421,7 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Check if billing is enabled
                     const billingEnabled = document.getElementById('enableBilling')?.checked || false;
-                    reportData.billingEnabled = billingEnabled;
+                    reportData.billing_enabled = billingEnabled;
                     
                     // Prepare technical tests data
                     const technicalTests = [];
@@ -494,10 +779,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Save report data to API
                     let savedReport;
-                    if (window.apiService && typeof window.apiService.createReport === 'function') {
+                    console.log('Attempting to save report to API...');
+                    console.log('API Service available:', !!currentApiService);
+                    console.log('createReport function available:', typeof currentApiService?.createReport === 'function');
+                    
+                    if (currentApiService && typeof currentApiService.createReport === 'function') {
                         try {
-                            savedReport = await window.apiService.createReport(reportData);
-                            console.log('Report saved to API:', savedReport);
+                            console.log('Making API call to create report with data:', JSON.stringify(reportData, null, 2));
+                            savedReport = await currentApiService.createReport(reportData);
+                            console.log('Report saved to API successfully:', savedReport);
                         } catch (apiError) {
                             console.error('Error saving report to API:', apiError);
                             // Fall back to localStorage
@@ -505,6 +795,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             savedReport = reportData;
                         }
                     } else {
+                        console.error('API service or createReport function not available');
                         // Fall back to localStorage
                         saveReportData(reportData);
                         savedReport = reportData;
@@ -513,44 +804,121 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Generate invoice if needed
                     let invoice = null;
                     
-                    // If billing is enabled, generate invoice
-                    if (billingEnabled) {
-                        // Create basic invoice data
-                        const invoiceData = {
-                            reportId: savedReport.id,
-                            clientId: savedReport.clientId,
-                            subtotal: 0,
-                            tax: 0,
-                            total: 0,
-                            items: []
-                        };
-                        
-                        // Add device as an item
-                        if (savedReport.deviceModel) {
-                            invoiceData.items.push({
-                                description: savedReport.deviceModel + (savedReport.serialNumber ? ` (SN: ${savedReport.serialNumber})` : ''),
-                                type: 'laptop',
-                                amount: 0,
-                                quantity: 1,
-                                totalAmount: 0,
-                                serialNumber: savedReport.serialNumber
-                            });
-                        }
-                        
-                        // Save invoice to API
-                        if (typeof apiService !== 'undefined' && typeof apiService.createInvoice === 'function') {
-                            try {
-                                invoice = await apiService.createInvoice(invoiceData);
-                                console.log('Invoice saved to API:', invoice);
-                            } catch (apiError) {
-                                console.error('Error saving invoice to API:', apiError);
-                                // Fall back to localStorage
-                                invoice = generateInvoice(savedReport);
+                    // Check if billing is enabled from the form data
+                    // Note: We're using a different variable name to avoid redeclaration
+                    const billingToggle = document.getElementById('enableBilling');
+                    
+                    // Directly read the DOM state of the billing toggle
+                    // This ensures we always get the current state, not a cached value
+                    const freshBillingToggle = document.getElementById('enableBilling');
+                    let isBillingEnabled = false;
+                    
+                    if (freshBillingToggle) {
+                        // Force a direct DOM read of the current checked state
+                        isBillingEnabled = freshBillingToggle.checked;
+                        console.log('Billing toggle DOM element:', freshBillingToggle);
+                        console.log('Billing toggle checked attribute:', freshBillingToggle.getAttribute('checked'));
+                        console.log('Billing toggle checked property:', freshBillingToggle.checked);
+                    } else {
+                        console.warn('Billing toggle element not found in the DOM');
+                    }
+                    
+                    console.log('Billing enabled:', isBillingEnabled);
+                    console.log('Billing toggle element:', billingToggle);
+                    
+                    // If billing is enabled, try to generate invoice but don't block report creation
+                    if (isBillingEnabled) {
+                        // Wrap the entire invoice creation in a try/catch to prevent it from blocking report creation
+                        try {
+                            // First try to get client ID from the saved report
+                            let clientId = savedReport.clientId;
+                            
+                            // If not available in the report, try global client details
+                            if (!clientId && window.globalClientDetails) {
+                                clientId = window.globalClientDetails.clientId;
+                                console.log('Using client ID from global client details:', clientId);
                             }
-                        } else {
-                            // Fall back to localStorage
-                            invoice = generateInvoice(savedReport);
+                            
+                            // As a last resort, try to get it from the form
+                            if (!clientId) {
+                                clientId = document.getElementById('clientSelect')?.value;
+                                console.log('Using client ID from form element:', clientId);
+                            }
+                            
+                            // Log client ID for debugging
+                            console.log('Creating invoice with client ID:', clientId);
+                            
+                            if (!clientId) {
+                                console.warn('No client ID available for invoice creation - skipping invoice');
+                            } else {
+                                // Get values from the invoice form fields
+                                const deviceName = document.getElementById('invoiceDeviceName')?.value || window.globalDeviceDetails?.deviceModel || savedReport.deviceModel || '';
+                                const serialNumber = document.getElementById('invoiceSerialNumber')?.value || window.globalDeviceDetails?.serialNumber || savedReport.serialNumber || '';
+                                const price = parseFloat(document.getElementById('invoicePrice')?.value || '250');
+                                const taxRate = parseFloat(document.getElementById('taxRate')?.value || '14');
+                                const discount = parseFloat(document.getElementById('discount')?.value || '0');
+                                
+                                // Calculate totals
+                                const subtotal = price;
+                                const tax = (subtotal * taxRate) / 100; // Convert tax rate from percentage to decimal
+                                const total = subtotal + tax - discount;
+                                
+                                console.log('Invoice details:', { deviceName, serialNumber, price, taxRate, discount, subtotal, tax, total });
+                                
+                                // Create basic invoice data with all required fields
+                                const invoiceData = {
+                                    reportId: savedReport.id,
+                                    clientId: clientId,
+                                    subtotal: subtotal,
+                                    tax: tax,
+                                    taxRate: taxRate,
+                                    discount: discount,
+                                    total: total,
+                                    paymentStatus: 'unpaid',
+                                    items: []
+                                };
+                                
+                                // Log the exact data being sent to the API
+                                console.log('Invoice data being sent to API:', JSON.stringify(invoiceData, null, 2));
+                                
+                                // Add device as an item
+                                if (deviceName) {
+                                    invoiceData.items.push({
+                                        description: deviceName + (serialNumber ? ` (SN: ${serialNumber})` : ''),
+                                        type: 'laptop',
+                                        amount: price,
+                                        quantity: 1,
+                                        totalAmount: price,
+                                        serialNumber: serialNumber
+                                    });
+                                }
+                                
+                                // Try to save invoice to API but don't block on failure
+                                try {
+                                    // Use the apiService reference defined at the top of the file
+                                    if (currentApiService && typeof currentApiService.createInvoice === 'function') {
+                                        invoice = await currentApiService.createInvoice(invoiceData);
+                                        console.log('Invoice saved to API:', invoice);
+                                    } else {
+                                        console.warn('API service not available for invoice creation');
+                                        invoice = generateInvoice(savedReport);
+                                    }
+                                } catch (apiError) {
+                                    console.warn('Invoice creation failed but continuing with report creation:', apiError);
+                                    // Generate a local invoice as fallback
+                                    try {
+                                        invoice = generateInvoice(savedReport);
+                                    } catch (fallbackError) {
+                                        console.error('Even fallback invoice generation failed:', fallbackError);
+                                    }
+                                }
+                            }
+                        } catch (invoiceError) {
+                            console.warn('Error during invoice creation process, but continuing with report:', invoiceError);
+                            // We'll still show the success message even if invoice creation failed
                         }
+                    } else {
+                        console.log('Billing not enabled - skipping invoice creation');
                     }
                     
                     // Update success modal with report and invoice info
@@ -644,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         تم إنشاء الفاتورة رقم <strong>${invoice.id}</strong>
                     </div>
                 `;
-            } else if (reportData.billingEnabled) {
+            } else if (reportData.billing_enabled) {
                 invoiceInfoEl.innerHTML = `
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
@@ -668,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set up create invoice button if billing is enabled but no invoice was created
         const createInvoiceBtn = modal.querySelector('#createInvoiceBtn');
         if (createInvoiceBtn) {
-            if (reportData.billingEnabled && !invoice) {
+            if (reportData.billing_enabled && !invoice) {
                 createInvoiceBtn.style.display = 'inline-block';
                 createInvoiceBtn.onclick = function(e) {
                     e.preventDefault();
@@ -890,4 +1258,3 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-

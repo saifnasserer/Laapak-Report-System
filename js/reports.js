@@ -38,8 +38,16 @@ function initReports() {
         loadingIndicator.classList.remove('d-none');
     }
     
-    // Fetch reports from API
-    apiService.getReports()
+    // First check if the server is reachable
+    checkServerConnection()
+        .then(isConnected => {
+            if (!isConnected) {
+                throw new Error('لا يمكن الاتصال بالخادم. الخادم غير متوفر حاليًا.');
+            }
+            
+            // If connected, fetch reports from API
+            return apiService.getReports();
+        })
         .then(data => {
             // Hide loading indicator
             if (loadingIndicator) {
@@ -63,8 +71,28 @@ function initReports() {
             
             console.log('Reports data:', reports);
             
-            // Populate reports table
-            populateReportsTable(reports);
+            // Cache the reports for offline access
+            cacheReports(reports);
+            
+            // Check if reports array is empty
+            if (reports.length === 0) {
+                // Show empty state message
+                const reportsTableBody = document.getElementById('reportsTableBody');
+                if (reportsTableBody) {
+                    reportsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="empty-state">
+                                    <i class="fas fa-file-alt fa-3x mb-3 text-muted"></i>
+                                    <h5>لا توجد تقارير</h5>
+                                    <p class="text-muted">لم يتم العثور على أي تقارير في قاعدة البيانات.</p>
+                                    <a href="create-report.html" class="btn btn-primary mt-3">
+                                        <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
+                                    </a>
+            } else {
+                // Populate reports table with data
+                populateReportsTable(reports);
+            }
         })
         .catch(error => {
             console.error('Error fetching reports:', error);
@@ -74,7 +102,11 @@ function initReports() {
                 loadingIndicator.classList.add('d-none');
             }
             
-            // Show error message with more details
+            // Check if this is a database connection error
+            if (error.message && (error.message.includes('database') || error.message.includes('connection'))) {
+                showErrorMessage('لا يمكن الاتصال بقاعدة البيانات. يرجى التأكد من تشغيل خادم قاعدة البيانات.');
+            } else {
+                showErrorMessage('حدث خطأ أثناء تحميل التقارير: ' + error.message);
             if (errorContainer) {
                 let errorMessage = 'حدث خطأ أثناء تحميل التقارير. يرجى المحاولة مرة أخرى لاحقًا.';
                 
@@ -98,6 +130,29 @@ function initReports() {
             // Try to load from cache if available
             loadReportsFromCache();
         });
+}
+
+/**
+ * Check if the server is reachable
+ * @returns {Promise<boolean>} True if server is reachable, false otherwise
+ */
+async function checkServerConnection() {
+    try {
+        // Try to connect to the server with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await fetch(`${apiService.baseUrl}/api/health`, {
+            method: 'GET',
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        return response.ok;
+    } catch (error) {
+        console.error('Server connection check failed:', error);
+        return false;
+    }
 }
 
 /**

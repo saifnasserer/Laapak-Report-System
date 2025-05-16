@@ -33,12 +33,20 @@ class ApiService {
 
         if (data && (method === 'POST' || method === 'PUT')) {
             options.body = JSON.stringify(data);
+            console.log(`Request data:`, data);
         }
 
         console.log(`API Request: ${method} ${url}`);
         
         try {
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            options.signal = controller.signal;
+            
             const response = await fetch(url, options);
+            clearTimeout(timeoutId);
+            
             console.log(`API Response status: ${response.status}`);
             
             // Handle non-JSON responses
@@ -53,12 +61,32 @@ class ApiService {
             }
 
             if (!response.ok) {
-                throw new Error(responseData.message || `API request failed with status ${response.status}`);
+                // Enhanced error message for database issues
+                if (response.status === 500) {
+                    if (method === 'POST' && endpoint === '/api/reports') {
+                        throw new Error('فشل في حفظ التقرير في قاعدة البيانات. يرجى التأكد من اتصال قاعدة البيانات.');
+                    } else {
+                        throw new Error(responseData.message || 'خطأ في الخادم. يرجى التأكد من اتصال قاعدة البيانات.');
+                    }
+                } else {
+                    throw new Error(responseData.message || `فشل طلب API بحالة ${response.status}`);
+                }
             }
 
             return responseData;
         } catch (error) {
             console.error(`API Error (${endpoint}):`, error);
+            
+            // Check if this is an AbortError (timeout)
+            if (error.name === 'AbortError') {
+                throw new Error('طلب API انتهت مهلته. يرجى المحاولة مرة أخرى.');
+            }
+            
+            // Network error (server not running or connection issues)
+            if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+                throw new Error('فشل الاتصال بالخادم. يرجى التحقق من اتصال الشبكة وتشغيل الخادم.');
+            }
+            
             throw error;
         }
     }
@@ -158,7 +186,19 @@ class ApiService {
     }
     
     async createReport(reportData) {
-        return this.request('/api/reports', 'POST', reportData);
+        console.log('Creating report with data:', reportData);
+        try {
+            const result = await this.request('/api/reports', 'POST', reportData);
+            console.log('Report created successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('Error creating report:', error);
+            // Provide a more user-friendly error message
+            if (error.message.includes('database')) {
+                throw new Error('فشل في حفظ التقرير في قاعدة البيانات. يرجى التأكد من وجود جدول التقارير.');
+            }
+            throw error;
+        }
     }
     
     async updateReport(id, reportData) {

@@ -81,13 +81,18 @@
                     <!-- Step 1: Basic Information -->
                     <div class="form-step" id="step1">
                         <h4 class="mb-4">المعلومات الأساسية</h4>
+                        <!-- Step 1 Error Container -->
+                        <div id="step1ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span id="step1ErrorText"></span>
+                        </div>
                         <div class="card-header bg-success bg-opacity-10">
                             <h5 class="mb-0 text-success"><i class="fas fa-user me-2"></i> بيانات العميل</h5>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">اختر عميل</label>
                             <div class="d-flex mb-3">
-                                <div class="input-group">
+                                <div class="input-group rounded-pill">
                                     <span class="input-group-text bg-light">
                                         <i class="fas fa-search"></i>
                                     </span>
@@ -95,7 +100,7 @@
                                         <option value="" selected>اختر عميل...</option>
                                         <!-- Client options will be loaded dynamically -->
                                     </select>
-                                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                                    <button class="btn btn-outline-primary rounded-pill" type="button" data-bs-toggle="modal" data-bs-target="#addClientModal">
                                         <i class="fas fa-plus"></i> عميل جديد
                                     </button>
                                 </div>
@@ -103,7 +108,6 @@
                                     <span class="visually-hidden">جاري التحميل...</span>
                                 </div>
                             </div>
-                            
                             <!-- Client search filter -->
                             <div class="mb-3">
                                 <div class="input-group input-group-sm">
@@ -195,11 +199,25 @@
                                                 </script>
                                                 <div class="col-md-6">
                                                     <label for="deviceModel" class="form-label">موديل الجهاز</label>
-                                                    <input type="text" class="form-control" id="deviceModel" required>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="deviceModel" required>
+                                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-laptop"></i></span>
+                                                    </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="serialNumber" class="form-label">الرقم التسلسلي</label>
-                                                    <input type="text" class="form-control" id="serialNumber" required>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="serialNumber" required>
+                                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-barcode"></i></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="devicePrice" class="form-label">السعر</label>
+                                                    <div class="input-group">
+                                                        <input type="number" class="form-control" id="devicePrice" value="250" min="0" step="1">
+                                                        <span class="input-group-text">جنية</span>
+                                                    </div>
+                                                    <small class="text-muted">سيتم استخدام هذا السعر في الفاتورة</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -214,6 +232,11 @@
                                 <!-- Step 2: Component Tests -->
                                 <div class="form-step" id="step2">
                                     <h4 class="mb-4">فحوصات المكونات التقنية</h4>
+                                    <!-- Step 2 Error Container -->
+                                    <div id="step2ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <span id="step2ErrorText"></span>
+                                    </div>
                                     
 
                                     
@@ -703,6 +726,11 @@
                                 
                                 <!-- Step 3: External Inspection -->
                                 <div class="form-step" id="step3">
+                                    <!-- Step 3 Error Container -->
+                                    <div id="step3ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <span id="step3ErrorText"></span>
+                                    </div>
                                     <h4 class="mb-4">الفحص الخارجي للجهاز</h4>
                                     
                                     <!-- Images Section -->
@@ -752,6 +780,11 @@
                                 
                                 <!-- Step 4: Notes -->
                                 <div class="form-step" id="step4">
+                                    <!-- Step 4 Error Container -->
+                                    <div id="step4ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <span id="step4ErrorText"></span>
+                                    </div>
                                     <h4 class="mb-4">ملاحظات عامة</h4>
                                     
                                     <div class="mb-4">
@@ -776,46 +809,61 @@
                                         <div class="card-body">
                                             <!-- Laptop Details Section -->
                                             <div class="mb-4">
+                                                <!-- Billing Toggle -->
+                                            <div class="mb-4">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="enableBilling" checked>
+                                                    <label class="form-check-label fw-bold" for="enableBilling">تفعيل الفوترة</label>
+                                                </div>
+                                                <p class="text-muted small mb-3">عند تفعيل الفوترة، سيتم إنشاء فاتورة تلقائيًا مع التقرير. إذا كنت ترغب في إنشاء فاتورة لاحقًا، يمكنك إلغاء تفعيل هذا الخيار.</p>
+                                            </div>
                                                 <h6 class="fw-bold mb-3">تفاصيل الأجهزة</h6>
                                                 <div id="laptopsContainer">
                                                     <div class="row mb-3 laptop-row">
                                                         <div class="col-md-4">
                                                             <label class="form-label">اسم الجهاز</label>
-                                                            <input type="text" class="form-control laptop-name" placeholder="موديل الجهاز" />
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control laptop-name" id="invoiceDeviceName" placeholder="موديل الجهاز" readonly />
+                                                                <span class="input-group-text bg-light text-muted"><i class="fas fa-laptop"></i></span>
+                                                            </div>
+                                                            <small class="text-muted">تم نقله تلقائيًا من الخطوة الأولى</small>
                                                         </div>
                                                         <div class="col-md-3">
                                                             <label class="form-label">الرقم التسلسلي</label>
-                                                            <input type="text" class="form-control laptop-serial" placeholder="الرقم التسلسلي" />
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control laptop-serial" id="invoiceSerialNumber" placeholder="الرقم التسلسلي" readonly />
+                                                                <span class="input-group-text bg-light text-muted"><i class="fas fa-barcode"></i></span>
+                                                            </div>
+                                                            <small class="text-muted">تم نقله تلقائيًا من الخطوة الأولى</small>
                                                         </div>
-                                                        <div class="col-md-2">
+                                                        <div class="col-md-4">
                                                             <label class="form-label">السعر</label>
-                                                            <input type="number" class="form-control laptop-price" placeholder="السعر" min="0" step="0.01" />
+                                                            <div class="input-group">
+                                                                <input type="number" class="form-control laptop-price" id="invoicePrice" placeholder="السعر" min="0" step="1" value="250" />
+                                                                <span class="input-group-text">جنية</span>
+                                                            </div>
                                                         </div>
-                                                        <div class="col-md-2">
-                                                            <label class="form-label">الكمية</label>
-                                                            <input type="number" class="form-control laptop-qty" value="1" min="1" max="100" />
-                                                        </div>
-                                                        <div class="col-md-1">
+                                                        <div class="col-md-1 d-none">
                                                             <label class="form-label">&nbsp;</label>
-                                                            <button type="button" class="btn btn-outline-danger remove-laptop-btn d-block">
+                                                            <button type="button" class="btn btn-outline-danger remove-laptop-btn d-block d-none">
                                                                 <i class="fas fa-times"></i>
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <div class="additional-serials-container d-none mb-3">
+                                                    <!-- <div class="additional-serials-container d-none mb-3">
                                                         <div class="card">
                                                             <div class="card-header bg-light">
                                                                 <h6 class="mb-0">الأرقام التسلسلية الإضافية</h6>
                                                             </div>
                                                             <div class="card-body pt-2 additional-serials">
-                                                                <!-- Additional serial numbers will be added here dynamically -->
+                                                                Additional serial numbers will be added here dynamically
                                                             </div>
                                                         </div>
-                                                    </div>
+                                                    </div> -->
                                                 </div>
-                                                <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addLaptopBtn">
+                                                <!-- <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addLaptopBtn">
                                                     <i class="fas fa-plus me-1"></i> إضافة جهاز
-                                                </button>
+                                                </button> -->
                                             </div>
                                             
                                             <!-- Additional Items Section -->
@@ -866,14 +914,7 @@
                                                 </div>
                                             </div>
                                             
-                                            <!-- Billing Toggle -->
-                                            <div class="mb-4">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="enableBilling" checked>
-                                                    <label class="form-check-label fw-bold" for="enableBilling">تفعيل الفوترة</label>
-                                                </div>
-                                                <p class="text-muted small mb-3">عند تفعيل الفوترة، سيتم إنشاء فاتورة تلقائيًا مع التقرير. إذا كنت ترغب في إنشاء فاتورة لاحقًا، يمكنك إلغاء تفعيل هذا الخيار.</p>
-                                            </div>
+                                            
                                             
                                             <!-- Payment Information -->
                                             <div class="mb-4" id="paymentInfoSection">
@@ -1102,7 +1143,7 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> فاتورة صيانة</h5>
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> فاتورة</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4" id="invoiceModalContent">
@@ -1185,22 +1226,49 @@
         });
     </script>
 
-    <!-- PWA Service Worker Registration -->
+    <!-- PWA Service Worker Registration - Temporarily disabled for debugging -->
     <script>
+        // Unregister any existing service workers to prevent API caching issues
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(function(registration) {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(function(error) {
-                        console.log('ServiceWorker registration failed: ', error);
-                    });
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let registration of registrations) {
+                    console.log('Unregistering service worker:', registration);
+                    registration.unregister();
+                }
+                console.log('Service workers unregistered successfully');
+            }).catch(function(error) {
+                console.error('Error unregistering service workers:', error);
             });
+            
+            // Clear caches
+            if ('caches' in window) {
+                caches.keys().then(function(cacheNames) {
+                    return Promise.all(
+                        cacheNames.map(function(cacheName) {
+                            console.log('Deleting cache:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                }).then(function() {
+                    console.log('Caches cleared successfully');
+                });
+            }
+            
+            // Temporarily disable service worker registration
+            // window.addEventListener('load', function() {
+            //     navigator.serviceWorker.register('service-worker.js')
+            //         .then(function(registration) {
+            //             console.log('ServiceWorker registration successful');
+            //         })
+            //         .catch(function(error) {
+            //             console.log('ServiceWorker registration failed: ', error);
+            //         });
+            // });
         }
     </script>
 
     <!-- JavaScript Files -->
+    <script src="js/form-steps-utils.js"></script>
     <script src="js/form-steps.js"></script>
     <script src="js/component-tests.js"></script>
     <script src="js/invoice-form.js"></script>
@@ -1224,7 +1292,7 @@
     <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header" style="background: linear-gradient(135deg, #0a592c 0%, #0d944d 100%); color: white;">
                     <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> إضافة عميل جديد</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>

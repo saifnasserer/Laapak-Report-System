@@ -1,6 +1,6 @@
 /**
  * Laapak Report System - Report Technical Test Model
- * Defines the structure for technical component tests in reports
+ * Represents technical tests performed on devices
  */
 
 const { DataTypes } = require('sequelize');
@@ -13,24 +13,28 @@ const ReportTechnicalTest = sequelize.define('ReportTechnicalTest', {
     autoIncrement: true
   },
   reportId: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(255),
     allowNull: false,
+    field: 'reportId',
     references: {
-      model: 'Reports',
+      model: 'reports',
       key: 'id'
     }
   },
   componentName: {
-    type: DataTypes.STRING,
-    allowNull: false
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    field: 'componentName'
   },
   status: {
-    type: DataTypes.STRING,
-    allowNull: false
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    field: 'status'
   },
   notes: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: true,
+    field: 'notes'
   }
 }, {
   tableName: 'report_technical_tests',

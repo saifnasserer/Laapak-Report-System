@@ -75,6 +75,8 @@ router.post('/', adminAuth, async (req, res) => {
     const transaction = await sequelize.transaction();
     
     try {
+        console.log('Creating invoice with data:', JSON.stringify(req.body, null, 2));
+        
         const {
             reportId,
             clientId,
@@ -88,8 +90,24 @@ router.post('/', adminAuth, async (req, res) => {
             items
         } = req.body;
         
+        // Validate required fields
+        if (!clientId) {
+            return res.status(400).json({ 
+                message: 'معرف العميل مطلوب',
+                error: 'Client ID is required'
+            });
+        }
+        
+        if (!reportId) {
+            return res.status(400).json({ 
+                message: 'معرف التقرير مطلوب',
+                error: 'Report ID is required'
+            });
+        }
+        
         // Generate a unique invoice ID
         const invoiceId = 'INV' + Date.now().toString().slice(-6);
+        console.log('Generated invoice ID:', invoiceId);
         
         // Create invoice
         const invoice = await Invoice.create({
@@ -122,15 +140,24 @@ router.post('/', adminAuth, async (req, res) => {
             ));
         }
         
-        // Update report to mark it as having an invoice
+        // Update report to mark it as having an invoice and update billing status
         if (reportId) {
-            await Report.update(
-                { hasInvoice: true },
-                { 
-                    where: { id: reportId },
-                    transaction 
-                }
-            );
+            try {
+                await Report.update(
+                    { 
+                        billingEnabled: true,
+                        amount: total || 0
+                    },
+                    { 
+                        where: { id: reportId },
+                        transaction 
+                    }
+                );
+                console.log(`Updated report ${reportId} with billing information`);
+            } catch (updateError) {
+                console.error('Error updating report billing status:', updateError);
+                // Continue with invoice creation even if report update fails
+            }
         }
         
         await transaction.commit();
@@ -190,13 +217,22 @@ router.delete('/:id', adminAuth, async (req, res) => {
         
         // If invoice has a report, update the report to mark it as not having an invoice
         if (invoice.reportId) {
-            await Report.update(
-                { hasInvoice: false },
-                { 
-                    where: { id: invoice.reportId },
-                    transaction 
-                }
-            );
+            try {
+                await Report.update(
+                    { 
+                        billingEnabled: false,
+                        amount: 0
+                    },
+                    { 
+                        where: { id: invoice.reportId },
+                        transaction 
+                    }
+                );
+                console.log(`Updated report ${invoice.reportId} to remove billing information`);
+            } catch (updateError) {
+                console.error('Error updating report billing status during invoice deletion:', updateError);
+                // Continue with invoice deletion even if report update fails
+            }
         }
         
         // Delete invoice items

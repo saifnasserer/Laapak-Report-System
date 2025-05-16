@@ -13,6 +13,7 @@ const path = require('path');
 // Database initialization
 const { testConnection } = require('./config/db');
 const { initDatabase } = require('./config/dbInit');
+const { ensureTables } = require('./scripts/ensure-db-tables');
 
 // Import routes and middleware
 const authRoutes = require('./routes/auth');
@@ -74,6 +75,16 @@ const startServer = async () => {
         if (!dbInitialized) {
             console.error('Failed to initialize database.');
             process.exit(1);
+        }
+        
+        // Ensure all required tables exist (reports, report_technical_tests, report_external_inspection)
+        try {
+            console.log('Ensuring all required tables exist...');
+            await ensureTables();
+            console.log('All required tables verified successfully.');
+        } catch (tableError) {
+            console.error('Error ensuring required tables:', tableError);
+            console.log('Continuing with server startup despite table initialization error.');
         }
         
         // Start server

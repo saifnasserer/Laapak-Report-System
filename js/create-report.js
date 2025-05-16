@@ -3,8 +3,45 @@
  * Handles the report creation form and API integration
  */
 
-// Store clients data globally to make it accessible across functions
-let clientsData = [];
+// Store clients data and device details globally to make them accessible across files
+// Attach to window object to ensure it's available across all files
+window.clientsData = window.clientsData || [];
+
+// Global variables to store device details from step 1 (attached to window for cross-file access)
+window.globalDeviceDetails = window.globalDeviceDetails || {
+    orderNumber: '',
+    inspectionDate: '',
+    deviceModel: '',
+    serialNumber: '',
+    devicePrice: ''
+};
+
+// Global client details object for storing selected client information
+window.globalClientDetails = window.globalClientDetails || {
+    clientId: null,
+    clientName: '',
+    clientPhone: '',
+    clientEmail: '',
+    clientAddress: ''
+};
+
+// Local references for convenience
+let globalDeviceDetails = window.globalDeviceDetails;
+let clientsData = window.clientsData;
+
+/**
+ * Update global device details from form inputs
+ */
+function updateGlobalDeviceDetails() {
+    window.globalDeviceDetails = {
+        orderNumber: document.getElementById('orderNumber')?.value || '',
+        inspectionDate: document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0],
+        deviceModel: document.getElementById('deviceModel')?.value || '',
+        serialNumber: document.getElementById('serialNumber')?.value || '',
+        devicePrice: parseFloat(document.getElementById('devicePrice')?.value || '250')
+    };
+    console.log('Global device details updated:', window.globalDeviceDetails);
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is authenticated
@@ -12,6 +49,19 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = 'index.html';
         return;
     }
+    
+    // Add event listeners to update global device details when input values change
+    const deviceInputs = ['orderNumber', 'inspectionDate', 'deviceModel', 'serialNumber'];
+    deviceInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('change', updateGlobalDeviceDetails);
+            input.addEventListener('input', updateGlobalDeviceDetails);
+        }
+    });
+    
+    // Initial update of global device details
+    updateGlobalDeviceDetails();
 
     // Get form element
     const reportForm = document.getElementById('reportForm');
@@ -35,13 +85,60 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up billing toggle functionality
     setupBillingToggle();
 
+    // Make Enter key press navigate to the next step
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            // Prevent the default form submission
+            e.preventDefault();
+            
+            // Find the active step
+            const activeStep = document.querySelector('.form-step.active');
+            if (!activeStep) return;
+            
+            // Get the step number from the class name (e.g., 'step-1' -> 1)
+            const stepClasses = Array.from(activeStep.classList);
+            const stepClass = stepClasses.find(cls => cls.startsWith('step-'));
+            if (!stepClass) return;
+            
+            const currentStepNumber = parseInt(stepClass.replace('step-', ''));
+            
+            // Find the next button in the current active step
+            const nextBtn = activeStep.querySelector('.btn-next-step');
+            
+            // If we're on the final step, allow form submission
+            if (currentStepNumber === 5) { // Assuming 5 is the final step
+                const submitBtn = activeStep.querySelector('[type="submit"]');
+                if (submitBtn) {
+                    console.log('Form submitted via Enter key on final step');
+                    submitBtn.click();
+                }
+            } 
+            // Otherwise, move to the next step
+            else if (nextBtn) {
+                console.log('Moving to next step via Enter key');
+                nextBtn.click();
+            }
+        }
+    });
+
     // Handle form submission
     reportForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        // Hide all previous error messages
+        hideAllStepErrors();
+        
+        // Only allow form submission on the final step
+        if (typeof currentStep !== 'undefined' && currentStep < 4) { // 4 is the index of the final step (5th step)
+            console.log('Form submission prevented: Not on final step');
+            return;
+        }
+        
         // Validate the current step (using the existing validation from form-steps.js)
         // This assumes the validateStep function is accessible
         if (typeof validateStep === 'function' && !validateStep(currentStep)) {
+            // Show error in the current step's error container
+            showStepError(currentStep + 1, 'يرجى إكمال جميع الحقول المطلوبة في هذه الخطوة');
             return;
         }
         
@@ -51,6 +148,28 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Collect form data
             const formData = collectReportData();
+            
+            // Add required fields for database storage
+            formData.status = 'active';
+            formData.createdAt = new Date().toISOString();
+            formData.updatedAt = new Date().toISOString();
+            
+            // Ensure clientId is a valid value (not null or undefined)
+            if (!formData.clientId) {
+                showLoading(false);
+                showErrorMessage('يرجى اختيار عميل قبل إنشاء التقرير');
+                return;
+            }
+            
+            // Validate collected data
+            const validationError = validateReportData(formData);
+            if (validationError) {
+                showLoading(false);
+                showErrorMessage(validationError);
+                return;
+            }
+            
+            console.log('Sending report data to API:', formData);
             
             // Submit to API
             const response = await apiService.createReport(formData);
@@ -63,12 +182,54 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Reset form
             resetForm();
+            
+            // Log successful report creation
+            console.log('Report created successfully:', response);
         } catch (error) {
             console.error('Error creating report:', error);
             showLoading(false);
-            showErrorMessage(error.message || 'Failed to create report. Please try again.');
+            showErrorMessage(error.message || 'فشل في إنشاء التقرير. يرجى المحاولة مرة أخرى.');
         }
     });
+    
+    /**
+     * Validate the collected report data
+     * @param {Object} data - The report data to validate
+     * @returns {string|null} Error message if validation fails, null if validation passes
+     */
+    function validateReportData(data) {
+        // Validate client selection
+        if (!data.clientId) {
+            showStepError(1, 'يرجى اختيار عميل');
+            return 'يرجى اختيار عميل';
+        }
+        
+        // Validate device information
+        if (!data.deviceModel) {
+            showStepError(1, 'يرجى إدخال موديل الجهاز');
+            return 'يرجى إدخال موديل الجهاز';
+        }
+        
+        if (!data.orderNumber) {
+            showStepError(1, 'يرجى إدخال رقم الطلب');
+            return 'يرجى إدخال رقم الطلب';
+        }
+        
+        // If billing is enabled, validate invoice data
+        if (data.billingEnabled && data.invoice) {
+            if (data.invoice.totalAmount <= 0) {
+                showStepError(5, 'يجب أن يكون إجمالي الفاتورة أكبر من صفر');
+                return 'يجب أن يكون إجمالي الفاتورة أكبر من صفر';
+            }
+            
+            if (data.invoice.paymentStatus === 'paid' && !data.invoice.paymentMethod) {
+                showStepError(5, 'يرجى اختيار طريقة الدفع');
+                return 'يرجى اختيار طريقة الدفع';
+            }
+        }
+        
+        return null; // Validation passed
+    }
 
     /**
      * Collect all report data from the form
@@ -76,45 +237,69 @@ document.addEventListener('DOMContentLoaded', function() {
      * @returns {Object} The report data
      */
     window.collectReportData = function() {
-        // Get client ID from selection
-        const clientId = document.getElementById('clientSelect')?.value || null;
-        
-        // Find selected client details from global clientsData
+        // First try to get client ID from the global client details (set in form-steps.js)
+        let clientId = null;
         let clientDetails = {};
-        if (clientId && Array.isArray(clientsData)) {
-            const selectedClient = clientsData.find(client => client.id == clientId);
-            if (selectedClient) {
-                clientDetails = {
-                    clientName: selectedClient.name,
-                    clientPhone: selectedClient.phone,
-                    clientEmail: selectedClient.email || '',
-                    clientAddress: selectedClient.address || ''
-                };
+        
+        if (window.globalClientDetails && window.globalClientDetails.clientId) {
+            // Use the globally stored client details from step 1
+            clientId = window.globalClientDetails.clientId;
+            clientDetails = {
+                clientName: window.globalClientDetails.clientName || '',
+                clientPhone: window.globalClientDetails.clientPhone || '',
+                clientEmail: window.globalClientDetails.clientEmail || '',
+                clientAddress: window.globalClientDetails.clientAddress || ''
+            };
+            console.log('Using globally stored client details:', window.globalClientDetails);
+        } else {
+            // Fallback to getting client ID from the select element
+            const clientSelect = document.getElementById('clientSelect');
+            clientId = clientSelect?.value || null;
+            
+            // Log client selection for debugging
+            console.log('Selected client ID from form element:', clientId);
+            console.log('Client select element:', clientSelect);
+            
+            // Find selected client details from global clientsData
+            if (clientId && Array.isArray(window.clientsData)) {
+                const selectedClient = window.clientsData.find(client => client.id == clientId);
+                console.log('Found client details:', selectedClient);
+                if (selectedClient) {
+                    clientDetails = {
+                        clientName: selectedClient.name,
+                        clientPhone: selectedClient.phone,
+                        clientEmail: selectedClient.email || '',
+                        clientAddress: selectedClient.address || ''
+                    };
+                } else {
+                    console.warn('Client ID found but no matching client in clientsData');
+                }
+            } else {
+                console.warn('clientsData is not an array or is undefined');
             }
         }
         
-        // Check if billing is enabled
-        const billingEnabled = document.getElementById('enableBilling')?.checked || false;
-        
-        // Get hardware component statuses
-        const hardwareComponents = [
-            'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
-            'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
-            'card_reader_status', 'audio_jack_status', 'hdmi_status', 'power_status'
-        ];
-        
-        const hardwareStatus = {};
-        hardwareComponents.forEach(component => {
-            const checkedInput = document.querySelector(`input[name="${component}"]:checked`);
-            hardwareStatus[component] = checkedInput ? checkedInput.value : 'not_tested';
-        });
-        
-        // Generate a unique report ID if not already exists
-        const reportId = document.getElementById('reportId')?.value || 
-                        'RPT' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000);
-        
+        // Validate client selection
+        if (!clientId || clientId === '') {
+            console.error('No client selected!');
+            // Show error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-danger';
+            errorDiv.textContent = 'يرجي اختيار عميل قبل انشاء التقرير';
+            
+            // Find the client selection container
+            const clientContainer = document.querySelector('.client-selection-container') || document.body;
+            clientContainer.prepend(errorDiv);
+            
+            // Remove the error message after 5 seconds
+            setTimeout(() => errorDiv.remove(), 5000);
+            
+            throw new Error('يرجي اختيار عميل قبل انشاء التقرير');
+        }
         // Get invoice data if billing is enabled
         let invoiceData = null;
+        const billingEnabled = document.getElementById('enableBilling')?.checked || false;
+        
         if (billingEnabled) {
             const taxRate = parseFloat(document.getElementById('taxRate')?.value || 15);
             const discount = parseFloat(document.getElementById('discount')?.value || 0);
@@ -151,31 +336,85 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Return collected data
-        return {
-            id: reportId,
-            clientId,
-            ...clientDetails,
+        // Update global device details
+        window.globalDeviceDetails = {
             orderNumber: document.getElementById('orderNumber')?.value || '',
             inspectionDate: document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0],
             deviceModel: document.getElementById('deviceModel')?.value || '',
-            serialNumber: document.getElementById('serialNumber')?.value || '',
-            hardwareStatus,
-            systemComponents: {
-                cpuStatus: document.getElementById('cpuStatus')?.value || 'not_tested',
-                gpuStatus: document.getElementById('gpuStatus')?.value || 'not_tested',
-                ramStatus: document.getElementById('ramStatus')?.value || 'not_tested',
-                storageStatus: document.getElementById('storageStatus')?.value || 'not_tested',
-                batteryStatus: document.getElementById('batteryStatus')?.value || 'not_tested',
-                screenStatus: document.getElementById('screenStatus')?.value || 'not_tested'
-            },
-            externalImages,
+            serialNumber: document.getElementById('serialNumber')?.value || ''
+        };
+        
+        // Use the updated global device details
+        globalDeviceDetails = window.globalDeviceDetails;
+        
+        // Generate a unique report ID if not already exists
+        const reportId = document.getElementById('reportId')?.value || 
+                        'RPT' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000);
+        
+        // Format data to match the database schema - ONLY include fields that exist in the table
+        // Table fields from database:
+        // id (varchar 50), client_id (int), client_name (varchar 100), client_phone (varchar 20),
+        // client_email (varchar 100), client_address (text), order_number (varchar 20),
+        // device_model (varchar 100), serial_number (varchar 100), inspection_date (datetime),
+        // hardware_status (longtext), external_images (longtext), notes (text),
+        // billing_enabled (tinyint), amount (decimal 10,2), status (enum),
+        // created_at (datetime), updated_at (datetime)
+        
+        // Convert inspection date to proper datetime format
+        const inspectionDateStr = globalDeviceDetails.inspectionDate || new Date().toISOString().split('T')[0];
+        const inspectionDateTime = new Date(inspectionDateStr);
+        
+        const reportData = {
+            id: reportId,
+            client_id: clientId,
+            client_name: clientDetails.clientName || '',
+            client_phone: clientDetails.clientPhone || '',
+            client_email: clientDetails.clientEmail || '',
+            client_address: clientDetails.clientAddress || '',
+            order_number: globalDeviceDetails.orderNumber,
+            device_model: globalDeviceDetails.deviceModel,
+            serial_number: globalDeviceDetails.serialNumber,
+            inspection_date: inspectionDateTime, // Proper datetime format
+            // hardware_status and external_images will be added below
             notes: document.getElementById('reportNotes')?.value || '',
-            billingEnabled: billingEnabled,
-            invoice: invoiceData,
-            amount: invoiceData ? invoiceData.totalAmount : 0,
-            createdAt: new Date().toISOString()
-        };        
+            billing_enabled: billingEnabled,
+            amount: invoiceData ? parseFloat(invoiceData.totalAmount) : 0,
+            status: 'active'
+            // created_at and updated_at are handled automatically by Sequelize
+        };
+        
+        // Store hardware status and system components separately for the related tables
+        const hardwareComponentsList = [
+            'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
+            'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
+            'card_reader_status', 'audio_jack_status', 'hdmi_status', 'power_status',
+            'cpuStatus', 'gpuStatus', 'ramStatus', 'storageStatus', 'batteryStatus', 'screenStatus'
+        ];
+        
+        // Create array of hardware components for database
+        const hardwareComponents = [];
+        hardwareComponentsList.forEach(component => {
+            const checkedInput = document.querySelector(`input[name="${component}"]:checked`);
+            const status = checkedInput ? checkedInput.value : 'not_tested';
+            hardwareComponents.push({
+                componentName: component,
+                status: status
+            });
+        });
+        
+        // Convert hardware components to JSON format for database
+        // Since the database field is longtext, we need to stringify the object
+        reportData.hardware_status = JSON.stringify(hardwareComponents);
+        
+        // Convert external images to JSON format for database
+        // Since the database field is longtext, we need to stringify the object
+        reportData.external_images = externalImages && externalImages.length > 0 ? JSON.stringify(externalImages) : null;
+        
+        // We don't include invoice data in the report creation request anymore
+        // Invoice will be created separately after the report is created
+        
+        console.log('Report data prepared for database:', reportData);
+        return reportData;
     };
     
     /**
@@ -363,7 +602,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // No client selected, hide the info card and actions
             selectedClientInfo.style.display = 'none';
             if (clientQuickActions) clientQuickActions.style.display = 'none';
+            
+            // Clear global client details
+            window.globalClientDetails = {
+                clientId: null,
+                clientName: '',
+                clientPhone: '',
+                clientEmail: '',
+                clientAddress: ''
+            };
+            
             return;
+        }
+        
+        // Store selected client ID in global variable
+        if (!window.globalClientDetails) {
+            window.globalClientDetails = {};
         }
         
         // Find the selected client in the global clients data
@@ -374,6 +628,15 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('لم يتم العثور على بيانات العميل', 'warning');
             return;
         }
+        
+        // Store client details in global variable
+        window.globalClientDetails.clientId = selectedClientId;
+        window.globalClientDetails.clientName = selectedClient.name || '';
+        window.globalClientDetails.clientPhone = selectedClient.phone || '';
+        window.globalClientDetails.clientEmail = selectedClient.email || '';
+        window.globalClientDetails.clientAddress = selectedClient.address || '';
+        
+        console.log('Updated global client details:', window.globalClientDetails);
         
         // Update the client info card with all available details
         document.getElementById('selectedClientName').textContent = selectedClient.name;
@@ -916,8 +1179,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     clientPhoneInput.focus();
                     focusSet = true;
                 }
-            } else if (!/^\d{10}$/.test(clientPhone.replace(/[\s-]/g, ''))) {
-                markInvalid(clientPhoneInput, 'الرجاء إدخال رقم هاتف صحيح (10 أرقام)');
+            } else if (!/^\d{11}$/.test(clientPhone.replace(/[\s-]/g, ''))) {
+                markInvalid(clientPhoneInput, 'الرجاء إدخال رقم هاتف صحيح (11 أرقام)');
                 isValid = false;
                 if (!focusSet) {
                     clientPhoneInput.focus();
@@ -927,11 +1190,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Validate email (if provided)
             if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
-                markInvalid(clientEmailInput, 'الرجاء إدخال بريد إلكتروني صحيح');
+                markInvalid(clientEmailInput, 'الرجاء إدخال بريد إلكتروني صحيح (اختياري)');
                 isValid = false;
                 if (!focusSet) {
                     clientEmailInput.focus();
                     focusSet = true;
+                }
+            } else if (!clientEmail) {
+                clientEmailInput.classList.remove('is-invalid');
+                const feedbackEl = clientEmailInput.nextElementSibling;
+                if (feedbackEl && feedbackEl.classList.contains('invalid-feedback')) {
+                    feedbackEl.textContent = '';
                 }
             }
             
@@ -1251,7 +1520,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
-     * Show error message
+     * Show error message in the main form alert
      * @param {string} message - Error message to display
      */
     function showErrorMessage(message) {
@@ -1273,6 +1542,52 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Scroll to alert
         alertEl.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /**
+     * Show error message in a specific step container
+     * @param {number} stepNumber - The step number (1-5)
+     * @param {string} message - Error message to display
+     */
+    function showStepError(stepNumber, message) {
+        if (stepNumber < 1 || stepNumber > 5) return;
+        
+        const errorContainer = document.getElementById(`step${stepNumber}ErrorContainer`);
+        const errorText = document.getElementById(`step${stepNumber}ErrorText`);
+        
+        if (errorContainer && errorText) {
+            errorText.textContent = message;
+            errorContainer.style.display = 'block';
+            
+            // Scroll to error container
+            errorContainer.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            // Fallback to main error if step error container doesn't exist
+            showErrorMessage(message);
+        }
+    }
+
+    /**
+     * Hide error message in a specific step container
+     * @param {number} stepNumber - The step number (1-5)
+     */
+    function hideStepError(stepNumber) {
+        if (stepNumber < 1 || stepNumber > 5) return;
+        
+        const errorContainer = document.getElementById(`step${stepNumber}ErrorContainer`);
+        
+        if (errorContainer) {
+            errorContainer.style.display = 'none';
+        }
+    }
+
+    /**
+     * Hide all step error containers
+     */
+    function hideAllStepErrors() {
+        for (let i = 1; i <= 5; i++) {
+            hideStepError(i);
+        }
     }
 
     /**
