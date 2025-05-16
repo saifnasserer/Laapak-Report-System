@@ -7,36 +7,41 @@ const router = express.Router();
 // GET /reports - get all reports
 router.get('/', async (req, res) => {
   try {
+    console.log('Fetching all reports');
     const reports = await Report.findAll({
       include: {
         model: Client,
-        attributes: ['id', 'name'],
+        attributes: ['id', 'name', 'phone', 'email'],
       },
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
     });
+    console.log(`Found ${reports.length} reports`);
     res.json(reports);
   } catch (error) {
     console.error('Failed to fetch reports:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
 // GET /reports/:id - get report by ID
 router.get('/:id', async (req, res) => {
   try {
+    console.log(`Fetching report with ID: ${req.params.id}`);
     const report = await Report.findByPk(req.params.id, {
       include: {
         model: Client,
-        attributes: ['id', 'name'],
+        attributes: ['id', 'name', 'phone', 'email', 'address'],
       },
     });
     if (!report) {
+      console.log(`Report with ID ${req.params.id} not found`);
       return res.status(404).json({ error: 'Report not found' });
     }
+    console.log(`Found report: ${report.id}`);
     res.json(report);
   } catch (error) {
     console.error('Failed to fetch report:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -143,7 +148,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// GET /reports/search?q=term - search reports by title or description
+// GET /reports/search?q=term - search reports by client name, order number, or device model
 router.get('/search', async (req, res) => {
   const { q } = req.query;
   if (!q) {
@@ -151,23 +156,27 @@ router.get('/search', async (req, res) => {
   }
 
   try {
+    console.log(`Searching reports with query: ${q}`);
     const reports = await Report.findAll({
       where: {
         [Op.or]: [
-          { title: { [Op.iLike]: `%${q}%` } },
-          { description: { [Op.iLike]: `%${q}%` } },
+          { client_name: { [Op.like]: `%${q}%` } },
+          { order_number: { [Op.like]: `%${q}%` } },
+          { device_model: { [Op.like]: `%${q}%` } },
+          { serial_number: { [Op.like]: `%${q}%` } }
         ],
       },
       include: {
         model: Client,
-        attributes: ['id', 'name'],
+        attributes: ['id', 'name', 'phone', 'email'],
       },
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
     });
+    console.log(`Found ${reports.length} reports matching query: ${q}`);
     res.json(reports);
   } catch (error) {
     console.error('Failed to search reports:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 

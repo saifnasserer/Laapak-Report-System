@@ -89,6 +89,11 @@ function initReports() {
                                     <a href="create-report.html" class="btn btn-primary mt-3">
                                         <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
                                     </a>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
             } else {
                 // Populate reports table with data
                 populateReportsTable(reports);
@@ -102,28 +107,22 @@ function initReports() {
                 loadingIndicator.classList.add('d-none');
             }
             
+            // Display more detailed error information
+            let errorMsg = 'حدث خطأ أثناء تحميل التقارير: ';
+            
             // Check if this is a database connection error
             if (error.message && (error.message.includes('database') || error.message.includes('connection'))) {
-                showErrorMessage('لا يمكن الاتصال بقاعدة البيانات. يرجى التأكد من تشغيل خادم قاعدة البيانات.');
+                errorMsg += 'لا يمكن الاتصال بقاعدة البيانات. يرجى التأكد من تشغيل خدمة MySQL.';
+            } else if (error.message && error.message.includes('NetworkError')) {
+                errorMsg += 'لا يمكن الاتصال بالخادم. يرجى التأكد من تشغيل خادم Node.js على المنفذ 3001.';
+            } else if (error.message) {
+                errorMsg += error.message;
             } else {
-                showErrorMessage('حدث خطأ أثناء تحميل التقارير: ' + error.message);
+                errorMsg += 'خطأ غير معروف';
+            }
+            
             if (errorContainer) {
-                let errorMessage = 'حدث خطأ أثناء تحميل التقارير. يرجى المحاولة مرة أخرى لاحقًا.';
-                
-                // Add more specific error information if available
-                if (error && error.message) {
-                    errorMessage += '<br><small class="text-muted mt-2">تفاصيل الخطأ: ' + error.message + '</small>';
-                    
-                    // Add connection troubleshooting tips
-                    errorMessage += '<div class="mt-3 small">';
-                    errorMessage += '<strong>اقتراحات للحل:</strong><ul>';
-                    errorMessage += '<li>تأكد من تشغيل خادم الواجهة الخلفية على المنفذ 3001</li>';
-                    errorMessage += '<li>تحقق من اتصال الشبكة</li>';
-                    errorMessage += '<li>تأكد من تكوين API الصحيح</li>';
-                    errorMessage += '</ul></div>';
-                }
-                
-                errorContainer.innerHTML = errorMessage;
+                errorContainer.innerHTML = errorMsg;
                 errorContainer.classList.remove('d-none');
             }
             
@@ -142,9 +141,13 @@ async function checkServerConnection() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
-        const response = await fetch(`${apiService.baseUrl}/api/health`, {
+        // Try to connect to the server - use /api/reports since we know that endpoint exists
+        const response = await fetch(`${apiService.baseUrl}/api/reports`, {
             method: 'GET',
-            signal: controller.signal
+            signal: controller.signal,
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         
         clearTimeout(timeoutId);
@@ -167,15 +170,18 @@ function populateReportsTable(reports) {
     // Clear existing rows
     reportsTableBody.innerHTML = '';
     
-    // Check if we have reports
-    if (reports.length === 0) {
+    // Check if reports array is empty
+    if (!reports || reports.length === 0) {
         const noDataRow = document.createElement('tr');
         noDataRow.innerHTML = `
-            <td colspan="5" class="text-center py-4">
+            <td colspan="5" class="text-center py-5">
                 <div class="empty-state">
-                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                    <i class="fas fa-file-alt fa-3x mb-3 text-muted"></i>
                     <h5>لا توجد تقارير</h5>
-                    <p class="text-muted">لم يتم العثور على أي تقارير. يمكنك إنشاء تقرير جديد من خلال النقر على زر "إنشاء تقرير جديد".</p>
+                    <p class="text-muted">لم يتم العثور على أي تقارير في قاعدة البيانات.</p>
+                    <a href="create-report.html" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
+                    </a>
                 </div>
             </td>
         `;
@@ -187,10 +193,20 @@ function populateReportsTable(reports) {
     reports.forEach(report => {
         const row = document.createElement('tr');
         
+        // Map backend field names to frontend expected names
+        const mappedReport = {
+            id: report.id,
+            orderNumber: report.order_number || report.orderNumber,
+            clientName: report.client_name || report.clientName,
+            deviceModel: report.device_model || report.deviceModel,
+            inspectionDate: report.inspection_date || report.inspectionDate,
+            serialNumber: report.serial_number || report.serialNumber
+        };
+        
         // Format date if available
         let formattedDate = 'غير محدد';
-        if (report.inspectionDate) {
-            const date = new Date(report.inspectionDate);
+        if (mappedReport.inspectionDate) {
+            const date = new Date(mappedReport.inspectionDate);
             formattedDate = date.toLocaleDateString('ar-SA', {
                 year: 'numeric',
                 month: '2-digit',
@@ -199,21 +215,21 @@ function populateReportsTable(reports) {
         }
         
         row.innerHTML = `
-            <td>${report.orderNumber || 'غير محدد'}</td>
-            <td>${report.clientName || 'غير محدد'}</td>
-            <td>${report.deviceModel || 'غير محدد'}</td>
+            <td>${mappedReport.orderNumber || 'غير محدد'}</td>
+            <td>${mappedReport.clientName || 'غير محدد'}</td>
+            <td>${mappedReport.deviceModel || 'غير محدد'}</td>
             <td>${formattedDate}</td>
             <td class="text-center">
                 <div class="dropdown">
                     <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
                         <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none;">
-                        <li><a class="dropdown-item py-2" href="report.html?id=${report.id}"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
-                        <li><a class="dropdown-item py-2" href="create-report.html?edit=${report.id}"><i class="fas fa-edit me-2 text-warning"></i> تعديل</a></li>
-                        <li><a class="dropdown-item py-2" href="#" onclick="shareReport('${report.id}'); return false;"><i class="fas fa-share-alt me-2 text-success"></i> مشاركة</a></li>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><a class="dropdown-item py-2" href="report.html?id=${mappedReport.id}"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
+                        <li><a class="dropdown-item py-2" href="edit-report.html?id=${mappedReport.id}"><i class="fas fa-edit me-2 text-success"></i> تعديل</a></li>
+                        <li><a class="dropdown-item py-2" href="#" onclick="shareReport('${mappedReport.id}'); return false;"><i class="fas fa-share-alt me-2 text-info"></i> مشاركة</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item py-2" href="#" onclick="deleteReport('${report.id}'); return false;"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
+                        <li><a class="dropdown-item py-2" href="#" onclick="deleteReport('${mappedReport.id}'); return false;"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
                     </ul>
                 </div>
             </td>
@@ -233,21 +249,18 @@ function initSearchForm() {
     const searchForm = document.getElementById('searchForm');
     
     if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+        searchForm.addEventListener('submit', function(event) {
+            event.preventDefault();
             
             // Get form values
-            const searchQuery = this.querySelector('input[type="text"]').value.trim();
-            const deviceType = this.querySelector('select').value;
-            const fromDate = this.querySelector('input[type="date"]:nth-of-type(1)').value;
-            const toDate = this.querySelector('input[type="date"]:nth-of-type(2)').value;
+            const formData = new FormData(searchForm);
+            const searchParams = {};
             
-            // Build filters object
-            const filters = {};
-            if (searchQuery) filters.query = searchQuery;
-            if (deviceType) filters.deviceType = deviceType;
-            if (fromDate) filters.fromDate = fromDate;
-            if (toDate) filters.toDate = toDate;
+            for (const [key, value] of formData.entries()) {
+                if (value) {
+                    searchParams[key] = value;
+                }
+            }
             
             // Show loading indicator
             const loadingIndicator = document.getElementById('loadingIndicator');
@@ -255,19 +268,19 @@ function initSearchForm() {
                 loadingIndicator.classList.remove('d-none');
             }
             
-            // Fetch filtered reports
-            apiService.getReports(filters)
-                .then(data => {
+            // Search reports
+            apiService.searchReports(searchParams)
+                .then(reports => {
                     // Hide loading indicator
                     if (loadingIndicator) {
                         loadingIndicator.classList.add('d-none');
                     }
                     
-                    // Populate reports table
-                    populateReportsTable(data.reports || []);
+                    // Populate table with results
+                    populateReportsTable(reports);
                 })
                 .catch(error => {
-                    console.error('Error fetching filtered reports:', error);
+                    console.error('Error searching reports:', error);
                     
                     // Hide loading indicator
                     if (loadingIndicator) {
@@ -275,13 +288,21 @@ function initSearchForm() {
                     }
                     
                     // Show error message
-                    const errorContainer = document.getElementById('errorContainer');
-                    if (errorContainer) {
-                        errorContainer.textContent = 'حدث خطأ أثناء تحميل التقارير المصفاة. يرجى المحاولة مرة أخرى لاحقًا.';
-                        errorContainer.classList.remove('d-none');
-                    }
+                    alert('حدث خطأ أثناء البحث عن التقارير. يرجى المحاولة مرة أخرى لاحقًا.');
                 });
         });
+    }
+}
+
+/**
+ * Show error message in the error container
+ * @param {string} message - Error message to display
+ */
+function showErrorMessage(message) {
+    const errorContainer = document.getElementById('errorContainer');
+    if (errorContainer) {
+        errorContainer.innerHTML = message;
+        errorContainer.classList.remove('d-none');
     }
 }
 

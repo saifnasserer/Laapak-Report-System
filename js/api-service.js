@@ -5,8 +5,25 @@
 
 class ApiService {
     constructor(baseUrl = '') {
-        // Use port 3000 for the API server
-        this.baseUrl = baseUrl || 'http://localhost:3000';
+        // Try to determine the best API server URL
+        // First check if we're running on a deployed server or localhost
+        const currentHost = window.location.hostname;
+        const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1';
+        
+        // If explicitly provided, use that
+        if (baseUrl) {
+            this.baseUrl = baseUrl;
+        } 
+        // For localhost development, use port 3001
+        else if (isLocalhost) {
+            this.baseUrl = 'http://localhost:3001';
+        } 
+        // For production, use the same origin but with /api
+        else {
+            this.baseUrl = window.location.origin;
+        }
+        
+        console.log('API Service initialized with baseUrl:', this.baseUrl);
         this.authToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
     }
     
@@ -100,14 +117,15 @@ class ApiService {
         } catch (error) {
             console.error(`API Error (${endpoint}):`, error);
             
-            // Check if this is an AbortError (timeout)
+            // Enhanced error handling with specific messages
             if (error.name === 'AbortError') {
                 throw new Error('طلب API انتهت مهلته. يرجى المحاولة مرة أخرى.');
-            }
-            
-            // Network error (server not running or connection issues)
-            if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
-                throw new Error('فشل الاتصال بالخادم. يرجى التحقق من اتصال الشبكة وتشغيل الخادم.');
+            } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
+                throw new Error('لا يمكن الاتصال بالخادم. يرجى التأكد من تشغيل خادم Node.js على المنفذ 3000.');
+            } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                throw new Error('فشل الاتصال بالخادم. يرجى التأكد من تشغيل خادم API.');
+            } else if (error.message && error.message.includes('database')) {
+                throw new Error('مشكلة في قاعدة البيانات. يرجى التأكد من تشغيل خدمة MySQL وتكوين قاعدة البيانات بشكل صحيح.');
             }
             
             throw error;
@@ -194,14 +212,47 @@ class ApiService {
     
     // Report API Methods
     async getReports(filters = {}) {
-        let queryParams = '';
-        if (Object.keys(filters).length > 0) {
-            queryParams = '?' + Object.entries(filters)
-                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                .join('&');
+        // Build query string from filters
+        const queryParams = new URLSearchParams();
+        for (const key in filters) {
+            if (filters[key]) {
+                queryParams.append(key, filters[key]);
+            }
         }
-        // Make sure the endpoint matches the backend API structure
-        return this.request(`/api/reports${queryParams}`);
+        const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+        
+        try {
+            console.log('Fetching reports with filters:', filters);
+            const response = await this.request(`/api/reports${queryString}`);
+            
+            // Log the response for debugging
+            console.log('Reports API response:', response);
+            
+            // Handle different response formats
+            if (Array.isArray(response)) {
+                return response;
+            } else if (response && typeof response === 'object') {
+                // If response is an object with data property
+                if (response.data && Array.isArray(response.data)) {
+                    return response.data;
+                }
+                // If response is an object with reports property
+                else if (response.reports && Array.isArray(response.reports)) {
+                    return response.reports;
+                }
+                // If response is just an object, return it in an array
+                else {
+                    return [response];
+                }
+            }
+            
+            // Default to empty array if response format is unexpected
+            console.warn('Unexpected reports response format:', response);
+            return [];
+        } catch (error) {
+            console.error('Error in getReports:', error);
+            throw error;
+        }
     }
     
     async getReport(id) {
@@ -372,37 +423,73 @@ class ApiService {
     async createInvoice(invoiceData) {
         console.log('Creating invoice with data:', invoiceData);
         try {
-            // Make sure we're using the correct field names that match the database
+            // Ensure we have at least one item in the items array
+            let items = [];
+            
+            // If items array exists and has items, use it
+            if (Array.isArray(invoiceData.items) && invoiceData.items.length > 0) {
+                items = invoiceData.items.map(item => ({
+                    description: item.description || '',
+                    quantity: Number(item.quantity || 1),
+                    unit_price: Number(item.unit_price || item.amount || 0),
+                    total: Number(item.total || item.totalAmount || (item.unit_price * item.quantity) || 0)
+                }));
+            } 
+            // If no items but we have device information, create an item from it
+            else if (invoiceData.deviceModel || invoiceData.device_model || invoiceData.serialNumber || invoiceData.serial_number) {
+                const deviceName = invoiceData.deviceModel || invoiceData.device_model || 'Device';
+                const serialNumber = invoiceData.serialNumber || invoiceData.serial_number || '';
+                const price = Number(invoiceData.subtotal || invoiceData.amount || 0);
+                
+                items.push({
+                    description: deviceName + (serialNumber ? ` (SN: ${serialNumber})` : ''),
+                    quantity: 1,
+                    unit_price: price,
+                    total: price
+                });
+            }
+            // Default fallback item if nothing else is available
+            else {
+                items.push({
+                    description: 'Service Fee',
+                    quantity: 1,
+                    unit_price: Number(invoiceData.subtotal || invoiceData.amount || 0),
+                    total: Number(invoiceData.total || invoiceData.subtotal || invoiceData.amount || 0)
+                });
+            }
+            
+            // Generate a unique invoice number
+            const invoiceNumber = invoiceData.invoice_number || ('INV' + Date.now() + Math.floor(Math.random() * 1000));
+            
+            // Get client details from the input data
+            const clientId = Number(invoiceData.clientId || invoiceData.client_id || 0);
+            const clientName = invoiceData.clientName || invoiceData.client_name || '';
+            const clientPhone = invoiceData.clientPhone || invoiceData.client_phone || '';
+            const clientEmail = (invoiceData.clientEmail || invoiceData.client_email || '').trim() === '' ? null : 
+                               (invoiceData.clientEmail || invoiceData.client_email);
+            const clientAddress = invoiceData.clientAddress || invoiceData.client_address || '';
+            
+            // Format the data according to what the route expects
             const formattedData = {
-                invoice_number: invoiceData.invoice_number || ('INV' + Date.now() + Math.floor(Math.random() * 1000)),
-                report_id: invoiceData.report_id || invoiceData.reportId || null,
-                client_id: Number(invoiceData.client_id || invoiceData.clientId || 0),
-                client_name: invoiceData.client_name || invoiceData.clientName || '',
-                client_phone: invoiceData.client_phone || invoiceData.clientPhone || '',
-                client_email: (invoiceData.client_email || invoiceData.clientEmail || '').trim() === '' ? null : (invoiceData.client_email || invoiceData.clientEmail),
-                client_address: invoiceData.client_address || invoiceData.clientAddress || '',
+                invoice_number: invoiceNumber,
+                report_id: invoiceData.reportId || invoiceData.report_id || null,
+                client_id: clientId,
+                client_name: clientName,
+                client_phone: clientPhone,
+                client_email: clientEmail,
+                client_address: clientAddress,
                 subtotal: Number(invoiceData.subtotal || 0),
                 tax: Number(invoiceData.tax || 0),
                 discount: Number(invoiceData.discount || 0),
                 total: Number(invoiceData.total || 0),
                 notes: invoiceData.notes || '',
-                status: invoiceData.status || 'pending',
-                items: Array.isArray(invoiceData.items) ? invoiceData.items.map(item => ({
-                    description: item.description || '',
-                    quantity: Number(item.quantity || 1),
-                    unit_price: Number(item.unit_price || 0),
-                    total: Number(item.total || 0)
-                })) : []
+                status: invoiceData.status || invoiceData.paymentStatus || 'pending',
+                items: items
             };
             
             // Validate client_id is a number and greater than 0
             if (isNaN(formattedData.client_id) || formattedData.client_id <= 0) {
                 throw new Error('Client ID must be a valid number');
-            }
-            
-            // Validate items array
-            if (!formattedData.items || formattedData.items.length === 0) {
-                throw new Error('Invoice must have at least one item');
             }
             
             console.log('Creating invoice with formatted data:', formattedData);
