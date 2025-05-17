@@ -143,20 +143,20 @@ class ApiService {
         return this.request(`/api/clients${queryParams}`);
     }
     
-    async getClient(clientId) {
-        return this.request(`/api/clients/${clientId}`);
+    async getClient(client_id) {
+        return this.request(`/api/clients/${client_id}`);
     }
     
     async createClient(clientData) {
         return this.request('/api/clients', 'POST', clientData);
     }
     
-    async updateClient(clientId, clientData) {
-        return this.request(`/api/clients/${clientId}`, 'PUT', clientData);
+    async updateClient(client_id, clientData) {
+        return this.request(`/api/clients/${client_id}`, 'PUT', clientData);
     }
     
-    async deleteClient(clientId) {
-        return this.request(`/api/clients/${clientId}`, 'DELETE');
+    async deleteClient(client_id) {
+        return this.request(`/api/clients/${client_id}`, 'DELETE');
     }
 
     // User Management API Methods
@@ -263,10 +263,10 @@ class ApiService {
         console.log('Creating report with data:', reportData);
         try {
             // Parse client_id to ensure it's a valid number
-            let clientId;
+            let client_id;
             try {
-                clientId = parseInt(reportData.client_id || reportData.clientId || '0', 10);
-                if (isNaN(clientId) || clientId <= 0) {
+                client_id = parseInt(reportData.client_id || reportData.client_id || '0', 10);
+                if (isNaN(client_id) || client_id <= 0) {
                     throw new Error('Client ID must be a valid positive number');
                 }
             } catch (e) {
@@ -326,13 +326,13 @@ class ApiService {
             // and the fields that match the database schema
             const reportObject = {
                 // Fields required by the route handler
-                clientId: clientId,
+                client_id: client_id,
                 title: title,
                 description: reportData.notes || '',
                 
                 // Database schema fields
                 id: reportId,
-                client_id: clientId,
+                client_id: client_id,
                 client_name: reportData.client_name || reportData.clientName || '',
                 client_phone: reportData.client_phone || reportData.clientPhone || '',
                 client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
@@ -347,7 +347,7 @@ class ApiService {
                 external_images: externalImages,
                 notes: reportData.notes || '',
                 billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
-                amount: Number(reportData.amount || 0),
+                amount: Number(reportData.amount || reportData.devicePrice || 0),
                 status: reportData.status || 'active'
             };
             
@@ -462,7 +462,7 @@ class ApiService {
             const invoiceNumber = invoiceData.invoice_number || ('INV' + Date.now() + Math.floor(Math.random() * 1000));
             
             // Get client details from the input data
-            const clientId = Number(invoiceData.clientId || invoiceData.client_id || 0);
+            const client_id = Number(invoiceData.client_id || invoiceData.client_id || 0);
             const clientName = invoiceData.clientName || invoiceData.client_name || '';
             const clientPhone = invoiceData.clientPhone || invoiceData.client_phone || '';
             const clientEmail = (invoiceData.clientEmail || invoiceData.client_email || '').trim() === '' ? null : 
@@ -473,7 +473,7 @@ class ApiService {
             const formattedData = {
                 invoice_number: invoiceNumber,
                 report_id: invoiceData.reportId || invoiceData.report_id || null,
-                client_id: clientId,
+                client_id: client_id,
                 client_name: clientName,
                 client_phone: clientPhone,
                 client_email: clientEmail,

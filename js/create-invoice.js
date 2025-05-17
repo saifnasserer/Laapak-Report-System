@@ -250,6 +250,28 @@ async function loadReports() {
             if (typeof apiService !== 'undefined' && typeof apiService.getReports === 'function') {
                 // Use ApiService to fetch reports
                 reports = await apiService.getReports({ hasInvoice: false });
+                
+                // Log the structure of the first report to debug
+                if (reports.length > 0) {
+                    console.log('Sample report structure:', JSON.stringify(reports[0], null, 2));
+                }
+                
+                // Filter reports to only show those with billing_enabled=false
+                // Handle different field names and data structures
+                reports = reports.filter(report => {
+                    // Check for billing_enabled field with different naming conventions
+                    const billingEnabled = report.billing_enabled !== undefined ? report.billing_enabled :
+                                           report.billingEnabled !== undefined ? report.billingEnabled :
+                                           report.billing !== undefined ? report.billing : true;
+                    
+                    // Convert to boolean if it's a string
+                    const billingEnabledBool = typeof billingEnabled === 'string' ? 
+                                              billingEnabled.toLowerCase() === 'true' || billingEnabled === '1' :
+                                              Boolean(billingEnabled);
+                    
+                    return !billingEnabledBool;
+                });
+                console.log(`Filtered ${reports.length} reports with billing not enabled`);
             } else {
                 throw new Error('API service not available');
             }
@@ -259,8 +281,10 @@ async function loadReports() {
             const storedReports = localStorage.getItem('lpk_reports');
             reports = storedReports ? JSON.parse(storedReports) : [];
             
-            // Filter reports without invoices
-            reports = reports.filter(report => !report.invoice || !report.invoice.id);
+            // Filter reports without invoices and with billing_enabled=false
+            reports = reports.filter(report => {
+                return (!report.invoice || !report.invoice.id) && report.billing_enabled === false;
+            });
             
             // If still no reports, use mock data
             if (reports.length === 0) {
@@ -451,7 +475,19 @@ function displayReports(reports) {
     // Display reports grouped by client
     Object.keys(reportsByClient).forEach(client_id => {
         const clientReports = reportsByClient[client_id];
-        const clientName = clientReports[0].clientName || 'عميل غير معروف';
+        
+        // Get client name from client data if available
+        let clientName = 'عميل غير معروف';
+        if (clientReports[0].clientName) {
+            clientName = clientReports[0].clientName;
+        } else if (clientReports[0].Client && clientReports[0].Client.name) {
+            clientName = clientReports[0].Client.name;
+        } else if (clientsData && clientsData.length > 0) {
+            const client = clientsData.find(c => c.id == client_id);
+            if (client && client.name) {
+                clientName = client.name;
+            }
+        }
         
         // Add client header row
         const clientRow = document.createElement('tr');
@@ -469,12 +505,29 @@ function displayReports(reports) {
             const row = document.createElement('tr');
             row.setAttribute('data-report-id', report.id);
             
-            // Format date
-            const reportDate = new Date(report.inspectionDate);
-            const formattedDate = reportDate.toLocaleDateString('ar-SA');
+            // Format date in Gregorian format - handle invalid dates
+            let formattedDate = 'غير محدد';
+            if (report.inspectionDate) {
+                try {
+                    const reportDate = new Date(report.inspectionDate);
+                    if (!isNaN(reportDate.getTime())) {
+                        formattedDate = reportDate.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Invalid date format:', report.inspectionDate);
+                }                
+            }
             
-            // Format amount
-            const formattedAmount = `${report.amount.toFixed(2)} ريال`;
+            // Format amount - ensure amount is a valid number
+            const amount = parseFloat(report.amount) || 0;
+            const formattedAmount = `${amount.toFixed(2)} جنيه`;
+            
+            // Safely get device model
+            const deviceModel = report.deviceModel || report.device_model || 'غير محدد';
             
             row.innerHTML = `
                 <td class="text-center">
@@ -485,7 +538,7 @@ function displayReports(reports) {
                 </td>
                 <td>${clientName}</td>
                 <td>${report.id}</td>
-                <td>${report.deviceModel}</td>
+                <td>${deviceModel}</td>
                 <td>${formattedDate}</td>
                 <td class="text-success fw-bold">${formattedAmount}</td>
                 <td>
@@ -553,13 +606,27 @@ function updateSelectedReportsSummary() {
     selectedReports.forEach(reportId => {
         const report = reportsData.find(r => r.id === reportId);
         if (report) {
-            total += report.amount || 0;
+            // Ensure amount is a valid number
+            const amount = parseFloat(report.amount) || 0;
+            total += amount;
         }
     });
     
     // Update UI
     selectedCount.textContent = selectedReports.length;
-    totalAmount.textContent = `${total.toFixed(2)} ريال`;
+    totalAmount.textContent = `${total.toFixed(2)} جنيه`;
+    
+    // Update secondary UI elements in the selected reports card
+    const selectedCount2 = document.getElementById('selectedCount2');
+    const totalAmount2 = document.getElementById('totalAmount2');
+    
+    if (selectedCount2) {
+        selectedCount2.textContent = selectedReports.length;
+    }
+    
+    if (totalAmount2) {
+        totalAmount2.textContent = `${total.toFixed(2)} جنيه`;
+    }
     
     // Update selected reports section visibility
     const selectedReportsSection = document.getElementById('selectedReportsSection');
@@ -683,9 +750,11 @@ function showInvoiceSettingsModal() {
     // Calculate total amount
     let total = 0;
     selectedReportsData.forEach(report => {
-        total += report.amount || 0;
+        // Ensure amount is a valid number
+        const amount = parseFloat(report.amount) || 0;
+        total += amount;
     });
-    document.getElementById('invoiceTotalAmount').textContent = `${total.toFixed(2)} ريال`;
+    document.getElementById('invoiceTotalAmount').textContent = `${total.toFixed(2)} جنيه`;
     
     // Show modal
     const settingsModal = new bootstrap.Modal(document.getElementById('invoiceSettingsModal'));
@@ -714,10 +783,12 @@ function generateInvoicePreview() {
         address: ''
     };
     
-    // Calculate totals
+    // Calculate subtotal, tax, discount, and total
     let subtotal = 0;
     selectedReportsData.forEach(report => {
-        subtotal += report.amount || 0;
+        // Ensure amount is a valid number
+        const amount = parseFloat(report.amount) || 0;
+        subtotal += amount;
     });
     
     const taxAmount = (subtotal * invoiceSettings.taxRate) / 100;
@@ -728,9 +799,27 @@ function generateInvoicePreview() {
     const invoicePreviewContainer = document.getElementById('invoicePreviewContainer');
     if (!invoicePreviewContainer) return;
     
-    // Format date
-    const invoiceDate = new Date(invoiceSettings.date);
-    const formattedDate = invoiceDate.toLocaleDateString('ar-SA');
+    // Format date in Gregorian format - handle invalid dates
+    let formattedDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    
+    if (invoiceSettings.date) {
+        try {
+            const invoiceDate = new Date(invoiceSettings.date);
+            if (!isNaN(invoiceDate.getTime())) {
+                formattedDate = invoiceDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+            }
+        } catch (e) {
+            console.warn('Invalid date format in invoice settings, using current date');
+        }
+    }
     
     // Generate invoice number
     const invoiceNumber = generateInvoiceNumber();
@@ -788,16 +877,30 @@ function generateInvoicePreview() {
                             </thead>
                             <tbody>
                                 ${selectedReportsData.map((report, index) => {
-                                    const reportDate = new Date(report.inspectionDate);
-                                    const formattedReportDate = reportDate.toLocaleDateString('ar-SA');
+                                    // Format date safely
+                                    let formattedReportDate = 'غير محدد';
+                                    if (report.inspectionDate) {
+                                        try {
+                                            const reportDate = new Date(report.inspectionDate);
+                                            if (!isNaN(reportDate.getTime())) {
+                                                formattedReportDate = reportDate.toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit'
+                                                });
+                                            }
+                                        } catch (e) {
+                                            console.warn('Invalid date format in report:', report.id);
+                                        }
+                                    }
                                     return `
                                         <tr>
                                             <td>${index + 1}</td>
                                             <td>${report.id}</td>
-                                            <td>${report.deviceModel}</td>
-                                            <td>${report.serialNumber}</td>
+                                            <td>${report.deviceModel || report.device_model || 'غير محدد'}</td>
+                                            <td>${report.serialNumber || report.serial_number || 'غير محدد'}</td>
                                             <td>${formattedReportDate}</td>
-                                            <td class="text-end">${report.amount.toFixed(2)} ريال</td>
+                                            <td class="text-end">${(parseFloat(report.amount) || 0).toFixed(2)} جنيه</td>
                                         </tr>
                                     `;
                                 }).join('')}
@@ -814,23 +917,23 @@ function generateInvoicePreview() {
                         <tbody>
                             <tr>
                                 <td class="text-start">المجموع الفرعي:</td>
-                                <td class="text-end">${subtotal.toFixed(2)} ريال</td>
+                                <td class="text-end">${subtotal.toFixed(2)} جنيه</td>
                             </tr>
                             ${invoiceSettings.taxRate > 0 ? `
                                 <tr>
                                     <td class="text-start">ضريبة القيمة المضافة (${invoiceSettings.taxRate}%):</td>
-                                    <td class="text-end">${taxAmount.toFixed(2)} ريال</td>
+                                    <td class="text-end">${taxAmount.toFixed(2)} جنيه</td>
                                 </tr>
                             ` : ''}
                             ${invoiceSettings.discountRate > 0 ? `
                                 <tr>
                                     <td class="text-start">الخصم (${invoiceSettings.discountRate}%):</td>
-                                    <td class="text-end">${discountAmount.toFixed(2)} ريال</td>
+                                    <td class="text-end">${discountAmount.toFixed(2)} جنيه</td>
                                 </tr>
                             ` : ''}
                             <tr>
                                 <td class="text-start fw-bold">المجموع الكلي:</td>
-                                <td class="text-end fw-bold">${total.toFixed(2)} ريال</td>
+                                <td class="text-end fw-bold">${total.toFixed(2)} جنيه</td>
                             </tr>
                         </tbody>
                     </table>

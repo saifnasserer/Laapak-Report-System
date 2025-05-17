@@ -89,8 +89,8 @@ class LpkClientHeader {
             <div class="container py-2">
                 <!-- Logo and title -->
                 <a class="navbar-brand d-flex align-items-center" href="#">
-                    <img src="img/logo-white.png" alt="Laapak" height="40">
-                    <h4 class="ms-3 mb-0 fw-bold d-none d-md-block">لوحة العميل</h4>
+                    <img src="img/cropped-Logo-mark.png.png" alt="Laapak" height="40">
+                    <h4 class="ms-3 mb-0 fw-bold d-none d-md-block">Laapak</h4>
                 </a>
                 
                 <!-- Mobile toggle -->
