@@ -337,10 +337,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableBody = document.getElementById('clientsTableBody');
         if (!tableBody) return;
         
+        // Sort clients by creation date (newest first)
+        const sortedClients = [...clients].sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return dateB - dateA; // Descending order (newest first)
+        });
+        
         // Store all clients for pagination
         if (updatePagination) {
-            clientsData = clients;
-            totalClients = clients.length;
+            clientsData = sortedClients;
+            totalClients = sortedClients.length;
             // Reset to first page when new data is loaded
             currentPage = 1;
         }
@@ -348,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear existing rows
         tableBody.innerHTML = '';
         
-        if (clients.length === 0) {
+        if (sortedClients.length === 0) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="8" class="text-center py-5">
@@ -374,8 +381,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Calculate pagination
         const startIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
-        const endIndex = Math.min(startIndex + CLIENTS_PER_PAGE, clients.length);
-        const paginatedClients = clients.slice(startIndex, endIndex);
+        const endIndex = Math.min(startIndex + CLIENTS_PER_PAGE, sortedClients.length);
+        const paginatedClients = sortedClients.slice(startIndex, endIndex);
         
         // Update pagination controls if needed
         if (updatePagination) {
