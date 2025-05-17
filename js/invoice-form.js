@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Get client info
-            const clientId = clientSelect.value;
+            const client_id = clientSelect.value;
             const clientName = clientSelect.options[clientSelect.selectedIndex].text;
             
             // Get report info if selected
@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const invoiceData = collectInvoiceData();
             
             // Add client and report info
-            invoiceData.clientId = clientId;
+            invoiceData.client_id = client_id;
             invoiceData.clientName = clientName;
             invoiceData.reportId = reportId;
             
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Format data for API
                     const apiInvoiceData = {
                         reportId: reportId,
-                        clientId: clientId,
+                        client_id: client_id,
                         subtotal: invoiceData.subtotal,
                         discount: invoiceData.discount,
                         taxRate: invoiceData.taxRate,

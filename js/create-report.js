@@ -18,7 +18,7 @@ window.globalDeviceDetails = window.globalDeviceDetails || {
 
 // Global client details object for storing selected client information
 window.globalClientDetails = window.globalClientDetails || {
-    clientId: null,
+    client_id: null,
     clientName: '',
     clientPhone: '',
     clientEmail: '',
@@ -154,12 +154,15 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.createdAt = new Date().toISOString();
             formData.updatedAt = new Date().toISOString();
             
-            // Ensure clientId is a valid value (not null or undefined)
-            if (!formData.clientId) {
+            // Ensure client_id is a valid value (not null or undefined)
+            if (!formData.client_id) {
                 showLoading(false);
                 showErrorMessage('يرجى اختيار عميل قبل إنشاء التقرير');
                 return;
             }
+            
+            // Log client ID for debugging
+            console.log('Client ID validation passed:', formData.client_id);
             
             // Validate collected data
             const validationError = validateReportData(formData);
@@ -199,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function validateReportData(data) {
         // Validate client selection
-        if (!data.clientId) {
+        if (!data.client_id) {
             showStepError(1, 'يرجى اختيار عميل');
             return 'يرجى اختيار عميل';
         }
@@ -238,12 +241,12 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     window.collectReportData = function() {
         // First try to get client ID from the global client details (set in form-steps.js)
-        let clientId = null;
+        let client_id = null;
         let clientDetails = {};
         
-        if (window.globalClientDetails && window.globalClientDetails.clientId) {
+        if (window.globalClientDetails && window.globalClientDetails.client_id) {
             // Use the globally stored client details from step 1
-            clientId = window.globalClientDetails.clientId;
+            client_id = window.globalClientDetails.client_id;
             clientDetails = {
                 clientName: window.globalClientDetails.clientName || '',
                 clientPhone: window.globalClientDetails.clientPhone || '',
@@ -254,15 +257,15 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Fallback to getting client ID from the select element
             const clientSelect = document.getElementById('clientSelect');
-            clientId = clientSelect?.value || null;
+            client_id = clientSelect?.value || null;
             
             // Log client selection for debugging
-            console.log('Selected client ID from form element:', clientId);
+            console.log('Selected client ID from form element:', client_id);
             console.log('Client select element:', clientSelect);
             
             // Find selected client details from global clientsData
-            if (clientId && Array.isArray(window.clientsData)) {
-                const selectedClient = window.clientsData.find(client => client.id == clientId);
+            if (client_id && Array.isArray(window.clientsData)) {
+                const selectedClient = window.clientsData.find(client => client.id == client_id);
                 console.log('Found client details:', selectedClient);
                 if (selectedClient) {
                     clientDetails = {
@@ -280,12 +283,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Validate client selection
-        if (!clientId || clientId === '') {
+        if (!client_id || client_id === '') {
             console.error('No client selected!');
             // Show error message
             const errorDiv = document.createElement('div');
             errorDiv.className = 'alert alert-danger';
-            errorDiv.textContent = 'يرجي اختيار عميل قبل انشاء التقرير';
+            errorDiv.textContent = 'يرجى اختيار عميل قبل إنشاء التقرير';
             
             // Find the client selection container
             const clientContainer = document.querySelector('.client-selection-container') || document.body;
@@ -294,11 +297,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // Remove the error message after 5 seconds
             setTimeout(() => errorDiv.remove(), 5000);
             
-            throw new Error('يرجي اختيار عميل قبل انشاء التقرير');
+            throw new Error('يرجى اختيار عميل قبل إنشاء التقرير');
+        } else {
+            console.log('Client validation passed. Using client ID:', client_id);
         }
         // Get invoice data if billing is enabled
         let invoiceData = null;
-        const billingEnabled = document.getElementById('enableBilling')?.checked || false;
+        const billingToggle = document.getElementById('enableBilling');
+        // Log the billing toggle element and its state for debugging
+        console.log('Billing toggle DOM element:', billingToggle);
+        console.log('Billing toggle checked attribute:', billingToggle?.getAttribute('checked'));
+        console.log('Billing toggle checked property:', billingToggle?.checked);
+        
+        // Use the checked property for the actual state
+        const billingEnabled = billingToggle?.checked || false;
+        console.log('Billing enabled:', billingEnabled);
+        console.log('Billing toggle element:', billingToggle);
         
         if (billingEnabled) {
             const taxRate = parseFloat(document.getElementById('taxRate')?.value || 15);
@@ -366,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const reportData = {
             id: reportId,
-            client_id: clientId,
+            client_id: client_id,
             client_name: clientDetails.clientName || '',
             client_phone: clientDetails.clientPhone || '',
             client_email: clientDetails.clientEmail || '',
@@ -594,18 +608,18 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {HTMLSelectElement} selectElement - The client select element
      */
     window.clientSelectionChanged = function(selectElement) {
-        const selectedClientId = selectElement.value;
+        const selectedClient_id = selectElement.value;
         const selectedClientInfo = document.getElementById('selectedClientInfo');
         const clientQuickActions = document.getElementById('clientQuickActions');
         
-        if (!selectedClientId) {
+        if (!selectedClient_id) {
             // No client selected, hide the info card and actions
             selectedClientInfo.style.display = 'none';
             if (clientQuickActions) clientQuickActions.style.display = 'none';
             
             // Clear global client details
             window.globalClientDetails = {
-                clientId: null,
+                client_id: null,
                 clientName: '',
                 clientPhone: '',
                 clientEmail: '',
@@ -621,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Find the selected client in the global clients data
-        const selectedClient = clientsData.find(client => client.id == selectedClientId);
+        const selectedClient = clientsData.find(client => client.id == selectedClient_id);
         if (!selectedClient) {
             selectedClientInfo.style.display = 'none';
             if (clientQuickActions) clientQuickActions.style.display = 'none';
@@ -630,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Store client details in global variable
-        window.globalClientDetails.clientId = selectedClientId;
+        window.globalClientDetails.client_id = selectedClient_id;
         window.globalClientDetails.clientName = selectedClient.name || '';
         window.globalClientDetails.clientPhone = selectedClient.phone || '';
         window.globalClientDetails.clientEmail = selectedClient.email || '';
@@ -789,15 +803,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Store client ID in a hidden field or data attribute for reference
-        const clientIdField = document.getElementById('clientId');
-        if (clientIdField) {
-            clientIdField.value = client.id;
+        const client_idField = document.getElementById('client_id');
+        if (client_idField) {
+            client_idField.value = client.id;
         } else {
             // If no hidden field exists, create one
             const hiddenField = document.createElement('input');
             hiddenField.type = 'hidden';
-            hiddenField.id = 'clientId';
-            hiddenField.name = 'clientId';
+            hiddenField.id = 'client_id';
+            hiddenField.name = 'client_id';
             hiddenField.value = client.id;
             document.getElementById('addClientForm').appendChild(hiddenField);
         }
@@ -815,9 +829,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     /**
      * View client history
-     * @param {number|string} clientId - The client ID
+     * @param {number|string} client_id - The client ID
      */
-    function viewClientHistory(clientId) {
+    function viewClientHistory(client_id) {
         // This would typically open a modal or navigate to a history page
         // For now, we'll just show a toast notification
         showToast('جاري تحميل سجل العميل...', 'info');
@@ -830,9 +844,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     /**
      * View client reports
-     * @param {number|string} clientId - The client ID
+     * @param {number|string} client_id - The client ID
      */
-    function viewClientReports(clientId) {
+    function viewClientReports(client_id) {
         // This would typically open a modal with a list of reports
         // For now, we'll just show a toast notification
         showToast('جاري تحميل تقارير العميل...', 'info');
@@ -978,9 +992,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Remove client ID if it exists
-                const clientIdField = document.getElementById('clientId');
-                if (clientIdField) {
-                    clientIdField.remove();
+                const client_idField = document.getElementById('client_id');
+                if (client_idField) {
+                    client_idField.remove();
                 }
                 
                 // Clear validation states
@@ -1010,9 +1024,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const editSelectedClientBtn = document.getElementById('editSelectedClient');
         if (editSelectedClientBtn) {
             editSelectedClientBtn.addEventListener('click', function() {
-                const clientId = document.getElementById('clientSelect')?.value;
-                if (clientId) {
-                    const selectedClient = clientsData.find(client => client.id == clientId);
+                const client_id = document.getElementById('clientSelect')?.value;
+                if (client_id) {
+                    const selectedClient = clientsData.find(client => client.id == client_id);
                     if (selectedClient) {
                         openEditClientModal(selectedClient);
                     }
@@ -1355,8 +1369,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 // Select the new/updated client
-                const clientId = existingClient ? existingClient.id : response.id;
-                clientSelect.value = clientId;
+                const client_id = existingClient ? existingClient.id : response.id;
+                clientSelect.value = client_id;
                 
                 // Trigger the change event to update the UI
                 clientSelectionChanged(clientSelect);

@@ -195,7 +195,7 @@ function setupInvoiceDetailViewers() {
 function viewReportDetails(reportId) {
     // Get the report data
     const clientInfo = getClientInfo();
-    const reports = getMockReports(clientInfo.clientId);
+    const reports = getMockReports(clientInfo.client_id);
     const report = reports.find(r => r.id === reportId);
     
     if (!report) {
@@ -311,7 +311,7 @@ function viewReportDetails(reportId) {
 function viewInvoiceDetails(invoiceId) {
     // Get the invoice data
     const clientInfo = getClientInfo();
-    const invoices = getMockInvoices(clientInfo.clientId);
+    const invoices = getMockInvoices(clientInfo.client_id);
     const invoice = invoices.find(i => i.id === invoiceId);
     
     if (!invoice) {

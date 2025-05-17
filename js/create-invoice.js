@@ -8,7 +8,7 @@ let reportsData = [];
 let selectedReports = [];
 let clientsData = [];
 let invoiceSettings = {
-    title: 'فاتورة صيانة',
+    title: 'فاتورة',
     date: new Date().toISOString().split('T')[0],
     taxRate: 15,
     discountRate: 0,
@@ -309,7 +309,7 @@ function getMockReports() {
             orderNumber: 'LPK1001',
             inspectionDate: today.toISOString().split('T')[0],
             createdAt: today.toISOString(),
-            clientId: 1,
+            client_id: 1,
             clientName: 'محمد أحمد',
             clientPhone: '0501234567',
             deviceModel: 'MacBook Pro 2021',
@@ -336,7 +336,7 @@ function getMockReports() {
             orderNumber: 'LPK1002',
             inspectionDate: yesterday.toISOString().split('T')[0],
             createdAt: yesterday.toISOString(),
-            clientId: 2,
+            client_id: 2,
             clientName: 'فاطمة علي',
             clientPhone: '0509876543',
             deviceModel: 'Dell XPS 15',
@@ -363,7 +363,7 @@ function getMockReports() {
             orderNumber: 'LPK1003',
             inspectionDate: lastWeek.toISOString().split('T')[0],
             createdAt: lastWeek.toISOString(),
-            clientId: 3,
+            client_id: 3,
             clientName: 'سارة محمد',
             clientPhone: '0553219876',
             deviceModel: 'HP Spectre x360',
@@ -390,7 +390,7 @@ function getMockReports() {
             orderNumber: 'LPK1001',
             inspectionDate: lastWeek.toISOString().split('T')[0],
             createdAt: lastWeek.toISOString(),
-            clientId: 1,
+            client_id: 1,
             clientName: 'محمد أحمد',
             clientPhone: '0501234567',
             deviceModel: 'Lenovo ThinkPad X1',
@@ -442,15 +442,15 @@ function displayReports(reports) {
     // Group reports by client
     const reportsByClient = {};
     reports.forEach(report => {
-        if (!reportsByClient[report.clientId]) {
-            reportsByClient[report.clientId] = [];
+        if (!reportsByClient[report.client_id]) {
+            reportsByClient[report.client_id] = [];
         }
-        reportsByClient[report.clientId].push(report);
+        reportsByClient[report.client_id].push(report);
     });
     
     // Display reports grouped by client
-    Object.keys(reportsByClient).forEach(clientId => {
-        const clientReports = reportsByClient[clientId];
+    Object.keys(reportsByClient).forEach(client_id => {
+        const clientReports = reportsByClient[client_id];
         const clientName = clientReports[0].clientName || 'عميل غير معروف';
         
         // Add client header row
@@ -573,7 +573,7 @@ function updateSelectedReportsSummary() {
  */
 function applyFilters() {
     // Get filter values
-    const clientId = document.getElementById('clientFilter').value;
+    const client_id = document.getElementById('clientFilter').value;
     const dateFrom = document.getElementById('dateFromFilter').value;
     const dateTo = document.getElementById('dateToFilter').value;
     const deviceModel = document.getElementById('deviceModelFilter').value.trim().toLowerCase();
@@ -582,8 +582,8 @@ function applyFilters() {
     let filteredReports = [...reportsData];
     
     // Filter by client
-    if (clientId) {
-        filteredReports = filteredReports.filter(report => report.clientId.toString() === clientId);
+    if (client_id) {
+        filteredReports = filteredReports.filter(report => report.client_id.toString() === client_id);
     }
     
     // Filter by date range
@@ -666,9 +666,9 @@ function showInvoiceSettingsModal() {
     
     // Check if all selected reports are for the same client
     const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
-    const clientIds = [...new Set(selectedReportsData.map(report => report.clientId))];
+    const client_ids = [...new Set(selectedReportsData.map(report => report.client_id))];
     
-    if (clientIds.length > 1) {
+    if (client_ids.length > 1) {
         showToast('يجب أن تكون جميع التقارير المحددة لنفس العميل', 'warning');
         return;
     }
@@ -706,8 +706,8 @@ function generateInvoicePreview() {
     const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
     
     // Get client data
-    const clientId = selectedReportsData[0].clientId;
-    const client = clientsData.find(c => c.id.toString() === clientId.toString()) || {
+    const client_id = selectedReportsData[0].client_id;
+    const client = clientsData.find(c => c.id.toString() === client_id.toString()) || {
         name: selectedReportsData[0].clientName || 'عميل غير معروف',
         phone: selectedReportsData[0].clientPhone || '',
         email: '',
@@ -912,7 +912,7 @@ async function saveInvoice() {
         const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
         
         // Get client data
-        const clientId = selectedReportsData[0].clientId;
+        const client_id = selectedReportsData[0].client_id;
         
         // Calculate totals
         let subtotal = 0;
@@ -932,7 +932,7 @@ async function saveInvoice() {
             id: invoiceNumber,
             title: invoiceSettings.title,
             date: invoiceSettings.date,
-            clientId: clientId,
+            client_id: client_id,
             reports: selectedReports,
             subtotal: subtotal,
             taxRate: invoiceSettings.taxRate,
@@ -1109,8 +1109,8 @@ function shareInvoice(method) {
             return;
         }
         
-        const clientId = selectedReportsData[0].clientId;
-        const client = clientsData.find(c => c.id.toString() === clientId.toString()) || {
+        const client_id = selectedReportsData[0].client_id;
+        const client = clientsData.find(c => c.id.toString() === client_id.toString()) || {
             name: selectedReportsData[0].clientName || 'عميل غير معروف',
             phone: selectedReportsData[0].clientPhone || '',
             email: ''

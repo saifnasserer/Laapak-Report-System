@@ -93,8 +93,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             window.globalClientDetails = {};
                         }
                         
-                        window.globalClientDetails.clientId = clientSelect.value;
-                        console.log('Selected client ID stored globally:', window.globalClientDetails.clientId);
+                        window.globalClientDetails.client_id = clientSelect.value;
+                        console.log('Selected client ID stored globally:', window.globalClientDetails.client_id);
                         
                         // If we have client data available, store more details
                         if (Array.isArray(window.clientsData)) {
@@ -831,24 +831,24 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Wrap the entire invoice creation in a try/catch to prevent it from blocking report creation
                         try {
                             // First try to get client ID from the saved report
-                            let clientId = savedReport.clientId;
+                            let client_id = savedReport.client_id;
                             
                             // If not available in the report, try global client details
-                            if (!clientId && window.globalClientDetails) {
-                                clientId = window.globalClientDetails.clientId;
-                                console.log('Using client ID from global client details:', clientId);
+                            if (!client_id && window.globalClientDetails) {
+                                client_id = window.globalClientDetails.client_id;
+                                console.log('Using client ID from global client details:', client_id);
                             }
                             
                             // As a last resort, try to get it from the form
-                            if (!clientId) {
-                                clientId = document.getElementById('clientSelect')?.value;
-                                console.log('Using client ID from form element:', clientId);
+                            if (!client_id) {
+                                client_id = document.getElementById('clientSelect')?.value;
+                                console.log('Using client ID from form element:', client_id);
                             }
                             
                             // Log client ID for debugging
-                            console.log('Creating invoice with client ID:', clientId);
+                            console.log('Creating invoice with client ID:', client_id);
                             
-                            if (!clientId) {
+                            if (!client_id) {
                                 console.warn('No client ID available for invoice creation - skipping invoice');
                             } else {
                                 // Get values from the invoice form fields
@@ -868,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // Create basic invoice data with all required fields
                                 const invoiceData = {
                                     reportId: savedReport.id,
-                                    clientId: clientId,
+                                    client_id: client_id,
                                     subtotal: subtotal,
                                     tax: tax,
                                     taxRate: taxRate,
@@ -963,11 +963,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Save back to storage
         localStorage.setItem('lpk_reports', JSON.stringify(reports));
         
-        // Also save to client-specific reports if clientId exists
-        if (reportData.clientId) {
-            let clientReports = JSON.parse(localStorage.getItem(`lpk_client_${reportData.clientId}_reports`) || '[]');
+        // Also save to client-specific reports if client_id exists
+        if (reportData.client_id) {
+            let clientReports = JSON.parse(localStorage.getItem(`lpk_client_${reportData.client_id}_reports`) || '[]');
             clientReports.push(reportData);
-            localStorage.setItem(`lpk_client_${reportData.clientId}_reports`, JSON.stringify(clientReports));
+            localStorage.setItem(`lpk_client_${reportData.client_id}_reports`, JSON.stringify(clientReports));
         }
     }
     

@@ -15,7 +15,7 @@ const Invoice = sequelize.define('Invoice', {
     client_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'clientId',
+        field: 'client_id',
         references: { model: 'clients', key: 'id' }
     },
     date: {

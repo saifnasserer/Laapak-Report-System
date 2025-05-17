@@ -149,7 +149,7 @@ router.post('/', adminAuth, async (req, res) => {
         // Extract data from request body
         const { 
             report_id: reportId, 
-            client_id: clientId, 
+            client_id: client_id, 
             client_name: clientName, 
             client_phone: clientPhone, 
             client_email: clientEmail, 
@@ -164,7 +164,7 @@ router.post('/', adminAuth, async (req, res) => {
         } = req.body;
         
         // Validate required fields
-        if (!clientId) {
+        if (!client_id) {
             return res.status(400).json({
                 message: 'معرف العميل مطلوب',
                 error: 'client_id is required'
@@ -172,8 +172,8 @@ router.post('/', adminAuth, async (req, res) => {
         }
         
         // Validate client_id is a number
-        const clientIdNum = Number(clientId);
-        if (isNaN(clientIdNum)) {
+        const client_idNum = Number(client_id);
+        if (isNaN(client_idNum)) {
             return res.status(400).json({
                 message: 'معرف العميل يجب أن يكون رقمًا',
                 error: 'client_id must be a number'
@@ -199,7 +199,7 @@ router.post('/', adminAuth, async (req, res) => {
         const invoice = await Invoice.create({
             invoice_number: invoiceNumber,
             report_id: reportId || null,
-            client_id: clientIdNum,
+            client_id: clientdNum,
             client_name: clientName || '',
             client_phone: clientPhone || '',
             client_email: validatedEmail,

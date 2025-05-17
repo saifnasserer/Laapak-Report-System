@@ -194,7 +194,7 @@ function generateInvoice(reportData, invoiceFormData = null) {
         id: invoiceId,
         date: invoiceDate.toISOString(),
         reportId: reportData.id,
-        clientId: reportData.clientId,
+        client_id: reportData.client_id,
         clientName: reportData.clientName,
         clientPhone: reportData.clientPhone,
         orderCode: reportData.orderCode || 'LP' + Math.floor(10000 + Math.random() * 90000),
@@ -247,7 +247,7 @@ async function saveInvoice(invoice) {
         if (window.apiService && typeof window.apiService.createInvoice === 'function') {
             const apiInvoiceData = {
                 reportId: invoice.reportId,
-                clientId: invoice.clientId,
+                client_id: invoice.client_id,
                 subtotal: invoice.subtotal,
                 discount: invoice.discount || 0,
                 taxRate: invoice.taxRate || 14,
@@ -283,11 +283,11 @@ async function saveInvoice(invoice) {
     // Save back to storage
     localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
     
-    // Also save to client-specific invoices if clientId exists
-    if (invoice.clientId) {
-        let clientInvoices = JSON.parse(localStorage.getItem(`lpk_client_${invoice.clientId}_invoices`) || '[]');
+    // Also save to client-specific invoices if client_id exists
+    if (invoice.client_id) {
+        let clientInvoices = JSON.parse(localStorage.getItem(`lpk_client_${invoice.client_id}_invoices`) || '[]');
         clientInvoices.push(invoice);
-        localStorage.setItem(`lpk_client_${invoice.clientId}_invoices`, JSON.stringify(clientInvoices));
+        localStorage.setItem(`lpk_client_${invoice.client_id}_invoices`, JSON.stringify(clientInvoices));
     }
     
     return invoice;
@@ -303,11 +303,11 @@ function getAllInvoices() {
 
 /**
  * Get invoices for a specific client
- * @param {string} clientId - The client ID
+ * @param {string} client_id - The client ID
  * @returns {Array} Array of client's invoices
  */
-function getClientInvoices(clientId) {
-    return JSON.parse(localStorage.getItem(`lpk_client_${clientId}_invoices`) || '[]');
+function getClientInvoices(client_id) {
+    return JSON.parse(localStorage.getItem(`lpk_client_${client_id}_invoices`) || '[]');
 }
 
 /**
@@ -341,9 +341,9 @@ function updateInvoicePaymentStatus(invoiceId, paid, paymentMethod) {
         localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
         
         // Update in client-specific invoices if exists
-        const clientId = invoices[invoiceIndex].clientId;
-        if (clientId) {
-            let clientInvoices = JSON.parse(localStorage.getItem(`lpk_client_${clientId}_invoices`) || '[]');
+        const client_id = invoices[invoiceIndex].client_id;
+        if (client_id) {
+            let clientInvoices = JSON.parse(localStorage.getItem(`lpk_client_${client_id}_invoices`) || '[]');
             const clientInvoiceIndex = clientInvoices.findIndex(inv => inv.id === invoiceId);
             
             if (clientInvoiceIndex !== -1) {
@@ -351,7 +351,7 @@ function updateInvoicePaymentStatus(invoiceId, paid, paymentMethod) {
                 clientInvoices[clientInvoiceIndex].paymentMethod = paymentMethod;
                 clientInvoices[clientInvoiceIndex].paymentDate = paid ? new Date().toISOString() : null;
                 
-                localStorage.setItem(`lpk_client_${clientId}_invoices`, JSON.stringify(clientInvoices));
+                localStorage.setItem(`lpk_client_${client_id}_invoices`, JSON.stringify(clientInvoices));
             }
         }
     }
