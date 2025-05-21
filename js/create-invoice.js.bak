@@ -31,6 +31,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up event listeners
     setupEventListeners();
     
+    // Enable PDF export button by default
+    const pdfExportButton = document.getElementById('exportPdfBtn');
+    if (pdfExportButton) {
+        pdfExportButton.disabled = false;
+    }
+    
     // Load initial data
     loadClients();
     loadReports();
@@ -94,6 +100,12 @@ function setupEventListeners() {
                 showToast('الرجاء تحديد تقرير واحد على الأقل', 'warning');
             }
         });
+    }
+    
+    // Export PDF button
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', exportToPdf);
     }
     
     // Apply settings button
@@ -1084,6 +1096,8 @@ function generateInvoicePreview() {
                 </div>
                 <div class="col-6 text-end">
                     <img src="img/logo.png" alt="Laapak Logo" height="60">
+                    <p class="mb-0 mt-2">شركة لاباك للصيانة</p>
+                    <p class="text-muted mb-0">الرياض، المملكة العربية السعودية</p>
                 </div>
             </div>
             
@@ -1183,7 +1197,7 @@ function generateInvoicePreview() {
             <!-- Footer -->
             <div class="row">
                 <div class="col-12 text-center">
-                    <p class="text-muted mb-0">شكراً لثقتكم</p>
+                    <p class="text-muted mb-0">شكراً لتعاملكم مع شركة لاباك للصيانة</p>
                 </div>
             </div>
         </div>
@@ -1436,9 +1450,17 @@ async function saveInvoice() {
         // Store invoice ID for sharing
         window.currentInvoiceId = invoiceNumber;
         
-        // Reload reports after a short delay
+        // Reload reports after a short delay and clear selected reports
         setTimeout(() => {
+            // Clear selected reports since they now have invoices
+            selectedReports = [];
+            updateSelectedReportsSummary();
+            
+            // Reload reports to get fresh data
             loadReports();
+            
+            // Show success message
+            showToast('تم إنشاء الفاتورة بنجاح وتم ربطها بالتقارير', 'success');
         }, 2000);
         
         return savedInvoice;
@@ -1472,10 +1494,46 @@ function exportToPdf() {
         // Show loading message
         showToast('جاري تصدير الفاتورة إلى PDF...', 'info');
         
+        // Create a clone of the invoice container for PDF generation
+        const element = invoiceContainer.cloneNode(true);
+        
+        // Add some styles for PDF
+        const style = document.createElement('style');
+        style.innerHTML = `
+            body {
+                font-family: 'Arial', sans-serif;
+                direction: rtl;
+            }
+            .invoice-container {
+                padding: 20px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+            }
+            th {
+                background-color: #f2f2f2;
+            }
+            .text-end {
+                text-align: left;
+            }
+            .text-start {
+                text-align: right;
+            }
+            .text-center {
+                text-align: center;
+            }
+        `;
+        element.prepend(style);
+        
         // Set options for PDF
         const options = {
-            margin: 10,
-            filename: `فاتورة_${window.currentInvoiceId || generateInvoiceNumber()}.pdf`,
+            margin: [10, 10, 10, 10],
+            filename: `Invoice_${window.currentInvoiceId || generateInvoiceNumber()}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -1484,7 +1542,7 @@ function exportToPdf() {
         // Generate PDF
         html2pdf()
             .set(options)
-            .from(invoiceContainer)
+            .from(element)
             .save()
             .then(() => {
                 showToast('تم تصدير الفاتورة بنجاح', 'success');

@@ -43,6 +43,335 @@ function updateGlobalDeviceDetails() {
     console.log('Global device details updated:', window.globalDeviceDetails);
 }
 
+// Helper function to extract Google Drive File ID
+function getGoogleDriveFileId(url) {
+    console.log('[Debug GDrive] getGoogleDriveFileId received_url:', url);
+    if (!url) return null;
+    const gDrivePatterns = [
+        /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/,
+        /drive\.google\.com\/uc\?id=([a-zA-Z0-9_-]+)/,
+        /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/,
+        /lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of gDrivePatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            return match[1];
+        }
+    }
+    return null;
+}
+
+// Helper function to validate image URL
+function isValidImageUrl(url) {
+    // Basic URL validation
+    if (!url || !url.match(/^https?:\/\/.+/i)) {
+        return false;
+    }
+
+    // Check for Google Drive link
+    if (getGoogleDriveFileId(url)) {
+        return true;
+    }
+    
+    // Check if URL ends with common image extensions
+    const imageExtensions = /\.(jpeg|jpg|png|gif|bmp|webp)$/i;
+    return imageExtensions.test(url);
+}
+
+// Helper function to determine video URL type
+function getVideoUrlType(url) {
+    if (!url || !url.match(/^https?:\/\/.+/i)) {
+        return null;
+    }
+
+    // Check for Google Drive URLs first
+    if (getGoogleDriveFileId(url)) {
+        // Further check if it's a known video player link or just a file
+        // For simplicity, if it's GDrive, we'll try to embed it as a video.
+        // More specific checks (e.g. mime type from API) would be more robust.
+        return 'gdrive'; 
+    }
+    
+    // Check for YouTube URLs
+    if (url.match(/youtube\.com\/watch\?v=|youtu\.be\//i)) {
+        return 'youtube';
+    }
+    
+    // Check for Vimeo URLs
+    if (url.match(/vimeo\.com\//i)) {
+        return 'vimeo';
+    }
+    
+    // Check for direct video file URLs
+    const videoExtensions = /\.(mp4|webm|ogg|mov)$/i;
+    if (videoExtensions.test(url)) {
+        return 'video';
+    }
+    
+    // Default to unknown but potentially valid video URL
+    return 'unknown';
+}
+
+// Helper function to extract YouTube video ID
+function getYoutubeVideoId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
+// Helper function to extract Vimeo video ID
+function getVimeoVideoId(url) {
+    const regExp = /vimeo\.com\/(?:video\/)?([0-9]+)/;
+    const match = url.match(regExp);
+    return match ? match[1] : null;
+}
+
+// Helper function to create a preview for an image URL
+function createImagePreview(imageUrl) {
+    const previewContainer = document.getElementById('externalImagesPreview');
+    
+    const imageCard = document.createElement('div');
+    imageCard.className = 'image-card';
+    
+    const img = document.createElement('img');
+    let displayUrl = imageUrl;
+    console.log('[Debug GDrive] createImagePreview original_imageUrl:', imageUrl);
+    const gDriveFileId = getGoogleDriveFileId(imageUrl);
+    console.log('[Debug GDrive] createImagePreview extracted_gDriveFileId:', gDriveFileId);
+
+    if (gDriveFileId) {
+        displayUrl = `https://lh3.googleusercontent.com/d/${gDriveFileId}`;
+    }
+
+    img.src = displayUrl;
+    console.log('[Debug GDrive] createImagePreview final_displayUrl_for_img_src:', displayUrl);
+    img.alt = 'External inspection image';
+    img.className = 'img-fluid';
+    img.onerror = function() {
+        this.onerror = null;
+        this.src = 'img/image-error.png'; // Fallback image
+        this.alt = 'Image failed to load';
+    };
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'image-overlay';
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn btn-sm btn-danger remove-image-btn';
+    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    removeBtn.setAttribute('data-url', imageUrl); // Store original URL for removal logic
+    removeBtn.addEventListener('click', function() {
+        imageCard.remove();
+        const badges = document.querySelectorAll(`#imageUrlBadges .badge[data-url="${imageUrl}"]`);
+        badges.forEach(badge => badge.remove());
+    });
+    
+    overlay.appendChild(removeBtn);
+    imageCard.appendChild(img);
+    imageCard.appendChild(overlay);
+    previewContainer.appendChild(imageCard);
+}
+
+// Helper function to create a preview for a video URL
+function createVideoPreview(videoUrl, videoType) {
+    const previewContainer = document.getElementById('videoPreviewContainer');
+    
+    const videoCard = document.createElement('div');
+    videoCard.className = 'card mb-3';
+    videoCard.setAttribute('data-url', videoUrl); // Store original URL
+    
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body';
+    console.log('[Debug GDrive] createVideoPreview original_videoUrl:', videoUrl, 'videoType:', videoType);
+    
+    const cardHeader = document.createElement('div');
+    cardHeader.className = 'd-flex justify-content-between align-items-center mb-2';
+    
+    const cardTitle = document.createElement('h6');
+    cardTitle.className = 'card-title mb-0';
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn btn-sm btn-danger';
+    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    removeBtn.addEventListener('click', function() {
+        videoCard.remove();
+        const badges = document.querySelectorAll(`#videoUrlBadges .badge[data-url="${videoUrl}"]`);
+        badges.forEach(badge => badge.remove());
+    });
+    
+    cardHeader.appendChild(cardTitle);
+    cardHeader.appendChild(removeBtn);
+    cardBody.appendChild(cardHeader);
+    
+    if (videoType === 'youtube') {
+        cardTitle.textContent = 'YouTube Video';
+        const videoId = getYoutubeVideoId(videoUrl);
+        if (videoId) {
+            const iframe = document.createElement('iframe');
+            iframe.width = '100%';
+            iframe.height = '300';
+            iframe.src = `https://www.youtube.com/embed/${videoId}`;
+            iframe.frameBorder = '0';
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+            iframe.allowFullscreen = true;
+            cardBody.appendChild(iframe);
+        } else {
+            cardBody.appendChild(document.createTextNode('Invalid YouTube URL'));
+        }
+    } else if (videoType === 'vimeo') {
+        cardTitle.textContent = 'Vimeo Video';
+        const videoId = getVimeoVideoId(videoUrl);
+        if (videoId) {
+            const iframe = document.createElement('iframe');
+            iframe.width = '100%';
+            iframe.height = '300';
+            iframe.src = `https://player.vimeo.com/video/${videoId}`;
+            iframe.frameBorder = '0';
+            iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+            iframe.allowFullscreen = true;
+            cardBody.appendChild(iframe);
+        } else {
+            cardBody.appendChild(document.createTextNode('Invalid Vimeo URL'));
+        }
+    } else if (videoType === 'gdrive') {
+        cardTitle.textContent = 'Google Drive Video';
+        const gDriveFileId = getGoogleDriveFileId(videoUrl);
+        console.log('[Debug GDrive] createVideoPreview (gdrive case) extracted_gDriveFileId:', gDriveFileId);
+        if (gDriveFileId) {
+            const iframe = document.createElement('iframe');
+            iframe.width = '100%';
+            iframe.height = '300';
+            iframe.src = `https://drive.google.com/file/d/${gDriveFileId}/preview`;
+            console.log('[Debug GDrive] createVideoPreview (gdrive case) final_iframe_src:', iframe.src);
+            iframe.frameBorder = '0';
+            iframe.allow = 'autoplay; fullscreen';
+            iframe.allowFullscreen = true;
+            cardBody.appendChild(iframe);
+        } else {
+            cardBody.appendChild(document.createTextNode('Invalid Google Drive Video URL'));
+        }
+    } else { // 'video' or 'unknown'
+        cardTitle.textContent = 'Video File';
+        const video = document.createElement('video');
+        video.controls = true;
+        video.className = 'w-100';
+        video.style.maxHeight = '300px';
+        const source = document.createElement('source');
+        source.src = videoUrl;
+        // Try to infer type, default to mp4 if not obvious
+        if (videoUrl.endsWith('.webm')) source.type = 'video/webm';
+        else if (videoUrl.endsWith('.ogg')) source.type = 'video/ogg';
+        else if (videoUrl.endsWith('.mov')) source.type = 'video/quicktime';
+        else source.type = 'video/mp4'; 
+        video.appendChild(source);
+        video.appendChild(document.createTextNode('Your browser does not support this video format.'));
+        cardBody.appendChild(video);
+    }
+    
+    videoCard.appendChild(cardBody);
+    previewContainer.appendChild(videoCard);
+}
+
+// Helper function to add a test screenshot URL preview
+function addTestScreenshotPreview(url, component) {
+    // Validate URL - now uses updated isValidImageUrl which includes GDrive check
+    if (!isValidImageUrl(url)) {
+        alert('الرجاء إدخال رابط صورة صالح (jpg, jpeg, png, gif, webp, or valid Google Drive link)');
+        return false;
+    }
+    
+    const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
+    if (!previewContainer) {
+        console.error(`Preview container for ${component} not found`);
+        return false;
+    }
+    
+    const card = document.createElement('div');
+    card.className = 'card mb-2';
+    card.setAttribute('data-url', url);
+    
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body p-2';
+    
+    const row = document.createElement('div');
+    row.className = 'row align-items-center';
+    
+    const imgCol = document.createElement('div');
+    imgCol.className = 'col-auto';
+    
+    const img = document.createElement('img');
+    let displayUrl = url;
+    console.log('[Debug GDrive] addTestScreenshotPreview original_url:', url);
+    const gDriveFileId = getGoogleDriveFileId(url);
+    console.log('[Debug GDrive] addTestScreenshotPreview extracted_gDriveFileId:', gDriveFileId);
+    if (gDriveFileId) {
+        displayUrl = `https://lh3.googleusercontent.com/d/${gDriveFileId}`;
+    }
+    img.src = displayUrl;
+    console.log('[Debug GDrive] addTestScreenshotPreview final_displayUrl_for_img_src:', displayUrl);
+    img.alt = 'Test screenshot';
+    img.className = 'img-thumbnail';
+    img.style.maxWidth = '100px';
+    img.style.maxHeight = '100px';
+    img.onerror = function() {
+        this.onerror = null;
+        this.src = 'img/image-error.png';
+        this.alt = 'Image failed to load';
+    };
+    
+    imgCol.appendChild(img);
+    
+    const urlCol = document.createElement('div');
+    urlCol.className = 'col';
+    
+    const urlText = document.createElement('small');
+    urlText.className = 'text-muted';
+    urlText.textContent = url.length > 40 ? url.substring(0, 37) + '...' : url;
+    urlText.title = url;
+    
+    urlCol.appendChild(urlText);
+    
+    const btnCol = document.createElement('div');
+    btnCol.className = 'col-auto';
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-sm btn-danger';
+    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    removeBtn.addEventListener('click', function() {
+        card.remove();
+    });
+    
+    btnCol.appendChild(removeBtn);
+    
+    row.appendChild(imgCol);
+    row.appendChild(urlCol);
+    row.appendChild(btnCol);
+    cardBody.appendChild(row);
+    card.appendChild(cardBody);
+    
+    previewContainer.appendChild(card);
+    
+    return true;
+}
+
+// Helper function to collect test screenshot URLs for a component
+function getTestScreenshotUrls(component) {
+    const urls = [];
+    const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
+    if (previewContainer) {
+        const cards = previewContainer.querySelectorAll('.card[data-url]');
+        cards.forEach(card => {
+            const url = card.getAttribute('data-url');
+            if (url) {
+                urls.push(url);
+            }
+        });
+    }
+    return urls;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is authenticated
     if (typeof authMiddleware !== 'undefined' && !authMiddleware.isAdminLoggedIn()) {
@@ -84,6 +413,176 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up billing toggle functionality
     setupBillingToggle();
+    
+    // Set up test screenshot URL functionality for Step 2
+    const addScreenshotButtons = document.querySelectorAll('.add-screenshot-url-btn');
+    addScreenshotButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const component = this.getAttribute('data-component');
+            const input = document.getElementById(targetId);
+            
+            if (input && component) {
+                const url = input.value.trim();
+                
+                if (!url) {
+                    alert('الرجاء إدخال رابط صورة');
+                    return;
+                }
+                
+                if (addTestScreenshotPreview(url, component)) {
+                    // Clear input after successful addition
+                    input.value = '';
+                }
+            }
+        });
+    });
+    
+    // Add Enter key press event for test screenshot URL inputs
+    const testScreenshotInputs = document.querySelectorAll('.test-screenshot-url');
+    testScreenshotInputs.forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const component = this.getAttribute('data-component');
+                const button = document.querySelector(`.add-screenshot-url-btn[data-component="${component}"]`);
+                if (button) {
+                    button.click();
+                }
+            }
+        });
+    });
+    
+    // Set up image URL functionality for Step 3
+    const addImageUrlBtn = document.getElementById('addImageUrlBtn');
+    const imageUrlInput = document.getElementById('imageUrlInput');
+    
+    if (addImageUrlBtn && imageUrlInput) {
+        addImageUrlBtn.addEventListener('click', function() {
+            const imageUrl = imageUrlInput.value.trim();
+            
+            if (!imageUrl) {
+                alert('الرجاء إدخال رابط صورة');
+                return;
+            }
+            
+            if (!isValidImageUrl(imageUrl)) {
+                alert('الرجاء إدخال رابط صورة صالح (jpg, jpeg, png, gif, webp)');
+                return;
+            }
+            
+            // Check if URL already exists
+            const existingBadges = document.querySelectorAll(`#imageUrlBadges .badge[data-url="${imageUrl}"]`);
+            if (existingBadges.length > 0) {
+                alert('تم إضافة هذا الرابط مسبقاً');
+                return;
+            }
+            
+            // Add URL as a badge
+            const badgesContainer = document.getElementById('imageUrlBadges');
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary me-1 mb-1';
+            badge.setAttribute('data-url', imageUrl);
+            
+            // Create a short display version of the URL
+            const displayUrl = imageUrl.length > 30 ? imageUrl.substring(0, 27) + '...' : imageUrl;
+            badge.innerHTML = `${displayUrl} <button type="button" class="btn-close btn-close-white ms-1" aria-label="Close"></button>`;
+            
+            // Add remove functionality
+            const closeBtn = badge.querySelector('.btn-close');
+            closeBtn.addEventListener('click', function() {
+                badge.remove();
+                
+                // Also remove the image preview if it exists
+                const imagePreviews = document.querySelectorAll(`#externalImagesPreview .image-card img[src="${imageUrl}"]`);
+                imagePreviews.forEach(preview => {
+                    const card = preview.closest('.image-card');
+                    if (card) card.remove();
+                });
+            });
+            
+            badgesContainer.appendChild(badge);
+            
+            // Create image preview
+            createImagePreview(imageUrl);
+            
+            // Clear input
+            imageUrlInput.value = '';
+        });
+        
+        // Allow pressing Enter to add image URL
+        imageUrlInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addImageUrlBtn.click();
+            }
+        });
+    }
+    
+    // Set up video URL functionality
+    const addVideoUrlBtn = document.getElementById('addVideoUrlBtn');
+    const videoUrlInput = document.getElementById('videoUrlInput');
+    
+    if (addVideoUrlBtn && videoUrlInput) {
+        addVideoUrlBtn.addEventListener('click', function() {
+            const videoUrl = videoUrlInput.value.trim();
+            
+            if (!videoUrl) {
+                alert('الرجاء إدخال رابط فيديو');
+                return;
+            }
+            
+            const videoType = getVideoUrlType(videoUrl);
+            if (!videoType) {
+                alert('الرجاء إدخال رابط فيديو صالح');
+                return;
+            }
+            
+            // Check if URL already exists
+            const existingBadges = document.querySelectorAll(`#videoUrlBadges .badge[data-url="${videoUrl}"]`);
+            if (existingBadges.length > 0) {
+                alert('تم إضافة هذا الرابط مسبقاً');
+                return;
+            }
+            
+            // Add URL as a badge
+            const badgesContainer = document.getElementById('videoUrlBadges');
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-info text-dark me-1 mb-1';
+            badge.setAttribute('data-url', videoUrl);
+            badge.setAttribute('data-type', videoType);
+            
+            // Create a short display version of the URL
+            const displayUrl = videoUrl.length > 30 ? videoUrl.substring(0, 27) + '...' : videoUrl;
+            badge.innerHTML = `${displayUrl} <button type="button" class="btn-close btn-close-white ms-1" aria-label="Close"></button>`;
+            
+            // Add remove functionality
+            const closeBtn = badge.querySelector('.btn-close');
+            closeBtn.addEventListener('click', function() {
+                badge.remove();
+                
+                // Also remove the video preview if it exists
+                const videoPreviews = document.querySelectorAll(`#videoPreviewContainer .card[data-url="${videoUrl}"]`);
+                videoPreviews.forEach(preview => preview.remove());
+            });
+            
+            badgesContainer.appendChild(badge);
+            
+            // Create video preview
+            createVideoPreview(videoUrl, videoType);
+            
+            // Clear input
+            videoUrlInput.value = '';
+        });
+        
+        // Allow pressing Enter to add video URL
+        videoUrlInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addVideoUrlBtn.click();
+            }
+        });
+    }
 
     // Make Enter key press navigate to the next step
     document.addEventListener('keydown', function(e) {
@@ -336,19 +835,49 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
         
-        // Get external inspection images if available
-        const externalImages = [];
-        const imageInputs = document.querySelectorAll('input[type="file"][name^="external_image"]');
-        imageInputs.forEach(input => {
-            if (input.files && input.files[0]) {
-                externalImages.push({
-                    name: input.name,
-                    file: input.files[0].name,
-                    // In a real implementation, you would handle file uploads properly
-                    // This is just a placeholder for the filename
+        // Collect all media URLs (test screenshots, external images, and videos)
+        const mediaUrls = [];
+        
+        // Get test screenshot URLs from Step 2
+        const components = ['cpu', 'gpu', 'hdd', 'battery'];
+        components.forEach(component => {
+            const urls = getTestScreenshotUrls(component);
+            urls.forEach(url => {
+                mediaUrls.push({
+                    type: 'test_screenshot',
+                    component: component,
+                    url: url
+                });
+            });
+        });
+        
+        // Get image URLs from the badges in Step 3
+        const imageUrlBadges = document.querySelectorAll('#imageUrlBadges .badge');
+        imageUrlBadges.forEach(badge => {
+            const imageUrl = badge.getAttribute('data-url');
+            if (imageUrl) {
+                mediaUrls.push({
+                    type: 'image',
+                    url: imageUrl
                 });
             }
         });
+        
+        // Get video URLs from the badges in Step 3
+        const videoUrlBadges = document.querySelectorAll('#videoUrlBadges .badge');
+        videoUrlBadges.forEach(badge => {
+            const videoUrl = badge.getAttribute('data-url');
+            const videoType = badge.getAttribute('data-type') || 'video';
+            if (videoUrl) {
+                mediaUrls.push({
+                    type: videoType, // 'video', 'youtube', 'vimeo', etc.
+                    url: videoUrl
+                });
+            }
+        });
+        
+        // Store all media URLs in the external_images field
+        const externalImages = mediaUrls;
         
         // Update global device details
         window.globalDeviceDetails = {

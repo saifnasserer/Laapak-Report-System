@@ -7,7 +7,7 @@ const { sequelize } = require('../config/db');
 const Admin = require('./Admin');
 const Client = require('./Client');
 const Report = require('./Report');
-// Removed ReportTechnicalTest
+const ReportTechnicalTest = require('./ReportTechnicalTest');
 const Invoice = require('./Invoice');
 const InvoiceItem = require('./InvoiceItem');
 
@@ -20,11 +20,15 @@ Client.hasMany(Invoice, { foreignKey: 'client_id' });
 Report.belongsTo(Client, { foreignKey: 'client_id' });
 Report.belongsTo(Admin, { foreignKey: 'admin_id', as: 'technician' });
 Report.hasOne(Invoice, { foreignKey: 'report_id' });
+Report.hasMany(ReportTechnicalTest, { foreignKey: 'reportId', as: 'technical_tests' }); // Added association for technical tests
 
 // Invoice relationships
 Invoice.belongsTo(Report, { foreignKey: 'report_id' });
 Invoice.belongsTo(Client, { foreignKey: 'client_id' });
 Invoice.hasMany(InvoiceItem, { foreignKey: 'invoice_id', onDelete: 'CASCADE' });
+
+// ReportTechnicalTest relationships
+ReportTechnicalTest.belongsTo(Report, { foreignKey: 'reportId' });
 
 // Invoice Item relationships
 InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoice_id' });
@@ -37,7 +41,7 @@ module.exports = {
     Admin,
     Client,
     Report,
-    // ReportTechnicalTest removed,
+    ReportTechnicalTest,
     Invoice,
     InvoiceItem
 };

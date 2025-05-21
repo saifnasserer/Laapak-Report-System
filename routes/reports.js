@@ -1,25 +1,86 @@
 const express = require('express');
 const { Sequelize, Op } = require('sequelize');
-const { Report, Client } = require('../models');
+const { Report, Client, ReportTechnicalTest } = require('../models'); // Added ReportTechnicalTest
 
 const router = express.Router();
 
-// GET /reports - get all reports
+// GET /reports - get all reports or a single report by query ID (e.g., /reports?id=REPORT_ID)
 router.get('/', async (req, res) => {
-  try {
-    console.log('Fetching all reports');
-    const reports = await Report.findAll({
-      include: {
-        model: Client,
-        attributes: ['id', 'name', 'phone', 'email'],
-      },
-      order: [['created_at', 'DESC']],
-    });
-    console.log(`Found ${reports.length} reports`);
-    res.json(reports);
-  } catch (error) {
-    console.error('Failed to fetch reports:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    console.log('Backend: Received request to /api/reports');
+    console.log('Backend: req.query:', JSON.stringify(req.query, null, 2));
+  const { id } = req.query;
+  console.log(`Backend: Extracted id: ${id}`);
+
+  if (id) {
+    console.log('Backend: Processing request for a SINGLE report with ID:', id);
+    // Fetch a single report by ID
+    try {
+      console.log(`Fetching report with ID from query: ${id}`);
+      const reportInstance = await Report.findByPk(id, {
+        include: [
+          {
+            model: Client,
+            attributes: ['id', 'name', 'phone', 'email', 'address'], // Ensure all needed client fields are here
+          },
+          {
+            model: ReportTechnicalTest, // Assuming 'ReportTechnicalTest' is the correct model name
+            as: 'technical_tests', // Assuming this alias is defined in your Report model associations
+            attributes: ['componentName', 'status', 'notes', 'type', 'icon'], // Specify attributes needed by frontend
+          }
+        ],
+      });
+
+      if (!reportInstance) {
+        console.log(`Report with ID ${id} not found`);
+        return res.status(404).json({ error: 'Report not found' });
+      }
+
+      console.log(`Found report: ${reportInstance.id}`);
+      
+      // Structure the response to match the frontend's expected format { report: {}, technical_tests: [] }
+      const responseData = {
+        report: {
+          id: reportInstance.id,
+          client_name: reportInstance.client_name,
+          order_number: reportInstance.order_number,
+          inspection_date: reportInstance.inspection_date,
+          device_model: reportInstance.device_model,
+          device_serial: reportInstance.serial_number,
+          status_badge: reportInstance.status, // Map DB 'status' to 'status_badge'
+          external_images: reportInstance.external_images, // Will be parsed by frontend
+          hardware_status: reportInstance.hardware_status, // Will be parsed by frontend
+          notes: reportInstance.notes,
+          // You can add other fields from reportInstance as needed
+          // If client details are preferred from the association:
+          // client_info_associated: reportInstance.Client ? reportInstance.Client.toJSON() : null
+        },
+        technical_tests: reportInstance.technical_tests ? reportInstance.technical_tests.map(tt => tt.toJSON()) : []
+      };
+      
+      res.json(responseData);
+
+    } catch (error) {
+      console.error(`Failed to fetch report with ID ${id}:`, error);
+      res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+  } else {
+    console.log('Backend: ID not provided or falsy. Processing request for ALL reports.');
+    // Fetch all reports (existing logic)
+    try {
+      console.log('Fetching all reports');
+      const reports = await Report.findAll({
+        include: {
+          model: Client,
+          attributes: ['id', 'name', 'phone', 'email'], // Original attributes for all reports list
+        },
+        order: [['created_at', 'DESC']],
+      });
+      console.log(`Found ${reports.length} reports`);
+      res.json(reports);
+    } catch (error) {
+      console.error('Failed to fetch all reports:', error);
+      res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
   }
 });
 
@@ -38,7 +99,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Report not found' });
     }
     console.log(`Found report: ${report.id}`);
-    res.json(report);
+    res.json({ success: true, report: report });
   } catch (error) {
     console.error('Failed to fetch report:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });

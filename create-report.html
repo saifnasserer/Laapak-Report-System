@@ -200,14 +200,14 @@
                                                 <div class="col-md-6">
                                                     <label for="deviceModel" class="form-label">موديل الجهاز</label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" id="deviceModel" required>
+                                                        <input type="text" class="form-control" id="deviceModel" value="Dell 5550" required>
                                                         <span class="input-group-text bg-light text-muted"><i class="fas fa-laptop"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="serialNumber" class="form-label">الرقم التسلسلي</label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" id="serialNumber" required>
+                                                        <input type="text" class="form-control" id="serialNumber" value="123456789" required>
                                                         <span class="input-group-text bg-light text-muted"><i class="fas fa-barcode"></i></span>
                                                     </div>
                                                 </div>
@@ -238,6 +238,9 @@
                                         <span id="step2ErrorText"></span>
                                     </div>
                                     
+                                    <!-- Step 2 Warning Container -->
+                                    <div id="step2WarningContainer" class="step-warning-container mb-3" style="display: none;"></div>
+                                    
 
                                     
                                     <!-- Hardware Components Checklist -->
@@ -264,7 +267,7 @@
                                                             <td><i class="fas fa-camera text-primary me-2"></i> الكاميرا</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="camera_status" id="camera_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="camera_status" id="camera_working" value="working" checked>
                                                                     <label class="form-check-label" for="camera_working"></label>
                                                                 </div>
                                                             </td>
@@ -287,7 +290,7 @@
                                                             <td><i class="fas fa-volume-up text-primary me-2"></i> السماعات</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="speakers_status" id="speakers_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="speakers_status" id="speakers_working" value="working" checked>
                                                                     <label class="form-check-label" for="speakers_working"></label>
                                                                 </div>
                                                             </td>
@@ -310,7 +313,7 @@
                                                             <td><i class="fas fa-microphone text-primary me-2"></i> الميكروفون</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="microphone_status" id="microphone_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="microphone_status" id="microphone_working" value="working" checked>
                                                                     <label class="form-check-label" for="microphone_working"></label>
                                                                 </div>
                                                             </td>
@@ -333,7 +336,7 @@
                                                             <td><i class="fas fa-wifi text-primary me-2"></i> واي فاي</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="wifi_status" id="wifi_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="wifi_status" id="wifi_working" value="working" checked>
                                                                     <label class="form-check-label" for="wifi_working"></label>
                                                                 </div>
                                                             </td>
@@ -356,7 +359,7 @@
                                                             <td><i class="fas fa-network-wired text-primary me-2"></i> منفذ الشبكة (LAN)</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="lan_status" id="lan_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="lan_status" id="lan_working" value="working" checked>
                                                                     <label class="form-check-label" for="lan_working"></label>
                                                                 </div>
                                                             </td>
@@ -379,7 +382,7 @@
                                                             <td><i class="fas fa-usb text-primary me-2"></i> منافذ USB</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="usb_status" id="usb_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="usb_status" id="usb_working" value="working" checked>
                                                                     <label class="form-check-label" for="usb_working"></label>
                                                                 </div>
                                                             </td>
@@ -402,7 +405,7 @@
                                                             <td><i class="fas fa-keyboard text-primary me-2"></i> لوحة المفاتيح</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="keyboard_status" id="keyboard_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="keyboard_status" id="keyboard_working" value="working" checked>
                                                                     <label class="form-check-label" for="keyboard_working"></label>
                                                                 </div>
                                                             </td>
@@ -425,7 +428,7 @@
                                                             <td><i class="fas fa-hand-pointer text-primary me-2"></i> لوحة اللمس</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="touchpad_status" id="touchpad_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="touchpad_status" id="touchpad_working" value="working" checked>
                                                                     <label class="form-check-label" for="touchpad_working"></label>
                                                                 </div>
                                                             </td>
@@ -448,7 +451,7 @@
                                                             <td><i class="fas fa-sd-card text-primary me-2"></i> قارئ البطاقات</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="card_reader_status" id="card_reader_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="card_reader_status" id="card_reader_working" value="working" checked>
                                                                     <label class="form-check-label" for="card_reader_working"></label>
                                                                 </div>
                                                             </td>
@@ -471,7 +474,7 @@
                                                             <td><i class="fas fa-headphones text-primary me-2"></i> منفذ الصوت</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="audio_jack_status" id="audio_jack_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="audio_jack_status" id="audio_jack_working" value="working" checked>
                                                                     <label class="form-check-label" for="audio_jack_working"></label>
                                                                 </div>
                                                             </td>
@@ -494,7 +497,7 @@
                                                             <td><i class="fas fa-desktop text-primary me-2"></i> منافذ العرض (HDMI/DisplayPort)</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="display_ports_status" id="display_ports_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="display_ports_status" id="display_ports_working" value="working" checked>
                                                                     <label class="form-check-label" for="display_ports_working"></label>
                                                                 </div>
                                                             </td>
@@ -517,7 +520,7 @@
                                                             <td><i class="fab fa-bluetooth-b text-primary me-2"></i> بلوتوث</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="bluetooth_status" id="bluetooth_working" value="working">
+                                                                    <input class="form-check-input" type="radio" name="bluetooth_status" id="bluetooth_working" value="working" checked>
                                                                     <label class="form-check-label" for="bluetooth_working"></label>
                                                                 </div>
                                                             </td>
@@ -547,45 +550,56 @@
                                     </div>
                                     
                                     <h5 class="mb-3">فحوصات المكونات</h5>
-                                    <div class="d-flex justify-content-between mb-3 align-items-center">
-                                        <div>
-                                            <span class="text-muted">اختر الفحوصات التي تريد إضافتها</span>
-                                        </div>
-                                        <div>
-                                            <button type="button" class="btn btn-success add-component-test-btn" id="addComponentTest">
-                                                <i class="fas fa-plus me-1"></i> إضافة فحص جديد
-                                            </button>
+                                    <div id="componentTestsContainer">
+                                        
+                                        
+                                        <!-- info Test -->
+                                        <div class="card component-test-card mb-4" data-component="info">
+                                            <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0 text-success"><i class="fas fa-info-circle me-2"></i> تفاصيل اللابتوب</h5>
+                                                <div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger remove-test-btn" disabled>
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="infoScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="infoScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="info">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="infoScreenshotUrl" data-component="info">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="infoScreenshotPreview"></div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <div id="componentTestsContainer">
                                         <!-- CPU Test -->
                                         <div class="card component-test-card mb-4" data-component="cpu">
-                                            <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
-                                                <h5 class="mb-0 text-success"><i class="fas fa-microchip me-2"></i> اختبار المعالج</h5>
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-microchip me-2"></i> اختبار المعالج</h5>
 
-                                                <button type="button" class="btn btn-sm btn-outline-danger remove-test-btn" disabled>
+                                                <button type="button" class="btn btn-sm btn-outline-danger remove-test-btn">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
                                             <div class="card-body">
+                                               
                                                 <div class="mb-3">
-                                                    <label for="cpuDescription" class="form-label">وصف التقرير</label>
-                                                    <div class="input-group mb-1">
-                                                        <textarea class="form-control" id="cpuDescription" rows="2">تم فحص المعالج بنجاح وهو يعمل بشكل ممتاز. جميع الاختبارات اجتازها بنجاح.</textarea>
-                                                        <button class="btn btn-outline-secondary reset-default-btn" type="button" title="استعادة النص الافتراضي" data-default-text="تم فحص المعالج بنجاح وهو يعمل بشكل ممتاز. جميع الاختبارات اجتازها بنجاح.">
-                                                            <i class="fas fa-undo"></i>
+                                                    <label for="cpuScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="cpuScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="cpu">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="cpuScreenshotUrl" data-component="cpu">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
                                                         </button>
                                                     </div>
-                                                    <small class="text-muted">يمكنك تعديل النص أو استخدام النص الافتراضي</small>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="cpuScreenshot" class="form-label">إرفاق صورة نتيجة الاختبار</label>
-                                                    <input type="file" class="form-control" id="cpuScreenshot" accept="image/*">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="cpuNotes" class="form-label">ملاحظات إضافية <small class="text-muted">(اختياري)</small></label>
-                                                    <textarea class="form-control" id="cpuNotes" rows="1" placeholder="أي ملاحظات إضافية خاصة بالفحص"></textarea>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="cpuScreenshotPreview"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -603,32 +617,15 @@
                                             </div>
                                             <div class="card-body">
                                                 <div class="mb-3">
-                                                    <div class="d-flex">
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="gpuTest" id="gpuTestPass" value="pass">
-                                                            <label class="form-check-label" for="gpuTestPass">ممتاز</label>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="gpuTest" id="gpuTestWarning" value="warning">
-                                                            <label class="form-check-label" for="gpuTestWarning">به ملاحظات</label>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="gpuTest" id="gpuTestFail" value="fail">
-                                                            <label class="form-check-label" for="gpuTestFail">مرفوض</label>
-                                                        </div>
+                                                    <label for="gpuScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="gpuScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="gpu">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="gpuScreenshotUrl" data-component="gpu">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
                                                     </div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="gpuDescription" class="form-label">وصف التقرير</label>
-                                                    <textarea class="form-control" id="gpuDescription" rows="2"></textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="gpuScreenshot" class="form-label">إرفاق صورة نتيجة الاختبار</label>
-                                                    <input type="file" class="form-control" id="gpuScreenshot" accept="image/*">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="gpuNotes" class="form-label">ملاحظات</label>
-                                                    <textarea class="form-control" id="gpuNotes" rows="2"></textarea>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="gpuScreenshotPreview"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -645,32 +642,15 @@
                                             </div>
                                             <div class="card-body">
                                                 <div class="mb-3">
-                                                    <div class="d-flex">
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="hddTest" id="hddTestPass" value="pass">
-                                                            <label class="form-check-label" for="hddTestPass">ممتاز</label>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="hddTest" id="hddTestWarning" value="warning">
-                                                            <label class="form-check-label" for="hddTestWarning">به ملاحظات</label>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="hddTest" id="hddTestFail" value="fail">
-                                                            <label class="form-check-label" for="hddTestFail">مرفوض</label>
-                                                        </div>
+                                                    <label for="hddScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="hddScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="hdd">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="hddScreenshotUrl" data-component="hdd">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
                                                     </div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="hddDescription" class="form-label">وصف التقرير</label>
-                                                    <textarea class="form-control" id="hddDescription" rows="2"></textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="hddScreenshot" class="form-label">إرفاق صورة نتيجة الاختبار</label>
-                                                    <input type="file" class="form-control" id="hddScreenshot" accept="image/*">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="hddNotes" class="form-label">ملاحظات</label>
-                                                    <textarea class="form-control" id="hddNotes" rows="2"></textarea>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="hddScreenshotPreview"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -687,37 +667,48 @@
                                             </div>
                                             <div class="card-body">
                                                 <div class="mb-3">
-                                                    <div class="d-flex">
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="batteryTest" id="batteryTestPass" value="pass">
-                                                            <label class="form-check-label" for="batteryTestPass">ممتاز</label>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="batteryTest" id="batteryTestWarning" value="warning">
-                                                            <label class="form-check-label" for="batteryTestWarning">به ملاحظات</label>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio" name="batteryTest" id="batteryTestFail" value="fail">
-                                                            <label class="form-check-label" for="batteryTestFail">مرفوض</label>
-                                                        </div>
+                                                    <label for="batteryScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="batteryScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="battery">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="batteryScreenshotUrl" data-component="battery">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
                                                     </div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="batteryDescription" class="form-label">وصف التقرير</label>
-                                                    <textarea class="form-control" id="batteryDescription" rows="2"></textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="batteryScreenshot" class="form-label">إرفاق صورة نتيجة الاختبار</label>
-                                                    <input type="file" class="form-control" id="batteryScreenshot" accept="image/*">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="batteryNotes" class="form-label">ملاحظات</label>
-                                                    <textarea class="form-control" id="batteryNotes" rows="2"></textarea>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="batteryScreenshotPreview"></div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     
+
+                                        <!-- Keyboard Test -->
+                                        <div class="card component-test-card mb-4" data-component="keyboard">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i> اختبار لوحة المفاتيح</h5>
+                                                <div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger remove-test-btn" disabled>
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="keyboardScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="keyboardScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="keyboard">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="keyboardScreenshotUrl" data-component="keyboard">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="keyboardScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+
                                     <div class="form-navigation">
                                         <button type="button" class="btn btn-prev-step btn-secondary">السابق</button>
                                         <button type="button" class="btn btn-next-step btn-primary">التالي</button>
@@ -731,18 +722,33 @@
                                         <i class="fas fa-exclamation-triangle me-2"></i>
                                         <span id="step3ErrorText"></span>
                                     </div>
+                                    
+                                    <!-- Step 3 Warning Container -->
+                                    <div id="step3WarningContainer" class="step-warning-container mb-3" style="display: none;"></div>
                                     <h4 class="mb-4">الفحص الخارجي للجهاز</h4>
                                     
                                     <!-- Images Section -->
                                     <div class="mb-4">
                                         <h5><i class="fas fa-camera me-2"></i> صور الفحص الخارجي</h5>
-                                        <div class="upload-container mb-3">
-                                            <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-muted"></i>
-                                            <p class="text-muted">اسحب وأفلت الصور هنا أو انقر للتحميل</p>
-                                            <input type="file" id="externalImages" multiple accept="image/*" class="d-none">
-                                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('externalImages').click()">
-                                                <i class="fas fa-plus me-2"></i> إضافة صور
-                                            </button>
+                                        <div class="card mb-3">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">إضافة صور عبر الروابط</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="imageUrlInput" class="form-label">رابط الصورة</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control" id="imageUrlInput" placeholder="https://example.com/image.jpg">
+                                                        <button type="button" class="btn btn-primary" id="addImageUrlBtn">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-2 mb-2" id="imageUrlBadges">
+                                                    <!-- Image URL badges will be added here -->
+                                                </div>
+                                            </div>
                                         </div>
                                         
                                         <div class="external-images-grid" id="externalImagesPreview">
@@ -753,22 +759,29 @@
                                     <!-- Video Section -->
                                     <div class="mb-4">
                                         <h5><i class="fas fa-video me-2"></i> فيديو الفحص</h5>
-                                        <div class="upload-container mb-3">
-                                            <i class="fas fa-film fa-3x mb-3 text-muted"></i>
-                                            <p class="text-muted">قم بتحميل فيديو لفحص الجهاز</p>
-                                            <input type="file" id="deviceVideo" accept="video/*" class="d-none">
-                                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('deviceVideo').click()">
-                                                <i class="fas fa-plus me-2"></i> إضافة فيديو
-                                            </button>
-                                        </div>
-                                        
-                                        <div id="videoPreviewContainer" class="d-none mb-3">
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <h6 class="card-title" id="videoFileName"></h6>
-                                                    <video id="videoPreview" controls class="w-100" style="max-height: 300px;"></video>
+                                        <div class="card mb-3">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">إضافة فيديو عبر الرابط</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="videoUrlInput" class="form-label">رابط الفيديو</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control" id="videoUrlInput" placeholder="https://example.com/video.mp4 أو https://youtube.com/...">
+                                                        <button type="button" class="btn btn-primary" id="addVideoUrlBtn">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">يمكنك إضافة رابط فيديو مباشر (mp4, webm) أو رابط من يوتيوب أو فيميو</small>
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-2 mb-2" id="videoUrlBadges">
+                                                    <!-- Video URL badges will be added here -->
                                                 </div>
                                             </div>
+                                        </div>
+                                        
+                                        <div id="videoPreviewContainer" class="mb-3">
+                                            <!-- Video previews will be added here -->
                                         </div>
                                     </div>
                                     

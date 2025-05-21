@@ -453,47 +453,51 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedComponents.join('، ')}`);
         }
         
-        // Check component images
-        const componentImageInputs = stepEl.querySelectorAll('.component-image-upload');
-        const missingImages = [];
+        // Check test screenshots (now using URLs instead of file uploads)
+        // We'll make this a warning rather than an error, as it's not strictly required
+        const components = ['cpu', 'gpu', 'hdd', 'battery'];
+        const missingScreenshots = [];
         
-        componentImageInputs.forEach(input => {
-            const componentName = input.getAttribute('data-component-name');
-            const isRequired = input.hasAttribute('required');
-            
-            // Check if input has files or if there's a preview image already
-            const hasFiles = input.files && input.files.length > 0;
-            const previewContainer = input.closest('.component-container').querySelector('.image-preview');
-            const hasPreview = previewContainer && previewContainer.querySelector('img');
-            
-            if (isRequired && !hasFiles && !hasPreview) {
-                missingImages.push(componentName || 'مكون');
-                isValid = false;
-                
-                // Highlight the component image container
-                const container = input.closest('.component-container');
-                if (container) {
-                    container.classList.add('border-danger');
+        components.forEach(component => {
+            const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
+            if (previewContainer) {
+                const hasScreenshots = previewContainer.querySelectorAll('.card[data-url]').length > 0;
+                if (!hasScreenshots) {
+                    // Get component display name
+                    let componentName = component;
+                    switch(component) {
+                        case 'cpu': componentName = 'المعالج'; break;
+                        case 'gpu': componentName = 'كرت الشاشة'; break;
+                        case 'hdd': componentName = 'القرص الصلب'; break;
+                        case 'battery': componentName = 'البطارية'; break;
+                    }
+                    missingScreenshots.push(componentName);
                     
-                    // Remove highlight when an image is selected
-                    input.addEventListener('change', function() {
-                        if (this.files && this.files.length > 0) {
-                            container.classList.remove('border-danger');
-                        }
-                    }, { once: true });
+                    // Highlight the input field
+                    const input = document.getElementById(`${component}ScreenshotUrl`);
+                    if (input) {
+                        input.classList.add('border-warning');
+                        
+                        // Remove highlight when a URL is entered
+                        input.addEventListener('input', function() {
+                            this.classList.remove('border-warning');
+                        }, { once: true });
+                    }
                 }
             }
         });
         
-        if (missingImages.length > 0) {
-            errorMessages.push(`الرجاء إضافة صور للمكونات التالية: ${missingImages.join('، ')}`);
-            
-            // Show specific error in step2 error container
-            const stepErrorContainer = document.getElementById('step2ErrorContainer');
-            const stepErrorText = document.getElementById('step2ErrorText');
-            if (stepErrorContainer && stepErrorText) {
-                stepErrorText.textContent = `يجب إضافة صور للمكونات المطلوبة قبل المتابعة`;
-                stepErrorContainer.style.display = 'block';
+        if (missingScreenshots.length > 0) {
+            // Show warning in step2 warning container
+            const stepWarningContainer = document.getElementById('step2WarningContainer');
+            if (stepWarningContainer) {
+                stepWarningContainer.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>لم تقم بإضافة صور لنتائج الاختبارات التالية: ${missingScreenshots.join('، ')}. يُفضل إضافة صور لتوثيق نتائج الاختبارات.</div>`;
+                stepWarningContainer.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    stepWarningContainer.style.display = 'none';
+                }, 5000);
             }
         }
         
@@ -551,6 +555,24 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (unselectedConditions.length > 0) {
             errorMessages.push(`الرجاء تحديد ${unselectedConditions.join('، ')}`);
+        }
+        
+        // Check if at least one image URL has been added
+        const imageUrlBadges = document.querySelectorAll('#imageUrlBadges .badge');
+        if (imageUrlBadges.length === 0) {
+            // Not making this a hard requirement, just a warning
+            const warningContainer = document.getElementById('step3WarningContainer') || 
+                                     document.querySelector('.step-warning-container');
+            
+            if (warningContainer) {
+                warningContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>لم تقم بإضافة أي صور للفحص الخارجي. يُفضل إضافة صور لتوثيق حالة الجهاز.</div>';
+                warningContainer.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    warningContainer.style.display = 'none';
+                }, 5000);
+            }
         }
         
         return isValid;

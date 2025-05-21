@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعديل الفاتورة | Laapak</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Toastr CSS for notifications -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/custom-admin.css">
+    
+    <style>
+        .invoice-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .invoice-container, .invoice-container * {
+                visibility: visible;
+            }
+            .invoice-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+</head>
+<body>
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+
+    <!-- Main Content -->
+    <div class="container-fluid p-4 mt-2">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-dark fw-bold" id="pageTitle">تعديل الفاتورة</h2>
+            <div>
+                <a href="invoices.html" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-arrow-right me-1"></i> العودة إلى قائمة الفواتير
+                </a>
+                <button type="button" class="btn btn-primary" id="saveInvoiceBtn">
+                    <i class="fas fa-save me-1"></i> حفظ الفاتورة
+                </button>
+            </div>
+        </div>
+        
+        <div id="invoiceForm" class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light py-3">
+                <h5 class="mb-0"><i class="fas fa-edit me-2" style="color: #0eaf54;"></i> تفاصيل الفاتورة</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="invoiceTitle" class="form-label fw-bold">عنوان الفاتورة</label>
+                            <input type="text" class="form-control" id="invoiceTitle" placeholder="أدخل عنوان الفاتورة">
+                        </div>
+                        <div class="mb-3">
+                            <label for="invoiceDate" class="form-label fw-bold">تاريخ الفاتورة</label>
+                            <input type="date" class="form-control" id="invoiceDate">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="clientSelect" class="form-label fw-bold">العميل</label>
+                            <select class="form-select" id="clientSelect">
+                                <option value="">اختر العميل</option>
+                                <!-- Client options will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentStatus" class="form-label fw-bold">حالة الدفع</label>
+                            <select class="form-select" id="paymentStatus">
+                                <option value="unpaid">غير مدفوعة</option>
+                                <option value="partial">مدفوعة جزئيًا</option>
+                                <option value="paid">مدفوعة</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-list me-2" style="color: #0eaf54;"></i> عناصر الفاتورة</h5>
+                        <button type="button" class="btn btn-sm btn-success" id="addItemBtn">
+                            <i class="fas fa-plus me-1"></i> إضافة عنصر جديد
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="invoiceItemsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>الوصف</th>
+                                        <th width="100">الكمية</th>
+                                        <th width="150">السعر</th>
+                                        <th width="150">المجموع</th>
+                                        <th width="80" class="text-center">إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoiceItemsTableBody">
+                                    <!-- Items will be loaded dynamically -->
+                                    <tr id="loadingItemsRow">
+                                        <td colspan="5" class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                                <span class="visually-hidden">جاري التحميل...</span>
+                                            </div>
+                                            جاري تحميل عناصر الفاتورة...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-sticky-note me-2" style="color: #0eaf54;"></i> ملاحظات</h5>
+                            </div>
+                            <div class="card-body">
+                                <textarea class="form-control" id="invoiceNotes" rows="5" placeholder="أدخل أي ملاحظات إضافية هنا..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-calculator me-2" style="color: #0eaf54;"></i> الحسابات</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="taxRate" class="form-label fw-bold">نسبة الضريبة (%)</label>
+                                    <input type="number" class="form-control" id="taxRate" value="15" min="0" max="100">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="discountRate" class="form-label fw-bold">نسبة الخصم (%)</label>
+                                    <input type="number" class="form-control" id="discountRate" value="0" min="0" max="100">
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-4 p-3 bg-light rounded">
+                                    <span class="fw-bold fs-5">المجموع الكلي:</span>
+                                    <span class="fs-4 fw-bold text-success" id="totalAmount">0.00 جنية</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white p-4 text-end">
+                <button type="button" class="btn btn-outline-secondary me-2" id="cancelBtn">
+                    <i class="fas fa-times me-1"></i> إلغاء
+                </button>
+                <button type="button" class="btn btn-primary" id="saveInvoiceBtn">
+                    <i class="fas fa-save me-1"></i> حفظ الفاتورة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer - will be populated by footer-component.js -->
+    <div id="footer-container"></div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Toastr JS for notifications -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    
+    <!-- html2pdf for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="js/auth-middleware.js"></script>
+    <script src="js/auth-check.js"></script>
+    <script src="js/header-component.js"></script>
+    <script src="js/footer-component.js"></script>
+    <script src="js/api-service.js"></script>
+    <script src="js/edit-invoice.js"></script>
+</body>
+</html>

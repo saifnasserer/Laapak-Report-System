@@ -199,7 +199,7 @@ router.post('/', adminAuth, async (req, res) => {
         const invoice = await Invoice.create({
             invoice_number: invoiceNumber,
             report_id: reportId || null,
-            client_id: clientdNum,
+            client_id: client_idNum,
             client_name: clientName || '',
             client_phone: clientPhone || '',
             client_email: validatedEmail,
@@ -307,6 +307,126 @@ router.post('/', adminAuth, async (req, res) => {
             return res.status(503).json({
                 message: 'فشل الاتصال بقاعدة البيانات', // Database connection failed
                 error: error.message
+            });
+        }
+        
+        // Generic error
+        res.status(500).json({
+            message: 'خطأ في الخادم', // Server error
+            error: error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
+// Update invoice
+router.put('/:id', adminAuth, async (req, res) => {
+    const transaction = await sequelize.transaction();
+    
+    try {
+        console.log('UPDATE INVOICE REQUEST BODY:', JSON.stringify(req.body, null, 2));
+        
+        // Find the invoice
+        const invoice = await Invoice.findByPk(req.params.id);
+        
+        if (!invoice) {
+            return res.status(404).json({ message: 'الفاتورة غير موجودة', error: 'Invoice not found' });
+        }
+        
+        // Extract data from request body
+        const { 
+            title,
+            date,
+            client_id,
+            subtotal,
+            discount,
+            taxRate,
+            tax,
+            total,
+            paymentStatus,
+            paymentMethod,
+            notes,
+            items
+        } = req.body;
+        
+        // Update invoice
+        await invoice.update({
+            title: title || invoice.title,
+            date: date ? new Date(date) : invoice.date,
+            client_id: client_id || invoice.client_id,
+            subtotal: Number(subtotal || invoice.subtotal),
+            discount: Number(discount || invoice.discount),
+            tax: Number(tax || invoice.tax),
+            total: Number(total || invoice.total),
+            paymentStatus: paymentStatus || invoice.paymentStatus,
+            paymentMethod: paymentMethod || invoice.paymentMethod,
+            notes: notes || invoice.notes,
+            updated_at: new Date()
+        }, { transaction });
+        
+        // Update invoice items
+        if (items && Array.isArray(items)) {
+            // Delete existing items
+            await InvoiceItem.destroy({
+                where: { invoiceId: invoice.id },
+                transaction
+            });
+            
+            // Create new items
+            await Promise.all(items.map(item => 
+                InvoiceItem.create({
+                    invoiceId: invoice.id,
+                    description: item.description || '',
+                    type: item.type || 'service',
+                    amount: Number(item.amount || item.unitPrice || 0),
+                    quantity: Number(item.quantity || 1),
+                    totalAmount: Number(item.totalAmount || item.total || 0),
+                    serialNumber: item.serialNumber || null,
+                    created_at: new Date(),
+                    invoice_id: invoice.id
+                }, { transaction })
+            ));
+        }
+        
+        await transaction.commit();
+        
+        // Fetch the updated invoice with all related data
+        const updatedInvoice = await Invoice.findByPk(invoice.id, {
+            include: [
+                { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
+                { model: Report, attributes: ['id', 'device_model', 'serial_number'] },
+                { model: InvoiceItem }
+            ]
+        });
+        
+        res.json(updatedInvoice);
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error updating invoice:', error);
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        
+        // Handle specific error types
+        if (error.name === 'SequelizeForeignKeyConstraintError') {
+            return res.status(400).json({
+                message: 'العميل المحدد غير موجود', // Selected client does not exist
+                error: 'Foreign key constraint error: ' + error.message,
+                details: {
+                    field: error.fields?.[0] || 'client_id',
+                    table: error.table,
+                    value: error.value
+                }
+            });
+        }
+        
+        // Validation error
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({
+                message: 'خطأ في التحقق من صحة البيانات', // Data validation error
+                error: error.message,
+                details: error.errors.map(err => ({ field: err.path, message: err.message }))
             });
         }
         

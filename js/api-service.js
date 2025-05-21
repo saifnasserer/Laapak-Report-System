@@ -407,17 +407,113 @@ class ApiService {
     
     // Invoice API Methods
     async getInvoices(filters = {}) {
-        let queryParams = '';
-        if (Object.keys(filters).length > 0) {
-            queryParams = '?' + Object.entries(filters)
-                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                .join('&');
+        try {
+            let queryParams = '';
+            if (filters && Object.keys(filters).length > 0) {
+                queryParams = '?' + new URLSearchParams(filters).toString();
+            }
+            return this.request(`/api/invoices${queryParams}`);
+        } catch (error) {
+            console.error('Error fetching invoices:', error);
+            
+            // Fall back to localStorage if API fails
+            const storedInvoices = localStorage.getItem('lpk_invoices');
+            if (storedInvoices) {
+                let invoices = JSON.parse(storedInvoices);
+                
+                // Apply filters if any
+                if (filters) {
+                    if (filters.client_id) {
+                        invoices = invoices.filter(invoice => invoice.client_id.toString() === filters.client_id.toString());
+                    }
+                    if (filters.paymentStatus) {
+                        invoices = invoices.filter(invoice => invoice.paymentStatus === filters.paymentStatus);
+                    }
+                    if (filters.dateFrom) {
+                        const dateFrom = new Date(filters.dateFrom);
+                        invoices = invoices.filter(invoice => new Date(invoice.date) >= dateFrom);
+                    }
+                    if (filters.dateTo) {
+                        const dateTo = new Date(filters.dateTo);
+                        dateTo.setHours(23, 59, 59, 999); // End of day
+                        invoices = invoices.filter(invoice => new Date(invoice.date) <= dateTo);
+                    }
+                }
+                
+                return invoices;
+            }
+            throw error;
         }
-        return this.request(`/api/invoices${queryParams}`);
     }
     
     async getInvoice(id) {
-        return this.request(`/api/invoices/${id}`);
+        try {
+            return this.request(`/api/invoices/${id}`);
+        } catch (error) {
+            console.error(`Error fetching invoice ${id}:`, error);
+            
+            // Fall back to localStorage if API fails
+            const storedInvoices = localStorage.getItem('lpk_invoices');
+            if (storedInvoices) {
+                const invoices = JSON.parse(storedInvoices);
+                const invoice = invoices.find(inv => inv.id === id);
+                if (invoice) {
+                    return invoice;
+                }
+            }
+            throw error;
+        }
+    }
+    
+    async updateInvoice(id, invoiceData) {
+        try {
+            // Format data for API
+            const formattedData = {
+                title: invoiceData.title || '',
+                date: invoiceData.date || new Date().toISOString(),
+                client_id: invoiceData.client_id,
+                subtotal: parseFloat(invoiceData.subtotal) || 0,
+                discount: parseFloat(invoiceData.discount) || 0,
+                taxRate: parseFloat(invoiceData.taxRate) || 0,
+                tax: parseFloat(invoiceData.tax) || 0,
+                total: parseFloat(invoiceData.total) || 0,
+                paymentStatus: invoiceData.paymentStatus || 'unpaid',
+                paymentMethod: invoiceData.paymentMethod || 'cash',
+                notes: invoiceData.notes || '',
+                items: invoiceData.items.map(item => ({
+                    description: item.description || '',
+                    type: item.type || 'service',
+                    quantity: parseInt(item.quantity) || 1,
+                    amount: parseFloat(item.unitPrice) || 0,
+                    totalAmount: parseFloat(item.total) || 0
+                }))
+            };
+            
+            return this.request(`/api/invoices/${id}`, 'PUT', formattedData);
+        } catch (error) {
+            console.error(`Error updating invoice ${id}:`, error);
+            
+            // Fall back to localStorage if API fails
+            const storedInvoices = localStorage.getItem('lpk_invoices');
+            if (storedInvoices) {
+                let invoices = JSON.parse(storedInvoices);
+                const index = invoices.findIndex(inv => inv.id === id);
+                
+                if (index !== -1) {
+                    // Update the invoice
+                    invoices[index] = {
+                        ...invoices[index],
+                        ...invoiceData,
+                        updated_at: new Date().toISOString()
+                    };
+                    
+                    // Save back to localStorage
+                    localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
+                    return invoices[index];
+                }
+            }
+            throw error;
+        }
     }
     
     async createInvoice(invoiceData) {
