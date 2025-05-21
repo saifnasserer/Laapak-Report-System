@@ -24,7 +24,11 @@ class ApiService {
         }
         
         console.log('API Service initialized with baseUrl:', this.baseUrl);
-        this.authToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        // Prioritize clientToken if available, otherwise fallback to adminToken
+        this.authToken = localStorage.getItem('clientToken') || 
+                         sessionStorage.getItem('clientToken') || 
+                         localStorage.getItem('adminToken') || 
+                         sessionStorage.getItem('adminToken');
     }
     
     /**
@@ -605,7 +609,8 @@ class ApiService {
     }
     
     async getClientReports() {
-        return this.request('/api/reports/client');
+        // Ensure this token is for a client user, handled by the constructor logic
+        return this.request('/api/reports/client/me', 'GET');
     }
     
     async searchReports(query) {

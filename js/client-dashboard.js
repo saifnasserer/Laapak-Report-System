@@ -30,26 +30,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // The logoutBtn event listener is set up in that component
     
     // Load client reports and related data
-    async function loadClientReports() {
+    const loadClientReports = async () => {
         try {
             // Show loading indicator
             showLoading(true);
             
             // Fetch reports from API
-            const reports = await apiService.getClientReports();
-            console.log('Reports data from API:', reports);
+            const apiResponse = await apiService.getClientReports();
+            console.log('Reports data from API:', apiResponse);
             
             // Hide loading indicator
             showLoading(false);
-            
-            // Generate invoices from reports (in a real implementation, these would come from the API)
-            const invoices = generateInvoicesFromReports(reports);
-            
-            // Display the reports and invoices
-            displayReportsAndInvoices(reports, invoices);
-            
-            // Cache reports for offline use
-            cacheReportsForOffline(reports, invoices);
+
+            if (apiResponse && apiResponse.success && Array.isArray(apiResponse.data)) {
+                const reportsArray = apiResponse.data;
+                // Generate invoices from reports (in a real implementation, these would come from the API)
+                const invoices = generateInvoicesFromReports(reportsArray);
+                
+                // Display the reports and invoices
+                displayReportsAndInvoices(reportsArray, invoices);
+                
+                // Cache reports for offline use
+                cacheReportsForOffline(reportsArray, invoices);
+            } else {
+                console.error('API response did not contain a valid reports array:', apiResponse);
+                showErrorMessage('Failed to process reports data from server.');
+            }
         } catch (error) {
             console.error('Error loading client reports:', error);
             showLoading(false);
@@ -121,55 +127,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Display reports and invoices in the UI
-    function displayReportsAndInvoices(reports, invoices) {
-        // Display reports
-        const reportsList = document.getElementById('reportsList');
-        const noReportsMessage = document.getElementById('noReportsMessage');
-        
-        if (reportsList) {
-            if (reports.length === 0) {
-                if (noReportsMessage) {
-                    noReportsMessage.style.display = 'block';
-                }
-            } else {
-                if (noReportsMessage) {
-                    noReportsMessage.style.display = 'none';
-                }
-                
-                // Clear existing reports
-                reportsList.innerHTML = '';
-                
-                // Add report cards
-                reports.forEach(report => {
-                    const reportCard = createReportCard(report);
-                    reportsList.appendChild(reportCard);
-                });
-            }
+    function displayReportsAndInvoices(reportsArray, invoicesArray) {
+        // Call functions from client-display.js (which should now be globally available)
+        if (typeof displayReports === 'function') {
+            displayReports(reportsArray);
+        } else {
+            console.error('displayReports function is not defined. Check script loading order.');
+            showErrorMessage('Error displaying reports content.');
         }
-        
-        // Display invoices
-        const invoicesList = document.getElementById('invoicesList');
-        const noInvoicesMessage = document.getElementById('noInvoicesMessage');
-        
-        if (invoicesList) {
-            if (invoices.length === 0) {
-                if (noInvoicesMessage) {
-                    noInvoicesMessage.style.display = 'block';
-                }
-            } else {
-                if (noInvoicesMessage) {
-                    noInvoicesMessage.style.display = 'none';
-                }
-                
-                // Clear existing invoices
-                invoicesList.innerHTML = '';
-                
-                // Add invoice cards
-                invoices.forEach(invoice => {
-                    const invoiceCard = createInvoiceCard(invoice);
-                    invoicesList.appendChild(invoiceCard);
-                });
-            }
+
+        // Call function from client-warranty.js to populate warranty tab
+        if (typeof displayWarrantyInfo === 'function') {
+            displayWarrantyInfo(reportsArray);
+        } else {
+            console.error('displayWarrantyInfo function is not defined. Check script loading order.');
+            showErrorMessage('Error displaying warranty information.');
+        }
+
+        // Call function from client-maintenance.js to populate maintenance tab
+        if (typeof displayMaintenanceSchedule === 'function') {
+            displayMaintenanceSchedule(reportsArray);
+        } else {
+            console.error('displayMaintenanceSchedule function is not defined. Check script loading order.');
+            showErrorMessage('Error displaying maintenance schedule.');
+        }
+
+        if (typeof displayInvoices === 'function') {
+            displayInvoices(invoicesArray);
+        } else {
+            console.error('displayInvoices function is not defined. Check script loading order.');
+            showErrorMessage('Error displaying invoices content.');
         }
     }
     
@@ -324,7 +311,7 @@ function logout() {
 /**
  * Load client reports and related data
  */
-function loadClientReports(clientId) {
+function loadClientReportsFromCacheOrMock(clientId) {
     // Get reports - try localStorage first, fall back to mock data
     let reports = [];
     let invoices = [];
@@ -536,7 +523,52 @@ function getMockInvoices(clientId) {
     return invoices.filter(invoice => invoice.clientId === clientId);
 }
 
-// Import the other client dashboard modules for warranty, maintenance and display functions
-document.write('<script src="js/client-warranty.js"></script>');
-document.write('<script src="js/client-maintenance.js"></script>');
-document.write('<script src="js/client-display.js"></script>');
+/**
+ * Set up tab change handlers
+ */
+function setupTabHandlers() {
+    // Handle tab changes
+    const tabElements = document.querySelectorAll('#clientTabs .nav-link');
+    
+    if (tabElements.length > 0) {
+        tabElements.forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all tabs
+                tabElements.forEach(t => t.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                // Get the target tab content ID
+                const targetId = this.getAttribute('data-bs-target');
+                
+                // Hide all tab content
+                const tabContents = document.querySelectorAll('.tab-pane');
+                tabContents.forEach(content => {
+                    content.classList.remove('show', 'active');
+                });
+                
+                // Show target tab content
+                const targetContent = document.querySelector(targetId);
+                if (targetContent) {
+                    targetContent.classList.add('show', 'active');
+                }
+            });
+        });
+    }
+}
+
+// Ensure the DOM is fully loaded before trying to access elements
+document.addEventListener('DOMContentLoaded', async (event) => {
+    // Set up tab handlers
+    setupTabHandlers();
+    
+    // Ensure we are calling the API-fetching version
+    if (typeof loadClientReports === 'function') {
+        await loadClientReports(); 
+    } else {
+        console.error('Main loadClientReports function not found!');
+    }
+});

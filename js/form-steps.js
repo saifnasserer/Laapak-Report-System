@@ -719,9 +719,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentApiService = formApiService;
                 try {
                     // Show loading indicator
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
+                    const submitBtn = this.querySelector('#submitReportBtn'); // Use specific ID
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
+                    }
                     
                     // Collect form data
                     const reportData = collectReportData();
@@ -960,9 +962,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('حدث خطأ أثناء إنشاء التقرير. الرجاء المحاولة مرة أخرى.');
                     
                     // Re-enable submit button
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'إنشاء التقرير';
+                    const submitBtn = this.querySelector('#submitReportBtn'); // Use specific ID
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'إنشاء التقرير';
+                    }
                 }
             } else {
                 console.error('collectReportData function not found. Make sure create-report.js is loaded before form-steps.js');

@@ -2027,13 +2027,31 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function showLoading(show) {
         const submitBtn = reportForm.querySelector('button[type="submit"]');
-        
+        const prevBtn = reportForm.querySelector('#prevBtn'); // Standard ID, adjust if needed
+        const nextBtn = reportForm.querySelector('#nextBtn'); // Standard ID, adjust if needed
+
         if (show) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
+            }
+            if (prevBtn) {
+                prevBtn.disabled = true;
+            }
+            if (nextBtn) {
+                nextBtn.disabled = true;
+            }
         } else {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'إنشاء التقرير';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'إنشاء التقرير';
+            }
+            if (prevBtn) {
+                prevBtn.disabled = false;
+            }
+            if (nextBtn) {
+                nextBtn.disabled = false;
+            }
         }
     }
 

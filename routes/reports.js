@@ -1,6 +1,7 @@
 const express = require('express');
 const { Sequelize, Op } = require('sequelize');
 const { Report, Client, ReportTechnicalTest } = require('../models'); // Added ReportTechnicalTest
+const { clientAuth } = require('../middleware/auth'); // Import clientAuth middleware
 
 const router = express.Router();
 
@@ -102,6 +103,43 @@ router.get('/:id', async (req, res) => {
     res.json({ success: true, report: report });
   } catch (error) {
     console.error('Failed to fetch report:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// GET /reports/client/me - get reports for the authenticated client
+router.get('/client/me', clientAuth, async (req, res) => {
+  try {
+    const clientId = req.user.id; // clientAuth middleware sets req.user
+    if (!clientId) {
+      console.error('Client ID not found in token after auth middleware');
+      return res.status(401).json({ error: 'Authentication error: Client ID missing.' });
+    }
+
+    console.log(`Fetching reports for authenticated client ID: ${clientId}`);
+    const reports = await Report.findAll({
+      where: { client_id: clientId }, // Ensure 'client_id' matches your Report model's foreign key field name
+      include: [
+        {
+          model: Client,
+          attributes: ['id', 'name', 'phone', 'email', 'address'],
+        },
+        // Optional: Include ReportTechnicalTest if needed for client dashboard preview
+        // {
+        //   model: ReportTechnicalTest,
+        //   as: 'technical_tests',
+        //   attributes: ['componentName', 'status', 'notes', 'type', 'icon'],
+        // }
+      ],
+      order: [['inspection_date', 'DESC']], // Order by inspection_date, or 'created_at' if preferred
+    });
+
+    // It's not an error if a client has no reports, return empty array
+    console.log(`Found ${reports ? reports.length : 0} reports for client ID ${clientId}`);
+    res.json({ success: true, data: reports || [] });
+
+  } catch (error) {
+    console.error('Failed to fetch reports for authenticated client:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });

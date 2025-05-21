@@ -655,6 +655,31 @@
                                             </div>
                                         </div>
                                         
+                                        <!-- Keyboard Test -->
+                                        <div class="card component-test-card mb-4" data-component="keyboard">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i> اختبار لوحة المفاتيح</h5>
+                                                <div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger remove-test-btn" disabled>
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="keyboardScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="keyboardScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="keyboard">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="keyboardScreenshotUrl" data-component="keyboard">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="keyboardScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
                                         <!-- Battery Test -->
                                         <div class="card component-test-card mb-4" data-component="battery">
                                             <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -681,33 +706,9 @@
                                         </div>
                                     </div>
                                     
-
-                                        <!-- Keyboard Test -->
-                                        <div class="card component-test-card mb-4" data-component="keyboard">
-                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                                <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i> اختبار لوحة المفاتيح</h5>
-                                                <div>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger remove-test-btn" disabled>
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <label for="keyboardScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
-                                                    <div class="input-group mb-2">
-                                                        <input type="url" class="form-control test-screenshot-url" id="keyboardScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="keyboard">
-                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="keyboardScreenshotUrl" data-component="keyboard">
-                                                            <i class="fas fa-plus me-1"></i> إضافة
-                                                        </button>
-                                                    </div>
-                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
-                                                    <div class="mt-2 screenshot-preview" id="keyboardScreenshotPreview"></div>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                     
+
 
                                     <div class="form-navigation">
                                         <button type="button" class="btn btn-prev-step btn-secondary">السابق</button>
@@ -1289,19 +1290,7 @@
     <script src="js/invoice-generator.js"></script>
     <script src="js/create-report.js"></script>
     
-    <!-- Form navigation -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const submitBtn = document.getElementById('submitBtn');
-            
-            // For the prototype, just simulate moving to next step
-            nextBtn.addEventListener('click', function() {
-                alert('سيتم الانتقال للخطوة التالية في الإصدار النهائي');
-            });
-        });
-    </script>
+    <!-- Form navigation (Handled by form-steps.js) -->
     <!-- Add Client Modal -->
     <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

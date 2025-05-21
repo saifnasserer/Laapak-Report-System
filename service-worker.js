@@ -27,7 +27,14 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(ASSETS_TO_CACHE);
+        return cache.addAll(ASSETS_TO_CACHE).catch(error => {
+          console.error('Failed to cache one or more assets during install:', error);
+          // Optionally, you can inspect which request failed if the browser provides that info
+          // For example, some browsers might show the failing URL in the error object
+          // Or you might have to cache them one by one to pinpoint the issue
+          // For now, just re-throw the error to ensure the SW install fails clearly
+          throw error;
+        });
       })
       .then(() => self.skipWaiting())
   );

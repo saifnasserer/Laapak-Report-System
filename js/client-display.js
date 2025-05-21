@@ -29,55 +29,133 @@ function displayReports(reports) {
     // Clear existing content
     reportsList.innerHTML = '';
     
+    // Find the most recent report based on inspection_date or created_at
+    const sortedReports = [...reports].sort((a, b) => {
+        const dateA = new Date(a.inspection_date || a.created_at);
+        const dateB = new Date(b.inspection_date || b.created_at);
+        return dateB - dateA; // Most recent first
+    });
+    
+    const mostRecentReportId = sortedReports.length > 0 ? sortedReports[0].id : null;
+    
     // Process each report
-    reports.forEach(report => {
-        const reportDate = new Date(report.creationDate);
+    sortedReports.forEach(report => {
+        const reportDate = new Date(report.inspection_date || report.created_at);
+        const isNewest = report.id === mostRecentReportId;
         const col = document.createElement('div');
         col.className = 'col-md-6 mb-4';
         
-        // Create report card
+        // Add animation CSS for the newest card
+        if (isNewest) {
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes shine {
+                    0% { background-position: -100px; }
+                    40% { background-position: 140px; }
+                    100% { background-position: 140px; }
+                }
+                .latest-card {
+                    position: relative;
+                    overflow: hidden;
+                    border: 2px solid #ffc107 !important;
+                    box-shadow: 0 0 15px rgba(255, 193, 7, 0.5) !important;
+                }
+                .latest-card::before {
+                    content: '';
+                    display: block;
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    top: 0;
+                    left: 0;
+                    background: linear-gradient(to right, transparent 0%, rgba(255, 215, 0, 0.2) 50%, transparent 100%);
+                    background-size: 200px 100%;
+                    animation: shine 3s infinite linear;
+                    z-index: 1;
+                    pointer-events: none;
+                }
+                .latest-badge {
+                    display: inline-block;
+                    animation: pulse 2s infinite;
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                }
+                .ribbon {
+                    position: absolute;
+                    top: -5px;
+                    right: -5px;
+                    color: white;
+                    z-index: 2;
+                }
+                .ribbon i {
+                    font-size: 40px;
+                    color: #FF9800;
+                    text-shadow: 0 0 5px rgba(0,0,0,0.3);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Create simplified premium report card
         col.innerHTML = `
-            <div class="card report-card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">${report.brand} ${report.model}</h6>
-                        <span class="badge bg-success">${report.status}</span>
+            <div class="card h-100 border-0 ${isNewest ? 'shadow-lg' : 'shadow-sm'}">
+                <div class="card-body p-4">
+                    ${isNewest ? '<div class="position-absolute end-0 top-0 mt-2 me-3"><i class="fas fa-circle text-warning"></i></div>' : ''}
+                    
+                    <h5 class="mb-3 fw-bold">${report.device_model || 'جهاز غير محدد'}</h5>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i> ${formatGregorianDate(reportDate)}
+                        </span>
+                        <span class="badge ${report.status === 'active' ? 'bg-success' : 
+                                         report.status === 'completed' ? 'bg-primary' : 
+                                         report.status === 'in-progress' ? 'bg-warning' : 'bg-secondary'} rounded-pill px-3">
+                            ${report.status === 'active' ? 'نشط' : 
+                             report.status === 'completed' ? 'مكتمل' : 
+                             report.status === 'in-progress' ? 'قيد التنفيذ' : report.status || 'غير محدد'}
+                        </span>
                     </div>
+                    
+                    ${report.serial_number ? `
+                    <div class="text-muted small mb-3">
+                        <i class="fas fa-barcode me-1"></i> ${report.serial_number}
+                    </div>
+                    ` : ''}
+                    
+                    ${report.notes ? `
+                    <div class="mt-3 pt-3 border-top text-muted small">
+                        ${report.notes.length > 80 ? report.notes.substring(0, 80) + '...' : report.notes}
+                    </div>` : ''}
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <p class="text-muted mb-1"><i class="fas fa-calendar-alt me-2"></i> تاريخ التقرير: ${formatDate(reportDate)}</p>
-                        <p class="text-muted mb-1"><i class="fas fa-barcode me-2"></i> الرقم التسلسلي: ${report.serialNumber}</p>
-                        <p class="text-muted mb-0"><i class="fas fa-user-cog me-2"></i> الفني: ${report.technicianName}</p>
-                    </div>
-                    <div class="mb-3">
-                        <div class="d-flex mb-1">
-                            <span class="text-dark fw-bold">المشكلة:</span>
-                        </div>
-                        <p class="text-muted small">${report.problem}</p>
-                    </div>
-                    <div>
-                        <div class="d-flex mb-1">
-                            <span class="text-dark fw-bold">الحل:</span>
-                        </div>
-                        <p class="text-muted small">${report.solution}</p>
-                    </div>
-                </div>
-                <div class="card-footer bg-white border-top-0">
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewReportDetails('${report.id}')">
-                            <i class="fas fa-eye me-2"></i> عرض التفاصيل
-                        </button>
-                    </div>
+                <div class="card-footer border-0 bg-transparent pb-4 px-4">
+                    <a href="report.html?id=${report.id}" class="btn btn-sm ${isNewest ? 'btn-warning' : 'btn-outline-primary'} w-100">
+                        <i class="fas fa-eye me-1"></i> عرض التقرير
+                    </a>
                 </div>
             </div>
         `;
         
         reportsList.appendChild(col);
     });
-    
-    // Setup event listeners for report details
-    setupReportDetailViewers();
+}
+
+/**
+ * Display client invoices
+ */
+/**
+ * Format date in Gregorian calendar (Miladi)
+ */
+function formatGregorianDate(date) {
+    return date.toLocaleDateString('ar', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        calendar: 'gregory' // Explicitly use Gregorian calendar
+    });
 }
 
 /**
@@ -106,63 +184,71 @@ function displayInvoices(invoices) {
     // Clear existing content
     invoicesList.innerHTML = '';
     
+    // Sort invoices by date - newest first
+    const sortedInvoices = [...invoices].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA; // Most recent first
+    });
+    
+    // Get the most recent invoice for highlighting
+    const mostRecentInvoiceId = sortedInvoices.length > 0 ? sortedInvoices[0].id : null;
+    
     // Process each invoice
-    invoices.forEach(invoice => {
+    sortedInvoices.forEach(invoice => {
         const invoiceDate = new Date(invoice.date);
+        const isNewest = invoice.id === mostRecentInvoiceId;
+        const isPending = !invoice.paid;
         const col = document.createElement('div');
         col.className = 'col-md-6 mb-4';
         
-        // Create invoice card
+        // Create enhanced invoice card
         col.innerHTML = `
-            <div class="card report-card shadow-sm h-100">
-                <div class="card-header bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">فاتورة رقم: ${invoice.id}</h6>
-                        <span class="badge ${invoice.paid ? 'bg-success' : 'bg-danger'}">
-                            ${invoice.paid ? 'مدفوعة' : 'غير مدفوعة'}
+            <div class="card h-100 border-0 ${isNewest ? 'shadow-lg' : 'shadow-sm'}">
+                <div class="card-body p-4">
+                    ${isNewest ? '<div class="position-absolute end-0 top-0 mt-2 me-3"><i class="fas fa-circle text-warning"></i></div>' : ''}
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <h5 class="mb-0 fw-bold">فاتورة #${invoice.id.substring(invoice.id.length - 5)}</h5>
+                        <span class="badge ${isPending ? 'bg-danger' : 'bg-success'} rounded-pill px-3">
+                            ${isPending ? 'غير مدفوعة' : 'مدفوعة'}
                         </span>
                     </div>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <p class="text-muted mb-1">
-                            <i class="fas fa-calendar-alt me-2"></i> تاريخ الفاتورة: ${formatDate(invoiceDate)}
-                        </p>
-                        <p class="text-muted mb-1">
-                            <i class="fas fa-file-alt me-2"></i> رقم التقرير: ${invoice.reportId}
-                        </p>
-                        <p class="text-muted mb-0">
-                            <i class="fas fa-money-bill-wave me-2"></i> المبلغ الإجمالي: ${invoice.total} ريال
-                        </p>
-                    </div>
-                    <div class="mb-0">
-                        <div class="d-flex mb-1">
-                            <span class="text-dark fw-bold">طريقة الدفع:</span>
-                            <span class="ms-2">${invoice.paymentMethod || 'غير محدد'}</span>
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i> ${formatGregorianDate(invoiceDate)}
                         </div>
-                        ${invoice.paid ? 
-                            `<div class="d-flex">
-                                <span class="text-dark fw-bold">تاريخ الدفع:</span>
-                                <span class="ms-2">${formatDate(new Date(invoice.paymentDate))}</span>
-                            </div>` : ''
-                        }
+                        <div class="fw-bold text-success">
+                            ${invoice.total} ريال
+                        </div>
                     </div>
+                    
+                    <div class="mb-3 text-muted small">
+                        <i class="fas fa-file-alt me-1"></i> رقم التقرير: ${invoice.reportId}
+                        ${invoice.paymentMethod ? `<br><i class="fas fa-credit-card me-1 mt-1"></i> ${invoice.paymentMethod}` : ''}
+                    </div>
+                    
+                    ${invoice.paid ? 
+                        `<div class="small text-success mt-1">
+                            <i class="fas fa-check-circle me-1"></i> تم الدفع بتاريخ ${formatGregorianDate(new Date(invoice.paymentDate))}
+                        </div>` : ''
+                    }
                 </div>
-                <div class="card-footer bg-white border-top-0">
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewInvoiceDetails('${invoice.id}')">
-                            <i class="fas fa-eye me-2"></i> عرض التفاصيل
-                        </button>
+                <div class="card-footer bg-white border-top-0 pt-0">
+                    <div class="d-grid">
+                        <a href="invoice.html?id=${invoice.id}" class="btn ${isPending ? 'btn-danger' : 'btn-success'}">
+                            <i class="fas ${isPending ? 'fa-file-invoice' : 'fa-receipt'} me-2"></i> 
+                            ${isPending ? 'عرض ودفع الفاتورة' : 'عرض تفاصيل الفاتورة'}
+                        </a>
                     </div>
                 </div>
             </div>
+            ${isNewest ? '<div class="text-center mt-1 mb-2"><small class="badge bg-warning px-3 py-1"><i class="fas fa-star me-1"></i> أحدث فاتورة</small></div>' : ''}
         `;
         
         invoicesList.appendChild(col);
     });
-    
-    // Setup event listeners for invoice details
-    setupInvoiceDetailViewers();
 }
 
 /**
