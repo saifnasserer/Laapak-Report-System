@@ -46,6 +46,16 @@ class LpkHeader {
         this.setupActiveStateHandlers();
     }
     
+    // Translate role from English to Arabic
+    translateRole(role) {
+        switch(role) {
+            case 'admin': return 'مدير';
+            case 'technician': return 'فني';
+            case 'viewer': return 'مشاهد';
+            default: return role || 'مستخدم';
+        }
+    }
+    
     setupActiveStateHandlers() {
         // Get all navigation links
         const navLinks = document.querySelectorAll('#mainNavbar .nav-link:not(.dropdown-toggle)');
@@ -91,23 +101,22 @@ class LpkHeader {
     
     generateHeaderHTML() {
         // Get admin info from storage
-        let adminName = 'المدير';
+        let adminName = 'المستخدم';
+        let adminFirstName = adminName;
         let adminEmail = 'admin@laapak.com';
-        let adminRole = 'مدير';
+        let adminRole = 'مسؤول';
         
         try {
             const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || sessionStorage.getItem('adminInfo') || '{}');
             if (adminInfo) {
-                if (adminInfo.name) adminName = adminInfo.name;
-                if (adminInfo.username) adminEmail = adminInfo.username;
-                if (adminInfo.role) {
-                    switch(adminInfo.role) {
-                        case 'admin': adminRole = 'مدير'; break;
-                        case 'technician': adminRole = 'فني'; break;
-                        case 'viewer': adminRole = 'مشاهد'; break;
-                        default: adminRole = adminInfo.role;
-                    }
-                }
+                adminName = adminInfo.name || 'المستخدم';
+                
+                // Extract first name (first word before any spaces)
+                const nameParts = adminName.trim().split(' ');
+                adminFirstName = nameParts[0];
+                
+                adminEmail = adminInfo.email || adminInfo.username || 'admin@laapak.com';
+                adminRole = this.translateRole(adminInfo.role) || 'مسؤول';
             }
         } catch (e) {
             console.error('Error parsing admin info:', e);
@@ -154,7 +163,7 @@ class LpkHeader {
                                      style="width: 32px; height: 32px;">
                                     <i class="fas fa-user-circle"></i>
                                 </div>
-                                <span class="d-none d-md-inline">${adminName}</span>
+                                <span class="d-none d-md-inline">${adminFirstName}</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 240px; border-radius: 12px; margin-top: 10px;">
                                 <li class="dropdown-header p-3 border-bottom">
@@ -163,7 +172,7 @@ class LpkHeader {
                                             <i class="fas fa-user-circle text-success" style="font-size: 1.8rem;"></i>
                                         </div>
                                         <div>
-                                            <h6 class="mb-0 fw-bold">${adminName}</h6>
+                                            <h6 class="mb-0 fw-bold">${adminFirstName}</h6>
                                             <small class="text-muted">${adminEmail}</small>
                                             <div><span class="badge bg-success">${adminRole}</span></div>
                                         </div>
