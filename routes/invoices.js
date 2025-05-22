@@ -148,6 +148,7 @@ router.post('/', adminAuth, async (req, res) => {
         
         // Extract data from request body
         const { 
+            date, // Added date here
             report_id: reportId, 
             client_id: client_id, 
             client_name: clientName, 
@@ -156,9 +157,12 @@ router.post('/', adminAuth, async (req, res) => {
             client_address: clientAddress, 
             items, 
             subtotal, 
+            taxRate, // Assuming taxRate is sent in req.body for tax_rate field
             tax, 
             discount, 
             total, 
+            paymentMethod, // Assuming paymentMethod is sent for payment_method
+            paymentStatus, // Assuming paymentStatus is sent for payment_status
             notes, 
             status 
         } = req.body;
@@ -195,23 +199,33 @@ router.post('/', adminAuth, async (req, res) => {
         // Handle empty email to be null (to pass validation)
         const validatedEmail = clientEmail?.trim() === '' ? null : clientEmail;
         
-        // Create the invoice
-        const invoice = await Invoice.create({
-            invoice_number: invoiceNumber,
+        // Original date string from req.body (already destructured as 'date')
+        const dateStringFromRequest = date;
+        const dateObjectForSequelize = new Date(dateStringFromRequest);
+
+        console.log('--- DEBUG: Original date string from request:', dateStringFromRequest);
+        console.log('--- DEBUG: Converted Date object for Sequelize:', dateObjectForSequelize);
+        console.log('--- DEBUG: Is converted Date object valid?:', !isNaN(dateObjectForSequelize.getTime()));
+
+        // Log the data just before creating the invoice
+        const invoiceDataToCreate = {
+            id: invoiceNumber, // This is the PK for the 'invoices' table (varchar)
             report_id: reportId || null,
-            client_id: client_idNum,
-            client_name: clientName || '',
-            client_phone: clientPhone || '',
-            client_email: validatedEmail,
-            client_address: clientAddress || '',
+            client_id: client_idNum, // Parsed from req.body.client_id
+            date: dateObjectForSequelize, // Use the Date object here
             subtotal: Number(subtotal || 0),
-            tax: Number(tax || 0),
             discount: Number(discount || 0),
+            taxRate: Number(taxRate || 0),
+            tax: Number(tax || 0),
             total: Number(total || 0),
-            notes: notes || '',
-            status: status || 'pending',
-            created_by: req.user.id
-        }, { transaction });
+            paymentStatus: paymentStatus || 'unpaid',
+            paymentMethod: paymentMethod || null
+        };
+        // Note: JSON.stringify will convert the Date object to an ISO string in the log below
+        console.log('--- DEBUG: Object being passed to Invoice.create (date field should be a Date object):', JSON.stringify(invoiceDataToCreate, null, 2));
+
+        // Create the invoice
+        const invoice = await Invoice.create(invoiceDataToCreate, { transaction });
         
         // Create invoice items
         if (items && items.length > 0) {
@@ -219,18 +233,26 @@ router.post('/', adminAuth, async (req, res) => {
             
             try {
                 await Promise.all(items.map(item => 
-                    InvoiceItem.create({
-                        invoice_id: invoice.id,
+{
+                    const itemPayload = {
+                        invoiceId: invoice.id, // Corrected from invoice_id to invoiceId
                         description: item.description || '',
+                        type: item.type,
                         quantity: Number(item.quantity || 1),
-                        unit_price: Number(item.unit_price || 0),
-                        total: Number(item.total || 0)
-                    }, { transaction })
-                ));
+                        amount: Number(item.amount || 0),
+                        totalAmount: Number(item.totalAmount || 0),
+                        serialNumber: item.serialNumber || null
+                    };
+                    console.log('--- DEBUG: Payload for InvoiceItem.create:', JSON.stringify(itemPayload, null, 2));
+                    return InvoiceItem.create(itemPayload, { transaction });
+}
+                )); // Close Promise.all and map
                 console.log(`Created ${items.length} invoice items successfully`);
             } catch (itemError) {
                 console.error('Error creating invoice items:', itemError);
-                throw new Error(`Failed to create invoice items: ${itemError.message}`);
+                // No need to rollback here if the outer catch will handle it, 
+                // but re-throwing ensures the main transaction fails.
+                throw itemError; // Re-throw to be caught by the outer transaction catch block
             }
         }
         

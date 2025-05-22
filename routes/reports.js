@@ -1,6 +1,6 @@
 const express = require('express');
 const { Sequelize, Op } = require('sequelize');
-const { Report, Client, ReportTechnicalTest } = require('../models'); // Added ReportTechnicalTest
+const { Report, Client, ReportTechnicalTest, Invoice } = require('../models'); // Added ReportTechnicalTest and Invoice
 const { clientAuth } = require('../middleware/auth'); // Import clientAuth middleware
 
 const router = express.Router();
@@ -68,11 +68,23 @@ router.get('/', async (req, res) => {
     console.log('Backend: ID not provided or falsy. Processing request for ALL reports.');
     // Fetch all reports (existing logic)
     try {
-      console.log('Fetching all reports');
+      console.log('Fetching all reports eligible for invoicing');
+      // We need to import the Invoice model at the top of the file
+      // const { Report, Client, ReportTechnicalTest, Invoice } = require('../models');
+      const { Invoice } = require('../models'); // Assuming Invoice is already destructured or add it.
+
       const reports = await Report.findAll({
+        where: {
+          billing_enabled: true, // Only fetch reports marked for billing
+          id: {
+            [Op.notIn]: [
+              Sequelize.literal(`SELECT report_id FROM invoices WHERE report_id IS NOT NULL`)
+            ]
+          }
+        },
         include: {
           model: Client,
-          attributes: ['id', 'name', 'phone', 'email'], // Original attributes for all reports list
+          attributes: ['id', 'name', 'phone', 'email'],
         },
         order: [['created_at', 'DESC']],
       });

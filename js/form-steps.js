@@ -26,19 +26,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const formSteps = document.querySelectorAll('.form-step');
     const stepButtons = document.querySelectorAll('.step-button');
     const stepItems = document.querySelectorAll('.step-item');
-    const nextButtons = document.querySelectorAll('.btn-next-step');
-    const prevButtons = document.querySelectorAll('.btn-prev-step');
+    
+    // Centralized navigation buttons
+    const globalNextBtn = document.getElementById('globalNextBtn');
+    const globalPrevBtn = document.getElementById('globalPrevBtn');
+    const submitBtn = document.getElementById('submitReportBtn');
     const progressBar = document.querySelector('.steps-progress-bar');
     
-    let     currentStep = 0;
+    let currentStep = 0;
     
     // Initialize form
     showStep(currentStep);
     updateProgressBar();
     
-    // Event listeners for next/prev buttons
-    nextButtons.forEach(button => {
-        button.addEventListener('click', function() {
+    // Event listener for centralized next button
+    if (globalNextBtn) {
+        globalNextBtn.addEventListener('click', function() {
             // Hide all step errors before validation
             if (typeof hideAllStepErrors === 'function') {
                 hideAllStepErrors();
@@ -191,15 +194,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-    });
+    }
     
-    prevButtons.forEach(button => {
-        button.addEventListener('click', () => {
+    // Event listener for previous button
+    if (globalPrevBtn) {
+        globalPrevBtn.addEventListener('click', function() {
             currentStep--;
             showStep(currentStep);
             updateProgressBar();
         });
-    });
+    }
     
     // Allow clicking directly on step indicators (if previous steps are complete)
     stepButtons.forEach((button, index) => {
@@ -214,47 +218,61 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show specific step and update indicators
     function showStep(stepIndex) {
-        // Hide all steps
-        formSteps.forEach(step => {
+        // Hide all form steps
+        formSteps.forEach((step, index) => {
             step.style.display = 'none';
         });
         
-        // Show current step
-        formSteps[stepIndex].style.display = 'block';
+        // Show the current step
+        if (formSteps[stepIndex]) {
+            formSteps[stepIndex].style.display = 'block';
+            
+            // Scroll to the top of the step
+            formSteps[stepIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         
         // Update step indicators
-        stepItems.forEach((item, idx) => {
-            if (idx < stepIndex) {
-                // Completed steps
-                item.classList.remove('active');
+        stepItems.forEach((item, index) => {
+            // Reset all steps
+            item.classList.remove('active', 'completed');
+            const button = item.querySelector('.step-button');
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-outline-primary');
+            
+            // Mark current and previous steps
+            if (index < stepIndex) {
+                // Previous steps: completed
                 item.classList.add('completed');
-                item.querySelector('.step-button').classList.remove('btn-outline-primary', 'btn-primary');
-                item.querySelector('.step-button').classList.add('btn-success');
-                // Add check icon
-                item.querySelector('.step-button').innerHTML = '<i class="fas fa-check"></i>';
-            } else if (idx === stepIndex) {
-                // Current step
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-primary');
+            } else if (index === stepIndex) {
+                // Current step: active
                 item.classList.add('active');
-                item.classList.remove('completed');
-                item.querySelector('.step-button').classList.remove('btn-outline-primary', 'btn-success');
-                item.querySelector('.step-button').classList.add('btn-primary');
-                // Restore step number
-                item.querySelector('.step-button').textContent = idx + 1;
-            } else {
-                // Future steps
-                item.classList.remove('active', 'completed');
-                item.querySelector('.step-button').classList.remove('btn-primary', 'btn-success');
-                item.querySelector('.step-button').classList.add('btn-outline-primary');
-                // Restore step number
-                item.querySelector('.step-button').textContent = idx + 1;
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-primary');
             }
         });
         
-        // Show/hide prev button based on step
-        if (stepIndex === 0) {
-            document.querySelectorAll('.btn-prev-step').forEach(btn => btn.style.display = 'none');
+        // Update centralized navigation buttons
+        if (globalPrevBtn) {
+            globalPrevBtn.style.display = stepIndex === 0 ? 'none' : 'inline-block';
+        }
+        
+        // Handle the last step for Submit button
+        if (stepIndex === formSteps.length - 1) {
+            if (globalNextBtn) {
+                globalNextBtn.style.display = 'none';
+            }
+            if (submitBtn) {
+                submitBtn.style.display = 'inline-block';
+            }
         } else {
-            document.querySelectorAll('.btn-prev-step').forEach(btn => btn.style.display = 'inline-block');
+            if (globalNextBtn) {
+                globalNextBtn.style.display = 'inline-block';
+            }
+            if (submitBtn) {
+                submitBtn.style.display = 'none';
+            }
         }
         
         // Change next button text on last step
@@ -875,65 +893,77 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (!client_id) {
                                 console.warn('No client ID available for invoice creation - skipping invoice');
                             } else {
-                                // Get values from the invoice form fields
-                                const deviceName = document.getElementById('invoiceDeviceName')?.value || window.globalDeviceDetails?.deviceModel || savedReport.deviceModel || '';
-                                const serialNumber = document.getElementById('invoiceSerialNumber')?.value || window.globalDeviceDetails?.serialNumber || savedReport.serialNumber || '';
-                                const price = parseFloat(document.getElementById('invoicePrice')?.value || '250');
-                                const taxRate = parseFloat(document.getElementById('taxRate')?.value || '14');
-                                const discount = parseFloat(document.getElementById('discount')?.value || '0');
-                                
-                                // Calculate totals
-                                const subtotal = price;
-                                const tax = (subtotal * taxRate) / 100; // Convert tax rate from percentage to decimal
-                                const total = subtotal + tax - discount;
-                                
-                                console.log('Invoice details:', { deviceName, serialNumber, price, taxRate, discount, subtotal, tax, total });
-                                
-                                // Create basic invoice data with all required fields
-                                const invoiceData = {
-                                    reportId: savedReport.id,
-                                    client_id: client_id,
-                                    subtotal: subtotal,
-                                    tax: tax,
-                                    taxRate: taxRate,
-                                    discount: discount,
-                                    total: total,
-                                    paymentStatus: 'unpaid',
-                                    items: []
+                                // 1. Collect form details for invoice generation
+                                const deviceName = document.getElementById('invoiceDeviceName')?.value || window.globalDeviceDetails?.deviceModel || (savedReport && savedReport.deviceModel) || '';
+                                const serialNumber = document.getElementById('invoiceSerialNumber')?.value || window.globalDeviceDetails?.serialNumber || (savedReport && savedReport.serialNumber) || '';
+                                const price = parseFloat(document.getElementById('invoicePrice')?.value || '0'); // Default to 0, as price might not always be applicable (e.g. warranty)
+                                const formTaxRate = parseFloat(document.getElementById('taxRate')?.value || '14'); // Default to 14 if not found in form
+                                const formDiscount = parseFloat(document.getElementById('discount')?.value || '0');
+                                const formNotes = document.getElementById('invoiceNotes')?.value || ''; // Assuming an ID 'invoiceNotes' for notes field
+
+                                const invoiceFormDetails = {
+                                    laptops: [],
+                                    additionalItems: [], // Populate this if form-steps.js has a section for additional items
+                                    paymentStatus: 'unpaid', // Default, can be overridden by form if a field exists
+                                    paymentMethod: null,     // Default, can be overridden by form
+                                    taxRate: formTaxRate,
+                                    discount: formDiscount,
+                                    notes: formNotes
                                 };
-                                
-                                // Log the exact data being sent to the API
-                                console.log('Invoice data being sent to API:', JSON.stringify(invoiceData, null, 2));
-                                
-                                // Add device as an item
-                                if (deviceName) {
-                                    invoiceData.items.push({
-                                        description: deviceName + (serialNumber ? ` (SN: ${serialNumber})` : ''),
-                                        type: 'laptop',
-                                        amount: price,
-                                        quantity: 1,
-                                        totalAmount: price,
-                                        serialNumber: serialNumber
+
+                                if (deviceName || price > 0) { // Only add as a laptop item if there's a device name or a price
+                                    invoiceFormDetails.laptops.push({
+                                        name: deviceName,
+                                        serial: serialNumber,
+                                        price: price,
+                                        quantity: 1 // Assuming quantity 1 for the main device from this form
                                     });
                                 }
-                                
-                                // Try to save invoice to API but don't block on failure
+
+                                // 2. Generate the complete invoice object using window.generateInvoice (from invoice-generator.js)
+                                let completeInvoiceData;
+                                if (typeof window.generateInvoice === 'function') {
+                                    completeInvoiceData = window.generateInvoice(savedReport, invoiceFormDetails);
+                                    console.log('Complete invoice data generated by invoiceGenerator.js:', JSON.stringify(completeInvoiceData, null, 2));
+                                } else {
+                                    console.error('window.generateInvoice function is not available. Cannot create detailed invoice data.');
+                                    // Set to null or an empty object to prevent sending malformed data, or throw an error
+                                    completeInvoiceData = null; 
+                                }
+
+                                // 3. Try to save the complete invoice data to API
                                 try {
-                                    // Use the apiService reference defined at the top of the file
-                                    if (currentApiService && typeof currentApiService.createInvoice === 'function') {
-                                        invoice = await currentApiService.createInvoice(invoiceData);
+                                    if (currentApiService && typeof currentApiService.createInvoice === 'function' && completeInvoiceData) {
+                                        invoice = await currentApiService.createInvoice(completeInvoiceData);
                                         console.log('Invoice saved to API:', invoice);
                                     } else {
-                                        console.warn('API service not available for invoice creation');
-                                        invoice = generateInvoice(savedReport);
+                                        if (!completeInvoiceData) {
+                                            console.warn('Invoice data could not be generated by invoiceGenerator.js. Skipping API call.');
+                                        } else {
+                                            console.warn('API service not available for invoice creation. Attempting local generation.');
+                                        }
+                                        // Fallback to local generation if API service not available OR if completeInvoiceData was not generated
+                                        if (typeof window.generateInvoice === 'function') {
+                                            invoice = window.generateInvoice(savedReport, invoiceFormDetails); // Use the same detailed generator
+                                            console.log('Local invoice generated (API service/data issue):', invoice);
+                                        } else {
+                                            console.error('Fallback invoice generation also not possible as window.generateInvoice is missing.');
+                                            invoice = null; 
+                                        }
                                     }
                                 } catch (apiError) {
-                                    console.warn('Invoice creation failed but continuing with report creation:', apiError);
-                                    // Generate a local invoice as fallback
+                                    console.warn('Invoice creation via API failed, attempting local fallback:', apiError);
                                     try {
-                                        invoice = generateInvoice(savedReport);
+                                        if (typeof window.generateInvoice === 'function') {
+                                            invoice = window.generateInvoice(savedReport, invoiceFormDetails); // Use the same detailed generator
+                                            console.log('Fallback local invoice generated (API error):', invoice);
+                                        } else {
+                                            console.error('Fallback invoice generation also not possible as window.generateInvoice is missing.');
+                                            invoice = null;
+                                        }
                                     } catch (fallbackError) {
                                         console.error('Even fallback invoice generation failed:', fallbackError);
+                                        invoice = null;
                                     }
                                 }
                             }

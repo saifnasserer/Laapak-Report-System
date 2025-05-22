@@ -163,6 +163,12 @@ class ApiService {
         return this.request(`/api/clients/${clientId}`, 'DELETE');
     }
 
+    // Invoice Management API Methods
+    async saveInvoice(invoiceData) {
+        console.log('ApiService: Attempting to save invoice with payload:', invoiceData);
+        return this.request('/api/invoices', 'POST', invoiceData);
+    }
+
     // User Management API Methods
     async getAdmins() {
         return this.request('/api/users/admins');
@@ -523,77 +529,82 @@ class ApiService {
     async createInvoice(invoiceData) {
         console.log('Creating invoice with data:', invoiceData);
         try {
-            // Ensure we have at least one item in the items array
-            let items = [];
-            
-            // If items array exists and has items, use it
-            if (Array.isArray(invoiceData.items) && invoiceData.items.length > 0) {
-                items = invoiceData.items.map(item => ({
-                    description: item.description || '',
-                    quantity: Number(item.quantity || 1),
-                    unit_price: Number(item.unit_price || item.amount || 0),
-                    total: Number(item.total || item.totalAmount || (item.unit_price * item.quantity) || 0)
-                }));
-            } 
-            // If no items but we have device information, create an item from it
-            else if (invoiceData.deviceModel || invoiceData.device_model || invoiceData.serialNumber || invoiceData.serial_number) {
-                const deviceName = invoiceData.deviceModel || invoiceData.device_model || 'Device';
-                const serialNumber = invoiceData.serialNumber || invoiceData.serial_number || '';
-                const price = Number(invoiceData.subtotal || invoiceData.amount || 0);
-                
-                items.push({
-                    description: deviceName + (serialNumber ? ` (SN: ${serialNumber})` : ''),
-                    quantity: 1,
-                    unit_price: price,
-                    total: price
-                });
+            console.log('ApiService.createInvoice received data:', JSON.stringify(invoiceData, null, 2));
+
+            // --- Essential Validations ---
+            if (!invoiceData) {
+                throw new Error('Invoice data is undefined or null.');
             }
-            // Default fallback item if nothing else is available
-            else {
-                items.push({
-                    description: 'Service Fee',
-                    quantity: 1,
-                    unit_price: Number(invoiceData.subtotal || invoiceData.amount || 0),
-                    total: Number(invoiceData.total || invoiceData.subtotal || invoiceData.amount || 0)
-                });
+            if (!invoiceData.id || typeof invoiceData.id !== 'string') {
+                throw new Error('Invoice ID (invoiceData.id) is missing or not a string.');
             }
-            
-            // Generate a unique invoice number
-            const invoiceNumber = invoiceData.invoice_number || ('INV' + Date.now() + Math.floor(Math.random() * 1000));
-            
-            // Get client details from the input data
-            const clientId = Number(invoiceData.clientId || invoiceData.client_id || 0);
-            const clientName = invoiceData.clientName || invoiceData.client_name || '';
-            const clientPhone = invoiceData.clientPhone || invoiceData.client_phone || '';
-            const clientEmail = (invoiceData.clientEmail || invoiceData.client_email || '').trim() === '' ? null : 
-                               (invoiceData.clientEmail || invoiceData.client_email);
-            const clientAddress = invoiceData.clientAddress || invoiceData.client_address || '';
-            
-            // Format the data according to what the route expects
-            const formattedData = {
-                invoice_number: invoiceNumber,
-                report_id: invoiceData.reportId || invoiceData.report_id || null,
-                client_id: clientId,
-                client_name: clientName,
-                client_phone: clientPhone,
-                client_email: clientEmail,
-                client_address: clientAddress,
+            if (typeof invoiceData.client_id !== 'number' || invoiceData.client_id <= 0) {
+                throw new Error('Client ID (invoiceData.client_id) must be a valid positive number.');
+            }
+            if (!invoiceData.date || isNaN(new Date(invoiceData.date).getTime())) {
+                throw new Error('Invoice date (invoiceData.date) is missing or invalid.');
+            }
+             if (invoiceData.report_id && typeof invoiceData.report_id !== 'string') { // report_id is optional
+                throw new Error('Report ID (invoiceData.report_id) must be a string if provided.');
+            }
+            if (!Array.isArray(invoiceData.items)) {
+                throw new Error('Invoice items (invoiceData.items) must be an array.');
+            }
+
+            // --- Construct a clean payload based on the database schema ---
+            const payload = {
+                id: invoiceData.id,
+                client_id: Number(invoiceData.client_id),
+                date: new Date(invoiceData.date).toISOString(), // Ensure ISO format
+                report_id: invoiceData.report_id || null, // Can be null
                 subtotal: Number(invoiceData.subtotal || 0),
-                tax: Number(invoiceData.tax || 0),
                 discount: Number(invoiceData.discount || 0),
+                taxRate: Number(invoiceData.taxRate || 0), // Ensure taxRate is present
+                tax: Number(invoiceData.tax || 0),
                 total: Number(invoiceData.total || 0),
-                notes: invoiceData.notes || '',
-                status: invoiceData.status || invoiceData.paymentStatus || 'pending',
-                items: items
+                paymentStatus: invoiceData.paymentStatus || 'unpaid',
+                paymentMethod: invoiceData.paymentMethod || null,
+                paymentDate: invoiceData.paymentDate ? new Date(invoiceData.paymentDate).toISOString() : null,
+                items: []
             };
+
+            // Validate and map items
+            payload.items = invoiceData.items.map(item => {
+                if (!item.description || typeof item.description !== 'string') {
+                    throw new Error('Item description is missing or not a string.');
+                }
+
+                // Determine the unit price: invoice-generator.js provides 'amount' for the unit price in its items.
+                const unitPrice = item.amount ?? item.price; // Prefer item.amount as invoice-generator produces it.
+                // Determine the line total: invoice-generator.js provides 'totalAmount'.
+                const lineTotal = item.totalAmount ?? item.total;
+
+                if (typeof unitPrice !== 'number' || unitPrice < 0) { 
+                    throw new Error('Item unit price (from item.amount or item.price) is missing or not a valid non-negative number.');
+                }
+                if (typeof lineTotal !== 'number' || lineTotal < 0) { 
+                    throw new Error('Item line total (from item.totalAmount or item.total) is missing or not a valid non-negative number.');
+                }
+
+                return {
+                    invoiceId: payload.id, // Link to the main invoice
+                    description: item.description,
+                    type: item.type || 'service', // Default to 'service' if not provided
+                    amount: Number(unitPrice), // This is unit_price, maps to 'amount' in DB invoice_items table
+                    quantity: Number(item.quantity || 1),
+                    totalAmount: Number(lineTotal), // This is line total, maps to 'totalAmount' in DB
+                    serialNumber: item.serialNumber || item.serial || null // Prefer item.serialNumber from invoice-generator
+                };
+            });
             
-            // Validate client_id is a number and greater than 0
-            if (isNaN(formattedData.client_id) || formattedData.client_id <= 0) {
-                throw new Error('Client ID must be a valid number');
+            // Final check on client_id (redundant with above but good for safety)
+            if (isNaN(payload.client_id) || payload.client_id <= 0) {
+                console.error('CRITICAL: Client ID became invalid after processing:', payload.client_id, 'Original:', invoiceData.client_id);
+                throw new Error('Client ID is invalid in the final payload.');
             }
-            
-            console.log('Creating invoice with formatted data:', formattedData);
-            return this.request('/api/invoices', 'POST', formattedData);
+
+            console.log('ApiService.createInvoice is sending payload:', JSON.stringify(payload, null, 2));
+            return this.request('/api/invoices', 'POST', payload);
         } catch (error) {
             console.error('Error formatting invoice data:', error);
             throw error;

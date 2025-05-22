@@ -56,22 +56,7 @@ function initPage() {
  * Set up event listeners for the page
  */
 function setupEventListeners() {
-    // Select all reports checkbox
-    const selectAllCheckbox = document.getElementById('selectAllReports');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            const isChecked = this.checked;
-            const checkboxes = document.querySelectorAll('.report-checkbox');
-            
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = isChecked;
-                
-                // Trigger change event to update selected reports
-                const changeEvent = new Event('change');
-                checkbox.dispatchEvent(changeEvent);
-            });
-        });
-    }
+    // Global selectAllReports checkbox logic removed as per new requirement.
     
     // Filter buttons
     const applyFiltersBtn = document.getElementById('applyFiltersBtn');
@@ -89,7 +74,7 @@ function setupEventListeners() {
     if (generateInvoiceBtn) {
         generateInvoiceBtn.addEventListener('click', function() {
             if (selectedReports.length > 0) {
-                showInvoiceSettingsModal();
+                initiateDirectInvoiceCreation();
             } else {
                 showToast('الرجاء تحديد تقرير واحد على الأقل', 'warning');
             }
@@ -457,199 +442,310 @@ function getMockReports() {
 function displayReports(reports) {
     const reportsTableBody = document.getElementById('reportsTableBody');
     if (!reportsTableBody) return;
-    
-    // Clear table
-    reportsTableBody.innerHTML = '';
-    
-    // Check if there are reports to display
+
+    reportsTableBody.innerHTML = ''; // Clear existing rows
+
     if (!reports || reports.length === 0) {
-        reportsTableBody.innerHTML = `
-            <tr class="text-center">
-                <td colspan="7" class="py-5 text-muted">
-                    <i class="fas fa-file-alt me-2"></i>
-                    لا توجد تقارير بدون فواتير
-                </td>
-            </tr>
-        `;
+        reportsTableBody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد تقارير متاحة حاليًا.</td></tr>';
         return;
     }
-    
+
     // Group reports by client
-    const reportsByClient = {};
-    reports.forEach(report => {
-        // Ensure client_id is a valid value
-        const clientId = report.client_id || 0;
-        if (!reportsByClient[clientId]) {
-            reportsByClient[clientId] = [];
+    const reportsByClient = reports.reduce((acc, report) => {
+        const clientId = report.client_id;
+        if (!acc[clientId]) {
+            acc[clientId] = {
+                clientName: report.client_name || (clientsData.find(c => c.id === clientId)?.name || 'عميل غير معروف'),
+                clientPhone: report.client_phone || (clientsData.find(c => c.id === clientId)?.phone || 'غير متوفر'),
+                reports: []
+            };
         }
-        reportsByClient[clientId].push(report);
-    });
-    
-    // Display reports grouped by client
-    Object.keys(reportsByClient).forEach(client_id => {
-        const clientReports = reportsByClient[client_id];
+        acc[clientId].reports.push(report);
+        return acc;
+    }, {});
+
+    Object.keys(reportsByClient).forEach(clientId => {
+        const clientGroup = reportsByClient[clientId];
         
-        // Get client name from the first report with a valid name
-        let clientName = 'عميل غير معروف'; // Default to "Unknown Client" in Arabic
-        for (const report of clientReports) {
-            if (report.clientName && report.clientName.trim() !== '') {
-                clientName = report.clientName;
-                break;
-            } else if (report.client_name && report.client_name.trim() !== '') {
-                clientName = report.client_name;
-                break;
-            }
-        }
-        
-        // Add client header row
-        const clientRow = document.createElement('tr');
-        clientRow.className = 'table-light';
-        clientRow.innerHTML = `
-            <td colspan="7" class="fw-bold">
-                <i class="fas fa-user me-2"></i> ${clientName}
-                <span class="badge bg-primary rounded-pill ms-2">${clientReports.length}</span>
+        // Add client header row with a "Select All" checkbox for this client
+        const clientHeaderRow = document.createElement('tr');
+        clientHeaderRow.classList.add('table-light', 'client-group-header');
+        clientHeaderRow.innerHTML = `
+            <td colspan="2">
+                <div class="form-check">
+                    <input class="form-check-input client-select-all" type="checkbox" id="selectAllClient-${clientId}" data-client-id="${clientId}">
+                    <label class="form-check-label fw-bold" for="selectAllClient-${clientId}">
+                        ${clientGroup.clientName} (${clientGroup.clientPhone})
+                    </label>
+                </div>
             </td>
+            <td colspan="5"></td>
         `;
-        reportsTableBody.appendChild(clientRow);
-        
-        // Add report rows for this client
-        clientReports.forEach(report => {
+        reportsTableBody.appendChild(clientHeaderRow);
+
+        clientGroup.reports.forEach(report => {
             const row = document.createElement('tr');
-            row.setAttribute('data-report-id', report.id);
-            
-            // Format date - handle invalid dates
-            let formattedDate = 'غير محدد'; // Default to "Not specified" in Arabic
-            if (report.inspectionDate) {
-                try {
-                    const date = new Date(report.inspectionDate);
-                    if (!isNaN(date.getTime())) {
-                        // Use ISO format (YYYY-MM-DD) instead of Arabic locale
-                        formattedDate = date.toISOString().split('T')[0];
-                    }
-                } catch (e) {
-                    console.warn('Invalid date:', report.inspectionDate);
-                }
-            } else if (report.inspection_date) {
-                try {
-                    const date = new Date(report.inspection_date);
-                    if (!isNaN(date.getTime())) {
-                        // Use ISO format (YYYY-MM-DD) instead of Arabic locale
-                        formattedDate = date.toISOString().split('T')[0];
-                    }
-                } catch (e) {
-                    console.warn('Invalid date:', report.inspection_date);
-                }
-            }
-            
-            // Ensure amount is a valid number by converting to Number and defaulting to 0 if NaN
-            const amount = parseFloat(report.amount) || 0;
-            const formattedAmount = `${amount.toFixed(2)} جنية`;
-            
-            // Get device model
-            let deviceModel = 'غير محدد'; // Default to "Not specified" in Arabic
-            if (report.deviceModel && report.deviceModel.trim() !== '') {
-                deviceModel = report.deviceModel;
-            } else if (report.device_model && report.device_model.trim() !== '') {
-                deviceModel = report.device_model;
-            }
-            
+            row.dataset.reportId = report.id;
             row.innerHTML = `
-                <td class="text-center">
-                    <div class="form-check">
-                        <input class="form-check-input report-checkbox" type="checkbox" value="${report.id}" id="report_${report.id}">
-                        <label class="form-check-label" for="report_${report.id}"></label>
-                    </div>
-                </td>
-                <td>${clientName}</td>
-                <td>${report.id}</td>
-                <td>${deviceModel}</td>
-                <td>${formattedDate}</td>
-                <td class="text-success fw-bold">${formattedAmount}</td>
                 <td>
-                    <button type="button" class="btn btn-sm btn-outline-primary view-report-btn" data-report-id="${report.id}" data-bs-toggle="tooltip" title="عرض التقرير">
+                    <input class="form-check-input report-checkbox client-${clientId}-report" type="checkbox" value="${report.id}" id="report-${report.id}" data-client-id="${clientId}">
+                </td>
+                <td>${report.id}</td>
+                <td>${report.client_name || 'N/A'}</td>
+                <td>${report.device_model || 'N/A'}</td>
+                <td>${new Date(report.inspection_date).toLocaleDateString()}</td>
+                <td><span class="badge bg-${getReportStatusBadge(report.status)}">${getReportStatusText(report.status)}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary view-report-btn" data-report-id="${report.id}" title="عرض التقرير">
                         <i class="fas fa-eye"></i>
                     </button>
                 </td>
             `;
-            
             reportsTableBody.appendChild(row);
-            
-            // Add event listener for checkbox
-            const checkbox = row.querySelector('.report-checkbox');
-            checkbox.addEventListener('change', function() {
+
+            // Event listener for individual report checkbox
+            const reportCheckbox = row.querySelector('.report-checkbox');
+            reportCheckbox.addEventListener('change', function() {
+                const reportId = report.id; // Get the ID from the report object in the closure
                 if (this.checked) {
-                    // Add report to selected reports
-                    if (!selectedReports.includes(report.id)) {
-                        selectedReports.push(report.id);
+                    // Ensure we are storing only IDs and avoid duplicates
+                    if (!selectedReports.includes(reportId)) {
+                        selectedReports.push(reportId);
                     }
                 } else {
-                    // Remove report from selected reports
-                    const index = selectedReports.indexOf(report.id);
-                    if (index !== -1) {
-                        selectedReports.splice(index, 1);
-                    }
+                    // Filter out the ID
+                    selectedReports = selectedReports.filter(id => id !== reportId);
                 }
-                
-                // Update selected reports count and total amount
                 updateSelectedReportsSummary();
-                
-                // Enable/disable generate invoice button
-                const generateInvoiceBtn = document.getElementById('generateInvoiceBtn');
-                if (generateInvoiceBtn) {
-                    generateInvoiceBtn.disabled = selectedReports.length === 0;
-                }
-            });
-            
-            // Add event listener for view report button
-            const viewReportBtn = row.querySelector('.view-report-btn');
-            viewReportBtn.addEventListener('click', function() {
-                const reportId = this.getAttribute('data-report-id');
-                viewReport(reportId);
+                updateClientSelectAllState(clientId);
             });
         });
     });
-    
-    // Initialize tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function(tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+
+    // Add event listeners for per-client select-all checkboxes
+    document.querySelectorAll('.client-select-all').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const currentClientId = this.dataset.clientId;
+            const isChecked = this.checked;
+            document.querySelectorAll(`.report-checkbox.client-${currentClientId}-report`).forEach(reportCb => {
+                if (reportCb.checked !== isChecked) {
+                    reportCb.checked = isChecked;
+                    // Manually trigger change event to update selectedReports array and summary
+                    const changeEvent = new Event('change', { bubbles: true });
+                    reportCb.dispatchEvent(changeEvent);
+                }
+            });
+        });
     });
+
+    // Add event listeners for view report buttons
+    document.querySelectorAll('.view-report-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            viewReport(this.dataset.reportId);
+        });
+    });
+}
+
+function updateClientSelectAllState(clientId) {
+    const clientCheckboxes = document.querySelectorAll(`.report-checkbox.client-${clientId}-report`);
+    const clientSelectAllCheckbox = document.getElementById(`selectAllClient-${clientId}`);
+    if (!clientSelectAllCheckbox) return;
+
+    const allChecked = Array.from(clientCheckboxes).every(cb => cb.checked);
+    const someChecked = Array.from(clientCheckboxes).some(cb => cb.checked);
+
+    clientSelectAllCheckbox.checked = allChecked;
+    clientSelectAllCheckbox.indeterminate = !allChecked && someChecked;
+}
+
+// Helper function to get status badge (assuming it exists or you'll add it)
+function getReportStatusBadge(status) {
+    const statusMap = {
+        'pending': 'warning',
+        'in-progress': 'info',
+        'completed': 'success',
+        'cancelled': 'danger',
+        'active': 'primary' // Assuming 'active' means ready for invoicing or similar
+    };
+    return statusMap[status.toLowerCase()] || 'secondary';
+}
+
+// New function to handle direct invoice creation
+function initiateDirectInvoiceCreation() {
+    if (selectedReports.length === 0) {
+        showToast('الرجاء تحديد تقرير واحد على الأقل لإنشاء فاتورة.', 'warning');
+        return;
+    }
+
+    // Get the ID of the first selected report
+    const firstReportId = selectedReports[0];
+    // Find the full report object from reportsData using this ID
+    const firstReportObject = reportsData.find(report => report.id === firstReportId);
+
+    if (!firstReportObject) {
+        console.error('[initiateDirectInvoiceCreation] Could not find the full report object for ID:', firstReportId, 'in reportsData. selectedReports:', selectedReports, 'reportsData sample:', reportsData.slice(0,2));
+        showToast('خطأ: لم يتم العثور على بيانات التقرير المحدد. لا يمكن إنشاء الفاتورة.', 'error');
+        const createInvoiceBtn = document.getElementById('createDirectInvoiceBtn');
+        if(createInvoiceBtn) {
+            createInvoiceBtn.disabled = false;
+            createInvoiceBtn.innerHTML = createInvoiceBtn.dataset.originalText || 'إنشاء فاتورة مباشرة';
+        }
+        return;
+    }
+
+    const clientId = firstReportObject.client_id;
+
+    if (!clientId || clientId === 0 || clientId === '0') {
+        console.error('[initiateDirectInvoiceCreation] Invalid or missing client_id from the first selected report object:', firstReportObject);
+        showToast('خطأ: لم يتم العثور على معرف عميل صالح للتقرير المحدد. لا يمكن إنشاء الفاتورة.', 'error');
+        const createInvoiceBtn = document.getElementById('createDirectInvoiceBtn'); 
+        if(createInvoiceBtn) {
+            createInvoiceBtn.disabled = false;
+            createInvoiceBtn.innerHTML = createInvoiceBtn.dataset.originalText || 'إنشاء فاتورة مباشرة';
+        }
+        return;
+    }
+    console.log('[initiateDirectInvoiceCreation] Using client_id:', clientId, 'from report object:', firstReportObject);
+
+    showToast('جاري إنشاء الفاتورة...', 'info');
+
+    // 1. Prepare Default Invoice Settings
+    const today = new Date();
+    const defaultInvoiceSettings = {
+        title: `فاتورة بتاريخ ${today.toLocaleDateString('ar-SA')}`,
+        date: today.toISOString().split('T')[0], // YYYY-MM-DD format
+        taxRate: parseFloat(localStorage.getItem('lpk_default_tax_rate')) || 15,
+        discountRate: parseFloat(localStorage.getItem('lpk_default_discount_rate')) || 0,
+        paymentMethod: localStorage.getItem('lpk_default_payment_method') || 'bank_transfer',
+        notes: 'تم إنشاء هذه الفاتورة مباشرةً.',
+        client_id: parseInt(clientId, 10), // Set client_id
+        report_ids: selectedReports // selectedReports already contains just IDs
+    };
+
+    // 2. Prepare Invoice Items from Selected Reports
+    // 2. Prepare Invoice Items from Selected Reports
+    // Map over selectedReport IDs to get full report objects from reportsData
+    const defaultInvoiceItems = selectedReports.map((reportId, index) => {
+        const reportObject = reportsData.find(r => r.id === reportId);
+        if (!reportObject) {
+            console.warn(`[initiateDirectInvoiceCreation] Could not find report object for ID ${reportId} when creating items. Skipping.`);
+            return null; // Or handle error appropriately
+        }
+        const reportAmount = parseFloat(reportObject.amount) || 0;
+        return {
+            id: `item-${reportObject.id}-${index}-${Date.now()}`,
+            description: `${reportObject.device_model || 'جهاز غير محدد'} (${reportObject.id})`,
+            quantity: 1,
+            unitPrice: reportAmount,
+            total: reportAmount,
+            type: 'item',
+            report_id: reportObject.id
+        };
+    }).filter(item => item !== null); // Remove any nulls if reports weren't found
+
+    // 3. Set localStorage for saveInvoice to pick up
+    localStorage.setItem('lpk_invoice_settings', JSON.stringify(defaultInvoiceSettings));
+    localStorage.setItem('lpk_invoice_items', JSON.stringify(defaultInvoiceItems));
+
+    // 4. Call the original saveInvoice function
+    saveInvoice();
+}
+
+// Helper function to get status text (assuming it exists or you'll add it)
+function getReportStatusText(status) {
+    // This could be more sophisticated, perhaps fetching from a localization object
+    const statusTextMap = {
+        'pending': 'قيد الانتظار',
+        'in-progress': 'قيد التنفيذ',
+        'completed': 'مكتمل',
+        'cancelled': 'ملغي',
+        'active': 'نشط'
+    };
+    return statusTextMap[status.toLowerCase()] || status;
 }
 
 /**
  * Update the selected reports summary
  */
+// Helper function for currency formatting (can be made more sophisticated)
+function formatCurrency(amount, currency = 'جنية') {
+    if (typeof amount !== 'number') {
+        amount = 0;
+    }
+    return `${amount.toFixed(2)} ${currency}`;
+}
+
 function updateSelectedReportsSummary() {
-    const selectedCount = document.getElementById('selectedCount');
-    const totalAmount = document.getElementById('totalAmount');
+    console.log('[updateSelectedReportsSummary] Called. selectedReports length:', selectedReports.length);
+    // Log only relevant parts to avoid overly verbose logs if reports are large objects
+    // console.log('[updateSelectedReportsSummary] selectedReports content (IDs and amounts):', JSON.stringify(selectedReports.map(r => ({id: r.id, amount: r.amount}))));
+
+    const generateInvoiceBtn = document.getElementById('generateInvoiceBtn');
+    if (generateInvoiceBtn) {
+        generateInvoiceBtn.disabled = selectedReports.length === 0;
+        // console.log('[updateSelectedReportsSummary] generateInvoiceBtn.disabled set to:', generateInvoiceBtn.disabled);
+    } else {
+        console.warn('[updateSelectedReportsSummary] generateInvoiceBtn not found!');
+    }
+
+    const selectedCountElement = document.getElementById('selectedCount');
+    if (selectedCountElement) {
+        selectedCountElement.textContent = selectedReports.length;
+    } else {
+        console.warn('[updateSelectedReportsSummary] selectedCountElement (ID: selectedCount) not found!');
+    }
+
+    let currentTotalAmount = 0;
+    try {
+        selectedReports.forEach(reportObject => { // Assuming selectedReports contains full report objects
+            if (reportObject && typeof reportObject.amount !== 'undefined') {
+                const amount = parseFloat(reportObject.amount);
+                if (!isNaN(amount)) {
+                    currentTotalAmount += amount;
+                } else {
+                    console.warn('[updateSelectedReportsSummary] Invalid amount for report:', reportObject.id, 'amount:', reportObject.amount);
+                }
+            } else {
+                console.warn('[updateSelectedReportsSummary] Selected report object is missing or has no amount property:', reportObject ? reportObject.id : 'undefined report object in selectedReports');
+            }
+        });
+    } catch (error) {
+        console.error('[updateSelectedReportsSummary] Error calculating total amount:', error);
+    }
     
-    if (!selectedCount || !totalAmount) return;
-    
-    // Calculate total amount
-    let total = 0;
-    selectedReports.forEach(reportId => {
-        const report = reportsData.find(r => r.id === reportId);
-        if (report) {
-            // Ensure amount is a valid number
-            const amount = parseFloat(report.amount) || 0;
-            total += amount;
-        }
-    });
-    
-    // Update UI
-    selectedCount.textContent = selectedReports.length;
-    totalAmount.textContent = `${total.toFixed(2)} جنية`;
-    
+    const totalAmountElement = document.getElementById('totalAmount');
+    if (totalAmountElement) {
+        totalAmountElement.textContent = formatCurrency(currentTotalAmount);
+    } else {
+        console.warn('[updateSelectedReportsSummary] totalAmountElement (ID: totalAmount) not found!');
+    }
+
     // Also update the second count display if it exists
-    const selectedCount2 = document.getElementById('selectedCount2');
-    const totalAmount2 = document.getElementById('totalAmount2');
-    if (selectedCount2) selectedCount2.textContent = selectedReports.length;
-    if (totalAmount2) totalAmount2.textContent = `${total.toFixed(2)} جنية`;
+    const selectedCount2Element = document.getElementById('selectedCount2');
+    const totalAmount2Element = document.getElementById('totalAmount2');
+    if (selectedCount2Element) {
+        selectedCount2Element.textContent = selectedReports.length;
+    }
+    if (totalAmount2Element) {
+        totalAmount2Element.textContent = formatCurrency(currentTotalAmount);
+    }
     
     // Update selected reports section visibility
     const selectedReportsSection = document.getElementById('selectedReportsSection');
     if (selectedReportsSection) {
         selectedReportsSection.style.display = selectedReports.length > 0 ? 'block' : 'none';
+    }
+
+    // Regenerate invoice preview if reports are selected
+    if (selectedReports.length > 0) {
+        invoiceItems = []; // Clear previous items before generating new preview from reports
+        generateInvoicePreview();
+    } else {
+        // Optionally, clear the preview if no reports are selected
+        const previewContainer = document.getElementById('invoicePreviewContainer'); // Assuming this is your preview container ID
+        if (previewContainer) {
+            previewContainer.innerHTML = '<p class="text-center text-muted">الرجاء تحديد تقرير واحد على الأقل لعرض معاينة الفاتورة.</p>';
+        }
     }
 }
 
@@ -961,6 +1057,9 @@ function saveInvoiceItems() {
  * Generate invoice preview
  */
 function generateInvoicePreview() {
+    console.log('[generateInvoicePreview] Called. Global selectedReports (IDs):', JSON.stringify(selectedReports));
+    console.log('[generateInvoicePreview] Global reportsData (first 2 items):', JSON.stringify(reportsData.slice(0, 2)));
+
     // Check if any reports are selected
     if (selectedReports.length === 0) {
         showToast('الرجاء تحديد تقرير واحد على الأقل', 'warning');
@@ -969,7 +1068,9 @@ function generateInvoicePreview() {
     
     // Get selected reports data
     const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
-    
+    console.log('[generateInvoicePreview] Filtered selectedReportsData (first 2 items):', JSON.stringify(selectedReportsData.slice(0, 2)));
+    console.log('[generateInvoicePreview] Total items in selectedReportsData:', selectedReportsData.length);
+
     // Get client data
     let clientName = 'عميل غير معروف'; // Default to "Unknown Client" in Arabic
     let clientPhone = '';
@@ -1033,18 +1134,23 @@ function generateInvoicePreview() {
         address: clientAddress
     };
     
-    // If no custom items yet, initialize from reports
-    if (invoiceItems.length === 0) {
-        selectedReportsData.forEach(report => {
-            invoiceItems.push({
-                id: 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                description: `${report.deviceModel || 'جهاز'} (${report.id})`,
-                quantity: 1,
-                unitPrice: report.amount || 0,
-                total: report.amount || 0
-            });
+    // Populate invoiceItems from selected reports data
+    // This ensures the preview always reflects the currently selected reports
+    invoiceItems = []; // Clear any existing items first
+    selectedReportsData.forEach((report, index) => {
+        console.log(`[generateInvoicePreview] Processing report for item ${index}:`, JSON.stringify(report));
+        const description = `${report.device_model || report.deviceModel || 'جهاز غير محدد'}`; // Just the device model
+        console.log(`[generateInvoicePreview] Generated description for item ${index}:`, description);
+        invoiceItems.push({
+            id: 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000) + '_' + report.id,
+            description: description,
+            quantity: 1,
+            unitPrice: parseFloat(report.amount) || 0,
+            total: parseFloat(report.amount) || 0,
+            type: 'item', // Changed to 'item'
+            serialNumber: report.serial_number || report.serialNumber || null
         });
-    }
+    });
     
     // Calculate totals from invoice items
     let subtotal = 0;
@@ -1067,6 +1173,9 @@ function generateInvoicePreview() {
     if (!invoicePreviewContainer) return;
     
     // Format date in Gregorian format (not Hijri)
+    const invoiceData = {
+        // invoice_number: generateInvoiceNumber(), // Removed: Backend generates invoice_number
+    };
     const invoiceDate = new Date(invoiceSettings.date);
     const formattedDate = invoiceDate.toISOString().split('T')[0]; // YYYY-MM-DD format
     
@@ -1233,70 +1342,86 @@ function getPaymentMethodText(method) {
  * Save invoice to database
  */
 async function saveInvoice() {
+    // Load settings and items from localStorage, as they are prepared by initiateDirectInvoiceCreation
+    const storedSettings = localStorage.getItem('lpk_invoice_settings');
+    const storedItems = localStorage.getItem('lpk_invoice_items');
+
+    if (!storedSettings || !storedItems) {
+        showToast('بيانات الفاتورة غير مكتملة. الرجاء المحاولة مرة أخرى.', 'danger');
+        console.error('Invoice settings or items not found in localStorage.');
+        return;
+    }
+
+    const currentInvoiceSettings = JSON.parse(storedSettings);
+    const currentInvoiceItems = JSON.parse(storedItems);
+
     try {
-        // Check if any reports are selected
+        // Check if any reports are selected (global selectedReports should be up-to-date)
         if (selectedReports.length === 0) {
             showToast('الرجاء تحديد تقرير واحد على الأقل', 'warning');
             return;
         }
         
-        // Get selected reports data
-        const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
-        
-        // Get client data from the first report with a valid client_id
-        let client_id = 0;
-        for (const report of selectedReportsData) {
-            if (report.client_id) {
-                client_id = report.client_id;
-                break;
-            }
+        // Use client_id from currentInvoiceSettings (loaded from localStorage)
+        const client_id = currentInvoiceSettings.client_id;
+        const report_ids_to_invoice = currentInvoiceSettings.report_ids || []; // Ensure it's an array
+
+        if (!client_id || client_id === 0) {
+            showToast('خطأ حرج: معرف العميل غير متوفر في إعدادات الفاتورة المحفوظة.', 'danger');
+            console.error('Critical: client_id is missing or invalid in currentInvoiceSettings. Client ID:', client_id, 'Settings:', currentInvoiceSettings);
+            // Disable save button or provide a clear way for the user to recover/restart
+            document.getElementById('saveInvoiceBtn').disabled = true; 
+            return; // Stop if client_id is not valid
         }
-        
-        // Try to find client in clientsData
-        const client = clientsData.find(c => c.id && c.id.toString() === client_id.toString());
-        
-        // Calculate totals from invoice items
+        console.log('[saveInvoice] Using client_id:', client_id, 'and report_ids:', report_ids_to_invoice, 'from currentInvoiceSettings.');
+
+        // Calculate totals from currentInvoiceItems
         let subtotal = 0;
-        invoiceItems.forEach(item => {
-            // Ensure total is a valid number
+        currentInvoiceItems.forEach(item => {
             const itemTotal = parseFloat(item.total) || 0;
             subtotal += itemTotal;
         });
         
-        // Ensure tax and discount calculations use valid numbers
-        const taxRate = parseFloat(invoiceSettings.taxRate) || 0;
-        const discountRate = parseFloat(invoiceSettings.discountRate) || 0;
+        const taxRate = parseFloat(currentInvoiceSettings.taxRate) || 0;
+        const discountRate = parseFloat(currentInvoiceSettings.discountRate) || 0;
         
         const taxAmount = (subtotal * taxRate) / 100;
         const discountAmount = (subtotal * discountRate) / 100;
         const total = subtotal + taxAmount - discountAmount;
         
-        // Generate invoice number
-        const invoiceNumber = generateInvoiceNumber();
-        
-        // Create invoice object
-        const invoice = {
-            id: invoiceNumber,
-            title: invoiceSettings.title,
-            date: invoiceSettings.date,
-            client_id: client_id,
-            reports: selectedReports,
-            items: invoiceItems.map(item => ({
+        // Backend will generate the invoice ID (primary key)
+        // const invoiceNumber = generateInvoiceNumber(); // Keep for local use if needed, but not for API payload 'id'
+
+        // Create invoice object for the API
+        const invoicePayload = {
+            // title: currentInvoiceSettings.title, // Removed as it's not in the 'invoices' table schema
+            date: currentInvoiceSettings.date, 
+            client_id: client_id, // Correct client_id from currentInvoiceSettings
+            report_ids: report_ids_to_invoice, // Send all report IDs
+            items: currentInvoiceItems.map(item => ({
                 description: item.description,
                 quantity: parseInt(item.quantity) || 1,
-                unit_price: parseFloat(item.unitPrice) || 0,
-                total: parseFloat(item.total) || 0
+                type: item.type || 'service', // Ensure 'type' is included as per invoice_items schema
+                amount: parseFloat(item.unitPrice) || 0, 
+                totalAmount: parseFloat(item.total) || 0, 
+                serialNumber: item.serialNumber || null 
             })),
             subtotal: parseFloat(subtotal.toFixed(2)),
-            taxRate: parseFloat(taxRate.toFixed(2)),
-            taxAmount: parseFloat(taxAmount.toFixed(2)),
-            discountRate: parseFloat(discountRate.toFixed(2)),
-            discountAmount: parseFloat(discountAmount.toFixed(2)),
+            taxRate: parseFloat(currentInvoiceSettings.taxRate) || 0, 
+            tax: parseFloat(taxAmount.toFixed(2)),
+            discount: parseFloat(discountAmount.toFixed(2)), 
             total: parseFloat(total.toFixed(2)),
-            paymentMethod: invoiceSettings.paymentMethod,
-            notes: invoiceSettings.notes,
-            status: 'pending',
-            createdAt: new Date().toISOString()
+            paymentMethod: currentInvoiceSettings.paymentMethod,
+            paymentStatus: 'unpaid',
+        };
+
+        // For local fallback (localStorage), we might still want to use a client-generated ID
+        const localInvoice = {
+            ...invoicePayload, 
+            id: generateInvoiceNumber(), 
+            reports: selectedReports.map(r => r.id), // Store only report IDs for local version for simplicity if needed
+            notes: currentInvoiceSettings.notes, 
+            createdAt: new Date().toISOString() 
         };
         
         // Try to save invoice to API
@@ -1305,12 +1430,19 @@ async function saveInvoice() {
             // Check if apiService is defined and has saveInvoice method
             if (typeof apiService !== 'undefined' && typeof apiService.saveInvoice === 'function') {
                 // Use ApiService to save invoice
-                savedInvoice = await apiService.saveInvoice(invoice);
+                savedInvoice = await apiService.saveInvoice(invoicePayload);
                 
-                // Update reports with invoice ID
-                for (const reportId of selectedReports) {
-                    await apiService.updateReport(reportId, { invoiceId: invoiceNumber });
+                // The first selected report is linked to the invoice via 'invoicePayload.report_id'.
+                // The backend /api/reports/pending should filter out reports already linked to an invoice.
+                // If multiple selected reports need to be marked (e.g., status change), that logic will be handled separately.
+                if (savedInvoice && savedInvoice.id) {
+                    // Successfully saved to API and got an ID back.
+                    // The loadReports() call later should refresh the list.
+                } else if (typeof apiService !== 'undefined' && typeof apiService.saveInvoice === 'function') {
+                    // This 'else if' means it was an API call but failed to return savedInvoice.id
+                    console.warn('Invoice API call made, but no ID returned from backend. Cannot confirm report linkage via API for refresh.');
                 }
+                // If it fell back to localStorage, localInvoice.id is used, and loadReports() should also handle localStorage refresh.
             } else {
                 throw new Error('API service not available');
             }
@@ -1322,8 +1454,8 @@ async function saveInvoice() {
             const storedInvoices = localStorage.getItem('lpk_invoices');
             const invoices = storedInvoices ? JSON.parse(storedInvoices) : [];
             
-            // Add new invoice
-            invoices.push(invoice);
+            // Add new invoice (local version)
+            invoices.push(localInvoice);
             
             // Save invoices to localStorage
             localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
@@ -1338,7 +1470,7 @@ async function saveInvoice() {
                     return {
                         ...report,
                         invoice: {
-                            id: invoiceNumber
+                            id: localInvoice.id
                         }
                     };
                 }
@@ -1390,7 +1522,7 @@ async function saveInvoice() {
                 html2pdf()
                     .set({
                         margin: [10, 10, 10, 10],
-                        filename: `invoice_${invoice.id}.pdf`,
+                        filename: `invoice_${localInvoice.id}.pdf`,
                         image: { type: 'jpeg', quality: 0.98 },
                         html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -1399,7 +1531,7 @@ async function saveInvoice() {
                     .save();
             }
             
-            savedInvoice = invoice;
+            savedInvoice = localInvoice; // Fallback uses the localInvoice structure
         }
         
         // Show success message
@@ -1434,7 +1566,8 @@ async function saveInvoice() {
         }
         
         // Store invoice ID for sharing
-        window.currentInvoiceId = invoiceNumber;
+        // Use the ID from the saved invoice (API or local)
+        window.currentInvoiceId = savedInvoice ? savedInvoice.id : generateInvoiceNumber();
         
         // Reload reports after a short delay
         setTimeout(() => {
@@ -1454,50 +1587,51 @@ async function saveInvoice() {
  * Export invoice to PDF
  */
 function exportToPdf() {
-    try {
-        // Check if html2pdf is available
-        if (typeof html2pdf === 'undefined') {
-            console.error('html2pdf library not loaded');
-            showToast('المكتبة المطلوبة لتصدير PDF غير متوفرة', 'error');
-            return;
-        }
-        
-        // Get invoice container
-        const invoiceContainer = document.querySelector('.invoice-container');
-        if (!invoiceContainer) {
-            showToast('لم يتم العثور على محتوى الفاتورة', 'error');
-            return;
-        }
-        
-        // Show loading message
-        showToast('جاري تصدير الفاتورة إلى PDF...', 'info');
-        
-        // Set options for PDF
-        const options = {
-            margin: 10,
-            filename: `فاتورة_${window.currentInvoiceId || generateInvoiceNumber()}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        
-        // Generate PDF
-        html2pdf()
-            .set(options)
-            .from(invoiceContainer)
-            .save()
-            .then(() => {
-                showToast('تم تصدير الفاتورة بنجاح', 'success');
-            })
-            .catch(error => {
-                console.error('Error exporting PDF:', error);
-                showToast('حدث خطأ أثناء تصدير الفاتورة', 'error');
-            });
-        
-    } catch (error) {
-        console.error('Error exporting to PDF:', error);
-        showToast('حدث خطأ أثناء تصدير الفاتورة', 'error');
+    const invoicePreviewContainer = document.getElementById('invoicePreviewContainer');
+    if (!invoicePreviewContainer || !invoicePreviewContainer.innerHTML.trim()) {
+        showToast('لا يوجد محتوى لتصديره.', 'error');
+        return;
     }
+
+    const element = invoicePreviewContainer.querySelector('.invoice-container');
+    if (!element) {
+        showToast('لم يتم العثور على محتوى الفاتورة الفعلي للتصدير.', 'error');
+        return;
+    }
+
+    console.log('Element for PDF export:', element);
+    console.log('Element dimensions (W x H):', element.offsetWidth, 'x', element.offsetHeight);
+    if (element.offsetWidth === 0 || element.offsetHeight === 0) {
+        showToast('محتوى الفاتورة غير مرئي أو ليس له أبعاد للتصدير. قد يتم إنشاء ملف PDF فارغ.', 'warning');
+        // We still try to export to see the error from html2pdf if any
+    }
+
+    const opt = {
+        margin:       [0.5, 0.5, 0.5, 0.5], // inches
+        filename:     `invoice-${generateInvoiceNumber()}.pdf`, // Generates a new dynamic name
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { logging: true, useCORS: true, scrollY: 0 }, // Simplified, explicitly set scrollY to 0 for now
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const originalBtnText = exportPdfBtn.innerHTML;
+    exportPdfBtn.disabled = true;
+    exportPdfBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري التصدير...';
+
+    console.log('[exportToPdf] Final check - element.innerHTML before html2pdf call:', element.innerHTML);
+    html2pdf().from(element).set(opt).save()
+        .then(() => {
+            showToast('تم تصدير الفاتورة بنجاح!', 'success');
+        })
+        .catch(err => {
+            console.error('Error exporting PDF:', err);
+            showToast('حدث خطأ أثناء تصدير الفاتورة. تحقق من وحدة التحكم.', 'error');
+        })
+        .finally(() => {
+            exportPdfBtn.disabled = false;
+            exportPdfBtn.innerHTML = originalBtnText;
+        });
 }
 
 /**
@@ -1506,78 +1640,49 @@ function exportToPdf() {
  */
 function shareInvoice(method) {
     try {
-        // Get client data
-        const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
-        if (selectedReportsData.length === 0) {
-            showToast('لم يتم العثور على بيانات التقرير', 'error');
-            return;
-        }
-        
-        // Get client data from the first report with a valid client_id
-        let client_id = 0;
-        let clientName = 'عميل غير معروف';
+        let clientName = 'عميلنا العزيز';
         let clientPhone = '';
         let clientEmail = '';
-        
-        // Try to get valid client data from the reports
-        for (const report of selectedReportsData) {
-            // Get client ID
-            if (report.client_id) {
-                client_id = report.client_id;
-                break;
+
+        // Attempt to get client details from localStorage (populated by generateInvoicePreview or saveInvoice)
+        const storedInvoiceSettings = JSON.parse(localStorage.getItem('lpk_invoice_settings'));
+        if (storedInvoiceSettings && storedInvoiceSettings.client_id) {
+            const clientData = clientsData.find(c => c.id && c.id.toString() === storedInvoiceSettings.client_id.toString());
+            if (clientData) {
+                clientName = clientData.name || clientName;
+                clientPhone = clientData.phone || '';
+                clientEmail = clientData.email || '';
+            }
+        } else if (selectedReports.length > 0) {
+            // Fallback to selected reports if no invoice settings in localStorage
+            const firstReport = selectedReports[0]; // selectedReports now holds full objects
+            if (firstReport) {
+                clientName = firstReport.client_name || firstReport.clientName || clientName;
+                clientPhone = firstReport.client_phone || firstReport.clientPhone || '';
+                clientEmail = firstReport.client_email || firstReport.clientEmail || '';
             }
         }
-        
-        // Try to find client in clientsData
-        const clientData = clientsData.find(c => c.id && c.id.toString() === client_id.toString());
-        
-        if (clientData) {
-            // Use client data from clientsData
-            clientName = clientData.name || clientName;
-            clientPhone = clientData.phone || '';
-            clientEmail = clientData.email || '';
-        } else {
-            // Try to get client data from the first report with valid data
-            for (const report of selectedReportsData) {
-                // Get client name
-                if (!clientName || clientName === 'عميل غير معروف') {
-                    if (report.clientName && report.clientName.trim() !== '') {
-                        clientName = report.clientName;
-                    } else if (report.client_name && report.client_name.trim() !== '') {
-                        clientName = report.client_name;
-                    }
-                }
-                
-                // Get client phone
-                if (!clientPhone && (report.clientPhone || report.client_phone)) {
-                    clientPhone = report.clientPhone || report.client_phone;
-                }
-                
-                // Get client email
-                if (!clientEmail && (report.clientEmail || report.client_email)) {
-                    clientEmail = report.clientEmail || report.client_email;
-                }
-            }
+
+        if (clientName === 'عميلنا العزيز' && selectedReports.length === 0 && !storedInvoiceSettings) {
+            showToast('الرجاء تحديد تقرير أو إنشاء فاتورة أولاً لتحديد بيانات العميل.', 'warning');
+            return;
         }
-        
-        // Create client object for sharing
+
         const client = {
             name: clientName,
             phone: clientPhone,
             email: clientEmail
         };
+
+        const invoiceId = document.getElementById('invoiceNumberPreview')?.textContent.replace('رقم الفاتورة: ', '').trim() || 
+                          window.currentInvoiceId || 
+                          generateInvoiceNumber();
         
-        // Get invoice ID
-        const invoiceId = window.currentInvoiceId || generateInvoiceNumber();
+        const invoiceUrl = `${window.location.origin}/invoice.html?id=${invoiceId}`; // Assuming invoice.html can take an ID
         
-        // Create invoice URL
-        const invoiceUrl = `${window.location.origin}/invoice.html?id=${invoiceId}`;
+        const message = `مرحباً ${client.name || 'عميلنا الكريم'},\n\nنرفق لكم فاتورة الصيانة رقم ${invoiceId}.\n\nيمكنكم الاطلاع على الفاتورة من خلال الرابط التالي:\n${invoiceUrl}\n\nشكراً لتعاملكم مع شركة لاباك للصيانة.`;
         
-        // Create message
-        const message = `مرحباً ${client.name},\n\nنرفق لكم فاتورة الصيانة رقم ${invoiceId}.\n\nيمكنكم الاطلاع على الفاتورة من خلال الرابط التالي:\n${invoiceUrl}\n\nشكراً لتعاملكم مع شركة لاباك للصيانة.`;
-        
-        // Log the message for debugging
-        console.log('Sharing invoice via ' + method + ' with client:', client);
+        console.log('Sharing invoice via ' + method + ' with client:', client, 'Invoice ID:', invoiceId);
         
         if (method === 'email') {
             // Share via email
