@@ -623,6 +623,12 @@ class ApiService {
         // Ensure this token is for a client user, handled by the constructor logic
         return this.request('/api/reports/client/me', 'GET');
     }
+
+    async getClientInvoices() {
+        // Ensure this token is for a client user
+        // This will call a new backend endpoint: /api/invoices/client/me
+        return this.request('/api/invoices/client', 'GET');
+    }
     
     async searchReports(query) {
         return this.request(`/api/reports/search/${query}`);

@@ -1,6 +1,6 @@
 const express = require('express');
 const { Sequelize, Op } = require('sequelize');
-const { Report, Client, ReportTechnicalTest, Invoice } = require('../models'); // Added ReportTechnicalTest and Invoice
+const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport } = require('../models'); // Added InvoiceReport
 const { clientAuth } = require('../middleware/auth'); // Import clientAuth middleware
 
 const router = express.Router();
@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
           billing_enabled: true, // Only fetch reports marked for billing
           id: {
             [Op.notIn]: [
-              Sequelize.literal(`SELECT report_id FROM invoices WHERE report_id IS NOT NULL`)
+              Sequelize.literal(`SELECT report_id FROM invoice_reports WHERE report_id IS NOT NULL`)
             ]
           }
         },

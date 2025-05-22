@@ -184,7 +184,7 @@ function addInvoiceActionListeners() {
     viewButtons.forEach(button => {
         button.addEventListener('click', function() {
             const invoiceId = this.getAttribute('data-invoice-id');
-            window.open(`invoice.html?id=${invoiceId}`, '_blank');
+            window.location.href = `view-invoice.html?id=${invoiceId}`;
         });
     });
     

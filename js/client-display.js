@@ -144,8 +144,15 @@ function displayReports(reports) {
 }
 
 /**
- * Display client invoices
+ * Format currency to EGP
  */
+function formatCurrency(amount) {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return '0.00'; // Or some other default for card display
+    // Ensure 'ar-EG' for Egyptian Arabic and 'EGP' for Egyptian Pound
+    return num.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 /**
  * Format date in Gregorian calendar (Miladi)
  */
@@ -210,9 +217,6 @@ function displayInvoices(invoices) {
                     
                     <div class="d-flex justify-content-between mb-3">
                         <h5 class="mb-0 fw-bold">فاتورة #${invoice.id.substring(invoice.id.length - 5)}</h5>
-                        <span class="badge ${isPending ? 'bg-danger' : 'bg-success'} rounded-pill px-3">
-                            ${isPending ? 'غير مدفوعة' : 'مدفوعة'}
-                        </span>
                     </div>
                     
                     <div class="d-flex justify-content-between mb-3">
@@ -220,13 +224,12 @@ function displayInvoices(invoices) {
                             <i class="fas fa-calendar-alt me-1"></i> ${formatGregorianDate(invoiceDate)}
                         </div>
                         <div class="fw-bold text-success">
-                            ${invoice.total} ريال
+                            ${formatCurrency(invoice.total)}
                         </div>
                     </div>
                     
                     <div class="mb-3 text-muted small">
-                        <i class="fas fa-file-alt me-1"></i> رقم التقرير: ${invoice.reportId}
-                        ${invoice.paymentMethod ? `<br><i class="fas fa-credit-card me-1 mt-1"></i> ${invoice.paymentMethod}` : ''}
+                        <i class="fas fa-credit-card me-1"></i> ${invoice.paymentMethod ? invoice.paymentMethod : 'غير محدد'}
                     </div>
                     
                     ${invoice.paid ? 
@@ -237,7 +240,7 @@ function displayInvoices(invoices) {
                 </div>
                 <div class="card-footer bg-white border-top-0 pt-0">
                     <div class="d-grid">
-                        <a href="invoice.html?id=${invoice.id}" class="btn ${isPending ? 'btn-danger' : 'btn-success'}">
+                        <a href="view-invoice.html?id=${invoice.id}" class="btn ${isPending ? 'btn-danger' : 'btn-success'}">
                             <i class="fas ${isPending ? 'fa-file-invoice' : 'fa-receipt'} me-2"></i> 
                             ${isPending ? 'عرض ودفع الفاتورة' : 'عرض تفاصيل الفاتورة'}
                         </a>

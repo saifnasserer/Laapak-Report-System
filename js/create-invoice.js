@@ -572,20 +572,35 @@ function getReportStatusBadge(status) {
 
 // New function to handle direct invoice creation
 function initiateDirectInvoiceCreation() {
+    // Ensure reports are selected
     if (selectedReports.length === 0) {
-        showToast('الرجاء تحديد تقرير واحد على الأقل لإنشاء فاتورة.', 'warning');
+        showToast('الرجاء اختيار تقرير واحد على الأقل', 'warning');
         return;
     }
 
-    // Get the ID of the first selected report
-    const firstReportId = selectedReports[0];
-    // Find the full report object from reportsData using this ID
-    const firstReportObject = reportsData.find(report => report.id === firstReportId);
+    const createInvoiceBtn = document.getElementById('createDirectInvoiceBtn');
+    if(createInvoiceBtn) {
+        createInvoiceBtn.dataset.originalText = createInvoiceBtn.innerHTML;
+        createInvoiceBtn.disabled = true;
+        createInvoiceBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ إنشاء الفاتورة...';
+    }
 
-    if (!firstReportObject) {
-        console.error('[initiateDirectInvoiceCreation] Could not find the full report object for ID:', firstReportId, 'in reportsData. selectedReports:', selectedReports, 'reportsData sample:', reportsData.slice(0,2));
-        showToast('خطأ: لم يتم العثور على بيانات التقرير المحدد. لا يمكن إنشاء الفاتورة.', 'error');
-        const createInvoiceBtn = document.getElementById('createDirectInvoiceBtn');
+    // Check that we have all selected reports in reportsData
+    const selectedReportObjects = [];
+    let missingReportFound = false;
+    
+    for (const reportId of selectedReports) {
+        const reportObject = reportsData.find(report => report.id === reportId);
+        if (!reportObject) {
+            console.error('[initiateDirectInvoiceCreation] Could not find the full report object for ID:', reportId, 'in reportsData. selectedReports:', selectedReports, 'reportsData sample:', reportsData.slice(0,2));
+            missingReportFound = true;
+            break;
+        }
+        selectedReportObjects.push(reportObject);
+    }
+    
+    if (missingReportFound) {
+        showToast('خطأ: لم يتم العثور على بيانات بعض التقارير المحددة. الرجاء تحديث الصفحة وإعادة المحاولة.', 'error');
         if(createInvoiceBtn) {
             createInvoiceBtn.disabled = false;
             createInvoiceBtn.innerHTML = createInvoiceBtn.dataset.originalText || 'إنشاء فاتورة مباشرة';
@@ -593,12 +608,13 @@ function initiateDirectInvoiceCreation() {
         return;
     }
 
+    // Validate all reports are for the same client
+    const firstReportObject = selectedReportObjects[0];
     const clientId = firstReportObject.client_id;
 
     if (!clientId || clientId === 0 || clientId === '0') {
         console.error('[initiateDirectInvoiceCreation] Invalid or missing client_id from the first selected report object:', firstReportObject);
         showToast('خطأ: لم يتم العثور على معرف عميل صالح للتقرير المحدد. لا يمكن إنشاء الفاتورة.', 'error');
-        const createInvoiceBtn = document.getElementById('createDirectInvoiceBtn'); 
         if(createInvoiceBtn) {
             createInvoiceBtn.disabled = false;
             createInvoiceBtn.innerHTML = createInvoiceBtn.dataset.originalText || 'إنشاء فاتورة مباشرة';
@@ -1436,8 +1452,41 @@ async function saveInvoice() {
                 // The backend /api/reports/pending should filter out reports already linked to an invoice.
                 // If multiple selected reports need to be marked (e.g., status change), that logic will be handled separately.
                 if (savedInvoice && savedInvoice.id) {
-                    // Successfully saved to API and got an ID back.
-                    // The loadReports() call later should refresh the list.
+                        // Successfully saved to API and got an ID back.
+                    showToast('تم إنشاء الفاتورة بنجاح!', 'success');
+                    
+                    // Clear localStorage items since they've been processed
+                    localStorage.removeItem('lpk_invoice_settings');
+                    localStorage.removeItem('lpk_invoice_items');
+                    
+                    // Reset UI: Clear all checkboxes and the selected reports array
+                    document.querySelectorAll('.report-checkbox').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    
+                    // Clear the selectedReports array
+                    selectedReports.length = 0;
+                    
+                    // Reset the selection counter
+                    const selectCounter = document.getElementById('selectedReportsCount');
+                    if (selectCounter) {
+                        selectCounter.textContent = '0';
+                    }
+                    
+                    // Update any UI that shows selected reports count
+                    // (No selection UI update function needed - we've already updated counters and checkboxes)
+                    
+                    // Re-enable the create invoice button
+                    const createInvoiceBtn = document.getElementById('createDirectInvoiceBtn');
+                    if(createInvoiceBtn) {
+                        createInvoiceBtn.disabled = false;
+                        createInvoiceBtn.innerHTML = createInvoiceBtn.dataset.originalText || 'إنشاء فاتورة مباشرة';
+                    }
+                    
+                    // Refresh reports after a short delay to allow backend to complete processing
+                    setTimeout(() => {
+                        loadReports();
+                    }, 1000);
                 } else if (typeof apiService !== 'undefined' && typeof apiService.saveInvoice === 'function') {
                     // This 'else if' means it was an API call but failed to return savedInvoice.id
                     console.warn('Invoice API call made, but no ID returned from backend. Cannot confirm report linkage via API for refresh.');

@@ -44,14 +44,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (apiResponse && apiResponse.success && Array.isArray(apiResponse.data)) {
                 const reportsArray = apiResponse.data;
-                // Generate invoices from reports (in a real implementation, these would come from the API)
-                const invoices = generateInvoicesFromReports(reportsArray);
+                
+                // Fetch invoices from API for the client
+                let invoicesArray = [];
+                try {
+                    const invoiceApiResponse = await apiService.getClientInvoices(); // Fetch invoices for the authenticated client
+                    if (invoiceApiResponse && invoiceApiResponse.success && Array.isArray(invoiceApiResponse.data)) {
+                        invoicesArray = invoiceApiResponse.data;
+                        console.log('Invoices data from API:', invoicesArray);
+                    } else if (invoiceApiResponse && Array.isArray(invoiceApiResponse)) { // If API returns array directly
+                        invoicesArray = invoiceApiResponse;
+                        console.log('Invoices data from API (direct array):', invoicesArray);
+                    } else {
+                        console.warn('API response for invoices was not a valid array or success object:', invoiceApiResponse);
+                    }
+                } catch (invoiceError) {
+                    console.error('Error fetching client invoices:', invoiceError);
+                    // Optionally show a non-blocking error for invoices, or proceed with empty invoicesArray
+                }
                 
                 // Display the reports and invoices
-                displayReportsAndInvoices(reportsArray, invoices);
+                displayReportsAndInvoices(reportsArray, invoicesArray);
                 
-                // Cache reports for offline use
-                cacheReportsForOffline(reportsArray, invoices);
+                // Cache reports and invoices for offline use
+                cacheReportsForOffline(reportsArray, invoicesArray); // Pass both arrays
             } else {
                 console.error('API response did not contain a valid reports array:', apiResponse);
                 showErrorMessage('Failed to process reports data from server.');
