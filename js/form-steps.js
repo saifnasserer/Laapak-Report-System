@@ -231,6 +231,15 @@ document.addEventListener('DOMContentLoaded', function() {
             formSteps[stepIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
+        // Add console logging for debugging
+        console.log(`[form-steps] showStep called. currentStep (stepIndex): ${stepIndex}, formSteps.length: ${formSteps.length}`);
+        if(submitBtn) {
+            console.log(`[form-steps] submitBtn found. Initial display style: ${submitBtn.style.display}`);
+        }
+        if(globalNextBtn) {
+            console.log(`[form-steps] globalNextBtn found. Initial display style: ${globalNextBtn.style.display}`);
+        }
+
         // Update step indicators
         stepItems.forEach((item, index) => {
             // Reset all steps
@@ -262,16 +271,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (stepIndex === formSteps.length - 1) {
             if (globalNextBtn) {
                 globalNextBtn.style.display = 'none';
+                console.log(`[form-steps] Hiding globalNextBtn for last step (${stepIndex})`);
             }
             if (submitBtn) {
                 submitBtn.style.display = 'inline-block';
+                console.log(`[form-steps] Showing submitBtn for last step (${stepIndex})`);
             }
         } else {
             if (globalNextBtn) {
                 globalNextBtn.style.display = 'inline-block';
+                console.log(`[form-steps] Showing globalNextBtn for step ${stepIndex}`);
             }
             if (submitBtn) {
                 submitBtn.style.display = 'none';
+                console.log(`[form-steps] Hiding submitBtn for step ${stepIndex}`);
             }
         }
         

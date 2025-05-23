@@ -12,6 +12,7 @@ class LpkHeader {
                 { text: 'الرئيسية', url: 'admin.html', icon: 'fas fa-tachometer-alt', id: 'dashboard' },
                 { text: 'تقرير جديد', url: 'create-report.html', icon: 'fas fa-plus-circle', id: 'create-report' },
                 { text: 'التقارير', url: 'reports.html', icon: 'fas fa-file-alt', id: 'reports' },
+                { text: 'الفواتير', url: 'invoices.html', icon: 'fas fa-file-invoice-dollar', id: 'invoices' },
                 { text: 'إنشاء فاتورة', url: 'create-invoice.html', icon: 'fas fa-file-invoice-dollar', id: 'create-invoice' },
                 { text: 'العملاء', url: 'clients.html', icon: 'fas fa-users', id: 'clients' },
                 // { text: 'الإعدادات', url: 'settings.html', icon: 'fas fa-cog', id: 'settings' }
@@ -193,6 +194,35 @@ class LpkHeader {
     }
 }
 
+/**
+ * HeaderComponent class for managing headers across the application
+ * This provides a simple interface that other files can use
+ */
+class HeaderComponent {
+    /**
+     * Load the admin header with the specified active item
+     * @param {string} activeItem - ID of the active navigation item
+     */
+    static loadAdminHeader(activeItem) {
+        // Initialize header with active item
+        if (document.getElementById('header-container')) {
+            new LpkHeader({
+                activeItem: activeItem
+            });
+        }
+    }
+    
+    /**
+     * Load the client header with the specified active item
+     * @param {string} activeItem - ID of the active navigation item
+     */
+    static loadClientHeader(activeItem) {
+        // This would initialize a client-specific header (if implemented)
+        console.log('Client header loading with active item:', activeItem);
+        // Future implementation would go here
+    }
+}
+
 // Initialize the header when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Determine current page from URL
@@ -213,12 +243,13 @@ document.addEventListener('DOMContentLoaded', function() {
         activeItem = 'settings';
     } else if (filename === 'report.html') {
         activeItem = 'reports'; // On individual report page, highlight reports
+    } else if (filename === 'invoices.html') {
+        activeItem = 'invoices'; // Add support for invoices page
     }
     
     // Initialize if header container exists
     if (document.getElementById('header-container')) {
-        new LpkHeader({
-            activeItem: activeItem
-        });
+        // Use the HeaderComponent class for consistency
+        HeaderComponent.loadAdminHeader(activeItem);
     }
 });

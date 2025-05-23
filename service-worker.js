@@ -9,16 +9,28 @@ const ASSETS_TO_CACHE = [
   '/index.html',
   '/report.html',
   '/admin.html',
+  '/invoices.html',
+  '/create-invoice.html',
   '/css/styles.css',
+  '/css/custom-admin.css',
   '/js/main.js',
   '/js/report.js',
   '/js/admin.js',
+  '/js/invoices.js',
+  '/js/header-component.js',
+  '/js/auth-middleware.js',
+  '/js/sw-register.js',
   '/manifest.json',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js'
+  'https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css',
+  'https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js',
+  'https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js',
+  'https://code.jquery.com/jquery-3.6.0.min.js'
 ];
 
 // Install event - cache assets

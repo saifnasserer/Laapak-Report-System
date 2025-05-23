@@ -9,7 +9,7 @@ let reports = []; // Store reports data
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is authenticated
-    if (!AuthMiddleware.isAdminLoggedIn()) {
+    if (!authMiddleware.isAdminLoggedIn()) {
         window.location.href = 'login.html';
         return;
     }
@@ -35,35 +35,63 @@ function initializeDataTable() {
     const table = $('#invoicesTable');
     if (table.length === 0) return;
     
-    // Initialize DataTable with configurations
-    invoicesTable = table.DataTable({
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
-        },
-        columns: [
-            { data: 'id' }, // Invoice ID
-            { data: 'client_name' }, // Client Name
-            { data: 'date' }, // Date
-            { data: 'total' }, // Amount
-            { data: 'paymentStatus' }, // Payment Status
-            { data: 'paymentMethod' }, // Payment Method
-            { data: 'actions', sortable: false } // Actions column
-        ],
-        order: [[2, 'desc']], // Order by date, newest first
-        pageLength: 10,
-        responsive: true,
-        dom: '<"d-flex justify-content-between align-items-center mb-3"f<"d-flex align-items-center"l<"ms-2"i>>><"table-responsive"t><"d-flex justify-content-between mt-3"p>',
-        initComplete: function() {
-            // Add custom search functionality
-            $('#searchInvoice').on('keyup', function() {
-                invoicesTable.search(this.value).draw();
-            });
+    try {
+        // Check that the table has the correct number of columns
+        if (table.find('thead th').length !== 7) {
+            console.error('DataTable columns mismatch: Expected 7 columns in HTML markup');
+            return;
         }
-    });
+        
+        // Initialize DataTable with configuration for local database data to match clients.html style
+        invoicesTable = table.DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+            },
+            processing: true,
+            responsive: true,
+            ordering: true,
+            pageLength: 10,
+            // Define data columns that match your MySQL database structure
+            columns: [
+                // Define explicit mapping between data and columns
+                { data: 'id', title: 'رقم الفاتورة' },
+                { data: 'client_name', title: 'العميل' },
+                { data: 'date', title: 'التاريخ' },
+                { data: 'total', title: 'المبلغ' },
+                { data: 'paymentStatus', title: 'حالة الدفع' },
+                { data: 'paymentMethod', title: 'طريقة الدفع' },
+                { data: 'actions', title: 'إجراءات', orderable: false }
+            ],
+            order: [[2, 'desc']], // Order by date, newest first
+            // Empty data array to start - will be populated by AJAX
+            data: [],
+            // Set up pagination to match clients.html
+            pagingType: "simple_numbers",
+            // Connect DataTable pagination to the custom pagination in HTML
+            drawCallback: function() {
+                const pagination = $(this).closest('.dataTables_wrapper').find('.dataTables_paginate');
+                pagination.toggle(this.api().page.info().pages > 1);
+                
+                // Update the custom pagination UI
+                updateCustomPagination(this.api().page.info());
+            }
+        });
+        
+        // Add custom search functionality
+        $('#searchInvoice').on('keyup', function() {
+            if (invoicesTable) {
+                invoicesTable.search(this.value).draw();
+            }
+        });
+        
+        console.log('DataTable initialized successfully');
+    } catch (error) {
+        console.error('Error initializing DataTable:', error);
+    }
 }
 
 /**
- * Load invoices data from API
+ * Load invoices data from API connected to local MySQL database
  */
 async function loadInvoicesData(filters = {}) {
     try {
@@ -88,13 +116,15 @@ async function loadInvoicesData(filters = {}) {
             apiUrl += `?${queryParams.join('&')}`;
         }
         
+        console.log('Fetching invoices from:', apiUrl);
+        
         // Get token for authentication
-        const token = AuthMiddleware.getAdminToken();
+        const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
         
-        // Fetch invoices from API
+        // Fetch invoices from API (which connects to your local MySQL database)
         const response = await fetch(apiUrl, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -106,18 +136,34 @@ async function loadInvoicesData(filters = {}) {
         }
         
         const data = await response.json();
-        const invoices = data.invoices || data; // Handle different API response formats
+        console.log('Received data from server:', data);
         
-        // Format and add data to DataTable
+        // Extract invoices array from response
+        let invoices = [];
+        if (Array.isArray(data)) {
+            invoices = data;
+        } else if (data.invoices && Array.isArray(data.invoices)) {
+            invoices = data.invoices;
+        } else if (data.data && Array.isArray(data.data)) {
+            invoices = data.data;
+        }
+        
+        if (invoices.length === 0) {
+            console.log('No invoices found in the database');
+        }
+        
+        // Format the invoices for display
         const formattedInvoices = invoices.map(invoice => formatInvoiceForTable(invoice));
         
+        // Update the DataTable with the formatted data
         if (invoicesTable) {
-            invoicesTable.rows.add(formattedInvoices).draw();
+            invoicesTable.clear().rows.add(formattedInvoices).draw();
+            console.log(`Added ${formattedInvoices.length} invoices to the table`);
         }
         
         return invoices;
     } catch (error) {
-        console.error('Error loading invoices:', error);
+        console.error('Error loading invoices from local database:', error);
         showToast('حدث خطأ أثناء تحميل الفواتير', 'error');
         
         // Show error in table
@@ -130,82 +176,136 @@ async function loadInvoicesData(filters = {}) {
 }
 
 /**
- * Format invoice data for display in the DataTable
+ * Format invoice data from MySQL database for display in the DataTable
  */
 function formatInvoiceForTable(invoice) {
-    // Get client name
-    let clientName = 'غير معروف';
-    const client = clients.find(c => c.id === invoice.client_id);
-    if (client) {
-        clientName = client.name;
-    }
-    
-    // Format date
-    const formattedDate = moment(invoice.date).format('DD/MM/YYYY');
-    
-    // Format payment status
-    let statusBadge = '';
-    switch (invoice.paymentStatus) {
-        case 'paid':
-            statusBadge = '<span class="badge bg-success rounded-pill px-3">مدفوعة</span>';
-            break;
-        case 'partial':
-            statusBadge = '<span class="badge bg-warning text-dark rounded-pill px-3">مدفوعة جزئياً</span>';
-            break;
-        case 'unpaid':
-        default:
-            statusBadge = '<span class="badge bg-danger rounded-pill px-3">غير مدفوعة</span>';
-            break;
-    }
-    
-    // Format payment method
-    let paymentMethodText = '-';
-    if (invoice.paymentMethod) {
-        switch (invoice.paymentMethod) {
-            case 'cash':
-                paymentMethodText = 'نقداً';
-                break;
-            case 'credit_card':
-                paymentMethodText = 'بطاقة ائتمان';
-                break;
-            case 'bank_transfer':
-                paymentMethodText = 'تحويل بنكي';
-                break;
-            case 'other':
-                paymentMethodText = 'أخرى';
-                break;
-            default:
-                paymentMethodText = invoice.paymentMethod;
+    try {
+        // Log the raw invoice data to understand its structure
+        console.log('Formatting invoice:', invoice);
+        
+        if (!invoice || typeof invoice !== 'object') {
+            console.error('Invalid invoice data:', invoice);
+            return {
+                id: 'Error',
+                client_name: 'Invalid data',
+                date: '-',
+                total: '0.00 ج.م.',
+                paymentStatus: '<span class="badge bg-secondary">غير معروف</span>',
+                paymentMethod: '-',
+                actions: ''
+            };
         }
+        
+        // Get client name - might come from joined data or need to be looked up
+        let clientName = 'غير معروف'; // Unknown
+        if (invoice.client_name) {
+            // If the API already provides the client name
+            clientName = invoice.client_name;
+        } else if (invoice.Client && invoice.Client.name) {
+            // If using Sequelize include with nested Client object
+            clientName = invoice.Client.name;
+        } else {
+            // Try to find the client in our cached clients array
+            const client = clients.find(c => c.id === invoice.client_id);
+            if (client) {
+                clientName = client.name;
+            }
+        }
+        
+        // Format date - handle both string and Date objects
+        let formattedDate = '-';
+        if (invoice.date) {
+            formattedDate = moment(invoice.date).format('DD/MM/YYYY');
+        }
+        
+        // Format payment status with appropriate badge
+        let statusBadge = '<span class="badge bg-secondary rounded-pill px-3">غير معروف</span>';
+        if (invoice.paymentStatus) {
+            switch (invoice.paymentStatus) {
+                case 'paid':
+                    statusBadge = '<span class="badge bg-success rounded-pill px-3">مدفوعة</span>';
+                    break;
+                case 'partial':
+                    statusBadge = '<span class="badge bg-warning text-dark rounded-pill px-3">مدفوعة جزئياً</span>';
+                    break;
+                case 'unpaid':
+                default:
+                    statusBadge = '<span class="badge bg-danger rounded-pill px-3">غير مدفوعة</span>';
+                    break;
+            }
+        }
+        
+        // Format payment method
+        let paymentMethodText = '-';
+        if (invoice.paymentMethod) {
+            switch (invoice.paymentMethod) {
+                case 'cash':
+                    paymentMethodText = 'نقداً';
+                    break;
+                case 'credit_card':
+                    paymentMethodText = 'بطاقة ائتمان';
+                    break;
+                case 'bank_transfer':
+                    paymentMethodText = 'تحويل بنكي';
+                    break;
+                case 'other':
+                    paymentMethodText = 'أخرى';
+                    break;
+                default:
+                    paymentMethodText = invoice.paymentMethod;
+            }
+        }
+        
+        // Format total amount
+        let formattedTotal = '0.00 ج.م.';
+        if (invoice.total !== undefined) {
+            const totalValue = parseFloat(invoice.total);
+            if (!isNaN(totalValue)) {
+                formattedTotal = `${totalValue.toFixed(2)} ج.م.`;
+            }
+        }
+        
+        // Create action buttons
+        const invoiceId = invoice.id || 'unknown';
+        let actionsHtml = `
+            <div class="dropdown text-center">
+                <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
+                    <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item py-2" href="view-invoice.html?id=${invoice.id}"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
+                    <li><a class="dropdown-item py-2" href="edit-invoice.html?id=${invoice.id}"><i class="fas fa-edit me-2 text-success"></i> تعديل</a></li>
+                    <li><a class="dropdown-item py-2" href="#" onclick="printInvoice('${invoice.id}'); return false;"><i class="fas fa-print me-2 text-info"></i> طباعة</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item py-2" href="#" onclick="deleteInvoice('${invoice.id}'); return false;"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
+                </ul>
+            </div>
+        `;
+        
+        // Return formatted invoice data for DataTable in the exact format it expects
+        return {
+            id: invoiceId,
+            client_name: clientName,
+            date: formattedDate,
+            total: formattedTotal,
+            paymentStatus: statusBadge,
+            paymentMethod: paymentMethodText,
+            actions: actionsHtml,
+            // Store raw data for later use
+            raw: invoice
+        };
+    } catch (error) {
+        console.error('Error formatting invoice:', error);
+        return {
+            id: 'Error',
+            client_name: 'Formatting error',
+            date: '-',
+            total: '0.00 ج.م.',
+            paymentStatus: '<span class="badge bg-secondary">خطأ</span>',
+            paymentMethod: '-',
+            actions: ''
+        };
     }
-    
-    // Format actions buttons
-    const actions = `
-        <div class="d-flex justify-content-center">
-            <button class="btn btn-sm btn-primary me-1 view-invoice" data-id="${invoice.id}" title="عرض الفاتورة">
-                <i class="fas fa-eye"></i>
-            </button>
-            <button class="btn btn-sm btn-warning me-1 edit-invoice" data-id="${invoice.id}" title="تعديل الفاتورة">
-                <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-danger delete-invoice" data-id="${invoice.id}" title="حذف الفاتورة">
-                <i class="fas fa-trash-alt"></i>
-            </button>
-        </div>
-    `;
-    
-    // Return formatted invoice data for DataTable
-    return {
-        id: invoice.id,
-        client_name: clientName,
-        date: formattedDate,
-        total: `${invoice.total.toFixed(2)} ج.م.`,
-        paymentStatus: statusBadge,
-        paymentMethod: paymentMethodText,
-        actions: actions,
-        // Store raw data for later use
-        raw: invoice
-    };
 }
 
 /**
@@ -217,7 +317,7 @@ async function loadClientsData() {
         const apiUrl = 'http://localhost:3001/api/clients';
         
         // Get token for authentication
-        const token = AuthMiddleware.getAdminToken();
+        const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
@@ -255,7 +355,7 @@ async function loadReportsData() {
         const apiUrl = 'http://localhost:3001/api/reports';
         
         // Get token for authentication
-        const token = AuthMiddleware.getAdminToken();
+        const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
@@ -274,8 +374,9 @@ async function loadReportsData() {
         const data = await response.json();
         reports = data.reports || data; // Handle different API response formats
         
-        // Populate report dropdowns
-        populateReportDropdowns(reports);
+        // Skip report dropdown population for now to avoid errors
+        // We'll add the proper implementation later
+        console.log('Reports loaded:', reports.length);
         
         return reports;
     } catch (error) {
@@ -287,86 +388,48 @@ async function loadReportsData() {
 /**
  * Populate client dropdowns in the forms
  */
+/**
+ * Populate client dropdowns in the forms
+ */
 function populateClientDropdowns(clientsData) {
-    const clientDropdowns = [
-        document.getElementById('clientId'),
-        document.getElementById('editClientId'),
-        document.getElementById('filterPaymentStatus')
-    ];
-
-    clientDropdowns.forEach(dropdown => {
-        if (!dropdown) return;
-
-        // Keep default option and clear the rest
-        const defaultOption = dropdown.querySelector('option');
-        dropdown.innerHTML = '';
-        if (defaultOption) {
-            dropdown.appendChild(defaultOption);
+    try {
+        // Make sure we have valid data
+        if (!Array.isArray(clientsData)) {
+            console.error('Invalid client data format');
+            return;
         }
+        
+        const clientDropdowns = [
+            document.getElementById('clientId'),
+            document.getElementById('editClientId')
+        ];
 
-        // Add client options
-        clientsData.forEach(client => {
-            if (client.status === 'active') {
-                const option = document.createElement('option');
-                option.value = client.id;
-                option.textContent = client.name;
-                dropdown.appendChild(option);
+        clientDropdowns.forEach(dropdown => {
+            if (!dropdown) return;
+
+            // Keep default option and clear the rest
+            const defaultOption = dropdown.querySelector('option');
+            dropdown.innerHTML = '';
+            if (defaultOption) {
+                dropdown.appendChild(defaultOption);
             }
+
+            // Add client options
+            clientsData.forEach(client => {
+                // Add safety check for client data
+                if (client && client.id && client.name) {
+                    const option = document.createElement('option');
+                    option.value = client.id;
+                    option.textContent = client.name;
+                    dropdown.appendChild(option);
+                }
+            });
         });
         
-        // Get payment status badge class
-        let statusBadgeClass = 'bg-secondary';
-        let statusText = 'غير معروف';
-        
-        switch (invoice.paymentStatus) {
-            case 'paid':
-                statusBadgeClass = 'bg-success';
-                statusText = 'مدفوعة';
-                break;
-            case 'partial':
-                statusBadgeClass = 'bg-warning';
-                statusText = 'مدفوعة جزئياً';
-                break;
-            case 'unpaid':
-                statusBadgeClass = 'bg-danger';
-                statusText = 'غير مدفوعة';
-                break;
-        }
-        
-        // Get client name
-        let clientName = 'عميل غير معروف';
-        if (invoice.client_name) {
-            clientName = invoice.client_name;
-        } else if (invoice.clientName) {
-            clientName = invoice.clientName;
-        }
-        
-        row.innerHTML = `
-            <td>${invoice.id}</td>
-            <td>${clientName}</td>
-            <td>${formattedDate}</td>
-            <td>${parseFloat(invoice.total || 0).toFixed(2)} جنية</td>
-            <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
-            <td>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-primary view-invoice-btn" data-invoice-id="${invoice.id}">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-warning edit-invoice-btn" data-invoice-id="${invoice.id}">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger delete-invoice-btn" data-invoice-id="${invoice.id}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-        
-        invoicesTableBody.appendChild(row);
-    });
-    
-    // Add event listeners to action buttons
-    addInvoiceActionListeners();
+        console.log('Client dropdowns populated successfully');
+    } catch (error) {
+        console.error('Error populating client dropdowns:', error);
+    }
 }
 
 // Add event listeners to invoice action buttons
@@ -484,34 +547,8 @@ function addEditInvoiceItem() {
 }
 
 function setupEventListeners() {
-    // Add invoice button
-    const addInvoiceBtn = document.getElementById('addInvoiceBtn');
-    if (addInvoiceBtn) {
-        addInvoiceBtn.addEventListener('click', () => {
-            // Reset form
-            document.getElementById('addInvoiceForm').reset();
-            // Set default date to today
-            document.getElementById('invoiceDate').valueAsDate = new Date();
-            // Clear invoice items except the first one
-            const invoiceItems = document.getElementById('invoiceItems');
-            if (invoiceItems && invoiceItems.children.length > 1) {
-                Array.from(invoiceItems.children).slice(1).forEach(item => item.remove());
-            }
-            // Reset item fields
-            const itemDescriptionInputs = document.querySelectorAll('.item-description');
-            const itemAmountInputs = document.querySelectorAll('.item-amount');
-            const itemQuantityInputs = document.querySelectorAll('.item-quantity');
-            const itemSerialInputs = document.querySelectorAll('.item-serial');
-            
-            itemDescriptionInputs.forEach(input => input.value = '');
-            itemAmountInputs.forEach(input => input.value = '');
-            itemQuantityInputs.forEach(input => input.value = '1');
-            itemSerialInputs.forEach(input => input.value = '');
-            
-            // Reset calculations
-            updateCalculations();
-        });
-    }
+    // The Add Invoice button now uses a direct href link to create-invoice.html
+    // No event handler needed for navigation
     
     // Save invoice button
     const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
@@ -772,7 +809,7 @@ async function saveInvoice() {
         };
         
         // Get token for authentication
-        const token = AuthMiddleware.getAdminToken();
+        const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
@@ -938,7 +975,7 @@ async function updateInvoice() {
         };
         
         // Get token for authentication
-        const token = AuthMiddleware.getAdminToken();
+        const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
@@ -983,7 +1020,7 @@ async function updateInvoice() {
 async function viewInvoice(invoiceId) {
     try {
         // Get token for authentication
-        const token = AuthMiddleware.getAdminToken();
+        const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
@@ -994,23 +1031,23 @@ async function viewInvoice(invoiceId) {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
-        
+
         const invoice = await response.json();
-        
+
         // Get client name
         let clientName = 'غير معروف';
         const client = clients.find(c => c.id === invoice.client_id);
         if (client) {
             clientName = client.name;
         }
-        
+
         // Format date
         const formattedDate = moment(invoice.date).format('DD/MM/YYYY');
-        
+
         // Format payment status
         let statusBadge = '';
         let statusText = '';
@@ -1029,7 +1066,7 @@ async function viewInvoice(invoiceId) {
                 statusText = 'غير مدفوعة';
                 break;
         }
-        
+
         // Format payment method
         let paymentMethodText = '-';
         if (invoice.paymentMethod) {
@@ -1170,7 +1207,7 @@ async function viewInvoice(invoiceId) {
 async function editInvoice(invoiceId) {
     try {
         // Get token for authentication
-        const token = AuthMiddleware.getAdminToken();
+        const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
@@ -1263,61 +1300,16 @@ async function editInvoice(invoiceId) {
 
 /**
  * Print invoice
+ * @param {string} invoiceId - ID of the invoice to print
  */
-function printInvoice() {
-    const invoiceContent = document.getElementById('viewInvoiceContent').innerHTML;
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
+function printInvoice(invoiceId) {
+    if (!invoiceId) {
+        showToast('معرف الفاتورة غير صالح', 'error');
+        return;
+    }
     
-    printWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>فاتورة لاباك</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-        <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .invoice-header { text-align: center; margin-bottom: 30px; }
-            .invoice-header img { max-height: 80px; }
-            .invoice-footer { margin-top: 50px; text-align: center; font-size: 14px; }
-            @media print {
-                @page { margin: 0.5cm; }
-                body { margin: 1cm; }
-                .no-print { display: none; }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="invoice-header">
-            <img src="img/logo.png" alt="Laapak Logo">
-            <h4 class="mt-2">فاتورة لاباك</h4>
-        </div>
-        
-        ${invoiceContent}
-        
-        <div class="invoice-footer">
-            <p>شكراً لتعاملكم مع لاباك</p>
-            <p>&copy; ${new Date().getFullYear()} نظام تقارير لاباك. جميع الحقوق محفوظة.</p>
-        </div>
-        
-        <div class="mt-4 no-print text-center">
-            <button class="btn btn-primary" onclick="window.print()">طباعة الفاتورة</button>
-            <button class="btn btn-secondary ms-2" onclick="window.close()">إغلاق</button>
-        </div>
-    </body>
-    </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.focus();
-    
-    // Auto print after loading
-    printWindow.onload = function() {
-        setTimeout(() => {
-            printWindow.print();
-        }, 500);
-    };
+    // Redirect to view page with print parameter
+    window.open(`view-invoice.html?id=${invoiceId}&print=true`, '_blank');
 }
 
 /**
@@ -1332,7 +1324,7 @@ async function confirmDeleteInvoice() {
         }
         
         // Get token for authentication
-        const token = AuthMiddleware.getAdminToken();
+        const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
@@ -1579,25 +1571,100 @@ async function loadClients() {
     }
 }
 
-// Show toast notification
-function showToast(message, type = 'info') {
-    // Check if toastr is available
-    if (typeof toastr === 'undefined') {
-        // Fallback to alert if toastr is not available
-        alert(message);
-        return;
-    }
+/**
+ * Update custom pagination UI to match clients.html style
+ * @param {Object} pageInfo - DataTables page info object
+ */
+function updateCustomPagination(pageInfo) {
+    const pagination = $('#invoicesPagination');
+    if (!pagination.length) return;
+
+    // Clear current page items
+    pagination.empty();
+
+    // Add Previous button
+    const prevDisabled = pageInfo.page <= 0 ? 'disabled' : '';
+    pagination.append(
+        `<li class="page-item ${prevDisabled}">
+            <a class="page-link prev-page" href="#" ${prevDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>السابق</a>
+        </li>`
+    );
+
+    // Calculate which page numbers to show
+    const totalPages = pageInfo.pages;
+    const currentPage = pageInfo.page + 1; // DataTables is 0-indexed
+    let startPage = Math.max(1, currentPage - 1);
+    let endPage = Math.min(totalPages, startPage + 2);
     
-    // Set toastr options
+    // Adjust if we're at the end of the page range
+    if (endPage - startPage < 2 && startPage > 1) {
+        startPage = Math.max(1, endPage - 2);
+    }
+
+    // Add page number buttons
+    for (let i = startPage; i <= endPage; i++) {
+        const isActive = i === currentPage ? 'active' : '';
+        pagination.append(
+            `<li class="page-item ${isActive}">
+                <a class="page-link page-number" data-page="${i-1}" href="#">${i}</a>
+            </li>`
+        );
+    }
+
+    // Add Next button
+    const nextDisabled = currentPage >= totalPages ? 'disabled' : '';
+    pagination.append(
+        `<li class="page-item ${nextDisabled}">
+            <a class="page-link next-page" href="#" ${nextDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>التالي</a>
+        </li>`
+    );
+
+    // Add event listeners to pagination controls
+    $('.prev-page').on('click', function(e) {
+        e.preventDefault();
+        if (!$(this).parent().hasClass('disabled')) {
+            invoicesTable.page('previous').draw('page');
+        }
+    });
+
+    $('.next-page').on('click', function(e) {
+        e.preventDefault();
+        if (!$(this).parent().hasClass('disabled')) {
+            invoicesTable.page('next').draw('page');
+        }
+    });
+
+    $('.page-number').on('click', function(e) {
+        e.preventDefault();
+        const page = parseInt($(this).data('page'));
+        invoicesTable.page(page).draw('page');
+    });
+}
+
+/**
+ * Show toast notification
+ */
+function showToast(message, type = 'info') {
+    // Configure toastr options
     toastr.options = {
-        closeButton: true,
-        progressBar: true,
-        positionClass: 'toast-top-right',
-        timeOut: 5000,
-        rtl: true
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
     };
     
-    // Show toast based on type
+    // Show toast notification
     switch (type) {
         case 'success':
             toastr.success(message);
@@ -1610,5 +1677,6 @@ function showToast(message, type = 'info') {
             break;
         default:
             toastr.info(message);
+            break;
     }
 }

@@ -927,23 +927,24 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         // Store hardware status and system components separately for the related tables
-        const hardwareComponentsList = [
-            'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
-            'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
-            'card_reader_status', 'audio_jack_status', 'hdmi_status', 'power_status',
-            'cpuStatus', 'gpuStatus', 'ramStatus', 'storageStatus', 'batteryStatus', 'screenStatus'
-        ];
+        // const hardwareComponentsList = [
+        //     'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
+        //     'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
+        //     'card_reader_status', 'audio_jack_status', 'hdmi_status', 'power_status',
+        //     'cpuStatus', 'gpuStatus', 'ramStatus', 'storageStatus', 'batteryStatus', 'screenStatus'
+        // ];
         
         // Create array of hardware components for database
         const hardwareComponents = [];
-        hardwareComponentsList.forEach(component => {
-            const checkedInput = document.querySelector(`input[name="${component}"]:checked`);
-            const status = checkedInput ? checkedInput.value : 'not_tested';
-            hardwareComponents.push({
-                componentName: component,
-                status: status
+        const checkedInput = document.querySelectorAll(`input[data-hardwarecomponent]`);
+        checkedInput.forEach(input => {
+            if (input.checked) {
+                hardwareComponents.push({
+                    componentName: input.getAttribute('data-hardwarecomponent'),
+                    status: input.value
+                    });
+                }
             });
-        });
         
         // Convert hardware components to JSON format for database
         // Since the database field is longtext, we need to stringify the object
@@ -1094,15 +1095,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Add a data source indicator to the UI if in development mode
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                const dataSourceIndicator = document.createElement('div');
-                dataSourceIndicator.className = 'small text-muted mt-1';
-                dataSourceIndicator.innerHTML = `<i class="fas fa-info-circle"></i> مصدر البيانات: ${
-                    dataSource === 'api' ? 'API' : 
-                    dataSource === 'localStorage' ? 'التخزين المحلي' : 'بيانات تجريبية'
-                }`;
-                clientSelect.parentNode.appendChild(dataSourceIndicator);
-            }
+            // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            //     const dataSourceIndicator = document.createElement('div');
+            //     dataSourceIndicator.className = 'small text-muted mt-1';
+            //     dataSourceIndicator.innerHTML = `<i class="fas fa-info-circle"></i> مصدر البيانات: ${
+            //         dataSource === 'api' ? '' : 
+            //         dataSource === 'localStorage' ? 'التخزين المحلي' : 'بيانات تجريبية'
+            //     }`;
+            //     clientSelect.parentNode.appendChild(dataSourceIndicator);
+            // }
             
             return clients;
             
@@ -1354,6 +1355,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show the modal
         const bootstrapModal = new bootstrap.Modal(modal);
         bootstrapModal.show();
+        // bootstrapModal.hide();
     }
     
     /**
@@ -1594,6 +1596,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add event listener for checkbox changes
         enableBillingCheckbox.addEventListener('change', updateBillingUI);
+    }
+    
+    /**
+     * Ensure modal backdrop is removed when addClientModal is hidden
+     */
+    const clientModalElement = document.getElementById('addClientModal');
+    if (clientModalElement) {
+        clientModalElement.addEventListener('hidden.bs.modal', function () {
+            const backdrops = document.getElementsByClassName('modal-backdrop');
+            while (backdrops[0]) {
+                backdrops[0].parentNode.removeChild(backdrops[0]);
+            }
+            // Ensure body doesn't have 'modal-open' class and overflow style
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        });
     }
     
     /**

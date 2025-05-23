@@ -63,8 +63,13 @@ const initDatabase = async () => {
             console.warn('Migrations failed, falling back to automatic sync');
         }
         
-        // Sync all models with database
-        await sequelize.sync({ alter: true });
+        // Sync models individually to prevent index limit issues
+        console.log('Synchronizing database models...');
+        
+        // Use force:false, alter:false to prevent adding too many indexes
+        // This is safer and won't try to add unique constraints that cause 'Too many keys'
+        await sequelize.sync({ force: false, alter: false });
+        
         console.log('Database synchronized successfully');
         
         // Check if we need to seed initial data

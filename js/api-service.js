@@ -68,11 +68,15 @@ class ApiService {
     }
 
     // Generic API request method
-    async request(endpoint, method = 'GET', data = null) {
+    async request(endpoint, method = 'GET', data = null, customHeaders = null) {
         const url = `${this.baseUrl}${endpoint}`;
         const options = {
             method,
-            headers: this.getAuthHeaders()
+            headers: {
+                ...this.getAuthHeaders(),
+                // Add any custom headers passed to the method
+                ...(customHeaders || {})
+            }
         };
 
         if (data && (method === 'POST' || method === 'PUT')) {
@@ -366,9 +370,11 @@ class ApiService {
             const options = {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(reportObject)
+                    'Content-Type': 'application/json',
+                    // Add auth token if available
+                    ...this.getAuthHeaders(),
+                    // Add any custom headers passed to the method
+                }
             };
             
             console.log(`Direct API Request: POST ${url}`);
@@ -456,9 +462,28 @@ class ApiService {
         }
     }
     
-    async getInvoice(id) {
+    async getInvoice(id, adminToken = null) {
         try {
-            return this.request(`/api/invoices/${id}`);
+            // Prepare custom headers for this request
+            let headers = {};
+            
+            // First, use the provided adminToken if available
+            if (adminToken) {
+                headers['x-auth-token'] = adminToken;
+            } 
+            // Fallback to class auth token (typically client token)
+            else if (this.authToken) {
+                headers['x-auth-token'] = this.authToken;
+            }
+            // Final fallback - try to get admin token directly from storage
+            else {
+                const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+                if (token) {
+                    headers['x-auth-token'] = token;
+                }
+            }
+            
+            return this.request(`/api/invoices/${id}`, 'GET', null, headers);
         } catch (error) {
             console.error(`Error fetching invoice ${id}:`, error);
             

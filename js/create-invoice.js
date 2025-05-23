@@ -15,6 +15,7 @@ let invoiceSettings = {
     taxRate: 15,
     discountRate: 0,
     paymentMethod: 'cash',
+    paymentStatus: 'unpaid', // Added default payment status
     notes: ''
 };
 
@@ -91,6 +92,7 @@ function setupEventListeners() {
             invoiceSettings.taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
             invoiceSettings.discountRate = parseFloat(document.getElementById('discountRate').value) || 0;
             invoiceSettings.paymentMethod = document.getElementById('paymentMethod').value;
+            invoiceSettings.paymentStatus = document.getElementById('paymentStatusSelect').value; // Added payment status
             invoiceSettings.notes = document.getElementById('invoiceNotes').value;
             
             // Hide settings modal
@@ -633,6 +635,7 @@ function initiateDirectInvoiceCreation() {
         taxRate: parseFloat(localStorage.getItem('lpk_default_tax_rate')) || 15,
         discountRate: parseFloat(localStorage.getItem('lpk_default_discount_rate')) || 0,
         paymentMethod: localStorage.getItem('lpk_default_payment_method') || 'bank_transfer',
+        paymentStatus: localStorage.getItem('lpk_default_payment_status') || 'unpaid', // Added default payment status
         notes: 'تم إنشاء هذه الفاتورة مباشرةً.',
         client_id: parseInt(clientId, 10), // Set client_id
         report_ids: selectedReports // selectedReports already contains just IDs
@@ -869,24 +872,16 @@ function showInvoiceSettingsModal() {
         showToast('يجب أن تكون جميع التقارير المحددة لنفس العميل', 'warning');
         return;
     }
-    
-    // Set client name in modal
-    const clientName = selectedReportsData[0].clientName || 'عميل غير معروف';
-    document.getElementById('invoiceClientName').textContent = clientName;
-    
-    // Set report count in modal
-    document.getElementById('invoiceReportCount').textContent = selectedReports.length;
-    
-    // Calculate total amount
-    let total = 0;
-    selectedReportsData.forEach(report => {
-        // Ensure amount is a valid number
-        const amount = parseFloat(report.amount) || 0;
-        total += amount;
-    });
-    document.getElementById('invoiceTotalAmount').textContent = `${total.toFixed(2)} جنية`;
-    
-    // Show modal
+
+    // Populate modal with current settings
+    document.getElementById('invoiceTitle').value = invoiceSettings.title;
+    document.getElementById('invoiceDate').value = invoiceSettings.date;
+    document.getElementById('taxRate').value = invoiceSettings.taxRate;
+    document.getElementById('discountRate').value = invoiceSettings.discountRate;
+    document.getElementById('paymentMethod').value = invoiceSettings.paymentMethod;
+    document.getElementById('paymentStatusSelect').value = invoiceSettings.paymentStatus; // Populate payment status
+    document.getElementById('invoiceNotes').value = invoiceSettings.notes;
+
     const settingsModal = new bootstrap.Modal(document.getElementById('invoiceSettingsModal'));
     settingsModal.show();
 }
@@ -1300,6 +1295,7 @@ function generateInvoicePreview() {
                     <div class="bg-light p-3 rounded">
                         <h5 class="mb-2">معلومات الدفع</h5>
                         <p class="mb-1"><strong>طريقة الدفع:</strong> ${getPaymentMethodText(invoiceSettings.paymentMethod)}</p>
+                        <p class="mb-1"><strong>حالة الدفع:</strong> ${getPaymentStatusText(invoiceSettings.paymentStatus)}</p> // Added payment status
                         ${invoiceSettings.notes ? `<p class="mb-0"><strong>ملاحظات:</strong> ${invoiceSettings.notes}</p>` : ''}
                     </div>
                 </div>
@@ -1352,6 +1348,21 @@ function getPaymentMethodText(method) {
     };
     
     return methods[method] || method;
+}
+
+/**
+ * Get payment status text
+ * @param {string} status - Payment status code
+ * @returns {string} Payment status text
+ */
+function getPaymentStatusText(status) {
+    const statuses = {
+        'unpaid': 'غير مدفوع',
+        'partial': 'مدفوع جزئياً',
+        'paid': 'مدفوع'
+    };
+    
+    return statuses[status] || status;
 }
 
 /**
@@ -1428,7 +1439,8 @@ async function saveInvoice() {
             discount: parseFloat(discountAmount.toFixed(2)), 
             total: parseFloat(total.toFixed(2)),
             paymentMethod: currentInvoiceSettings.paymentMethod,
-            paymentStatus: 'unpaid',
+            paymentStatus: currentInvoiceSettings.paymentStatus, // Added payment status
+            notes: currentInvoiceSettings.notes
         };
 
         // For local fallback (localStorage), we might still want to use a client-generated ID
@@ -1436,7 +1448,6 @@ async function saveInvoice() {
             ...invoicePayload, 
             id: generateInvoiceNumber(), 
             reports: selectedReports.map(r => r.id), // Store only report IDs for local version for simplicity if needed
-            notes: currentInvoiceSettings.notes, 
             createdAt: new Date().toISOString() 
         };
         
@@ -1899,6 +1910,7 @@ function loadTemplate(templateId) {
     document.getElementById('taxRate').value = invoiceSettings.taxRate;
     document.getElementById('discountRate').value = invoiceSettings.discountRate;
     document.getElementById('paymentMethod').value = invoiceSettings.paymentMethod;
+    document.getElementById('paymentStatusSelect').value = invoiceSettings.paymentStatus; // Populate payment status
     document.getElementById('invoiceNotes').value = invoiceSettings.notes;
     
     // Show success message

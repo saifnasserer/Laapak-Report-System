@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Redirect to login if not authenticated as admin
+    if (typeof authMiddleware !== 'undefined' && typeof authMiddleware.isAdminLoggedIn === 'function') {
+        if (!authMiddleware.isAdminLoggedIn()) {
+            window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
+            return;
+        }
+    }
+    
     const invoiceIdParam = new URLSearchParams(window.location.search).get('id');
 
     // HTML Elements to populate
@@ -69,23 +77,57 @@ document.addEventListener('DOMContentLoaded', () => {
         invoiceIdEl.textContent = 'جاري التحميل...';
 
         try {
+            // Get admin token (this is critical for authorization)
+            let adminToken = null;
+            if (typeof authMiddleware !== 'undefined' && typeof authMiddleware.getAdminToken === 'function') {
+                adminToken = authMiddleware.getAdminToken();
+                console.log('Using admin token from authMiddleware:', adminToken ? 'Token found' : 'No token');
+            } else {
+                // Direct access from storage as fallback
+                adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+                console.log('Using admin token from storage:', adminToken ? 'Token found' : 'No token');
+            }
+            
+            if (!adminToken) {
+                throw new Error('يرجى تسجيل الدخول كمسؤول لعرض هذه الفاتورة');
+            }
+            
             let invoiceData;
             // First, try fetching from apiService if it's defined and has the method
-            if (typeof apiService !== 'undefined' && typeof apiService.getInvoice === 'function') { // Corrected method name
-                invoiceData = await apiService.getInvoice(invoiceIdParam);
-                console.log('Fetched invoice data in fetchInvoiceData:', JSON.stringify(invoiceData, null, 2)); // Debug line
+            if (typeof apiService !== 'undefined' && typeof apiService.getInvoice === 'function') {
+                // Pass the admin token if available
+                invoiceData = await apiService.getInvoice(invoiceIdParam, adminToken);
+                console.log('Fetched invoice data in fetchInvoiceData:', JSON.stringify(invoiceData, null, 2));
             } else {
                 // Fallback: Attempt direct fetch if apiService or method is not available
-                // This assumes your backend API endpoint for a single invoice is like '/api/invoices/:id'
-                // IMPORTANT: Adjust this URL to your actual backend endpoint structure
-                const response = await fetch(`/api/invoices/${invoiceIdParam}`); // Or your full API base URL
+                // Prepare headers with authentication if available
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (adminToken) {
+                    headers['Authorization'] = `Bearer ${adminToken}`;
+                }
+                
+                const response = await fetch(`http://localhost:3001/api/invoices/${invoiceIdParam}`, {
+                    method: 'GET',
+                    headers: headers
+                });
+                
                 if (!response.ok) {
                     const errorResult = await response.json().catch(() => ({ message: `خطأ في الشبكة: ${response.status}` }));
                     throw new Error(errorResult.message || `فشل تحميل الفاتورة. الحالة: ${response.status}`);
                 }
+                
                 const result = await response.json();
                 if (result.success) {
                     invoiceData = result.data; // Assuming API returns { success: true, data: {invoice_object} }
+                } else if (result.invoice) {
+                    // Handle direct invoice object return
+                    invoiceData = result.invoice;
+                } else if (result.id) {
+                    // The result itself might be the invoice
+                    invoiceData = result;
                 } else {
                     throw new Error(result.message || 'فشل تحميل بيانات الفاتورة من الاستجابة.');
                 }

@@ -31,7 +31,7 @@
     height: 2px;
     background-color: var(--medium-green);
     top: 20px;
-    left: 40px;
+    right: 40px;
     z-index: 0;
     transition: width 0.3s ease;
 }

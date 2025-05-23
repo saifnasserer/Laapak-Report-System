@@ -394,7 +394,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const row = document.createElement('tr');
             
             // Format date
-            const createdAt = client.createdAt ? new Date(client.createdAt).toLocaleDateString('ar-SA') : 'غير محدد';
+            let createdAt = 'غير محدد';
+            if (client.createdAt) {
+                const date = new Date(client.createdAt);
+                const year = date.getFullYear();
+                const month = ('0' + (date.getMonth() + 1)).slice(-2); // getMonth() is 0-indexed
+                const day = ('0' + date.getDate()).slice(-2);
+                createdAt = `${year}-${month}-${day}`;
+            }
             
             // Status badge class
             const statusClass = client.status === 'active' ? 'bg-success' : 'bg-secondary';
