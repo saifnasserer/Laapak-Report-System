@@ -942,15 +942,33 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Create array of hardware components for database
         const hardwareComponents = [];
-        const checkedInput = document.querySelectorAll(`input[data-hardwarecomponent]`);
-        checkedInput.forEach(input => {
-            if (input.checked) {
+        
+        // Find all hardware component groups by their name pattern
+        const componentGroups = {};
+        document.querySelectorAll('input[data-hardwarecomponent]').forEach(input => {
+            const componentName = input.getAttribute('data-hardwarecomponent');
+            const radioGroupName = input.name;
+            if (!componentGroups[componentName]) {
+                componentGroups[componentName] = radioGroupName;
+            }
+        });
+        
+        // For each component, find which option is selected
+        Object.entries(componentGroups).forEach(([componentName, radioGroupName]) => {
+            const selectedInput = document.querySelector(`input[name="${radioGroupName}"]:checked`);
+            if (selectedInput) {
                 hardwareComponents.push({
-                    componentName: input.getAttribute('data-hardwarecomponent'),
-                    status: input.value
-                    });
-                }
-            });
+                    componentName: componentName,
+                    status: selectedInput.value
+                });
+            } else {
+                // If no status is selected, default to 'unknown'
+                hardwareComponents.push({
+                    componentName: componentName,
+                    status: 'unknown'
+                });
+            }
+        });
         
         // Add general notes from Step 4 to hardware_status with type 'note'
         const generalNotes = document.getElementById('generalNotes')?.value;

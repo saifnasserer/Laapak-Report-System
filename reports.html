@@ -25,7 +25,59 @@
     <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
     
     <!-- Theme color for browser -->
-    <meta name="theme-color" content="#0eaf54">
+    <meta name="theme-color" content="#0a3622">
+    
+    <style>
+        /* Custom utility class for smaller font size on mobile */
+        .fs-sm-6 {
+            font-size: 0.875rem;
+        }
+        
+        /* Style for nav icons similar to header-component-new.js */
+        .nav-item .nav-link.rounded-circle {
+            width: 36px;
+            height: 36px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @media (max-width: 767.98px) {
+            .fs-sm-6 {
+                font-size: 0.75rem;
+            }
+            
+            /* Match exact styling from header-component-new.js */
+            .nav-item .nav-link.rounded-circle {
+                width: 32px !important;
+                height: 32px !important;
+            }
+            
+            /* Reduce horizontal spacing on mobile */
+            .nav-item {
+                margin-left: 4px !important;
+                margin-right: 4px !important;
+            }
+            
+            .nav-item.mx-sm-2 {
+                margin-left: 2px !important;
+                margin-right: 2px !important;
+            }
+            
+            /* Ensure header component styles match */
+            #header-container .navbar-nav .nav-link {
+                width: 32px !important;
+                height: 32px !important;
+            }
+            
+            /* Make sure profile button is also responsive */
+            #userDropdown {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Offline Alert -->
@@ -39,49 +91,6 @@
     <div class="container-fluid p-2">
         <!-- Main Content -->
         <div class="admin-content">
-                <!-- Mobile Header -->
-                <div class="d-lg-none">
-                    <nav class="navbar navbar-dark bg-dark-green mb-4">
-                        <div class="container-fluid">
-                            <a class="navbar-brand bg-white p-1 rounded" href="#">
-                                <img src="img/logo.png" alt="Laapak" width="100">
-                            </a>
-                            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
-                                <span class="navbar-toggler-icon"></span>
-                            </button>
-                            
-                            <div class="offcanvas offcanvas-end bg-dark-green text-white" id="mobileMenu">
-                                <div class="offcanvas-header">
-                                    <h5 class="offcanvas-title">لوحة التحكم</h5>
-                                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
-                                </div>
-                                <div class="offcanvas-body">
-                                    <div class="nav flex-column">
-                                        <a href="admin.html" class="nav-link">
-                                            <i class="fas fa-tachometer-alt me-2"></i> الرئيسية
-                                        </a>
-                                        <a href="reports.html" class="nav-link active">
-                                            <i class="fas fa-file-alt me-2"></i> التقارير
-                                        </a>
-                                        <a href="create-report.html" class="nav-link">
-                                            <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
-                                        </a>
-                                        <a href="clients.html" class="nav-link">
-                                            <i class="fas fa-users me-2"></i> العملاء
-                                        </a>
-                                        <a href="settings.html" class="nav-link">
-                                            <i class="fas fa-cog me-2"></i> الإعدادات
-                                        </a>
-                                        <a href="index.html" class="nav-link">
-                                            <i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </nav>
-                </div>
-                
                 <!-- Reports Content -->
                 <div class="container-fluid">
                     <div class="d-flex justify-content-between align-items-center mb-4">

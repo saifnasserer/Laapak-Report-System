@@ -33,11 +33,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function fetchClients() {
         try {
-            const response = await fetch('/api/clients?all=true'); // Assuming an endpoint to get all clients
+            // Get the admin or client token based on which one is available
+            const token = localStorage.getItem('adminToken') || 
+                         sessionStorage.getItem('adminToken') || 
+                         localStorage.getItem('clientToken') || 
+                         sessionStorage.getItem('clientToken');
+                         
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+            
+            const response = await fetch('/api/clients?all=true', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+            
             if (!response.ok) {
                 throw new Error('Failed to fetch clients');
             }
-            clients = await response.json();
+            
+            const data = await response.json();
+            clients = data.clients || data; // Handle different response formats
             populateClientDropdown();
         } catch (error) {
             console.error('Error fetching clients:', error);
@@ -62,17 +80,37 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         try {
-            const response = await fetch(`/api/invoices/${invoiceId}`);
+            // Get the admin or client token based on which one is available
+            const token = localStorage.getItem('adminToken') || 
+                         sessionStorage.getItem('adminToken') || 
+                         localStorage.getItem('clientToken') || 
+                         sessionStorage.getItem('clientToken');
+                         
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+            
+            const response = await fetch(`/api/invoices/${invoiceId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+            
             if (!response.ok) {
                 if (response.status === 404) {
                     toastr.error('الفاتورة غير موجودة.');
                     loadingIndicator.innerHTML = '<p class="text-danger">الفاتورة المطلوبة غير موجودة.</p>';
+                } else if (response.status === 401) {
+                    toastr.error('غير مصرح لك بالوصول لهذه الفاتورة.');
+                    loadingIndicator.innerHTML = '<p class="text-danger">يرجى تسجيل الدخول للوصول إلى هذه الفاتورة.</p>';
                 } else {
                     toastr.error('فشل في تحميل تفاصيل الفاتورة.');
                     loadingIndicator.innerHTML = '<p class="text-danger">حدث خطأ أثناء تحميل بيانات الفاتورة.</p>';
                 }
                 return;
             }
+            
             const invoice = await response.json();
             populateForm(invoice);
             loadingIndicator.classList.add('d-none');
@@ -85,24 +123,44 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function populateForm(invoice) {
-        document.getElementById('invoiceId').value = invoice.id;
-        clientIdSelect.value = invoice.client_id;
-        reportIdInput.value = invoice.report_id || 'N/A';
-        invoiceDateInput.value = invoice.date ? invoice.date.split('T')[0] : '';
-        paymentStatusSelect.value = invoice.paymentStatus;
-        paymentMethodSelect.value = invoice.paymentMethod || '';
-        paymentDateInput.value = invoice.paymentDate ? invoice.paymentDate.split('T')[0] : '';
-        discountInput.value = parseFloat(invoice.discount || 0).toFixed(2);
-        taxRateInput.value = parseFloat(invoice.taxRate || 14.00).toFixed(2);
+        try {
+            document.getElementById('invoiceId').value = invoice.id;
+            clientIdSelect.value = invoice.client_id;
+            reportIdInput.value = invoice.report_id || 'N/A';
+            invoiceDateInput.value = invoice.date ? invoice.date.split('T')[0] : '';
+            paymentStatusSelect.value = invoice.paymentStatus;
+            paymentMethodSelect.value = invoice.paymentMethod || '';
+            paymentDateInput.value = invoice.paymentDate ? invoice.paymentDate.split('T')[0] : '';
+            discountInput.value = parseFloat(invoice.discount || 0).toFixed(2);
+            taxRateInput.value = parseFloat(invoice.taxRate || 14.00).toFixed(2);
 
-        invoiceItemsContainer.innerHTML = ''; // Clear existing items
-        if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
-            invoice.InvoiceItems.forEach(item => addInvoiceItemRow(item));
-            noItemsAlert.classList.add('d-none');
-        } else {
-            noItemsAlert.classList.remove('d-none');
+            // Clear existing items
+            invoiceItemsContainer.innerHTML = '';
+
+            // Get invoice items from the correct property
+            const items = invoice.InvoiceItems || invoice.items || [];
+            
+            if (items.length > 0) {
+                items.forEach(item => {
+                    addInvoiceItemRow({
+                        description: item.description,
+                        type: item.type,
+                        quantity: item.quantity || 1,
+                        amount: parseFloat(item.amount).toFixed(2),
+                        serialNumber: item.serialNumber || ''
+                    });
+                });
+                noItemsAlert.classList.add('d-none');
+            } else {
+                noItemsAlert.classList.remove('d-none');
+            }
+            
+            calculateTotals();
+        } catch (error) {
+            console.error('Error populating form:', error);
+            toastr.error('حدث خطأ أثناء تحميل بيانات الفاتورة.');
+            loadingIndicator.innerHTML = '<p class="text-danger">حدث خطأ أثناء تحميل بيانات الفاتورة.</p>';
         }
-        calculateTotals();
     }
 
     function addInvoiceItemRow(item = {}) {
@@ -227,11 +285,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
         try {
+            // Get the admin or client token based on which one is available
+            const token = localStorage.getItem('adminToken') || 
+                         sessionStorage.getItem('adminToken') || 
+                         localStorage.getItem('clientToken') || 
+                         sessionStorage.getItem('clientToken');
+                         
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+            
             const response = await fetch(`/api/invoices/${invoiceData.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                    'x-auth-token': token
                 },
                 body: JSON.stringify(invoiceData)
             });
@@ -243,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             toastr.success('تم تحديث الفاتورة بنجاح!');
             setTimeout(() => {
-                 window.location.href = `invoice.html?id=${invoiceData.id}`; // Redirect to view invoice page
+                 window.location.href = `view-invoice.html?id=${invoiceData.id}`; // Redirect to view invoice page
             }, 1000);
 
         } catch (error) {

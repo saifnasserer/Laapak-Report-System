@@ -4,11 +4,14 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Admin dashboard loaded');
     // Check if admin is authenticated
     checkAdminAuth();
     
     // Load dashboard data from API
     loadDashboardStats();
+    displayCurrentDate();
+    initializeCharts();
     loadRecentReports();
     loadRecentInvoices();
 });
@@ -24,26 +27,33 @@ function loadDashboardStats() {
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken() || adminInfo.token || '';
     
+    // API base URL
+    const baseUrl = window.location.origin;
+    
     // Make simultaneous API requests to get statistics
     Promise.all([
-        fetch('http://localhost:3001/api/reports/count', {
+        // Total reports count
+        fetch(`${baseUrl}/api/reports/count`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'x-auth-token': token
             }
         }),
-        fetch('http://localhost:3001/api/invoices/count', {
+        // Total invoices count
+        fetch(`${baseUrl}/api/invoices/count`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'x-auth-token': token
             }
         }),
-        fetch('http://localhost:3001/api/clients/count', {
+        // Total clients count
+        fetch(`${baseUrl}/api/clients/count`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'x-auth-token': token
             }
         }),
-        fetch('http://localhost:3001/api/reports/count?status=pending', {
+        // Unpaid invoices count
+        fetch(`${baseUrl}/api/invoices/count?paymentStatus=unpaid`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'x-auth-token': token
             }
         })
     ])
@@ -56,7 +66,8 @@ function loadDashboardStats() {
         return Promise.all(responses.map(resp => resp.json()));
     })
     .then(data => {
-        // Process data [totalReports, totalInvoices, totalClients, pendingReports]
+        console.log('Dashboard stats data:', data);
+        // Process data [totalReports, totalInvoices, totalClients, unpaidInvoices]
         document.getElementById('total-reports').textContent = data[0].count || '0';
         document.getElementById('total-invoices').textContent = data[1].count || '0';
         document.getElementById('total-clients').textContent = data[2].count || '0';
@@ -70,6 +81,11 @@ function loadDashboardStats() {
         document.getElementById('total-invoices').textContent = '0';
         document.getElementById('total-clients').textContent = '0';
         document.getElementById('pending-reports').textContent = '0';
+        
+        // Show error toast
+        if (typeof toastr !== 'undefined') {
+            toastr.error('فشل في تحميل إحصائيات لوحة التحكم');
+        }
     });
 }
 
@@ -85,9 +101,10 @@ function loadRecentReports() {
     const token = authMiddleware.getAdminToken() || adminInfo.token || '';
     
     // Make API request to get recent reports
-    fetch('http://localhost:3001/api/reports?limit=5&sort=desc', {
+    fetch(`${window.location.origin}/api/reports?limit=5&sort=desc`, {
         headers: {
-            'Authorization': `Bearer ${token}`
+            'x-auth-token': token,
+            'Content-Type': 'application/json'
         }
     })
     .then(response => {
@@ -165,9 +182,10 @@ function loadRecentInvoices() {
     const token = authMiddleware.getAdminToken() || adminInfo.token || '';
     
     // Make API request to get recent invoices
-    fetch('http://localhost:3001/api/invoices?limit=5&sort=desc', {
+    fetch(`${window.location.origin}/api/invoices?limit=5&sort=desc`, {
         headers: {
-            'Authorization': `Bearer ${token}`
+            'x-auth-token': token,
+            'Content-Type': 'application/json'
         }
     })
     .then(response => {
@@ -194,28 +212,28 @@ function loadRecentInvoices() {
         }
         
         // Add invoices to table
-        data.forEach(invoice => {
-            const formattedDate = new Date(invoice.date).toLocaleDateString('ar-SA');
-            const formattedAmount = invoice.total.toLocaleString('ar-SA') + ' ر.س';
+        // data.forEach(invoice => {
+        //     const formattedDate = new Date(invoice.date).toLocaleDateString('ar-SA');
+        //     const formattedAmount = invoice.total.toLocaleString('ar-SA') + ' ر.س';
             
-            invoicesTable.innerHTML += `
-                <tr>
-                    <td class="ps-4">${invoice.id}</td>
-                    <td>${invoice.client?.name || 'غير معروف'}</td>
-                    <td>${formattedDate}</td>
-                    <td>${formattedAmount}</td>
-                    <td><span class="badge ${getPaymentStatusClass(invoice.paymentStatus)}">${translatePaymentStatus(invoice.paymentStatus)}</span></td>
-                    <td class="text-center">
-                        <a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-outline-primary me-1">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="edit-invoice.html?id=${invoice.id}" class="btn btn-sm btn-outline-success me-1">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                    </td>
-                </tr>
-            `;
-        });
+        //     invoicesTable.innerHTML += `
+        //         <tr>
+        //             <td class="ps-4">${invoice.id}</td>
+        //             <td>${invoice.client?.name || 'غير معروف'}</td>
+        //             <td>${formattedDate}</td>
+        //             <td>${formattedAmount}</td>
+        //             <td><span class="badge ${getPaymentStatusClass(invoice.paymentStatus)}">${translatePaymentStatus(invoice.paymentStatus)}</span></td>
+        //             <td class="text-center">
+        //                 <a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-outline-primary me-1">
+        //                     <i class="fas fa-eye"></i>
+        //                 </a>
+        //                 <a href="edit-invoice.html?id=${invoice.id}" class="btn btn-sm btn-outline-success me-1">
+        //                     <i class="fas fa-edit"></i>
+        //                 </a>
+        //             </td>
+        //         </tr>
+        //     `;
+        // });
     })
     .catch(error => {
         console.error('Error loading recent invoices:', error);
@@ -295,13 +313,325 @@ function translateStatus(status) {
 function translatePaymentStatus(status) {
     switch(status) {
         case 'paid':
-            return 'مدفوع';
+            return 'مدفوعة';
         case 'partial':
-            return 'مدفوع جزئياً';
+            return 'مدفوعة جزئياً';
         case 'unpaid':
-            return 'غير مدفوع';
+            return 'غير مدفوعة';
         default:
-            return status;
+            return status || 'غير معروف';
+    }
+}
+
+/**
+ * Display current date in Arabic format
+ */
+function displayCurrentDate() {
+    const dateElement = document.getElementById('current-date');
+    if (!dateElement) return;
+    
+    // Options for Arabic date format
+    const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    
+    // Create date in Arabic locale
+    const today = new Date();
+    const arabicDate = today.toLocaleDateString('ar-SA', options);
+    
+    // Display the date
+    dateElement.textContent = arabicDate;
+}
+
+/**
+ * Initialize dashboard charts
+ */
+function initializeCharts() {
+    // Get admin token for API requests
+    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+    const authMiddleware = new AuthMiddleware();
+    const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+    const baseUrl = window.location.origin;
+    
+    // Performance chart - Line chart for reports and invoices
+    const performanceChartCanvas = document.getElementById('performanceChart');
+    if (performanceChartCanvas) {
+        // Last 6 months in Arabic
+        const months = [
+            'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+            'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+        ];
+        
+        // Get last 6 months
+        const currentMonth = new Date().getMonth();
+        const last6Months = [];
+        const last6MonthsDate = [];
+        
+        for (let i = 5; i >= 0; i--) {
+            const monthIndex = (currentMonth - i + 12) % 12;
+            last6Months.push(months[monthIndex]);
+            
+            // Create date objects for API query
+            const date = new Date();
+            date.setMonth(currentMonth - i);
+            date.setDate(1); // First day of month
+            date.setHours(0, 0, 0, 0);
+            last6MonthsDate.push(date);
+        }
+        
+        // Get report and invoice counts by month
+        const reportsPromises = [];
+        const invoicesPromises = [];
+        
+        // For each month, query the API for reports and invoices created in that month
+        last6MonthsDate.forEach((startDate, index) => {
+            // Calculate end date (first day of next month)
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+            
+            // Query for reports in this month
+            const reportPromise = fetch(`${baseUrl}/api/reports/count?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`, {
+                headers: {
+                    'x-auth-token': token
+                }
+            }).then(res => res.json());
+            
+            // Query for invoices in this month
+            const invoicePromise = fetch(`${baseUrl}/api/invoices/count?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`, {
+                headers: {
+                    'x-auth-token': token
+                }
+            }).then(res => res.json());
+            
+            reportsPromises.push(reportPromise);
+            invoicesPromises.push(invoicePromise);
+        });
+        
+        // Process all the data and create the chart
+        Promise.all([Promise.all(reportsPromises), Promise.all(invoicesPromises)])
+            .then(([reportResults, invoiceResults]) => {
+                // Extract counts from results
+                const reportsData = reportResults.map(result => result.count || 0);
+                const invoicesData = invoiceResults.map(result => result.count || 0);
+                
+                // Create the chart
+                new Chart(performanceChartCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: last6Months,
+                        datasets: [
+                            {
+                                label: 'التقارير',
+                                data: reportsData,
+                                borderColor: '#007553',
+                                backgroundColor: 'rgba(0, 117, 83, 0.1)',
+                                borderWidth: 2,
+                                pointBackgroundColor: '#007553',
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'الفواتير',
+                                data: invoicesData,
+                                borderColor: '#0d6efd',
+                                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                                borderWidth: 2,
+                                pointBackgroundColor: '#0d6efd',
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    boxWidth: 10,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                rtl: true,
+                                titleAlign: 'right',
+                                bodyAlign: 'right'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    drawBorder: false,
+                                    display: true,
+                                    drawOnChartArea: true,
+                                    drawTicks: false,
+                                    borderDash: [5, 5]
+                                },
+                                ticks: {
+                                    display: true,
+                                    padding: 10,
+                                    color: '#b2b9bf',
+                                    font: {
+                                        size: 11,
+                                        family: 'Cairo, sans-serif',
+                                        style: 'normal',
+                                        lineHeight: 2
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    drawBorder: false,
+                                    display: false,
+                                    drawOnChartArea: false,
+                                    drawTicks: false,
+                                    borderDash: [5, 5]
+                                },
+                                ticks: {
+                                    display: true,
+                                    color: '#b2b9bf',
+                                    padding: 20,
+                                    font: {
+                                        size: 11,
+                                        family: 'Cairo, sans-serif',
+                                        style: 'normal',
+                                        lineHeight: 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading chart data:', error);
+                // Show error message on the chart
+                new Chart(performanceChartCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: last6Months,
+                        datasets: []
+                    },
+                    options: {
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'فشل في تحميل البيانات',
+                                color: '#dc3545',
+                                font: {
+                                    size: 14,
+                                    family: 'Cairo, sans-serif'
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+    }
+    
+    // Invoice Status Chart - Doughnut chart
+    const invoiceStatusChartCanvas = document.getElementById('invoiceStatusChart');
+    if (invoiceStatusChartCanvas) {
+        // Fetch real invoice data by payment status
+        Promise.all([
+            // Paid invoices
+            fetch(`${baseUrl}/api/invoices/count?paymentStatus=paid`, {
+                headers: {
+                    'x-auth-token': token
+                }
+            }),
+            // Partially paid invoices
+            fetch(`${baseUrl}/api/invoices/count?paymentStatus=partial`, {
+                headers: {
+                    'x-auth-token': token
+                }
+            }),
+            // Unpaid invoices
+            fetch(`${baseUrl}/api/invoices/count?paymentStatus=unpaid`, {
+                headers: {
+                    'x-auth-token': token
+                }
+            })
+        ])
+        .then(responses => {
+            // Check if all responses are ok
+            const failedResponses = responses.filter(resp => !resp.ok);
+            if (failedResponses.length > 0) {
+                throw new Error(`Failed to load invoice status data: ${failedResponses.length} requests failed`);
+            }
+            return Promise.all(responses.map(resp => resp.json()));
+        })
+        .then(data => {
+            // Extract counts from results [paid, partial, unpaid]
+            const invoiceStatusData = data.map(result => result.count || 0);
+            
+            // Create the chart
+            new Chart(invoiceStatusChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['مدفوعة', 'مدفوعة جزئياً', 'غير مدفوعة'],
+                    datasets: [{
+                        data: invoiceStatusData,
+                        backgroundColor: ['#198754', '#ffc107', '#dc3545'],
+                        borderWidth: 0,
+                        cutout: '75%',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            rtl: true,
+                            titleAlign: 'right',
+                            bodyAlign: 'right'
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading invoice status data:', error);
+            // Show error message on the chart
+            new Chart(invoiceStatusChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'فشل في تحميل البيانات',
+                            color: '#dc3545',
+                            font: {
+                                size: 14,
+                                family: 'Cairo, sans-serif'
+                            }
+                        }
+                    }
+                }
+            });
+        });
     }
 }
 

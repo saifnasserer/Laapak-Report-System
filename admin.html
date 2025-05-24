@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم | Laapak Report System</title>
+    <title>Laapak Report System</title>
     
     <!-- Bootstrap RTL CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
@@ -27,6 +27,69 @@
     
     <!-- Theme color for browser -->
     <meta name="theme-color" content="#0a3622">
+    
+    <style>
+        /* Custom utility class for smaller font size on mobile */
+        .fs-sm-6 {
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 767.98px) {
+            .fs-sm-6 {
+                font-size: 0.75rem;
+            }
+            
+            /* Smaller nav icons on mobile */
+            .nav-item .nav-link.rounded-circle {
+                width: 32px !important;
+                height: 32px !important;
+                padding: 0 !important;
+            }
+            
+            /* Reduce horizontal spacing on mobile */
+            .navbar-nav .nav-item {
+                margin-left: 2px !important;
+                margin-right: 2px !important;
+            }
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .stat-card {
+            border-radius: 12px;
+            border: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08) !important;
+        }
+        .icon-container {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .action-btn {
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            border: none;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .action-btn:hover {
+            background-color: rgba(0, 117, 83, 0.1);
+            transform: translateY(-3px);
+        }
+        .action-btn i {
+            color: #007553;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
     <!-- Offline Alert -->
@@ -38,99 +101,187 @@
     <div id="header-container"></div>
     
     <!-- Dashboard Content -->
-    <div class="container-fluid mt-4 px-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="text-dark fw-bold">لوحة التحكم</h2>
-            <a href="create-report.html" class="btn btn-sm rounded-pill" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white; padding: 8px 16px;">
-                <i class="fas fa-plus-circle me-2"></i> تقرير جديد
-            </a>
-        </div>
+    <div class="container-fluid py-5 px-4 mt-2">
         
-        <!-- Stats Cards - Simple Statistics -->
-        <div class="row mb-4">
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle p-2 me-3" style="background-color: rgba(0, 117, 83, 0.1);">
-                                <i class="fas fa-file-alt" style="color: #007553; font-size: 1.2rem;"></i>
-                            </div>
-                            <h6 class="fw-bold text-muted mb-0">إجمالي التقارير</h6>
-                        </div>
-                        <h3 class="fw-bold mb-0" id="total-reports">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle p-2 me-3" style="background-color: rgba(0, 117, 83, 0.1);">
-                                <i class="fas fa-receipt" style="color: #007553; font-size: 1.2rem;"></i>
-                            </div>
-                            <h6 class="fw-bold text-muted mb-0">الفواتير</h6>
-                        </div>
-                        <h3 class="fw-bold mb-0" id="total-invoices">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle p-2 me-3" style="background-color: rgba(0, 117, 83, 0.1);">
-                                <i class="fas fa-users" style="color: #007553; font-size: 1.2rem;"></i>
-                            </div>
-                            <h6 class="fw-bold text-muted mb-0">العملاء</h6>
-                        </div>
-                        <h3 class="fw-bold mb-0" id="total-clients">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle p-2 me-3" style="background-color: rgba(0, 117, 83, 0.1);">
-                                <i class="fas fa-hourglass-half" style="color: #007553; font-size: 1.2rem;"></i>
-                            </div>
-                            <h6 class="fw-bold text-muted mb-0">قيد الإنتظار</h6>
-                        </div>
-                        <h3 class="fw-bold mb-0" id="pending-reports">-</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Quick Action Buttons -->
-        <div class="row mb-4">
+        <!-- Welcome Banner -->
+        <div class="row mb-5">
             <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <h5 class="fw-bold mb-3">إجراءات سريعة</h5>
-                        <div class="d-flex flex-wrap gap-2">
-                            <a href="clients.html" class="btn btn-outline-success">
-                                <i class="fas fa-users me-2"></i> إدارة العملاء
-                            </a>
-                            <a href="reports.html" class="btn btn-outline-success">
-                                <i class="fas fa-file-alt me-2"></i> تقارير الفحص
-                            </a>
-                            <a href="invoices.html" class="btn btn-outline-success">
-                                <i class="fas fa-receipt me-2"></i> الفواتير
-                            </a>
-                            <a href="create-report.html" class="btn btn-outline-success">
-                                <i class="fas fa-plus-circle me-2"></i> تقرير جديد
-                            </a>
-                            <a href="settings.html" class="btn btn-outline-secondary">
-                                <i class="fas fa-cog me-2"></i> الإعدادات
-                            </a>
+                <div class="card border-0 rounded-4 bg-gradient" style="background: linear-gradient(135deg, #007553 0%, #021911 100%); overflow: hidden; position: relative;">
+                    <div class="card-body p-4 p-md-5 text-white">
+                        <div class="row align-items-center">
+                            <div class="col-lg-7">
+                                <h2 class="fw-bold mb-3">مرحبًا بك في لوحة تحكم لاباك</h2>
+                                <p class="mb-4 opacity-75">"التميز ليس فعلًا، بل عادة. أنت تصبح متميزًا من خلال ما تفعله بشكل متكرر."</p>
+                                <div class="d-flex">
+                                    <span class="badge bg-white text-success px-3 py-2 rounded-pill">
+                                        <i class="fas fa-calendar-alt me-2"></i><span id="current-date"></span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-lg-5 d-none d-lg-block text-center">
+                                <img src="img/dashboard-illustration.svg" alt="Dashboard" class="img-fluid" style="max-height: 180px; opacity: 0.85;">
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Recent Reports Section -->
+        <!-- Stats Cards - Modern Statistics -->
+        <div class="row mb-5 justify-content-center">
+            <!-- Total Reports -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="card stat-card shadow-sm h-100 d-flex align-items-center">
+                    <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(0, 117, 83, 0.1) 0%, rgba(0, 117, 83, 0.2) 100%);">
+                                <i class="fas fa-file-alt" style="color: #007553; font-size: 1.5rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-muted mb-1">إجمالي التقارير</h6>
+                                <h3 class="fw-bold mb-0" id="total-reports">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Invoices -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="card stat-card shadow-sm h-100 d-flex align-items-center">
+                    <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.1) 0%, rgba(25, 135, 84, 0.2) 100%);">
+                                <i class="fas fa-receipt" style="color: #198754; font-size: 1.5rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-muted mb-1">الفواتير</h6>
+                                <h3 class="fw-bold mb-0" id="total-invoices">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Clients -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="card stat-card shadow-sm h-100 d-flex align-items-center">
+                    <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.2) 100%);">
+                                <i class="fas fa-users" style="color: #0d6efd; font-size: 1.5rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-muted mb-1">العملاء</h6>
+                                <h3 class="fw-bold mb-0" id="total-clients">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pending Invoices -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="card stat-card shadow-sm h-100 d-flex align-items-center">
+                    <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.2) 100%);">
+                                <i class="fas fa-hourglass-half" style="color: #dc3545; font-size: 1.5rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-muted mb-1">قيد الإنتظار</h6>
+                                <h3 class="fw-bold mb-0" id="pending-reports">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analytics Section with Chart -->
+        <div class="row mb-5">
+            <div class="col-lg-8 col-md-12 mb-4">
+                <div class="card border-0 rounded-4 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">تحليل الأداء الشهري</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light rounded-pill px-3" type="button" id="chartOptions" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#">تنزيل التقرير</a></li>
+                                    <li><a class="dropdown-item" href="#">عرض التفاصيل</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-0 mt-2">مقارنة بين التقارير والفواتير للأشهر الستة الماضية</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <canvas id="performanceChart" style="height: 250px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-12 mb-4">
+                <div class="card border-0 rounded-4 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold mb-0">توزيع الفواتير</h5>
+                        <p class="text-muted small mb-0 mt-2">حسب حالة الدفع</p>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center">
+                        <canvas id="invoiceStatusChart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions - Modern Grid -->
+        <div class="mb-5">
+            <h5 class="fw-bold mb-4">إجراءات سريعة</h5>
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <a href="clients.html" class="text-decoration-none">
+                        <div class="action-btn d-flex flex-column align-items-center text-center p-4">
+                            <i class="fas fa-users mb-3"></i>
+                            <span class="fw-medium">إدارة العملاء</span>
+                        </div>
+                    </a>
+                </div>
+                
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <a href="reports.html" class="text-decoration-none">
+                        <div class="action-btn d-flex flex-column align-items-center text-center p-4">
+                            <i class="fas fa-file-alt mb-3"></i>
+                            <span class="fw-medium">تقارير الفحص</span>
+                        </div>
+                    </a>
+                </div>
+                
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <a href="invoices.html" class="text-decoration-none">
+                        <div class="action-btn d-flex flex-column align-items-center text-center p-4">
+                            <i class="fas fa-receipt mb-3"></i>
+                            <span class="fw-medium">الفواتير</span>
+                        </div>
+                    </a>
+                </div>
+                
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <a href="settings.html" class="text-decoration-none">
+                        <div class="action-btn d-flex flex-column align-items-center text-center p-4">
+                            <i class="fas fa-cog mb-3"></i>
+                            <span class="fw-medium">الإعدادات</span>
+                        </div>
+                    </a>
+                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Reports Section
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
@@ -152,7 +303,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="recent-reports-table">
-                                    <!-- Reports will be loaded here from admin.js -->
+                                    Reports will be loaded here from admin.js
                                     <tr>
                                         <td colspan="6" class="text-center py-4">
                                             <div class="spinner-border text-success" role="status">
@@ -167,9 +318,9 @@
                 </div>
             </div>
         </div>
-        
+         -->
         <!-- Recent Invoices Section -->
-        <div class="row mb-4">
+        <!-- <div class="row mb-4">
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center p-4">
@@ -190,7 +341,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="recent-invoices-table">
-                                    <!-- Invoices will be loaded here from admin.js -->
+                                    Invoices will be loaded here from admin.js
                                     <tr>
                                         <td colspan="6" class="text-center py-4">
                                             <div class="spinner-border text-success" role="status">
@@ -204,40 +355,17 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-success text-white py-4 mt-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>لابك دوت كوم</h5>
-                    <p class="small">ضمان - ثقة - امان</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="small">&copy; 2025 لابك. جميع الحقوق محفوظة.</p>
-                    <div class="social-links">
-                        <a href="#" class="me-2"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="me-2"><i class="fab fa-facebook"></i></a>
-                        <a href="#" class="me-2"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-whatsapp"></i></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- JavaScript Libraries -->
+    <!-- JavaScript libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Core application scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/header-component.js"></script>
     <script src="js/auth-middleware.js"></script>
-    <script src="js/auth-check.js"></script>
     <script src="js/admin.js"></script>
-    
-    <!-- Service Worker Registration for PWA -->
+    <script src="js/sw-register.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize header component
@@ -245,22 +373,10 @@
                 containerId: 'header-container',
                 activeItem: 'dashboard'
             });
-
+            
             // Check auth
             checkAdminAuth();
         });
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(registration => {
-                        console.log('Service Worker registered with scope:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.error('Service Worker registration failed:', error);
-                    });
-            });
-        }
     </script>
 </body>
 </html>

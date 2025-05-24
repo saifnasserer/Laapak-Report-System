@@ -205,7 +205,9 @@ function displayInvoices(invoices) {
     sortedInvoices.forEach(invoice => {
         const invoiceDate = new Date(invoice.date);
         const isNewest = invoice.id === mostRecentInvoiceId;
-        const isPending = !invoice.paid;
+        // Check payment status correctly - use paymentStatus enum field instead of paid boolean
+        const isPending = invoice.paymentStatus === 'unpaid' || invoice.paymentStatus === 'partial';
+        console.log('Invoice ID:', invoice.id, 'Payment Status:', invoice.paymentStatus, 'isPending:', isPending);
         const col = document.createElement('div');
         col.className = 'col-md-6 mb-4';
         
@@ -232,17 +234,23 @@ function displayInvoices(invoices) {
                         <i class="fas fa-credit-card me-1"></i> ${invoice.paymentMethod ? invoice.paymentMethod : 'غير محدد'}
                     </div>
                     
-                    ${invoice.paid ? 
+                    ${invoice.paymentStatus === 'paid' ? 
                         `<div class="small text-success mt-1">
-                            <i class="fas fa-check-circle me-1"></i> تم الدفع بتاريخ ${formatGregorianDate(new Date(invoice.paymentDate))}
+                            <i class="fas fa-check-circle me-1"></i> تم الدفع بتاريخ ${formatGregorianDate(new Date(invoice.paymentDate || invoice.date))}
+                        </div>` : 
+                        invoice.paymentStatus === 'partial' ?
+                        `<div class="small text-warning mt-1">
+                            <i class="fas fa-exclamation-circle me-1"></i> تم دفع جزء من المبلغ
                         </div>` : ''
                     }
                 </div>
                 <div class="card-footer bg-white border-top-0 pt-0">
                     <div class="d-grid">
-                        <a href="view-invoice.html?id=${invoice.id}" class="btn ${isPending ? 'btn-danger' : 'btn-success'}">
-                            <i class="fas ${isPending ? 'fa-file-invoice' : 'fa-receipt'} me-2"></i> 
-                            ${isPending ? 'عرض ودفع الفاتورة' : 'عرض تفاصيل الفاتورة'}
+                        <a href="view-invoice.html?id=${invoice.id}" class="btn ${invoice.paymentStatus === 'paid' ? 'btn-success' : invoice.paymentStatus === 'partial' ? 'btn-warning' : 'btn-danger'}">
+                            <i class="fas ${invoice.paymentStatus === 'paid' ? 'fa-receipt' : 'fa-file-invoice'} me-2"></i> 
+                            ${invoice.paymentStatus === 'paid' ? 'عرض تفاصيل الفاتورة' : 
+                             invoice.paymentStatus === 'partial' ? 'عرض واستكمال الدفع' : 
+                             'عرض ودفع الفاتورة'}
                         </a>
                     </div>
                 </div>

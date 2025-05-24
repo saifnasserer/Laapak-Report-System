@@ -1,9 +1,45 @@
 const express = require('express');
 const { Sequelize, Op } = require('sequelize');
 const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport } = require('../models'); // Added InvoiceReport
-const { clientAuth } = require('../middleware/auth'); // Import clientAuth middleware
+const { auth, clientAuth, adminAuth } = require('../middleware/auth'); // Import all auth middlewares
 
 const router = express.Router();
+
+// GET /reports/count - get count of reports
+router.get('/count', auth, async (req, res) => {
+    try {
+        const { status, startDate, endDate } = req.query;
+        
+        let whereClause = {};
+        
+        // If status filter is provided
+        if (status) {
+            whereClause.status = status;
+        }
+        
+        // If date range is provided
+        if (startDate && endDate) {
+            whereClause.inspection_date = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        } else if (startDate) {
+            whereClause.inspection_date = {
+                [Op.gte]: new Date(startDate)
+            };
+        } else if (endDate) {
+            whereClause.inspection_date = {
+                [Op.lte]: new Date(endDate)
+            };
+        }
+        
+        const count = await Report.count({ where: whereClause });
+        
+        res.json({ count });
+    } catch (error) {
+        console.error('Error counting reports:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
 
 // GET /reports - get all reports or a single report by query ID (e.g., /reports?id=REPORT_ID)
 router.get('/', async (req, res) => {

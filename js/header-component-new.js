@@ -166,21 +166,22 @@ class LpkHeader {
                     </a>
                     
                     <!-- Navigation items in center - visible on all devices -->
-                    <ul class="navbar-nav d-flex flex-row align-items-center justify-content-center">`;
+                    <ul class="navbar-nav d-flex flex-row flex-nowrap align-items-center justify-content-center">`;
                         
         // Navigation items - Icon only version with consistent styling
         this.options.navigationItems.forEach(item => {
             const isActive = item.id === this.options.activeItem;
-            const commonStyles = 'width: 40px; height: 40px; transition: all 0.3s ease;';
+            const commonStyles = 'width: 36px; height: 36px; transition: all 0.3s ease;';
+            const mobileStyles = '@media (max-width: 767.98px) { width: 32px; height: 32px; }';
             const activeStyles = 'background-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15);';
             const inactiveStyles = 'background-color: rgba(255,255,255,0.15);';
             
             html += `
-                        <li class="nav-item mx-2">
+                        <li class="nav-item mx-1 mx-sm-2">
                             <a href="${item.url}" id="nav-${item.id}" class="nav-link${isActive ? ' active fw-bold' : ''} rounded-circle d-flex align-items-center justify-content-center" 
                                style="${commonStyles} ${isActive ? activeStyles : inactiveStyles}" 
                                data-bs-toggle="tooltip" data-bs-placement="bottom" title="${item.text}">
-                                <i class="${item.icon}"></i>
+                                <i class="${item.icon} fs-sm-6"></i>
                             </a>
                         </li>`;
         });
@@ -191,27 +192,15 @@ class LpkHeader {
                     
                     <!-- User profile on right -->
                     <div class="dropdown">
-                        <a class="d-flex align-items-center justify-content-center text-white text-decoration-none dropdown-toggle rounded-circle" 
-                           href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
-                           style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
-                           title="الحساب">
-                            <i class="fas fa-user"></i>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 240px; border-radius: 12px; margin-top: 10px;">
-                            <li class="dropdown-header p-3 border-bottom">
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style="width: 42px; height: 42px;">
-                                        <i class="fas fa-user text-success"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-bold">${adminFirstName}</h6>
-                                        <div class="mt-1"><span class="badge bg-success">${adminRole}</span></div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li><a class="dropdown-item py-2 d-flex align-items-center" href="settings.html"><i class="fas fa-user-cog text-primary"></i><span class="ms-3">إعدادات الحساب</span></a></li>
-                            <li><hr class="dropdown-divider my-1"></li>
-                            <li><a class="dropdown-item py-2 d-flex align-items-center text-danger" href="#" id="adminLogoutBtn"><i class="fas fa-sign-out-alt"></i><span class="ms-3">تسجيل الخروج</span></a></li>
+                        <button class="btn btn-sm btn-outline-light rounded-pill dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><div class="dropdown-item"><span id="adminNameDisplay">${adminFirstName}</span> <span class="badge bg-success ms-1">${adminRole}</span></div></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="settings.html"><i class="fas fa-user-cog me-1"></i> إعدادات الحساب</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="adminLogoutBtn"><i class="fas fa-sign-out-alt me-1"></i> تسجيل الخروج</a></li>
                         </ul>
                     </div>
                 </div>

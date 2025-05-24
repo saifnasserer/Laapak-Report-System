@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const deviceVideoEmbed = document.getElementById('deviceVideoEmbed');
     const testScreenshotsGallery = document.getElementById('testScreenshotsGallery');
     const hardwareStatusTableBody = document.getElementById('hardwareStatusTableBody');
-    const technicianNotes = document.getElementById('technicianNotes');
+    
 
     const billingEnabled = document.getElementById('billingEnabled');
     const billingAmount = document.getElementById('billingAmount');
@@ -866,7 +866,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'Bluetooth': 'البلوتوث'
         };
 
-        hardwareStatusData.forEach(item => {
+        // Filter out items with type "note"
+        const filteredHardwareData = hardwareStatusData.filter(item => item.type !== 'note');
+        
+        filteredHardwareData.forEach(item => {
             const row = hardwareStatusTableBody.insertRow();
             const cellComponent = row.insertCell();
             const cellStatus = row.insertCell();
@@ -887,24 +890,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function translateComponentStatus(status) {
         const statuses = {
-            'good': 'جيد',
             'working': 'يعمل',
-            'issues': 'به مشاكل',
-            'damaged': 'تالف',
-            'not_tested': 'لم يتم اختباره',
-            'missing': 'مفقود',
-            'fair': 'مقبول'
+            'not_working': 'لايعمل',
+            'not_available': 'غير موجود بالجهاز'
         };
         return statuses[status.toLowerCase()] || status;
     }
 
     function getComponentStatusClass(status) {
         const lowerStatus = status.toLowerCase();
-        if (['good', 'working'].includes(lowerStatus)) return 'bg-success';
-        if (lowerStatus === 'fair') return 'bg-warning text-dark';
-        if (['issues', 'damaged'].includes(lowerStatus)) return 'bg-danger';
-        if (lowerStatus === 'missing') return 'bg-secondary';
-        if (lowerStatus === 'not_tested') return 'bg-info text-dark';
+        if (['working'].includes(lowerStatus)) return 'bg-success';
+        if (lowerStatus === 'not_working') return 'bg-danger';
+        if (lowerStatus === 'not_available') return 'bg-secondary';
         return 'bg-light text-dark';
     }
 
