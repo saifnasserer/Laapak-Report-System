@@ -84,16 +84,18 @@ class LpkClientHeader {
                         </a>
                     </div>
                     
-                    <!-- User dropdown on the left -->
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-light rounded-pill dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user-circle"></i>
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="userDropdown">
-                            <li><div class="dropdown-item"><span id="clientNameDisplay">${firstName}</span></div></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="#" id="clientLogoutBtn"><i class="fas fa-sign-out-alt me-1"></i> تسجيل الخروج</a></li>
-                        </ul>
+                    <!-- User dropdown on the right -->
+                    <div class="ms-auto d-flex align-items-center">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light rounded-pill dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><div class="dropdown-item"><span id="clientNameDisplay">${firstName}</span></div></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" id="clientLogoutBtn"><i class="fas fa-sign-out-alt me-1"></i> تسجيل الخروج</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>

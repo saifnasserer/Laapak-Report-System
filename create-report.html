@@ -355,7 +355,7 @@
                     
                     <!-- Step 1: Basic Information -->
                     <div class="form-step" id="step1">
-                        <h4 class="mb-4">المعلومات الأساسية</h4>
+                        
                         <!-- Step 1 Error Container -->
                         <div id="step1ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
                             <i class="fas fa-exclamation-triangle me-2"></i>
@@ -507,7 +507,7 @@
                                                             <td><i class="fas fa-camera text-primary me-2"></i> الكاميرا</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="camera_status" id="camera_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="camera" class="form-check-input" type="radio" name="camera_status" id="camera_working" value="working" checked>
                                                                     <label class="form-check-label" for="camera_working"></label>
                                                                 </div>
                                                             </td>
@@ -553,7 +553,7 @@
                                                             <td><i class="fas fa-microphone text-primary me-2"></i> الميكروفون</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="microphone_status" id="microphone_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="microphone" class="form-check-input" type="radio" name="microphone_status" id="microphone_working" value="working" checked>
                                                                     <label class="form-check-label" for="microphone_working"></label>
                                                                 </div>
                                                             </td>
@@ -576,7 +576,7 @@
                                                             <td><i class="fas fa-wifi text-primary me-2"></i> واي فاي</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="wifi_status" id="wifi_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="Wi-Fi" class="form-check-input" type="radio" name="wifi_status" id="wifi_working" value="working" checked>
                                                                     <label class="form-check-label" for="wifi_working"></label>
                                                                 </div>
                                                             </td>
@@ -599,7 +599,7 @@
                                                             <td><i class="fas fa-network-wired text-primary me-2"></i> منفذ الشبكة (LAN)</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="lan_status" id="lan_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="LAN" class="form-check-input" type="radio" name="lan_status" id="lan_working" value="working" checked>
                                                                     <label class="form-check-label" for="lan_working"></label>
                                                                 </div>
                                                             </td>
@@ -622,7 +622,7 @@
                                                             <td><i class="fas fa-usb text-primary me-2"></i> منافذ USB</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="usb_status" id="usb_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="Ports" class="form-check-input" type="radio" name="usb_status" id="usb_working" value="working" checked>
                                                                     <label class="form-check-label" for="usb_working"></label>
                                                                 </div>
                                                             </td>
@@ -645,7 +645,7 @@
                                                             <td><i class="fas fa-keyboard text-primary me-2"></i> لوحة المفاتيح</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="keyboard_status" id="keyboard_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="keyboard" class="form-check-input" type="radio" name="keyboard_status" id="keyboard_working" value="working" checked>
                                                                     <label class="form-check-label" for="keyboard_working"></label>
                                                                 </div>
                                                             </td>
@@ -668,7 +668,7 @@
                                                             <td><i class="fas fa-hand-pointer text-primary me-2"></i> لوحة اللمس</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="touchpad_status" id="touchpad_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="Touchpad" class="form-check-input" type="radio" name="touchpad_status" id="touchpad_working" value="working" checked>
                                                                     <label class="form-check-label" for="touchpad_working"></label>
                                                                 </div>
                                                             </td>
@@ -691,7 +691,7 @@
                                                             <td><i class="fas fa-sd-card text-primary me-2"></i> قارئ البطاقات</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="card_reader_status" id="card_reader_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="card" class="form-check-input" type="radio" name="card_reader_status" id="card_reader_working" value="working" checked>
                                                                     <label class="form-check-label" for="card_reader_working"></label>
                                                                 </div>
                                                             </td>
@@ -714,7 +714,7 @@
                                                             <td><i class="fas fa-headphones text-primary me-2"></i> منفذ الصوت</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="audio_jack_status" id="audio_jack_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="audio_jack" class="form-check-input" type="radio" name="audio_jack_status" id="audio_jack_working" value="working" checked>
                                                                     <label class="form-check-label" for="audio_jack_working"></label>
                                                                 </div>
                                                             </td>
@@ -737,7 +737,7 @@
                                                             <td><i class="fas fa-desktop text-primary me-2"></i> منافذ العرض (HDMI/DisplayPort)</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="display_ports_status" id="display_ports_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="DisplayPort" class="form-check-input" type="radio" name="display_ports_status" id="display_ports_working" value="working" checked>
                                                                     <label class="form-check-label" for="display_ports_working"></label>
                                                                 </div>
                                                             </td>
@@ -760,7 +760,7 @@
                                                             <td><i class="fab fa-bluetooth-b text-primary me-2"></i> بلوتوث</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input class="form-check-input" type="radio" name="bluetooth_status" id="bluetooth_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="Bluetooth" class="form-check-input" type="radio" name="bluetooth_status" id="bluetooth_working" value="working" checked>
                                                                     <label class="form-check-label" for="bluetooth_working"></label>
                                                                 </div>
                                                             </td>
@@ -813,7 +813,7 @@
                                         <!-- CPU Test -->
                                         <div class="card component-test-card mb-4" data-component="cpu">
                                             <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                                <h5 class="mb-0"><i class="fas fa-microchip me-2"></i> اختبار المعالج</h5>
+                                                <h5 class="mb-0"><i class="fas fa-microchip me-2"></i> اختبار البروسيسور</h5>
                                             </div>
                                             <div class="card-body">
                                                 <div class="mb-3">
@@ -910,6 +910,28 @@
                                                     </div>
                                                     <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
                                                     <div class="mt-2 screenshot-preview" id="batteryScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                        <!-- DxDiag Test -->
+                                        <div class="card component-test-card mb-4" data-component="dxdiag">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-laptop me-2"></i> اختبار معلومات النظام (DxDiag)</h5>
+                                                
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="dxdiagScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="dxdiagScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="dxdiag">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="dxdiagScreenshotUrl" data-component="dxdiag">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="dxdiagScreenshotPreview"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1140,23 +1162,6 @@
                                             
                                             <!-- Service Fees Section -->
                                             <div class="mb-4">
-                                                <!-- <h6 class="fw-bold mb-3">رسوم الخدمة</h6>
-                                                <div class="row mb-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">رسوم التشخيص والفحص</label>
-                                                        <div class="input-group">
-                                                            <input type="number" class="form-control" id="diagnosticFee" value="150.00" min="0" step="0.01" />
-                                                            <span class="input-group-text">جنية</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">أجور الصيانة والإصلاح</label>
-                                                        <div class="input-group">
-                                                            <input type="number" class="form-control" id="laborFee" value="100.00" min="0" step="0.01" />
-                                                            <span class="input-group-text">جنية</span>
-                                                        </div>
-                                                    </div>
-                                                </div> -->
                                                 <div class="row">
                                                     <div class="col-md-6">
                                                         <label class="form-label">نسبة الضريبة</label>
@@ -1206,17 +1211,6 @@
                                             <div class="card bg-light">
                                                 <div class="card-body">
                                                     <h6 class="fw-bold mb-3">ملخص الفاتورة</h6>
-                                                    <!-- <div class="d-flex justify-content-between mb-2">
-                                                        <span>رسوم التشخيص والفحص:</span>
-                                                        <span id="diagnosticFeeDisplay">150.00 جنية</span>
-                                                    </div>
-                                                    <div class="d-flex justify-content-between mb-2">
-                                                        <span>أجور الصيانة والإصلاح:</span>
-                                                        <span id="laborFeeDisplay">100.00 جنية</span>
-                                                    </div> -->
-                                                        <!-- <span>قطع الغيار:</span>
-                                                        <span id="partsTotal">0.00 جنية</span>
-                                                    </div> -->
                                                     <div class="d-flex justify-content-between mb-2">
                                                         <span>المجموع الفرعي:</span>
                                                         <span id="subtotalDisplay">250.00 جنية</span>
@@ -1350,37 +1344,41 @@
                                 <!-- Report Created Success Modal -->
                                 <div class="modal fade" id="reportCreatedModal" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-success text-white">
-                                                <h5 class="modal-title">تم إنشاء التقرير بنجاح</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        <div class="modal-content" style="border-radius: var(--card-radius); overflow: hidden; box-shadow: 0 15px 30px rgba(0,0,0,0.1);">
+                                            <div class="modal-header" style="background: linear-gradient(135deg, #28a745, #20c997); border: none; padding: 1.5rem;">
+                                                <h5 class="modal-title text-white" style="font-weight: 600;">
+                                                    <i class="fas fa-check-circle me-2"></i>
+                                                    تم إنشاء التقرير بنجاح
+                                                </h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
-                                            <div class="modal-body">
-                                                <div class="text-center mt-5 mb-4" style="position: relative;">
-                                    <div class="position-absolute" style="bottom: 100%; left: 50%; transform: translateX(-50%) translateY(20px); width: 80px; height: 2px; background: linear-gradient(90deg, var(--primary-color), var(--accent-color));"></div>
-                                                    <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
-                                                    <h4>تم إنشاء التقرير بنجاح!</h4>
-                                                    <p class="text-muted">يمكنك مشاركة التقرير أو تحميله من خلال الخيارات التالية</p>
+                                            <div class="modal-body p-4">
+                                                <div class="text-center my-4" style="position: relative;">
+                                                    <div class="success-icon-container" style="width: 90px; height: 90px; background: rgba(40, 167, 69, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                                                        <i class="fas fa-check-circle text-success fa-3x"></i>
+                                                    </div>
+                                                    <h4 style="font-weight: 600; color: #333; margin-bottom: 0.75rem;">تم إنشاء التقرير بنجاح!</h4>
+                                                    <p class="text-muted" style="font-size: 0.95rem;">يمكنك مشاركة التقرير أو تحميله من خلال الخيارات التالية</p>
                                                 </div>
                                                 
-                                                <div class="mb-3">
-                                                    <label class="form-label">رابط التقرير</label>
+                                                <div class="mb-4">
+                                                    <label class="form-label fw-medium">رابط التقرير</label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" id="reportLink" value="https://laapak.com/report/LPK123456" readonly>
-                                                        <button class="btn btn-outline-secondary" type="button" id="copyLinkBtn">
+                                                        <input type="text" class="form-control" id="reportLink" value="https://laapak.com/report/LPK123456" readonly style="border-radius: var(--input-radius) 0 0 var(--input-radius); background-color: #f8f9fa;">
+                                                        <button class="btn btn-outline-secondary" type="button" id="copyLinkBtn" style="border-radius: 0 var(--input-radius) var(--input-radius) 0;">
                                                             <i class="fas fa-copy"></i>
                                                         </button>
                                                     </div>
                                                 </div>
                                                 
-                                                <div class="d-grid gap-2">
-                                                    <a href="#" class="btn btn-success" id="whatsappShareBtn">
+                                                <div class="d-grid gap-3">
+                                                    <a href="#" class="btn btn-success" id="whatsappShareBtn" style="border-radius: var(--btn-radius); padding: 0.75rem; font-weight: 500; display: flex; align-items: center; justify-content: center;">
                                                         <i class="fab fa-whatsapp me-2"></i> مشاركة عبر واتساب
                                                     </a>
-                                                    <a href="#" class="btn btn-info" id="copyLinkBtn">
+                                                    <a href="#" class="btn btn-info" id="modalCopyLinkBtn" style="border-radius: var(--btn-radius); padding: 0.75rem; font-weight: 500; display: flex; align-items: center; justify-content: center; background-color: #17a2b8; border-color: #17a2b8;">
                                                         <i class="fas fa-copy me-2"></i> نسخ رابط التقرير
                                                     </a>
-                                                    <a href="reports.html" class="btn btn-outline-secondary">
+                                                    <a href="reports.html" class="btn btn-outline-secondary" style="border-radius: var(--btn-radius); padding: 0.75rem; font-weight: 500; display: flex; align-items: center; justify-content: center;">
                                                         <i class="fas fa-list me-2"></i> العودة إلى قائمة التقارير
                                                     </a>
                                                 </div>
@@ -1390,6 +1388,62 @@
                                 </div>
                                 
 
+                                <!-- JavaScript for Report Success Modal Functionality -->
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        // Get modal buttons
+                                        const copyLinkBtn = document.getElementById('copyLinkBtn');
+                                        const modalCopyLinkBtn = document.getElementById('modalCopyLinkBtn');
+                                        const whatsappShareBtn = document.getElementById('whatsappShareBtn');
+                                        const reportLinkInput = document.getElementById('reportLink');
+                                        
+                                        // Function to copy link to clipboard
+                                        function copyLinkToClipboard() {
+                                            if (reportLinkInput) {
+                                                reportLinkInput.select();
+                                                reportLinkInput.setSelectionRange(0, 99999); // For mobile devices
+                                                
+                                                navigator.clipboard.writeText(reportLinkInput.value).then(function() {
+                                                    // Show success message
+                                                    const originalText = this.innerHTML;
+                                                    this.innerHTML = '<i class="fas fa-check me-2"></i> تم النسخ';
+                                                    
+                                                    setTimeout(() => {
+                                                        this.innerHTML = originalText;
+                                                    }, 2000);
+                                                }.bind(this)).catch(function(err) {
+                                                    console.error('Could not copy text: ', err);
+                                                });
+                                            }
+                                        }
+                                        
+                                        // Add event listeners
+                                        if (copyLinkBtn) {
+                                            copyLinkBtn.addEventListener('click', function() {
+                                                copyLinkToClipboard.call(this);
+                                            });
+                                        }
+                                        
+                                        if (modalCopyLinkBtn) {
+                                            modalCopyLinkBtn.addEventListener('click', function(e) {
+                                                e.preventDefault();
+                                                copyLinkToClipboard.call(this);
+                                            });
+                                        }
+                                        
+                                        // WhatsApp share functionality
+                                        if (whatsappShareBtn) {
+                                            whatsappShareBtn.addEventListener('click', function(e) {
+                                                e.preventDefault();
+                                                const reportUrl = reportLinkInput ? reportLinkInput.value : window.location.href;
+                                                const message = encodeURIComponent('تقرير فحص الجهاز من Laapak: ' + reportUrl);
+                                                const whatsappUrl = 'https://wa.me/?text=' + message;
+                                                window.open(whatsappUrl, '_blank');
+                                            });
+                                        }
+                                    });
+                                </script>
+                                
                                 <!-- Centralized Form Navigation -->
                                 <div class="form-navigation d-flex justify-content-center mt-4 py-3 border-top">
                                     <div class="d-flex justify-content-center gap-3">
@@ -1398,6 +1452,10 @@
                                         </button>
                                         <button type="button" class="btn btn-next-step btn-primary px-4" id="globalNextBtn" style="min-width: 120px;">
                                             التالي <i class="fas fa-chevron-left ms-1"></i>
+                                        </button>
+                                        <!-- Submit button only for step 5 -->
+                                        <button type="submit" class="btn btn-success px-4 d-none" id="submitReportBtn" style="min-width: 140px;">
+                                            <i class="fas fa-check-circle me-1"></i> إنشاء التقرير
                                         </button>
                                     </div>
                                 </div>

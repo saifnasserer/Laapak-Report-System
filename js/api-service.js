@@ -140,6 +140,26 @@ class ApiService {
         }
     }
     
+    // Invoice methods
+    async getInvoice(invoiceId, token = null) {
+        // Allow passing a specific token, otherwise use the default
+        const customHeaders = token ? { 'Authorization': `Bearer ${token}` } : null;
+        
+        try {
+            // First try to get the invoice directly
+            return await this.request(`/api/invoices/${invoiceId}`, 'GET', null, customHeaders);
+        } catch (error) {
+            // If direct access fails, try the client-accessible endpoint
+            try {
+                console.log('Trying client-accessible invoice endpoint...');
+                return await this.request(`/api/client/invoices/${invoiceId}`, 'GET', null, customHeaders);
+            } catch (secondError) {
+                console.error('Both invoice endpoints failed:', secondError);
+                throw secondError;
+            }
+        }
+    }
+    
     // Client management methods
     async getClients(filters = {}) {
         let queryParams = '';
@@ -374,7 +394,8 @@ class ApiService {
                     // Add auth token if available
                     ...this.getAuthHeaders(),
                     // Add any custom headers passed to the method
-                }
+                },
+                body: JSON.stringify(reportObject) // Add the request body
             };
             
             console.log(`Direct API Request: POST ${url}`);

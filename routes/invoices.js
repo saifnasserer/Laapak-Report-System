@@ -141,9 +141,16 @@ router.get('/:id', auth, async (req, res) => {
 
 // Create new invoice
 router.post('/', adminAuth, async (req, res) => {
-    const transaction = await sequelize.transaction();
+    let transaction;
     
     try {
+        // Make sure sequelize is properly initialized before creating a transaction
+        if (!sequelize || typeof sequelize.transaction !== 'function') {
+            throw new Error('Sequelize instance is not properly initialized');
+        }
+        
+        transaction = await sequelize.transaction();
+        
         console.log('CREATE INVOICE REQUEST BODY:', JSON.stringify(req.body, null, 2));
         
         // Extract data from request body
@@ -302,7 +309,18 @@ router.post('/', adminAuth, async (req, res) => {
         
         res.status(201).json(completeInvoice);
     } catch (error) {
-        await transaction.rollback();
+        // Only try to rollback if the transaction exists and is valid
+        if (transaction && typeof transaction.rollback === 'function') {
+            try {
+                await transaction.rollback();
+                console.log('Transaction rolled back successfully');
+            } catch (rollbackError) {
+                console.error('Error rolling back transaction:', rollbackError);
+            }
+        } else {
+            console.error('Could not roll back: Transaction was not properly initialized');
+        }
+        
         console.error('Error creating invoice:', error);
         
         // Log detailed error information for debugging

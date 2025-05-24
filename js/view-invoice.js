@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Redirect to login if not authenticated as admin
-    if (typeof authMiddleware !== 'undefined' && typeof authMiddleware.isAdminLoggedIn === 'function') {
-        if (!authMiddleware.isAdminLoggedIn()) {
-            window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
+    // Redirect to login if not authenticated as admin or client
+    if (typeof authMiddleware !== 'undefined') {
+        // Allow both admin and client users to view invoices
+        if (!authMiddleware.isAdminLoggedIn() && !authMiddleware.isClientLoggedIn()) {
+            window.location.href = 'index.html?redirect=' + encodeURIComponent(window.location.href);
             return;
         }
     }
@@ -77,27 +78,47 @@ document.addEventListener('DOMContentLoaded', () => {
         invoiceIdEl.textContent = 'جاري التحميل...';
 
         try {
-            // Get admin token (this is critical for authorization)
-            let adminToken = null;
-            if (typeof authMiddleware !== 'undefined' && typeof authMiddleware.getAdminToken === 'function') {
-                adminToken = authMiddleware.getAdminToken();
-                console.log('Using admin token from authMiddleware:', adminToken ? 'Token found' : 'No token');
+            // Get user token (either admin or client)
+            let userToken = null;
+            let isAdmin = false;
+            
+            // Try to get admin token first
+            if (typeof authMiddleware !== 'undefined') {
+                if (authMiddleware.isAdminLoggedIn()) {
+                    userToken = authMiddleware.getAdminToken();
+                    isAdmin = true;
+                    console.log('Using admin token from authMiddleware');
+                } else if (authMiddleware.isClientLoggedIn()) {
+                    userToken = authMiddleware.getClientToken();
+                    isAdmin = false;
+                    console.log('Using client token from authMiddleware');
+                }
             } else {
                 // Direct access from storage as fallback
-                adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
-                console.log('Using admin token from storage:', adminToken ? 'Token found' : 'No token');
+                const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+                const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+                
+                if (adminToken) {
+                    userToken = adminToken;
+                    isAdmin = true;
+                    console.log('Using admin token from storage');
+                } else if (clientToken) {
+                    userToken = clientToken;
+                    isAdmin = false;
+                    console.log('Using client token from storage');
+                }
             }
             
-            if (!adminToken) {
-                throw new Error('يرجى تسجيل الدخول كمسؤول لعرض هذه الفاتورة');
+            if (!userToken) {
+                throw new Error('يرجى تسجيل الدخول لعرض هذه الفاتورة');
             }
             
             let invoiceData;
             // First, try fetching from apiService if it's defined and has the method
             if (typeof apiService !== 'undefined' && typeof apiService.getInvoice === 'function') {
-                // Pass the admin token if available
-                invoiceData = await apiService.getInvoice(invoiceIdParam, adminToken);
-                console.log('Fetched invoice data in fetchInvoiceData:', JSON.stringify(invoiceData, null, 2));
+                // Pass the user token for authorization
+                invoiceData = await apiService.getInvoice(invoiceIdParam, userToken);
+                console.log('Fetched invoice data in fetchInvoiceData using apiService');
             } else {
                 // Fallback: Attempt direct fetch if apiService or method is not available
                 // Prepare headers with authentication if available
@@ -105,8 +126,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json'
                 };
                 
-                if (adminToken) {
-                    headers['Authorization'] = `Bearer ${adminToken}`;
+                if (userToken) {
+                    headers['Authorization'] = `Bearer ${userToken}`;
+                    // Include user type to help the API determine permissions
+                    headers['X-User-Type'] = isAdmin ? 'admin' : 'client';
                 }
                 
                 const response = await fetch(`http://localhost:3001/api/invoices/${invoiceIdParam}`, {

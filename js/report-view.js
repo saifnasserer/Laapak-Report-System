@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxZoom = 3;
     const minZoom = 0.5;
     let galleryImages = [];
+    let testScreenshots = [];
     let currentImageIndex = 0;
     const reportId = new URLSearchParams(window.location.search).get('id');
 
@@ -156,16 +157,27 @@ document.addEventListener('DOMContentLoaded', () => {
         galleryImages = imageItems;
         
         if (imageItems.length === 0) {
-            galleryContainer.innerHTML = '<div class="col-12"><div class="alert alert-light text-center py-5"><i class="fas fa-images fa-3x mb-3 text-muted"></i><p>لا توجد صور خارجية للجهاز.</p></div></div>';
+            galleryContainer.innerHTML = `
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-images fa-3x mb-3" style="color: #e9ecef;"></i>
+                        <h5 class="text-muted">لا توجد صور خارجية للجهاز</h5>
+                        <p class="text-muted small">لم يتم اضافة أي صور خارجية للجهاز في هذا التقرير</p>
+                    </div>
+                </div>`;
             
             // Disable gallery controls
             const galleryControls = document.getElementById('galleryControls');
-            if (galleryControls) galleryControls.style.display = 'none';
+            if (galleryControls) {
+                const galleryControlsParent = galleryControls.closest('.card-header');
+                if (galleryControlsParent) galleryControlsParent.style.display = 'none';
+                else galleryControls.style.display = 'none';
+            }
             return;
         }
         
         // Set up gallery control buttons
-        setupGalleryControls(imageItems.length);
+        // setupGalleryControls(imageItems.length);
         
         // Create gallery items
         imageItems.forEach((item, index) => {
@@ -174,47 +186,114 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const imgContainer = document.createElement('div');
             imgContainer.className = 'card border-0 shadow-sm h-100 overflow-hidden';
+            imgContainer.style.borderRadius = 'var(--card-radius)';
+            imgContainer.style.transition = 'all 0.3s ease';
             imgContainer.dataset.index = index;
+            
+            // Image wrapper for fixed aspect ratio
+            const imgWrapper = document.createElement('div');
+            imgWrapper.className = 'img-wrapper position-relative';
+            imgWrapper.style.overflow = 'hidden';
+            imgWrapper.style.aspectRatio = '4/3';
+            imgWrapper.style.backgroundColor = '#f8f9fa';
             
             const img = document.createElement('img');
             img.src = item.url;
             img.alt = item.name || 'صورة الجهاز';
-            img.className = 'img-fluid card-img-top';
+            img.className = 'img-fluid w-100 h-100';
+            img.style.objectFit = 'cover';
+            img.style.transition = 'transform 0.5s ease';
             img.loading = 'lazy'; // Lazy loading for better performance
             
-            // Add overlay with info and view button
+            // Add hover effect
+            imgContainer.onmouseenter = () => {
+                imgContainer.style.transform = 'translateY(-5px)';
+                imgContainer.style.boxShadow = '0 15px 30px rgba(0,0,0,0.1)';
+                img.style.transform = 'scale(1.05)';
+            };
+            
+            imgContainer.onmouseleave = () => {
+                imgContainer.style.transform = 'translateY(0)';
+                imgContainer.style.boxShadow = '';
+                img.style.transform = 'scale(1)';
+            };
+            
+            // Add modern overlay with actions
             const overlay = document.createElement('div');
-            overlay.className = 'card-img-overlay d-flex flex-column justify-content-end p-3';
-            overlay.style.background = 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0))';
+            overlay.className = 'position-absolute d-flex flex-column justify-content-between w-100 h-100 p-3';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.background = 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.2) 100%)';
             overlay.style.opacity = '0';
             overlay.style.transition = 'opacity 0.3s ease';
             
+            // Top row with image number
+            const topRow = document.createElement('div');
+            topRow.className = 'd-flex justify-content-between align-items-center';
+            
+            const imageNumber = document.createElement('span');
+            imageNumber.className = 'badge bg-dark bg-opacity-50 fw-normal';
+            imageNumber.innerHTML = `<i class="fas fa-image me-1"></i> ${index + 1}/${imageItems.length}`;
+            topRow.appendChild(imageNumber);
+            
+            // Bottom row with caption and action button
+            const bottomRow = document.createElement('div');
+            bottomRow.className = 'd-flex justify-content-between align-items-end';
+            
+            if (item.name) {
+                const caption = document.createElement('h6');
+                caption.className = 'text-white mb-0 text-shadow';
+                caption.textContent = item.name;
+                caption.style.textShadow = '0 1px 3px rgba(0,0,0,0.5)';
+                bottomRow.appendChild(caption);
+            }
+            
             const viewBtn = document.createElement('button');
-            viewBtn.className = 'btn btn-sm btn-light mt-auto align-self-end';
-            viewBtn.innerHTML = '<i class="fas fa-search-plus me-1"></i> عرض';
+            viewBtn.className = 'btn btn-sm btn-light rounded-circle';
+            viewBtn.style.width = '32px';
+            viewBtn.style.height = '32px';
+            viewBtn.style.display = 'flex';
+            viewBtn.style.alignItems = 'center';
+            viewBtn.style.justifyContent = 'center';
+            viewBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+            viewBtn.innerHTML = '<i class="fas fa-expand"></i>';
+            viewBtn.setAttribute('title', 'عرض بالحجم الكامل');
             viewBtn.onclick = (e) => {
                 e.stopPropagation();
                 openGalleryLightbox(index);
             };
             
-            if (item.name) {
-                const caption = document.createElement('h6');
-                caption.className = 'card-title text-white mb-2';
-                caption.textContent = item.name;
-                overlay.appendChild(caption);
-            }
+            bottomRow.appendChild(viewBtn);
             
-            overlay.appendChild(viewBtn);
+            overlay.appendChild(topRow);
+            overlay.appendChild(bottomRow);
+            
+            // Show overlay on hover
+            imgContainer.addEventListener('mouseenter', () => overlay.style.opacity = '1');
+            imgContainer.addEventListener('mouseleave', () => overlay.style.opacity = '0');
             
             // Container click opens lightbox
             imgContainer.onclick = () => openGalleryLightbox(index);
             
-            // Show overlay on hover
-            imgContainer.onmouseenter = () => overlay.style.opacity = '1';
-            imgContainer.onmouseleave = () => overlay.style.opacity = '0';
+            imgWrapper.appendChild(img);
+            imgWrapper.appendChild(overlay);
+            imgContainer.appendChild(imgWrapper);
             
-            imgContainer.appendChild(img);
-            imgContainer.appendChild(overlay);
+            // Add optional footer with description if available
+            if (item.description) {
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body p-2';
+                cardBody.style.borderTop = '1px solid rgba(0,0,0,0.05)';
+                
+                const description = document.createElement('p');
+                description.className = 'card-text small text-muted mb-0';
+                description.textContent = item.description.length > 60 ? 
+                    item.description.substring(0, 60) + '...' : 
+                    item.description;
+                cardBody.appendChild(description);
+                imgContainer.appendChild(cardBody);
+            }
+            
             col.appendChild(imgContainer);
             galleryContainer.appendChild(col);
         });
@@ -222,11 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set up gallery control buttons
     function setupGalleryControls(imageCount) {
-        const gridBtn = document.getElementById('galleryGrid');
-        const sliderBtn = document.getElementById('gallerySlider');
-        const galleryControls = document.getElementById('galleryControls');
         
-        if (!gridBtn || !sliderBtn) return;
+        const galleryControls = document.getElementById('galleryControls');
         
         if (imageCount <= 1) {
             galleryControls.style.display = 'none';
@@ -235,46 +311,58 @@ document.addEventListener('DOMContentLoaded', () => {
         
         galleryControls.style.display = 'flex';
         
-        // Grid view (default)
-        gridBtn.classList.add('active');
-        gridBtn.onclick = () => {
-            gridBtn.classList.add('active');
-            sliderBtn.classList.remove('active');
-            document.getElementById('externalImagesGallery').className = 'row g-3 gallery-grid';
-        };
+        document.getElementById('externalImagesGallery').className = 'row g-3 gallery-grid';
         
-        // Slider view
-        sliderBtn.onclick = () => {
-            sliderBtn.classList.add('active');
-            gridBtn.classList.remove('active');
-            document.getElementById('externalImagesGallery').className = 'row gallery-slider';
-            // Initialize slider if needed
-        };
     }
     
-    // Enhanced lightbox function with navigation
+    // Simple lightbox function with navigation
     function openGalleryLightbox(index) {
         if (!galleryImages || galleryImages.length === 0) return;
         
         currentImageIndex = index;
-        const lightboxModal = new bootstrap.Modal(document.getElementById('imageLightbox'));
-        updateLightboxContent();
-        lightboxModal.show();
+        const simpleLightbox = document.getElementById('simpleLightbox');
         
-        // Set up navigation handlers
-        document.getElementById('prevImage').onclick = navigatePrevImage;
-        document.getElementById('nextImage').onclick = navigateNextImage;
+        // Show the lightbox
+        simpleLightbox.classList.remove('d-none');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling while lightbox is open
+        
+        // Update content
+        updateLightboxContent();
+        
+        // Set up event handlers if not already set
+        setupLightboxEvents();
+    }
+    
+    // Set up all event handlers for the simple lightbox
+    function setupLightboxEvents() {
+        // Close button event
+        const closeBtn = document.getElementById('closeLightbox');
+        if (closeBtn) {
+            closeBtn.onclick = closeLightbox;
+        }
+        
+        // Previous button event
+        const prevBtn = document.getElementById('prevImageSimple');
+        if (prevBtn) {
+            prevBtn.onclick = navigatePrevImage;
+        }
+        
+        // Next button event
+        const nextBtn = document.getElementById('nextImageSimple');
+        if (nextBtn) {
+            nextBtn.onclick = navigateNextImage;
+        }
         
         // Add keyboard navigation
         document.addEventListener('keydown', handleLightboxKeyboard);
-        
-        // Update counter
-        updateImageCounter();
-        
-        // Clean up event listeners when modal is closed
-        document.getElementById('imageLightbox').addEventListener('hidden.bs.modal', () => {
-            document.removeEventListener('keydown', handleLightboxKeyboard);
-        }, { once: true });
+    }
+    
+    // Close the lightbox
+    function closeLightbox() {
+        const simpleLightbox = document.getElementById('simpleLightbox');
+        simpleLightbox.classList.add('d-none');
+        document.body.style.overflow = ''; // Restore scrolling
+        document.removeEventListener('keydown', handleLightboxKeyboard);
     }
     
     // Update lightbox content with current image
@@ -282,21 +370,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!galleryImages || galleryImages.length === 0) return;
         
         const currentImage = galleryImages[currentImageIndex];
-        const lightboxImage = document.getElementById('lightboxImage');
-        const lightboxTitle = document.getElementById('imageLightboxLabel');
+        const lightboxImage = document.getElementById('lightboxImageSimple');
         
-        // Reset zoom level
-        currentZoomLevel = 1;
-        lightboxImage.style.transform = `scale(${currentZoomLevel})`;
-        
+        // Set the image source
         lightboxImage.src = currentImage.url;
         lightboxImage.alt = currentImage.name || 'صورة الجهاز';
-        lightboxTitle.textContent = currentImage.name || 'صورة الجهاز';
         
         // Update navigation buttons visibility
-        document.getElementById('prevImage').style.visibility = currentImageIndex > 0 ? 'visible' : 'hidden';
-        document.getElementById('nextImage').style.visibility = currentImageIndex < galleryImages.length - 1 ? 'visible' : 'hidden';
+        const prevBtn = document.getElementById('prevImageSimple');
+        const nextBtn = document.getElementById('nextImageSimple');
         
+        if (prevBtn) {
+            prevBtn.style.visibility = currentImageIndex > 0 ? 'visible' : 'hidden';
+        }
+        
+        if (nextBtn) {
+            nextBtn.style.visibility = currentImageIndex < galleryImages.length - 1 ? 'visible' : 'hidden';
+        }
+        
+        // Update counter
         updateImageCounter();
     }
     
@@ -323,14 +415,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (e.key === 'ArrowRight') {
             navigatePrevImage(); // RTL direction - right means previous
         } else if (e.key === 'Escape') {
-            document.getElementById('imageLightbox').querySelector('.btn-close').click();
+            closeLightbox();
         }
     }
     
     // Update image counter
     function updateImageCounter() {
-        const currentIndexElement = document.getElementById('currentImageIndex');
-        const totalImagesElement = document.getElementById('totalImages');
+        const currentIndexElement = document.getElementById('currentIndexSimple');
+        const totalImagesElement = document.getElementById('totalImagesSimple');
         
         if (currentIndexElement && totalImagesElement) {
             currentIndexElement.textContent = (currentImageIndex + 1).toString();
@@ -408,9 +500,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Helper to embed YouTube videos
+    // Helper to embed YouTube videos with modern player interface
     function embedYouTubeVideo(url, container) {
         try {
+            // Clear any loading placeholders
+            container.innerHTML = '';
+            
             const videoUrl = new URL(url);
             let videoId = '';
             
@@ -423,38 +518,70 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (videoId) {
+                // Create enhanced YouTube player with custom controls
                 const iframe = document.createElement('iframe');
-                iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0`;
+                iframe.id = 'youtubeVideo';
+                // Add enablejsapi=1 to enable the YouTube Player API
+                iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&enablejsapi=1`;
                 iframe.setAttribute('allowfullscreen', 'true');
                 iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
                 iframe.style.width = '100%';
-                iframe.style.height = '500px';
+                iframe.style.height = '400px';
                 iframe.style.border = 'none';
                 container.appendChild(iframe);
+                
+                // Include YouTube API script if it's not already loaded
+                if (!window.YT) {
+                    const tag = document.createElement('script');
+                    tag.src = 'https://www.youtube.com/iframe_api';
+                    const firstScriptTag = document.getElementsByTagName('script')[0];
+                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                }
+                
+                // Set up event handler for YouTube API Ready
+                window.onYouTubeIframeAPIReady = function() {
+                    // Initialize the player
+                    new YT.Player('youtubeVideo', {
+                        events: {
+                            'onReady': onPlayerReady,
+                            'onStateChange': onPlayerStateChange
+                        }
+                    });
+                };
+                
             } else {
                 throw new Error('Invalid YouTube URL');
             }
         } catch (e) {
             console.error('YouTube embedding error:', e);
-            container.innerHTML = '<div class="alert alert-warning text-center">خطأ في تضمين فيديو YouTube</div>';
+            container.innerHTML = `
+                <div class="text-center p-4">
+                    <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
+                    <p class="mb-0">خطأ في تضمين فيديو YouTube</p>
+                </div>`;
         }
     }
     
-    // Helper to embed direct video files
+    // Helper to embed direct video files with modern controls
     function embedDirectVideo(url, container, autoplay = false) {
+        // Clear any loading placeholders
+        container.innerHTML = '';
+        
+        // Create custom video element
         const video = document.createElement('video');
+        video.id = 'deviceVideo';
         video.src = url;
-        video.controls = true;
+        video.controls = false; // We'll use our custom controls
         video.autoplay = autoplay || false;
         video.muted = autoplay || false; // Must be muted for autoplay to work on most browsers
         video.playsInline = true;
         video.style.width = '100%';
         video.style.maxHeight = '80vh';
         video.style.backgroundColor = '#000';
-        video.className = 'shadow';
+        video.className = 'w-100';
         container.appendChild(video);
     }
-    
+        
     // Helper to embed Vimeo videos
     function embedVimeoVideo(url, container) {
         try {
@@ -500,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Save test screenshots for lightbox navigation
-        const testScreenshots = [...screenshotItems];
+        testScreenshots = [...screenshotItems]; // Assign to global variable
         
         // Create full-width test screenshots with detailed explanations
         screenshotItems.forEach((item, index) => {
@@ -525,19 +652,42 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.component) {
                 const comp = item.component.toLowerCase();
                 if (comp.includes('cpu')) iconClass = 'fa-microchip';
-                else if (comp.includes('memory') || comp.includes('ram')) iconClass = 'fa-memory';
-                else if (comp.includes('disk') || comp.includes('storage')) iconClass = 'fa-hdd';
+                else if (comp.includes('gpu')) iconClass = 'fa-desktop';
+                else if (comp.includes('hdd') || comp.includes('storage')) iconClass = 'fa-hdd';
                 else if (comp.includes('battery')) iconClass = 'fa-battery-full';
-                else if (comp.includes('display') || comp.includes('screen')) iconClass = 'fa-desktop';
                 else if (comp.includes('keyboard')) iconClass = 'fa-keyboard';
+                else if (comp.includes('info')) iconClass = 'fa-info-circle';
+                else if (comp.includes('dxdiag')) iconClass = 'fa-laptop';
             }
             componentIcon.className = `fas ${iconClass} me-2 text-primary`;
             componentName.appendChild(componentIcon);
             
             const nameText = document.createElement('span');
-            nameText.textContent = item.component ? 
-                `اختبار ${item.component}` : 
-                (item.name || `اختبار المكون #${index + 1}`);
+            
+            // Use specific names for known component types
+            if (item.component) {
+                const comp = item.component.toLowerCase();
+                if (comp === 'info') {
+                    nameText.textContent = 'تفاصيل اللابتوب';
+                } else if (comp === 'cpu') {
+                    nameText.textContent = 'اختبار البروسيسور';
+                } else if (comp === 'gpu') {
+                    nameText.textContent = 'اختبار كارت الشاشة';
+                } else if (comp.includes('hdd') || comp.includes('storage')) {
+                    nameText.textContent = 'اختبار الهارد';
+                } else if (comp === 'battery') {
+                    nameText.textContent = 'اختبار البطارية';
+                } else if (comp === 'keyboard') {
+                    nameText.textContent = 'اختبار الكيبورد';
+                } else if (comp === 'dxdiag') {
+                    nameText.textContent = 'اختبار DxDiag';
+                } else {
+                    nameText.textContent = `اختبار ${item.component}`;
+                }
+            } else {
+                nameText.textContent = item.name || `اختبار المكون #${index + 1}`;
+            }
+            
             componentName.appendChild(nameText);
             
             cardHeader.appendChild(componentName);
@@ -609,23 +759,26 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (item.component) {
                 const comp = item.component.toLowerCase();
                 if (comp.includes('cpu')) {
-                    descriptionText = 'اختبار المعالج يقيس أداء وحدة المعالجة المركزية وقدرتها على تنفيذ العمليات الحسابية.';
+                    descriptionText = 'لـ Stress Test للبروسيسور بيختبر قوة المعالج تحت ضغط تقيل، علشان يشوف لو هيقدر يشتغل بكفاءة في أقصى ظروف، وبيكشف لو في مشاكل زي السخونية أو الأداء الضعيف. يعني كأنك بتحط المعالج في "تمرين شاق" علشان تشوف هيستحمل ولا لأ..';
                 }
                 else if(comp.includes('gpu')){
-                    descriptionText = 'ليه بنعمل الاختبار؟\n\nالهدف إننا نتأكد إن الكارت شغال كويس ويقدر يستحمل المهام التقيلة زي الألعاب أو البرامج اللي محتاجة جرافيكس، من غير ما يسخن أكتر من اللازم أو يتعطل.\n\nتبص على إيه؟\n\nالحرارة: لازم تكون في المستوى الطبيعي مش عالية أوي عشان متعملش مشكلة.\nنسبة الاستخدام: تبقى ثابتة ومرتفعة، يعني الاختبار شغال صح.\n\nالمخرجات إيه؟\n\nممتاز: الحرارة معقولة، الكارت شغال ودرجة الحرارة في المستوى الطبيعي في حالة الضغط.\nمشكلة: الكارت بيتوقف، او بيحصل تهنيج (freeze) وقت اختبار الضغط.'
+                    descriptionText = 'برنامج FurMark بيعمل stress test لكارت الشاشة، يعني بيشغله بأقصى طاقته علشان يشوف هيسخن قد إيه ويقدر يستحمل الضغط ولا لأ. مفيد علشان تختبر التبريد وتشوف لو في مشاكل زي الحرارة العالية أو تهنيج الجهاز أثناء الألعاب او وقت الضغط.'
                 }
-                else if (comp.includes('disk') || comp.includes('storage')) {
-                    descriptionText = 'الصورة دي بتوضح نتيجة فحص لهاردات الجهاز باستخدام برنامج اسمه "Hard Disk Sentinel"، والبرنامج بيقيّم الهارد من حيث الأداء والصحة العامة، وبيكشف لو فيه قطاعات بايظة أو مشاكل محتملة.\n\n✅ إزاي نقيم الحالة؟\n🔹 الصحة (Health):\nدي بتوضح قد إيه الهارد سليم ومفيهوش مشاكل.\n\nمن 85% لـ 100% → حالة ممتازة\n\nمن 75% لـ 85% → حالة متوسطة \n\nأقل من 75% → حالة سيئة\n\n🔹 الأداء (Performance):\nده بيقيّم سرعة الهارد وكفاءته.\n\n100% → أداء ممتاز\n\nأقل من 90% → محتاج تراجع لو فيه بطء أو مشاكل في نقل البيانات\n\n\n🔹 درجة الحرارة\n🔹 عدد القطاعات البايظة (Bad Sectors) لو موجود\n🔹 العُمر\n\n🟢 النتيجة العامة حسب الصورة:\nالهارد حالته ممتازة جدًا، ينفع للاستخدام بدون أي قلق .';
+                else if (comp.includes('hdd') || comp.includes('storage')) {
+                    descriptionText = 'برنامج Hard Disk Sentinel بيكشف حالة الهارد، سواء HDD أو SSD، وبيقولك لو في مشاكل زي الباد سيكتور أو أداء ضعيف. كأنك بتعمل كشف شامل للهارد علشان تطمن إنه شغال تمام ومش هيفاجئك بعطل مفاجئ.';
                     
                 }
                 else if (comp.includes('battery')) {
                     descriptionText = 'الصورة دي لقطة من شاشة بتبين تفاصيل حالة بطارية اللابتوب، من خلال الـ BIOS .\n\nليه بنعمل الاختبار؟\n\nالهدف إنك تتأكد إن البطارية شغالة كويس وسليمة، يعني مش بتسخن أكتر من اللازم، ومش بتفقد شحن بسرعة، وبتدي الأداء اللي المفروض.\n\nتبص على إيه؟\n\nالحالة العامة: لو مكتوب إن البطارية سليمة، يبقى تمام.\nالسعة الحالية: لو السعة قليلة جدًا، يبقى البطارية بقت ضعيفة.\nلو فيه رسايل تحذير أو مشاكل، يعني فيه عيب في البطارية.\nالمخرجات إيه؟\n\nالحالة: (ممتاز) البطارية سليمة وسعتها كويسة،وبتعدي اقل وقت استخدام داخل الضمان ساعتين.';
                 }
                 else if(comp.includes('keyboard')){
-                    descriptionText = 'الصورة دي بتوضح نتيجة اختبار للكيبورد باستخدام برنامج بيكشف إذا كانت المفاتيح اللي موجودة فعليًا في الكيبورد شغالة ولا لأ. كل مفتاح بيتضغط وبيشتغل، بيظهر باللون الأخضر، وده معناه إنه بيشتغل بشكل سليم وسَلِس.✅ إزاي نقيم الحالة؟🔹 المفاتيح اللي ظهرت باللون الأخضر:دي المفاتيح اللي البرنامج اكتشف إنها موجودة في الكيبورد وتم اختبارها، وكلها شغالة بدون أي مشكلة.🔹 المفاتيح اللي مش مضيئة:دي مش معناها إن هي مش موجودة في الكيبورد.🔹 سلاسة الضغط:الاختبار كمان بيوضح إن المفاتيح اشتغلت من أول ضغطة، وده معناه إن مفيش تعليق أو تهنيج في أي زرار.🟢 النتيجة العامة حسب الصورة:الكيبورد شغال بكفاءة وكل المفاتيح اللي موجودة عليه شغالة بشكل طبيعي وسَلِس، ومفيش أي ملاحظات أو مشاكل ظاهرة في الاستخدام.';
+                    descriptionText = 'اختبار زرار الكيبورد بيشوف إذا كانت كل الزراير شغالة صح ولا لأ. بتضغط على كل زر وبتشوف لو الجهاز بيستجيب، وده مفيد في ان نتأكد لو في زراير مش شغالة أو بتعلق.';
                 }
                 else if (comp.includes('info')){
-                    descriptionText = 'ليه بنعمل الاختبار؟\nالهدف إنك تعرف مواصفات وتفاصيل اللابتوب كاملة، عشان تتأكد إن كل حاجة شغالة تمام ومفيش مشاكل في المكونات، علي سبيل المثال تفاصيل الرامات وسيريال الجهاز.\n\nتبص على إيه؟\n\nالسيريال (الرقم التسلسلي): ده عامل زي البصمة لكل لابتوب رقم فريد مختلف لكل لابتوب عن التاني ومش بيتكرر.\nالرامات: نوعها وسعتها وسرعتها واماكنها.\nالبروسيسور: اسمه وعدد الأنوية، عشان تشوف قوته وetailed.\nكارت الجرافيكس: نوعه واسمة عشان تأكد علي المواصفات.\nنظام التشغيل: إصدار الويندوز أو النظام وetailed.';
+                    descriptionText = 'الشاشة اللي بتعرض معلومات الجهاز بتوريك حاجات زي ال (Serial Number) واللي عامل زي البصمة لكل لابتوب ، نوع المعالج (CPU)، الرامات (Memory)، كارت الشاشة (GPU)، نسخة الـ BIOS، وكمان شوية معلومات عن النظام والتعريفات. يعني بتديك نظرة سريعة وشاملة عن مكونات الجهاز وتفاصيلة كاملة.';
+                }
+                else if (comp.includes('dxdiag')){
+                    descriptionText = 'أداة dxdiag بتجمعلك معلومات عن الجهاز، زي كارت الشاشة، المعالج، الرامات، ونظام التشغيل، وكمان بتكشف لو في مشاكل في الـ DirectX. يعني باختصار، بتديك تقرير سريع عن حالة الجهاز، خصوصًا لو في مشكلة في الألعاب أو الجرافيكس.';
                 }
                  else {
                     descriptionText = 'الصورة دي بتوضح نتايج الاختبارات اللي اتعملت على الجهاز عشان نقيس الأداء ونتأكد إن كل حاجة حالتها ممتازة.';
@@ -677,7 +830,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateHardwareComponentsTable(hardwareStatusData) {
         hardwareStatusTableBody.innerHTML = ''; // Clear previous
         if (!Array.isArray(hardwareStatusData) || hardwareStatusData.length === 0) {
-            hardwareStatusTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">لا توجد بيانات عن حالة مكونات الجهاز.</td></tr>';
+            hardwareStatusTableBody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">لا توجد بيانات عن حالة مكونات الجهاز.</td></tr>';
             return;
         }
 
@@ -692,13 +845,24 @@ document.addEventListener('DOMContentLoaded', () => {
             'microphone_status': 'الميكروفون',
             'camera_status': 'الكاميرا',
             'audio_jack_status': 'مدخل السماعات',
+            // Add more mappings for hardware components with data attributes
+            'microphone': 'الميكروفون',
+            'camera': 'الكاميرا',
+            'Wi-Fi': 'واي فاي',
+            'LAN': 'منفذ الشبكة',
+            'Ports': 'منافذ USB',
+            'keyboard': 'لوحة المفاتيح',
+            'Touchpad': 'لوحة اللمس',
+            'card': 'قارئ البطاقات',
+            'audio_jack': 'منفذ الصوت',
+            'DisplayPort': 'منافذ العرض',
+            'Bluetooth': 'البلوتوث'
         };
 
         hardwareStatusData.forEach(item => {
             const row = hardwareStatusTableBody.insertRow();
             const cellComponent = row.insertCell();
             const cellStatus = row.insertCell();
-            const cellNotes = row.insertCell();
 
             cellComponent.textContent = componentNameMap[item.componentName] || item.componentName;
             
@@ -706,13 +870,6 @@ document.addEventListener('DOMContentLoaded', () => {
             statusBadge.className = `badge ${getComponentStatusClass(item.status)}`;
             statusBadge.textContent = translateComponentStatus(item.status);
             cellStatus.appendChild(statusBadge);
-
-            cellNotes.textContent = item.notes || '-';
-            if (item.notes) {
-                cellNotes.setAttribute('data-bs-toggle', 'tooltip');
-                cellNotes.setAttribute('data-bs-placement', 'top');
-                cellNotes.setAttribute('title', item.notes);
-            }
         });
         // Initialize tooltips if any
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

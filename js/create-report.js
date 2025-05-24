@@ -839,7 +839,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const mediaUrls = [];
         
         // Get test screenshot URLs from Step 2
-        const components = ['cpu', 'gpu', 'hdd', 'battery'];
+        const components = ['info', 'cpu', 'gpu', 'hdd', 'keyboard', 'battery', 'dxdiag'];
         components.forEach(component => {
             const urls = getTestScreenshotUrls(component);
             urls.forEach(url => {
@@ -908,6 +908,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const inspectionDateTime = new Date(inspectionDateStr);
         
         const reportData = {
+            // Fields required by the API route handler
+            clientId: client_id,
+            title: globalDeviceDetails.deviceModel || 'تقرير فحص جهاز', // Report title (using device model or default text)
+            description: document.getElementById('reportNotes')?.value || '',
+            
+            // Fields matching the database schema
             id: reportId,
             client_id: client_id,
             client_name: clientDetails.clientName || '',
