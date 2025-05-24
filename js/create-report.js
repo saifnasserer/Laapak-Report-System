@@ -952,6 +952,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         
+        // Add general notes from Step 4 to hardware_status with type 'note'
+        const generalNotes = document.getElementById('generalNotes')?.value;
+        if (generalNotes && generalNotes.trim() !== '') {
+            hardwareComponents.push({
+                componentName: 'notes',
+                status: 'info',
+                notes: generalNotes,
+                type: 'note'
+            });
+        }
+        
         // Convert hardware components to JSON format for database
         // Since the database field is longtext, we need to stringify the object
         reportData.hardware_status = JSON.stringify(hardwareComponents);

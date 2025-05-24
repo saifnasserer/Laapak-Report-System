@@ -101,7 +101,14 @@ document.addEventListener('DOMContentLoaded', () => {
         populateHardwareComponentsTable(hardwareStatusData);
 
         // Step 4: Technician Notes
-        technicianNotes.textContent = get(report, 'notes');
+        // First check if there are notes in hardware_status with type 'note'
+        const notesComponent = hardwareStatusData.find(item => item.type === 'note' && item.componentName === 'notes');
+        if (notesComponent && notesComponent.notes) {
+            technicianNotes.textContent = notesComponent.notes;
+        } else {
+            // Fallback to the regular notes field if no notes found in hardware_status
+            technicianNotes.textContent = get(report, 'notes');
+        }
 
         // Step 5: Billing Summary (Now handled by static content in Step 6 in HTML)
     }

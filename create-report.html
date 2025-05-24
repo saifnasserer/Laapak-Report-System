@@ -282,12 +282,7 @@
     <!-- Main Content -->
     <div class="container-fluid p-4 mt-3">
         <!-- Report Creation Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="text-dark fw-bold" style="position: relative; padding-bottom: 10px;">
-                إنشاء تقرير جديد
-                <span style="position: absolute; bottom: 0; right: 0; width: 50px; height: 3px; background: linear-gradient(90deg, var(--primary-color), var(--accent-color));"></span>
-            </h2>
-        </div>
+        
         
         <!-- Form -->
         <div class="card border-0 shadow-sm mb-4" style="background: rgba(255, 255, 255, 0.95);">
@@ -470,8 +465,7 @@
                                 </div>
                                 
                                 <!-- Step 2: Component Tests -->
-                                <div class="form-step" id="step2">
-                                    <h4 class="mb-4">فحوصات المكونات التقنية</h4>
+                                <div class="form-step" id="step2" style="padding: 0 5rem ;">
                                     <!-- Step 2 Error Container -->
                                     <div id="step2ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
                                         <i class="fas fa-exclamation-triangle me-2"></i>
@@ -913,30 +907,30 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    
-                                        <!-- DxDiag Test -->
-                                        <div class="card component-test-card mb-4" data-component="dxdiag">
-                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                                <h5 class="mb-0"><i class="fas fa-laptop me-2"></i> اختبار معلومات النظام (DxDiag)</h5>
-                                                
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <label for="dxdiagScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
-                                                    <div class="input-group mb-2">
-                                                        <input type="url" class="form-control test-screenshot-url" id="dxdiagScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="dxdiag">
-                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="dxdiagScreenshotUrl" data-component="dxdiag">
-                                                            <i class="fas fa-plus me-1"></i> إضافة
-                                                        </button>
+                                        
+                                            <!-- DxDiag Test -->
+                                            <div class="card component-test-card mb-4" data-component="dxdiag">
+                                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                    <h5 class="mb-0"><i class="fas fa-laptop me-2"></i> اختبار معلومات النظام (DxDiag)</h5>
+                                                    
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="mb-3">
+                                                        <label for="dxdiagScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                        <div class="input-group mb-2">
+                                                            <input type="url" class="form-control test-screenshot-url" id="dxdiagScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="dxdiag">
+                                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="dxdiagScreenshotUrl" data-component="dxdiag">
+                                                                <i class="fas fa-plus me-1"></i> إضافة
+                                                            </button>
+                                                        </div>
+                                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                        <div class="mt-2 screenshot-preview" id="dxdiagScreenshotPreview"></div>
                                                     </div>
-                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
-                                                    <div class="mt-2 screenshot-preview" id="dxdiagScreenshotPreview"></div>
                                                 </div>
                                             </div>
                                         </div>
+                                        
                                     </div>
-                                    
                                     </div>
                                     
 
@@ -961,11 +955,12 @@
                                     
                                     <!-- Step 3 Warning Container -->
                                     <div id="step3WarningContainer" class="step-warning-container mb-3" style="display: none;"></div>
-                                    <h4 class="mb-4">الفحص الخارجي للجهاز</h4>
                                     
                                     <!-- Images Section -->
-                                    <div class="mb-4">
-                                        <h5><i class="fas fa-camera me-2"></i> صور الفحص الخارجي</h5>
+                                    <div class="mb-4 container px-3 py-2">
+                                        <div style="text-align: center;">
+                                            <h5><i class="fas fa-camera me-2"></i> صور الفحص الخارجي</h5>
+                                        </div>
                                         <div class="card mb-3">
                                             <div class="card-header bg-light">
                                                 <h6 class="mb-0">إضافة صور عبر الروابط</h6>
@@ -993,8 +988,10 @@
                                     </div>
                                     
                                     <!-- Video Section -->
-                                    <div class="mb-4">
-                                        <h5><i class="fas fa-video me-2"></i> فيديو الفحص</h5>
+                                    <div class="mb-4 container style="padding: 0 5rem ;" >
+                                        <div style="text-align: center;">
+                                            <h5><i class="fas fa-video me-2"></i> فيديو الفحص</h5>
+                                        </div>
                                         <div class="card mb-3">
                                             <div class="card-header bg-light">
                                                 <h6 class="mb-0">إضافة فيديو عبر الرابط</h6>
@@ -1028,24 +1025,16 @@
                                 </div>
                                 
                                 <!-- Step 4: Notes -->
-                                <div class="form-step" id="step4">
+                                <div class="form-step" id="step4" style="padding: 0 5rem ;">
                                     <!-- Step 4 Error Container -->
                                     <div id="step4ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
                                         <i class="fas fa-exclamation-triangle me-2"></i>
                                         <span id="step4ErrorText"></span>
                                     </div>
-                                    <h4 class="mb-4" style="position: relative; padding-bottom: 10px;">
-                                        ملاحظات عامة
-                                        <span style="position: absolute; bottom: 0; right: 0; width: 40px; height: 3px; background: linear-gradient(90deg, var(--primary-color), var(--accent-color));"></span>
-                                    </h4>
                                     
-                                    <div class="card border-0 shadow-sm mb-4">
+                                    <div class="card border-0 shadow-sm mb-4" style="margin: 1rem; padding: 1rem;">
                                         <div class="card-body p-4">
-                                            <div class="mb-4">
-                                                <label for="generalNotes" class="form-label fw-bold">
-                                                    <i class="fas fa-sticky-note me-2 text-primary"></i>
-                                                    ملاحظات عن حالة الجهاز
-                                                </label>
+                                            <div class="mb-4" style="margin: 1rem 0;">
                                                 <div class="position-relative" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: var(--input-radius); overflow: hidden;">
                                                     <textarea class="form-control border-0" id="generalNotes" rows="6" placeholder="أدخل أي ملاحظات إضافية عن حالة الجهاز" style="padding: 1rem; background-color: #fafafa;"></textarea>
                                                 </div>
@@ -1059,16 +1048,12 @@
                                 </div>
                                 
                                 <!-- Step 5: Invoice Information -->
-                                <div class="form-step" id="step5">
+                                <div class="form-step" id="step5" style="margin: 1rem 0; padding: 0 5rem ;">
                                     <!-- Step 5 Error Container -->
                                     <div id="step5ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
                                         <i class="fas fa-exclamation-triangle me-2"></i>
                                         <span id="step5ErrorText"></span>
                                     </div>
-                                    <h4 class="mb-4" style="position: relative; padding-bottom: 10px;">
-                                        بيانات الفاتورة
-                                        <span style="position: absolute; bottom: 0; right: 0; width: 40px; height: 3px; background: linear-gradient(90deg, var(--primary-color), var(--accent-color));"></span>
-                                    </h4>
                                     
                                     <div class="card border-0 shadow-sm mb-4">
                                         <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
