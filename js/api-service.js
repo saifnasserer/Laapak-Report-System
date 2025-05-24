@@ -293,80 +293,63 @@ class ApiService {
         return this.request(`/api/reports/${id}`);
     }
     
-    async createReport(reportData) {
-        console.log('Creating report with data:', reportData);
+    async updateReport(reportId, updateData) {
         try {
-            // Parse client_id to ensure it's a valid number
-            let clientId;
-            try {
-                clientId = parseInt(reportData.client_id || reportData.clientId || '0', 10);
-                if (isNaN(clientId) || clientId <= 0) {
-                    throw new Error('Client ID must be a valid positive number');
-                }
-            } catch (e) {
-                console.error('Error parsing client_id:', e);
-                throw new Error('Client ID must be a valid number');
+            console.log(`Updating report ${reportId} with data:`, updateData);
+            
+            // Ensure we have a valid report ID
+            if (!reportId) {
+                throw new Error('Report ID is required for update');
             }
             
-            // Format hardware_status as a JSON string if it's not already
-            let hardwareStatus;
-            try {
-                if (typeof reportData.hardware_status === 'string') {
-                    // Keep it as is if it's already a string
-                    hardwareStatus = reportData.hardware_status;
-                } else if (Array.isArray(reportData.hardware_status)) {
-                    hardwareStatus = JSON.stringify(reportData.hardware_status);
-                } else if (reportData.hardwareStatus) {
-                    if (typeof reportData.hardwareStatus === 'string') {
-                        hardwareStatus = reportData.hardwareStatus;
-                    } else {
-                        hardwareStatus = JSON.stringify(reportData.hardwareStatus);
-                    }
-                } else {
-                    hardwareStatus = '[]';
-                }
-            } catch (e) {
-                console.error('Error formatting hardware_status:', e);
-                hardwareStatus = '[]';
+            // Prepare request data
+            let requestData = { ...updateData };
+            
+            // If hardware_status is an object, stringify it
+            if (typeof requestData.hardware_status === 'object') {
+                requestData.hardware_status = JSON.stringify(requestData.hardware_status);
             }
             
-            // Format external_images as a JSON string if it's not already
-            let externalImages = null;
-            try {
-                if (typeof reportData.external_images === 'string' && reportData.external_images) {
-                    externalImages = reportData.external_images;
-                } else if (Array.isArray(reportData.external_images)) {
-                    externalImages = JSON.stringify(reportData.external_images);
-                } else if (reportData.externalImages) {
-                    if (typeof reportData.externalImages === 'string' && reportData.externalImages) {
-                        externalImages = reportData.externalImages;
-                    } else {
-                        externalImages = JSON.stringify(reportData.externalImages);
-                    }
-                }
-            } catch (e) {
-                console.error('Error formatting external_images:', e);
-                externalImages = null;
+            // If external_images is an object, stringify it
+            if (typeof requestData.external_images === 'object') {
+                requestData.external_images = JSON.stringify(requestData.external_images);
             }
             
+            // Make the API request
+            return this.request(`/api/reports/${reportId}`, 'PUT', requestData);
+        } catch (error) {
+            console.error('Error updating report:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Create a new report - Used by create-report.html
+     * This is a dedicated endpoint for the create-report page
+     * @param {Object} reportData - Report data to create
+     * @returns {Promise<Object>} Created report
+     */
+    async createNewReport(reportData) {
+        try {
+            console.log('Using dedicated createNewReport method for create-report.html');
             // Generate a report ID if not provided
-            const reportId = reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000));
+            let reportId = reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000));
             
             // Generate a title for the report if not provided
-            const title = reportData.title || 
+            let title = reportData.title || 
                           `Report for ${reportData.device_model || reportData.deviceModel || ''} - ${reportData.client_name || reportData.clientName || 'Client'}`;
             
             // Create a report object that includes both the fields expected by the route handler
             // and the fields that match the database schema
-            const reportObject = {
+            let reportObject = {
                 // Fields required by the route handler
-                clientId: clientId,
+                clientId: reportData.client_id || reportData.clientId,
                 title: title,
                 description: reportData.notes || '',
                 
                 // Database schema fields
                 id: reportId,
-                client_id: clientId,
+                client_id: reportData.client_id || reportData.clientId,
                 client_name: reportData.client_name || reportData.clientName || '',
                 client_phone: reportData.client_phone || reportData.clientPhone || '',
                 client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
@@ -377,8 +360,100 @@ class ApiService {
                 inspection_date: reportData.inspection_date instanceof Date ? 
                     reportData.inspection_date.toISOString() : 
                     new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),
-                hardware_status: hardwareStatus,
-                external_images: externalImages,
+                hardware_status: reportData.hardware_status || '[]',
+                external_images: reportData.external_images || '[]',
+                notes: reportData.notes || '',
+                billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
+                amount: Number(reportData.amount || 0),
+                status: reportData.status || 'active'
+            };
+            
+            // Make a direct fetch request to a dedicated endpoint for create-report
+            const url = `${this.baseUrl}/api/reports/new`;
+            let options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add auth token if available
+                    ...this.getAuthHeaders(),
+                },
+                body: JSON.stringify(reportObject) // Add the request body
+            };
+            
+            console.log(`Direct API Request to dedicated endpoint: POST ${url}`);
+            console.log('Report data being sent:', reportObject);
+            
+            const response = await fetch(url, options);
+            console.log(`API Response status: ${response.status}`);
+            
+            // Handle the response
+            if (!response.ok) {
+                let errorMessage = `API request failed with status ${response.status}`;
+                try {
+                    let errorData = await response.json();
+                    console.error('Server error details:', errorData);
+                    if (errorData.details) {
+                        errorMessage = `${errorData.error || 'Error'}: ${errorData.details}`;
+                    } else {
+                        errorMessage = errorData.message || errorData.error || errorMessage;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse error response:', e);
+                }
+                throw new Error(errorMessage);
+            }
+            
+            const result = await response.json();
+            console.log('New report created successfully through dedicated endpoint:', result);
+            return result;
+        } catch (error) {
+            console.error('Error creating new report:', error);
+            // Provide a more user-friendly error message
+            if (error.message.includes('database')) {
+                throw new Error('Failed to save report to database. Please check database connection.');
+            }
+            throw error;
+        }
+    }
+    
+    /**
+     * Legacy create report method - maintained for backwards compatibility
+     * @param {Object} reportData - Report data to create
+     * @returns {Promise<Object>} Created report
+     */
+    async createReport(reportData) {
+        console.log('Using legacy createReport method - consider updating to createNewReport');
+        try {
+            // Generate a report ID if not provided
+            let reportId = reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000));
+            
+            // Generate a title for the report if not provided
+            let title = reportData.title || 
+                          `Report for ${reportData.device_model || reportData.deviceModel || ''} - ${reportData.client_name || reportData.clientName || 'Client'}`;
+            
+            // Create a report object that includes both the fields expected by the route handler
+            // and the fields that match the database schema
+            let reportObject = {
+                // Fields required by the route handler
+                clientId: reportData.client_id || reportData.clientId,
+                title: title,
+                description: reportData.notes || '',
+                
+                // Database schema fields
+                id: reportId,
+                client_id: reportData.client_id || reportData.clientId,
+                client_name: reportData.client_name || reportData.clientName || '',
+                client_phone: reportData.client_phone || reportData.clientPhone || '',
+                client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
+                client_address: reportData.client_address || reportData.clientAddress || '',
+                order_number: reportData.order_number || reportData.orderNumber || '',
+                device_model: reportData.device_model || reportData.deviceModel || '',
+                serial_number: reportData.serial_number || reportData.serialNumber || '',
+                inspection_date: reportData.inspection_date instanceof Date ? 
+                    reportData.inspection_date.toISOString() : 
+                    new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),
+                hardware_status: reportData.hardware_status || '[]',
+                external_images: reportData.external_images || '[]',
                 notes: reportData.notes || '',
                 billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
                 amount: Number(reportData.amount || 0),
@@ -387,7 +462,7 @@ class ApiService {
             
             // Make a direct fetch request
             const url = `${this.baseUrl}/api/reports`;
-            const options = {
+            let options = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -408,7 +483,7 @@ class ApiService {
             if (!response.ok) {
                 let errorMessage = `API request failed with status ${response.status}`;
                 try {
-                    const errorData = await response.json();
+                    let errorData = await response.json();
                     console.error('Server error details:', errorData);
                     if (errorData.details) {
                         errorMessage = `${errorData.error || 'Error'}: ${errorData.details}`;
@@ -434,9 +509,7 @@ class ApiService {
         }
     }
     
-    async updateReport(id, reportData) {
-        return this.request(`/api/reports/${id}`, 'PUT', reportData);
-    }
+    // This method is now implemented above with more comprehensive functionality
     
     async deleteReport(id) {
         return this.request(`/api/reports/${id}`, 'DELETE');
@@ -597,12 +670,12 @@ class ApiService {
                 throw new Error('Invoice items (invoiceData.items) must be an array.');
             }
 
-            // --- Construct a clean payload based on the database schema ---
+            // Create a structured payload for the API
             const payload = {
-                id: invoiceData.id,
+                id: invoiceData.id || this._generateUniqueId('INV'),
                 client_id: Number(invoiceData.client_id),
-                date: new Date(invoiceData.date).toISOString(), // Ensure ISO format
-                report_id: invoiceData.report_id || null, // Can be null
+                date: invoiceData.date ? new Date(invoiceData.date).toISOString() : new Date().toISOString(),
+                report_id: invoiceData.report_id || null, // Keep report_id field
                 subtotal: Number(invoiceData.subtotal || 0),
                 discount: Number(invoiceData.discount || 0),
                 taxRate: Number(invoiceData.taxRate || 0), // Ensure taxRate is present

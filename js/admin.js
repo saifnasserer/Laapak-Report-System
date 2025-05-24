@@ -68,19 +68,30 @@ function loadDashboardStats() {
     .then(data => {
         console.log('Dashboard stats data:', data);
         // Process data [totalReports, totalInvoices, totalClients, unpaidInvoices]
-        document.getElementById('total-reports').textContent = data[0].count || '0';
-        document.getElementById('total-invoices').textContent = data[1].count || '0';
-        document.getElementById('total-clients').textContent = data[2].count || '0';
-        document.getElementById('pending-reports').textContent = data[3].count || '0';
+        // Add element existence checks to prevent errors
+        const totalReportsEl = document.getElementById('total-reports');
+        const totalInvoicesEl = document.getElementById('total-invoices');
+        const totalClientsEl = document.getElementById('total-clients');
+        const pendingReportsEl = document.getElementById('pending-reports');
+        
+        if (totalReportsEl) totalReportsEl.textContent = data[0].count || '0';
+        if (totalInvoicesEl) totalInvoicesEl.textContent = data[1].count || '0';
+        if (totalClientsEl) totalClientsEl.textContent = data[2].count || '0';
+        if (pendingReportsEl) pendingReportsEl.textContent = data[3].count || '0';
     })
     .catch(error => {
         console.error('Error loading dashboard stats:', error);
         
-        // Set placeholder values on error
-        document.getElementById('total-reports').textContent = '0';
-        document.getElementById('total-invoices').textContent = '0';
-        document.getElementById('total-clients').textContent = '0';
-        document.getElementById('pending-reports').textContent = '0';
+        // Set placeholder values on error (only if elements exist)
+        const totalReportsEl = document.getElementById('total-reports');
+        const totalInvoicesEl = document.getElementById('total-invoices');
+        const totalClientsEl = document.getElementById('total-clients');
+        const pendingReportsEl = document.getElementById('pending-reports');
+        
+        if (totalReportsEl) totalReportsEl.textContent = '0';
+        if (totalInvoicesEl) totalInvoicesEl.textContent = '0';
+        if (totalClientsEl) totalClientsEl.textContent = '0';
+        if (pendingReportsEl) pendingReportsEl.textContent = '0';
         
         // Show error toast
         if (typeof toastr !== 'undefined') {
@@ -117,6 +128,12 @@ function loadRecentReports() {
         console.log('Recent reports:', data);
         
         const reportsTable = document.getElementById('recent-reports-table');
+        
+        // Check if element exists before manipulating it
+        if (!reportsTable) {
+            console.log('Recent reports table element not found in this page');
+            return;
+        }
         
         // Clear loading spinner
         reportsTable.innerHTML = '';
@@ -198,6 +215,12 @@ function loadRecentInvoices() {
         console.log('Recent invoices:', data);
         
         const invoicesTable = document.getElementById('recent-invoices-table');
+        
+        // Check if element exists before manipulating it
+        if (!invoicesTable) {
+            console.log('Recent invoices table element not found in this page');
+            return;
+        }
         
         // Clear loading spinner
         invoicesTable.innerHTML = '';

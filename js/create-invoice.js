@@ -270,8 +270,53 @@ async function loadReports() {
         try {
             // Check if apiService is defined and has getReports method
             if (typeof apiService !== 'undefined' && typeof apiService.getReports === 'function') {
-                // Use ApiService to fetch reports
-                reports = await apiService.getReports({ hasInvoice: false });
+                // Get reports with billing_enabled=1
+                reports = await apiService.getReports({billing_enabled: 1});
+                
+                console.log('Reports with billing enabled before invoice filtering:', reports);
+                
+                // Get all invoices to check which reports already have invoices
+                const invoices = await apiService.getInvoices();
+                console.log('Raw invoices data returned from API:', invoices);
+                
+                // Additional validation to ensure invoices is an array
+                if (!Array.isArray(invoices)) {
+                    console.error('Invalid invoices data received from API - not an array:', invoices);
+                    throw new Error('Invalid invoices data format');
+                }
+                
+                // Extract report IDs from invoices, but first verify each invoice has a report_id property
+                let invalidInvoicesCount = 0;
+                const reportsWithInvoices = invoices
+                    .filter(invoice => {
+                        if (!invoice || typeof invoice !== 'object') {
+                            invalidInvoicesCount++;
+                            return false;
+                        }
+                        
+                        if (!invoice.report_id) {
+                            console.log('Invoice without report_id:', invoice.id || 'unknown');
+                            return false;
+                        }
+                        return true;
+                    })
+                    .map(invoice => invoice.report_id);
+                
+                if (invalidInvoicesCount > 0) {
+                    console.warn(`Found ${invalidInvoicesCount} invalid invoice objects in the response`);
+                }
+                
+                console.log('Reports with invoices:', reportsWithInvoices);
+                
+                // Filter out reports that already have invoices
+                const originalCount = reports.length;
+                reports = reports.filter(report => {
+                    return !reportsWithInvoices.includes(report.id);
+                });
+                
+                console.log(`Filtered out ${originalCount - reports.length} reports that already have invoices`);
+                
+                console.log('Filtered reports for create-invoice page:', reports);
             } else {
                 throw new Error('API service not available');
             }
@@ -1424,7 +1469,7 @@ async function saveInvoice() {
             // title: currentInvoiceSettings.title, // Removed as it's not in the 'invoices' table schema
             date: currentInvoiceSettings.date, 
             client_id: client_id, // Correct client_id from currentInvoiceSettings
-            report_ids: report_ids_to_invoice, // Send all report IDs
+            report_id: report_ids_to_invoice.length > 0 ? report_ids_to_invoice[0] : null, // Send first report ID (API expects single report_id)
             items: currentInvoiceItems.map(item => ({
                 description: item.description,
                 quantity: parseInt(item.quantity) || 1,
@@ -1454,10 +1499,11 @@ async function saveInvoice() {
         // Try to save invoice to API
         let savedInvoice = null;
         try {
-            // Check if apiService is defined and has saveInvoice method
-            if (typeof apiService !== 'undefined' && typeof apiService.saveInvoice === 'function') {
-                // Use ApiService to save invoice
-                savedInvoice = await apiService.saveInvoice(invoicePayload);
+            // Check if apiService is defined and has createInvoice method
+            if (typeof apiService !== 'undefined' && typeof apiService.createInvoice === 'function') {
+                // Use ApiService to create invoice with proper report_id handling
+                console.log('Calling createInvoice with payload:', invoicePayload);
+                savedInvoice = await apiService.createInvoice(invoicePayload);
                 
                 // The first selected report is linked to the invoice via 'invoicePayload.report_id'.
                 // The backend /api/reports/pending should filter out reports already linked to an invoice.

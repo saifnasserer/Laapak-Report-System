@@ -841,10 +841,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('API Service available:', !!currentApiService);
                     console.log('createReport function available:', typeof currentApiService?.createReport === 'function');
                     
-                    if (currentApiService && typeof currentApiService.createReport === 'function') {
+                    if (currentApiService && typeof currentApiService.createNewReport === 'function') {
                         try {
-                            console.log('Making API call to create report with data:', JSON.stringify(reportData, null, 2));
-                            savedReport = await currentApiService.createReport(reportData);
+                            console.log('Making API call to create report with data using dedicated endpoint:', JSON.stringify(reportData, null, 2));
+                            savedReport = await currentApiService.createNewReport(reportData);
                             console.log('Report saved to API successfully:', savedReport);
                         } catch (apiError) {
                             console.error('Error saving report to API:', apiError);
