@@ -483,57 +483,190 @@
             border: 2px solid var(--primary-color) !important;
         }
         
-        /* Mobile Progress Bar Styles */
-        @media (max-width: 991px) {
-            .steps-wrapper {
-                padding: 0;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                -ms-overflow-style: none; /* IE and Edge */
-                scrollbar-width: none; /* Firefox */
+        /* Tablet Styles - Modified to ensure consistent appearance */
+        @media (min-width: 768px) and (max-width: 991px) {
+            /* Apply mobile-like styling for more consistent appearance */
+            .steps-container {
+                background: linear-gradient(to right, rgba(255,255,255,0.9), rgba(240,255,245,0.9));
+                padding: 0.85rem 0.5rem 1.25rem;
+                border-radius: 10px;
+                box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+                overflow: hidden;
+                border: 1px solid rgba(10, 117, 83, 0.1);
+                margin-bottom: 1.25rem;
+                max-width: 90%;
+                margin-left: auto;
+                margin-right: auto;
             }
             
-            .steps-wrapper::-webkit-scrollbar {
-                display: none; /* Chrome, Safari, Opera */
+            .steps-wrapper {
+                padding: 0;
+                overflow-x: visible;
             }
             
             .steps-slider {
                 display: flex;
-                min-width: max-content;
-                padding: 1rem 0.5rem;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                padding: 0.5rem 0.25rem;
+                position: relative;
+                gap: 0;
             }
             
             .step-item {
+                position: relative;
+                z-index: 5;
                 flex: 0 0 auto;
-                margin: 0 1rem;
-                min-width: 80px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-width: auto;
+                padding: 0;
+                margin: 0 1px;
             }
             
+            .step-button {
+                width: 50px !important;
+                height: 50px !important;
+                font-size: 1.15rem !important;
+                font-weight: 600 !important;
+                border-radius: 50% !important;
+                margin: 0 !important;
+                transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+                box-shadow: 0 3px 10px rgba(10, 117, 83, 0.15) !important;
+            }
+            
+            /* Hide regular step titles on tablets for consistency */
             .step-item .step-title {
-                width: 100%;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                display: none;
             }
             
+            /* Show mobile-style step titles for consistent experience */
+            .mobile-step-title {
+                display: block;
+                margin: 1.5rem 0 1rem;
+                padding-bottom: 0.75rem;
+                font-weight: 600;
+                color: var(--primary-color);
+                text-align: center;
+                border-bottom: 2px solid rgba(10, 117, 83, 0.1);
+                font-size: 1.1rem;
+            }
+            
+            /* Hide progress lines on tablets like on phones */
             .steps-progress-line, .steps-progress-bar {
-                top: calc(1rem + 25px);
+                display: none !important;
+            }
+        }
+        
+        /* Mobile Styles (Phones only) */
+        @media (max-width: 767px) {
+            /* Container styling - smaller and more compact */
+            .steps-container {
+                background: linear-gradient(to right, rgba(255,255,255,0.9), rgba(240,255,245,0.9));
+                padding: 0.75rem 0.25rem 1rem;
+                border-radius: 10px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+                overflow: hidden;
+                border: 1px solid rgba(10, 117, 83, 0.1);
+                margin-bottom: 1rem;
+                max-width: 95%;
+                margin-left: auto;
+                margin-right: auto;
             }
             
+            .steps-wrapper {
+                padding: 0;
+                overflow-x: visible;
+            }
+            
+            /* More compact slider layout for mobile */
+            .steps-slider {
+                display: flex;
+                justify-content: space-evenly;
+                align-items: center;
+                width: 100%;
+                padding: 0.4rem 0.2rem;
+                position: relative;
+                gap: 2px;
+                margin: 0 auto;
+            }
+            
+            /* Step item styling */
+            .step-item {
+                position: relative;
+                z-index: 5;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            /* Smaller, more compact step buttons */
+            .step-button {
+                width: 36px !important;
+                height: 36px !important;
+                font-size: 0.95rem !important;
+                font-weight: 600 !important;
+                border-radius: 50% !important;
+                margin: 0 !important;
+                transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+                box-shadow: 0 3px 8px rgba(10, 117, 83, 0.15) !important;
+                border: none !important;
+                background: white !important;
+                color: var(--primary-color) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                position: relative !important;
+            }
+            
+            /* Active and completed step styling */
+            .step-item.active .step-button {
+                background: linear-gradient(135deg, var(--primary-color), var(--accent-color)) !important;
+                color: white !important;
+                box-shadow: 0 4px 15px rgba(10, 117, 83, 0.3) !important;
+                transform: scale(1.1) !important;
+            }
+            
+            .step-item.completed .step-button {
+                background: linear-gradient(135deg, var(--primary-color), var(--accent-color)) !important;
+                color: white !important;
+            }
+            
+            /* Hide step titles */
+            .step-item .step-title {
+                display: none;
+            }
+            
+            /* Hide progress lines completely on mobile */
+            .steps-progress-line, .steps-progress-bar {
+                display: none !important;
+            }
+            
+            /* Compact navigation buttons for mobile */
             .steps-navigation {
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                margin-top: 1rem;
+                margin-top: 0.75rem;
+                background: white;
+                border-radius: 30px;
+                padding: 0.35rem;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+                width: fit-content;
+                margin-left: auto;
+                margin-right: auto;
             }
             
             .step-nav-btn {
                 background: transparent;
                 border: none;
                 color: var(--primary-color);
-                font-size: 1.25rem;
-                width: 40px;
-                height: 40px;
+                font-size: 1rem;
+                width: 34px;
+                height: 34px;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
@@ -546,16 +679,29 @@
                 background-color: rgba(0, 117, 83, 0.1);
             }
             
+            /* Elegant step indicator */
             .step-indicator {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 0.5rem;
+                font-weight: 600;
+                color: var(--primary-color);
                 font-size: 0.875rem;
-                color: #495057;
-                margin: 0 0.75rem;
                 min-width: 80px;
                 text-align: center;
             }
             
-            .steps-container {
-                padding: 1rem 0.5rem 1.5rem;
+            /* Premium mobile step titles */
+            .mobile-step-title {
+                display: block;
+                margin: 1.5rem 0 1rem;
+                padding-bottom: 0.75rem;
+                font-weight: 600;
+                color: var(--primary-color);
+                text-align: center;
+                border-bottom: 2px solid rgba(10, 117, 83, 0.1);
+                font-size: 1.1rem;
             }
         }
     </style>
@@ -654,6 +800,8 @@
 
                 <!-- Step 1: General Information -->
                 <div class="form-step step-content active" id="step1">
+                    <!-- Mobile-only step title -->
+                    <h4 class="mobile-step-title"><i class="fas fa-info-circle me-2"></i>تفاصيل الطلب</h4>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3 justify-content-center">
@@ -674,7 +822,8 @@
 
                 <!-- Step 2: External Inspection -->
                 <div class="form-step step-content" id="step2">
-                    
+                    <!-- Mobile-only step title -->
+                    <h4 class="mobile-step-title"><i class="fas fa-camera me-2"></i>المعاينة الخارجية</h4>
                     
                     <!-- Modern Video Section with Enhanced Player -->
                     <div class="device-video-section mb-5 text-center">
@@ -772,6 +921,9 @@
 
                 <!-- Step 4: Enhanced Test Screenshots -->
                 <div class="form-step step-content" id="step4">
+                    <!-- Mobile-only step title -->
+                    <h4 class="mobile-step-title"><i class="fas fa-desktop me-2"></i>المكونات الاساسية</h4>
+                    
                     <div class="alert alert-info mb-4">
                         <div class="d-flex">
                             <div class="me-3"><i class="fas fa-info-circle fa-2x"></i></div>
@@ -788,6 +940,9 @@
 
                 <!-- Step 3: Technical Hardware Tests -->
                 <div class="form-step step-content" id="step3">
+                    <!-- Mobile-only step title -->
+                    <h4 class="mobile-step-title"><i class="fas fa-microchip me-2"></i>الفحص الداخلي</h4>
+                    
                     <h4 class="mb-4 section-title">
                         <span class="icon-wrapper">
                             <i class="fas fa-microchip"></i>
@@ -815,6 +970,9 @@
 
                 <!-- Step 5: Technician Notes (renamed from Step 4) -->
                 <div class="form-step step-content" id="step5">
+                    <!-- Mobile-only step title -->
+                    <h4 class="mobile-step-title"><i class="fas fa-sticky-note me-2"></i>ملاحظات</h4>
+                    
                     <h4 class="mb-4 border-bottom pb-2"><i class="fas fa-sticky-note me-2"></i>ملاحظات الفني</h4>
                     <div class="card shadow-sm border-0 p-4 mb-4">
                         <div id="technicianNotes" class="p-3 bg-light rounded notes-section fs-5">لا توجد ملاحظات</div>
@@ -823,7 +981,8 @@
 
                 <!-- Step 6: Next Steps & Client Actions (placeholder) -->
                 <div class="form-step step-content" id="step6">
-                    
+                    <!-- Mobile-only step title -->
+                    <h4 class="mobile-step-title"><i class="fas fa-check-circle me-2"></i>تأكيد الطلب</h4>
                     
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-body p-4">
@@ -939,8 +1098,8 @@
                     currentStepNumberEl.textContent = currentStepIndex + 1;
                 }
                 
-                // Add the progress line if it doesn't exist
-                if (!progressLine) {
+                // Add the progress line if it doesn't exist, but only for desktop (we're hiding it on both tablet and mobile)
+                if (!progressLine && window.innerWidth >= 992) {
                     const newProgressLine = document.createElement('div');
                     newProgressLine.className = 'position-absolute steps-progress-line';
                     document.querySelector('.steps-container').appendChild(newProgressLine);
@@ -1039,8 +1198,11 @@
             
             // Navigate to a specific step
             function navigateToStep(stepIndex) {
-                // Scroll to top of the page for better user experience
-                window.scrollTo(0, 0);
+                // Scroll to top of the page with a smooth animation
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
                 
                 // Update active state
                 stepItems.forEach((item, idx) => {
@@ -1084,50 +1246,40 @@
             
             // Scroll to the selected step (mobile view)
             function scrollToStep(stepItem) {
-                if (!stepsSlider || !stepItem) return;
+                if (!stepItem) return;
                 
-                const containerWidth = stepsWrapper.offsetWidth;
-                const itemLeft = stepItem.offsetLeft;
-                const itemWidth = stepItem.offsetWidth;
-                
-                // Calculate the scroll position to center the item
-                const scrollLeft = itemLeft - (containerWidth / 2) + (itemWidth / 2);
-                
-                // Smooth scroll to the position
-                stepsWrapper.scrollTo({
-                    left: scrollLeft,
-                    behavior: 'smooth'
+                // With the new non-scrollable mobile layout, we just
+                // need to ensure the correct step is marked as active
+                const allStepItems = document.querySelectorAll('.step-item');
+                allStepItems.forEach(item => {
+                    item.classList.remove('active');
                 });
+                stepItem.classList.add('active');
             }
             
             // Update progress bar width
             function updateProgressBar() {
                 if (!progressBar || totalSteps <= 1) return;
                 
+                // On phones (below 768px), we completely hide the progress bar through CSS
+                // so we don't need to calculate anything
+                const isMobilePhone = window.innerWidth < 768;
+                if (isMobilePhone) {
+                    return; // Skip progress bar updates on mobile phones
+                }
+                
+                // For tablets (768-991px) and desktop, calculate progress as a percentage
                 const progressPercentage = (currentStepIndex / (totalSteps - 1)) * 100;
                 progressBar.style.width = `${progressPercentage}%`;
                 
-                // Highlight completed steps
+                // Highlight all steps up to the current step
                 stepItems.forEach((item, idx) => {
-                    const stepButton = item.querySelector('.step-button');
                     if (idx < currentStepIndex) {
-                        // Completed step
                         item.classList.add('completed');
-                        stepButton.classList.remove('btn-outline-primary');
-                        stepButton.classList.add('btn-primary');
-                    } else if (idx === currentStepIndex) {
-                        // Current step
-                        item.classList.remove('completed');
-                        stepButton.classList.remove('btn-outline-primary');
-                        stepButton.classList.add('btn-primary');
                     } else {
-                        // Future step
                         item.classList.remove('completed');
-                        stepButton.classList.remove('btn-primary');
-                        stepButton.classList.add('btn-outline-primary');
                     }
                 });
-            }
             
             // Update navigation buttons state
             function updateNavigationButtons() {
@@ -1210,7 +1362,7 @@
                     }
                 });
             }
-        });
+        }});
     </script>
     
     <!-- Enhanced lightbox functionality with zoom, navigation, and fullscreen -->

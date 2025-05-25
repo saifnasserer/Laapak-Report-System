@@ -150,7 +150,11 @@ function loadRecentReports() {
         // Add reports to table
         data.forEach(report => {
             const statusClass = getStatusClass(report.status);
-            const formattedDate = new Date(report.inspection_date).toLocaleDateString('ar-SA');
+            const inspectionDateObj = new Date(report.inspection_date);
+            const year = inspectionDateObj.getFullYear();
+            const month = ('0' + (inspectionDateObj.getMonth() + 1)).slice(-2);
+            const day = ('0' + inspectionDateObj.getDate()).slice(-2);
+            const formattedDate = `${year}-${month}-${day}`;
             
             reportsTable.innerHTML += `
                 <tr>
@@ -358,12 +362,13 @@ function displayCurrentDate() {
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
-        day: 'numeric' 
+        day: 'numeric', 
+        calendar: 'gregory' 
     };
     
     // Create date in Arabic locale
     const today = new Date();
-    const arabicDate = today.toLocaleDateString('ar-SA', options);
+    const arabicDate = today.toLocaleDateString('ar-EG', options);
     
     // Display the date
     dateElement.textContent = arabicDate;

@@ -913,7 +913,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const deviceName = document.getElementById('invoiceDeviceName')?.value || window.globalDeviceDetails?.deviceModel || (savedReport && savedReport.deviceModel) || '';
                                 const serialNumber = document.getElementById('invoiceSerialNumber')?.value || window.globalDeviceDetails?.serialNumber || (savedReport && savedReport.serialNumber) || '';
                                 const price = parseFloat(document.getElementById('invoicePrice')?.value || '0'); // Default to 0, as price might not always be applicable (e.g. warranty)
-                                const formTaxRate = parseFloat(document.getElementById('taxRate')?.value || '14'); // Default to 14 if not found in form
+                                const formTaxRate = parseFloat(document.getElementById('taxRate')?.value || '0'); // Default to 0% if not found in form
                                 const formDiscount = parseFloat(document.getElementById('discount')?.value || '0');
                                 const formNotes = document.getElementById('invoiceNotes')?.value || ''; // Assuming an ID 'invoiceNotes' for notes field
 
@@ -998,6 +998,37 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } else {
                         console.log('Billing not enabled - skipping invoice creation');
+                    }
+                    
+                    // Clear all validation errors before showing success
+                    // Hide all step error containers
+                    if (typeof hideAllStepErrors === 'function') {
+                        hideAllStepErrors();
+                    } else {
+                        // Fallback implementation
+                        for (let i = 1; i <= 5; i++) {
+                            const stepErrorContainer = document.getElementById(`step${i}ErrorContainer`);
+                            if (stepErrorContainer) {
+                                stepErrorContainer.style.display = 'none';
+                            }
+                        }
+                    }
+                    
+                    // Hide any form validation markings
+                    const invalidFields = document.querySelectorAll('.is-invalid');
+                    invalidFields.forEach(field => {
+                        field.classList.remove('is-invalid');
+                        // Remove any invalid-feedback elements next to this field
+                        const feedback = field.nextElementSibling;
+                        if (feedback && feedback.classList.contains('invalid-feedback')) {
+                            feedback.textContent = '';
+                        }
+                    });
+                    
+                    // Hide any general form alert
+                    const reportFormAlert = document.getElementById('reportFormAlert');
+                    if (reportFormAlert) {
+                        reportFormAlert.style.display = 'none';
                     }
                     
                     // Update success modal with report and invoice info

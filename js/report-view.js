@@ -907,6 +907,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Step navigation logic
     function updateSteps() {
+        // Scroll to top of the page with a smooth animation
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
         steps.forEach((step, index) => {
             if (index + 1 === currentStep) {
                 step.classList.add('active');
@@ -943,6 +948,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     nextBtn.addEventListener('click', () => {
         if (currentStep < steps.length) {
+            // Scroll to top of the page with a smooth animation
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+            
             currentStep++;
             updateSteps();
         }

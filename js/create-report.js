@@ -372,6 +372,46 @@ function getTestScreenshotUrls(component) {
     return urls;
 }
 
+/**
+ * Update tax display in the invoice preview
+ * This updates both the tax rate label and recalculates the tax amount
+ */
+function updateTaxDisplay() {
+    const taxRateInput = document.getElementById('taxRate');
+    const taxRateLabel = document.getElementById('taxRateLabel');
+    const taxDisplay = document.getElementById('taxDisplay');
+    const subtotalDisplay = document.getElementById('subtotalDisplay');
+    const totalDisplay = document.getElementById('totalDisplay');
+    const discountDisplay = document.getElementById('discountDisplay');
+    
+    if (taxRateInput && taxRateLabel) {
+        // Get the current tax rate value
+        const taxRate = parseFloat(taxRateInput.value || '0');
+        
+        // Update the tax rate label
+        taxRateLabel.textContent = `الضريبة (${taxRate}%):`;
+        
+        // Recalculate tax and total if all needed elements exist
+        if (taxDisplay && subtotalDisplay && totalDisplay && discountDisplay) {
+            // Extract numeric values from the display elements
+            const subtotalText = subtotalDisplay.textContent;
+            const discountText = discountDisplay.textContent;
+            
+            // Parse numbers from text (removing 'جنية' and any non-numeric characters)
+            const subtotal = parseFloat(subtotalText.replace(/[^\d.]/g, '')) || 0;
+            const discount = parseFloat(discountText.replace(/[^\d.]/g, '')) || 0;
+            
+            // Calculate tax and total
+            const taxAmount = (subtotal - discount) * (taxRate / 100);
+            const total = subtotal - discount + taxAmount;
+            
+            // Update the display elements
+            taxDisplay.textContent = taxAmount.toFixed(2) + ' جنية';
+            totalDisplay.textContent = total.toFixed(2) + ' جنية';
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is authenticated
     if (typeof authMiddleware !== 'undefined' && !authMiddleware.isAdminLoggedIn()) {
@@ -2162,6 +2202,25 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {Object} response - API response with created report
      */
     function showSuccessMessage(response) {
+        // Hide any existing error messages
+        const errorAlert = document.getElementById('reportFormAlert');
+        if (errorAlert) {
+            errorAlert.style.display = 'none';
+        }
+        
+        // Hide all step error containers
+        if (typeof hideAllStepErrors === 'function') {
+            hideAllStepErrors();
+        } else {
+            // Fallback implementation
+            for (let i = 1; i <= 5; i++) {
+                const stepErrorContainer = document.getElementById(`step${i}ErrorContainer`);
+                if (stepErrorContainer) {
+                    stepErrorContainer.style.display = 'none';
+                }
+            }
+        }
+        
         // Get the success modal
         const successModal = document.getElementById('reportCreatedModal');
         
