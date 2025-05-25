@@ -65,12 +65,15 @@ function initializeDataTable() {
             order: [[2, 'desc']], // Order by date, newest first
             // Empty data array to start - will be populated by AJAX
             data: [],
-            // Set up pagination to match clients.html
+            // Disable built-in DataTables pagination to prevent duplication
+            paging: true,
             pagingType: "simple_numbers",
+            dom: '<"row"<"col-sm-12"tr>>', // Only show table, no built-in controls
             // Connect DataTable pagination to the custom pagination in HTML
             drawCallback: function() {
-                const pagination = $(this).closest('.dataTables_wrapper').find('.dataTables_paginate');
-                pagination.toggle(this.api().page.info().pages > 1);
+                // Hide the built-in DataTables pagination
+                $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').hide();
+                $(this).closest('.dataTables_wrapper').find('.dataTables_info').hide();
                 
                 // Update the custom pagination UI
                 updateCustomPagination(this.api().page.info());

@@ -438,19 +438,52 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Add Enter key press event for test screenshot URL inputs
+    // Add Enter key press event for test screenshot URL inputs with improved reliability
     const testScreenshotInputs = document.querySelectorAll('.test-screenshot-url');
     testScreenshotInputs.forEach(input => {
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const component = this.getAttribute('data-component');
-                const button = document.querySelector(`.add-screenshot-url-btn[data-component="${component}"]`);
-                if (button) {
-                    button.click();
+        // Use both keypress and keydown to ensure cross-browser compatibility
+        ['keypress', 'keydown'].forEach(eventType => {
+            input.addEventListener(eventType, function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // Prevent form submission
+                    e.stopPropagation(); // Stop event bubbling
+                    
+                    // Get the component name from data attribute
+                    const component = this.getAttribute('data-component');
+                    
+                    // Find the corresponding add button
+                    const button = document.querySelector(`.add-screenshot-url-btn[data-component="${component}"]`);
+                    if (button) {
+                        console.log(`Enter key pressed in ${component} input - triggering add button`);
+                        button.click();
+                    }
                 }
-            }
+            });
         });
+    });
+    
+    // Ensure all inputs with URL type also have Enter key functionality
+    document.querySelectorAll('input[type="url"]').forEach(input => {
+        if (!input.classList.contains('test-screenshot-url')) { // Avoid duplicate handlers
+            ['keypress', 'keydown'].forEach(eventType => {
+                input.addEventListener(eventType, function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Find the closest button that might be the add button
+                        const parentGroup = this.closest('.input-group');
+                        if (parentGroup) {
+                            const addBtn = parentGroup.querySelector('button');
+                            if (addBtn) {
+                                console.log('Enter key pressed in URL input - triggering closest button');
+                                addBtn.click();
+                            }
+                        }
+                    }
+                });
+            });
+        }
     });
     
     // Set up image URL functionality for Step 3
@@ -458,6 +491,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const imageUrlInput = document.getElementById('imageUrlInput');
     
     if (addImageUrlBtn && imageUrlInput) {
+        // Add Enter key functionality to the image URL input
+        ['keypress', 'keydown'].forEach(eventType => {
+            imageUrlInput.addEventListener(eventType, function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    addImageUrlBtn.click();
+                    console.log('Enter key pressed in external image input - triggering add button');
+                }
+            });
+        });
+        
+        // Click handler for the add image button
         addImageUrlBtn.addEventListener('click', function() {
             const imageUrl = imageUrlInput.value.trim();
             
@@ -803,15 +849,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get invoice data if billing is enabled
         let invoiceData = null;
         const billingToggle = document.getElementById('enableBilling');
-        // Log the billing toggle element and its state for debugging
-        console.log('Billing toggle DOM element:', billingToggle);
-        console.log('Billing toggle checked attribute:', billingToggle?.getAttribute('checked'));
-        console.log('Billing toggle checked property:', billingToggle?.checked);
-        
-        // Use the checked property for the actual state
         const billingEnabled = billingToggle?.checked || false;
-        console.log('Billing enabled:', billingEnabled);
-        console.log('Billing toggle element:', billingToggle);
         
         if (billingEnabled) {
             const taxRate = parseFloat(document.getElementById('taxRate')?.value || 15);
@@ -1606,21 +1644,31 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function setupBillingToggle() {
         const enableBillingCheckbox = document.getElementById('enableBilling');
-        const paymentInfoSection = document.getElementById('paymentInfoSection');
-        const invoicePreviewSection = document.querySelector('.card.bg-light');
+        const invoiceFieldsContainer = document.getElementById('invoiceFieldsContainer');
         const submitButton = document.getElementById('submitReportBtn');
+        const billingStatusText = document.getElementById('billingStatusText');
         
-        if (!enableBillingCheckbox || !paymentInfoSection || !invoicePreviewSection || !submitButton) return;
+        if (!enableBillingCheckbox || !invoiceFieldsContainer || !submitButton) {
+            console.warn('Billing toggle setup failed: Required elements not found', {
+                enableBillingCheckbox: !!enableBillingCheckbox,
+                invoiceFieldsContainer: !!invoiceFieldsContainer,
+                submitButton: !!submitButton
+            });
+            return;
+        }
         
         // Function to update UI based on checkbox state
         function updateBillingUI() {
             const isEnabled = enableBillingCheckbox.checked;
             
-            // Show/hide payment info section
-            paymentInfoSection.style.display = isEnabled ? 'block' : 'none';
+            // Update invoice fields container visibility
+            invoiceFieldsContainer.style.display = isEnabled ? 'block' : 'none';
             
-            // Show/hide invoice preview section
-            invoicePreviewSection.style.display = isEnabled ? 'block' : 'none';
+            // Update billing status text if it exists
+            if (billingStatusText) {
+                billingStatusText.textContent = isEnabled ? 'الفاتورة مفعلة' : 'الفاتورة غير مفعلة';
+                billingStatusText.style.color = isEnabled ? 'var(--primary-color)' : '#dc3545';
+            }
             
             // Update submit button text
             submitButton.textContent = isEnabled ? 'إنشاء التقرير والفاتورة' : 'إنشاء التقرير';
@@ -2118,11 +2166,86 @@ document.addEventListener('DOMContentLoaded', function() {
         const successModal = document.getElementById('reportCreatedModal');
         
         if (successModal) {
+            // Get the report URL
+            const reportUrl = `${window.location.origin}/report.html?id=${response.id}`;
+            
             // Update modal content with report information
             const reportLink = document.getElementById('reportLink');
             if (reportLink) {
-                reportLink.value = `${window.location.origin}/report.html?id=${response.id}`;
+                reportLink.value = reportUrl;
             }
+            
+            // Setup WhatsApp share button
+            const whatsappBtn = document.getElementById('whatsappShareBtn');
+            if (whatsappBtn) {
+                const encodedMessage = encodeURIComponent(`تقرير فحص جهازك جاهز للعرض: ${reportUrl}`);
+                whatsappBtn.href = `https://wa.me/?text=${encodedMessage}`;
+                
+                whatsappBtn.addEventListener('click', function(e) {
+                    // Track sharing event if analytics available
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'share', {
+                            'method': 'whatsapp',
+                            'content_type': 'report',
+                            'item_id': response.id
+                        });
+                    }
+                });
+            }
+            
+            // Setup View Report button
+            const viewReportBtn = document.getElementById('viewReportBtn');
+            if (viewReportBtn) {
+                viewReportBtn.href = reportUrl;
+            }
+            
+            // Setup both copy buttons functionality
+            const setupCopyButton = (buttonId) => {
+                const copyBtn = document.getElementById(buttonId);
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', function() {
+                        navigator.clipboard.writeText(reportUrl).then(() => {
+                            // Show success message
+                            const successMsg = document.querySelector('.copy-success-message');
+                            if (successMsg) {
+                                successMsg.style.display = 'block';
+                                setTimeout(() => {
+                                    successMsg.style.display = 'none';
+                                }, 3000);
+                            }
+                            
+                            // Visual feedback on the button
+                            this.innerHTML = '<i class="fas fa-check me-2"></i> تم النسخ';
+                            setTimeout(() => {
+                                if (buttonId === 'copyLinkBtn') {
+                                    this.innerHTML = '<i class="fas fa-copy"></i>';
+                                } else {
+                                    this.innerHTML = '<i class="fas fa-copy me-2"></i> نسخ رابط التقرير';
+                                }
+                            }, 2000);
+                            
+                            // Show toast notification
+                            showToast('تم نسخ رابط التقرير بنجاح', 'success');
+                            
+                            // Track copy event if analytics available
+                            if (typeof gtag !== 'undefined') {
+                                gtag('event', 'share', {
+                                    'method': 'copy_link',
+                                    'content_type': 'report',
+                                    'item_id': response.id
+                                });
+                            }
+                        }).catch(err => {
+                            console.error('Could not copy text: ', err);
+                            showToast('حدث خطأ أثناء نسخ الرابط', 'error');
+                        });
+                    });
+                }
+            };
+            
+            // Setup both copy buttons
+            setupCopyButton('copyLinkBtn');
+            setupCopyButton('modalCopyLinkBtn');
             
             // Show the modal
             const bsModal = new bootstrap.Modal(successModal);
@@ -2218,4 +2341,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateProgressBar();
         }
     }
+    
+    // Initialize the billing toggle functionality
+    setupBillingToggle();
 });

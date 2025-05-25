@@ -109,15 +109,31 @@ router.get('/', async (req, res) => {
       // const { Report, Client, ReportTechnicalTest, Invoice } = require('../models');
       const { Invoice } = require('../models'); // Assuming Invoice is already destructured or add it.
 
+      const whereClause = {}; // Start with an empty where clause
+
+      // Handle 'billing_enabled' filter
+      if (req.query.billing_enabled !== undefined) {
+        const beParam = req.query.billing_enabled.toString().toLowerCase();
+        if (beParam === 'false' || beParam === '0') {
+          whereClause.billing_enabled = false;
+        } else if (beParam === 'true' || beParam === '1') {
+          whereClause.billing_enabled = true;
+        }
+      }
+
+      // Handle 'fetch_mode' for invoiced reports
+      // Default: exclude invoiced reports (e.g., for create-invoice page)
+      // If fetch_mode is 'all_reports', then don't add this Op.notIn condition.
+      if (req.query.fetch_mode !== 'all_reports') {
+        whereClause.id = { // Report ID
+          [Op.notIn]: [
+            Sequelize.literal(`SELECT report_id FROM invoice_reports WHERE report_id IS NOT NULL`)
+          ]
+        };
+      }
+
       const reports = await Report.findAll({
-        where: {
-          billing_enabled: true, // Only fetch reports marked for billing
-          id: {
-            [Op.notIn]: [
-              Sequelize.literal(`SELECT report_id FROM invoice_reports WHERE report_id IS NOT NULL`)
-            ]
-          }
-        },
+        where: whereClause,
         include: {
           model: Client,
           attributes: ['id', 'name', 'phone', 'email'],

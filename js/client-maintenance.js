@@ -160,10 +160,11 @@ function displayMaintenanceSchedule(reports) {
                     </a>
                 </div>
                 <div class="card-footer bg-light">
-                    <button type="button" class="btn btn-sm btn-outline-primary w-100" 
-                        onclick="scheduleMaintenance('${report.id}')">
-                        <i class="fas fa-calendar-plus me-2"></i> حجز موعد للصيانة
-                    </button>
+                    <a href="#" class="btn btn-sm btn-primary w-100" 
+                        onclick="sendMaintenanceWhatsApp('${report.id}', '${report.client?.name || report.client_name || ''}', '${formatDate(reportDate) || ''}', '${report.device_model || report.deviceModel || ''}')"
+                        style="background-color: #25D366; border-color: #25D366;">
+                        <i class="fab fa-whatsapp me-2"></i> حجز موعد للصيانة
+                    </a>
                 </div>
                 ${isMaintenanceWarrantyActive(reportDate, currentDate) ? '' : 
                     `<div class="alert alert-warning mt-3 p-2 small">
@@ -175,6 +176,51 @@ function displayMaintenanceSchedule(reports) {
         
         maintenanceList.appendChild(col);
     });
+}
+
+/**
+ * Send a WhatsApp message to schedule maintenance
+ * @param {string} reportId - Report ID
+ * @param {string} clientName - Client name
+ * @param {string} reportDate - Report creation date
+ * @param {string} deviceModel - Device model
+ */
+function sendMaintenanceWhatsApp(reportId, clientName, reportDate, deviceModel) {
+    // Clean up any empty or undefined values
+    const cleanClientName = clientName && clientName.trim() ? clientName.trim() : 'عميل';
+    const cleanDeviceModel = deviceModel && deviceModel.trim() ? deviceModel.trim() : 'غير محدد';
+    const cleanReportDate = reportDate && reportDate.trim() ? reportDate.trim() : 'سابق';
+    
+    // Log values for debugging
+    console.log('Maintenance WhatsApp:', {
+        reportId,
+        clientName: cleanClientName,
+        reportDate: cleanReportDate,
+        deviceModel: cleanDeviceModel
+    });
+    
+    // Format message with client details
+    const message = `السلام عليكم انا ${cleanClientName} ، اشتريت لابتوب من شركة لابك بتاريخ ${cleanReportDate} الموديل ${cleanDeviceModel} وعايز احجز معاد للصيانة الدورية امتي ممكن يكون معاد مناسب ؟`;
+    
+    // Phone number for maintenance scheduling
+    const phoneNumber = '01270388043';
+    
+    // Create WhatsApp URL
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    
+    // Track this action if analytics is available
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'schedule_maintenance', {
+            'event_category': 'maintenance',
+            'event_label': reportId,
+            'value': 1
+        });
+    }
+    
+    // Open WhatsApp in new tab
+    window.open(whatsappUrl, '_blank');
+    
+    return false; // Prevent default link behavior
 }
 
 /**

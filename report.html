@@ -1039,6 +1039,9 @@
             
             // Navigate to a specific step
             function navigateToStep(stepIndex) {
+                // Scroll to top of the page for better user experience
+                window.scrollTo(0, 0);
+                
                 // Update active state
                 stepItems.forEach((item, idx) => {
                     if (idx === stepIndex) {

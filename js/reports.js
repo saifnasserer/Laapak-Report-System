@@ -55,7 +55,7 @@ function initReports() {
             }
             
             // If connected, fetch reports from API
-            return apiService.getReports();
+            return apiService.getReports({ fetch_mode: 'all_reports' });
         })
         .then(data => {
             // Hide loading indicator

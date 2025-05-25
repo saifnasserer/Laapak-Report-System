@@ -118,7 +118,7 @@ function setupEventListeners() {
         addItemBtn.addEventListener('click', function() {
             addNewInvoiceItem();
         });
-    }
+        }
     
     // Save items button
     const saveItemsBtn = document.getElementById('saveItemsBtn');
@@ -270,53 +270,10 @@ async function loadReports() {
         try {
             // Check if apiService is defined and has getReports method
             if (typeof apiService !== 'undefined' && typeof apiService.getReports === 'function') {
-                // Get reports with billing_enabled=1
-                reports = await apiService.getReports({billing_enabled: 1});
+                // Get reports with billing_enabled=0
+                reports = await apiService.getReports({billing_enabled: false});
                 
-                console.log('Reports with billing enabled before invoice filtering:', reports);
-                
-                // Get all invoices to check which reports already have invoices
-                const invoices = await apiService.getInvoices();
-                console.log('Raw invoices data returned from API:', invoices);
-                
-                // Additional validation to ensure invoices is an array
-                if (!Array.isArray(invoices)) {
-                    console.error('Invalid invoices data received from API - not an array:', invoices);
-                    throw new Error('Invalid invoices data format');
-                }
-                
-                // Extract report IDs from invoices, but first verify each invoice has a report_id property
-                let invalidInvoicesCount = 0;
-                const reportsWithInvoices = invoices
-                    .filter(invoice => {
-                        if (!invoice || typeof invoice !== 'object') {
-                            invalidInvoicesCount++;
-                            return false;
-                        }
-                        
-                        if (!invoice.report_id) {
-                            console.log('Invoice without report_id:', invoice.id || 'unknown');
-                            return false;
-                        }
-                        return true;
-                    })
-                    .map(invoice => invoice.report_id);
-                
-                if (invalidInvoicesCount > 0) {
-                    console.warn(`Found ${invalidInvoicesCount} invalid invoice objects in the response`);
-                }
-                
-                console.log('Reports with invoices:', reportsWithInvoices);
-                
-                // Filter out reports that already have invoices
-                const originalCount = reports.length;
-                reports = reports.filter(report => {
-                    return !reportsWithInvoices.includes(report.id);
-                });
-                
-                console.log(`Filtered out ${originalCount - reports.length} reports that already have invoices`);
-                
-                console.log('Filtered reports for create-invoice page:', reports);
+                console.log('Reports with billing_enabled=0 for create-invoice page:', reports);
             } else {
                 throw new Error('API service not available');
             }
@@ -325,9 +282,6 @@ async function loadReports() {
             // Fall back to localStorage if API fails
             const storedReports = localStorage.getItem('lpk_reports');
             reports = storedReports ? JSON.parse(storedReports) : [];
-            
-            // Filter reports without invoices
-            reports = reports.filter(report => !report.invoice || !report.invoice.id);
             
             // If still no reports, use mock data
             if (reports.length === 0) {

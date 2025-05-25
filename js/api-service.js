@@ -249,7 +249,7 @@ class ApiService {
         // Build query string from filters
         const queryParams = new URLSearchParams();
         for (const key in filters) {
-            if (filters[key]) {
+            if (filters.hasOwnProperty(key) && filters[key] !== undefined && filters[key] !== null) {
                 queryParams.append(key, filters[key]);
             }
         }
