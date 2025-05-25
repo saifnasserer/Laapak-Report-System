@@ -368,8 +368,8 @@ class ApiService {
                 status: reportData.status || 'active'
             };
             
-            // Make a direct fetch request to a dedicated endpoint for create-report
-            const url = `${this.baseUrl}/api/reports/new`;
+            // Make a direct fetch request using the standard reports endpoint
+            const url = `${this.baseUrl}/api/reports`;
             let options = {
                 method: 'POST',
                 headers: {
