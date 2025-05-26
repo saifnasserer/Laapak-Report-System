@@ -11,6 +11,12 @@ const config = {
     // Server configuration
     port: process.env.PORT || 3000,
     
+    // API configuration
+    api: {
+        baseUrl: process.env.API_BASE_URL || 'http://localhost:3001',
+        version: 'v1'
+    },
+    
     // JWT configuration
     jwtSecret: process.env.JWT_SECRET || 'laapak-secret-key-change-in-production',
     jwtExpiration: '24h',

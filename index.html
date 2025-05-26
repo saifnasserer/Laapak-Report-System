@@ -528,7 +528,10 @@
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
+    <!-- Configuration -->
+    <script src="js/config.js"></script>
+    
+    <!-- Bootstrap core JS-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JS -->
@@ -573,7 +576,8 @@
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
                     
                     // Make real API call to backend
-                    fetch('http://localhost:3001/api/clients/auth', {
+                    const apiBaseUrl = window.config ? window.config.api.baseUrl : '${window.location.origin}';
+                    fetch(`${apiBaseUrl}/api/clients/auth`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -648,7 +652,8 @@
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
                     
                     // Make real API call to backend
-                    fetch('http://localhost:3001/api/auth/admin', {
+                    const apiBaseUrl = window.config ? window.config.api.baseUrl : '${window.location.origin}';
+                    fetch(`${apiBaseUrl}/api/auth/admin`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

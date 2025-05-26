@@ -16,12 +16,14 @@ import('node-fetch').then(({ default: fetch }) => {
 // Main test function
 async function runTests(fetch) {
 
-// API URLs
-const BASE_URL = 'http://localhost:3001';
-const API_URL = `${BASE_URL}/api`;
-const REPORTS_URL = `${API_URL}/reports`;
-const INVOICES_URL = `${API_URL}/invoices`;
-const CLIENTS_URL = `${API_URL}/clients`;
+  // API URLs
+  // Get API base URL from environment or config
+  const config = require('./config/config');
+  const BASE_URL = config.api.baseUrl;
+  const API_URL = `${BASE_URL}/api`;
+  const REPORTS_URL = `${API_URL}/reports`;
+  const INVOICES_URL = `${API_URL}/invoices`;
+  const CLIENTS_URL = `${API_URL}/clients`;
 
 // Test function to verify backend connectivity
 async function testBackendConnection() {
@@ -245,3 +247,4 @@ async function runTests() {
 runTests().catch(error => {
     console.error('Test error:', error);
 });
+}

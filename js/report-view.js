@@ -49,7 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchReportData() {
         try {
             // IMPORTANT: Adjust this API endpoint to your actual backend route for fetching a single report
-            const response = await fetch(`http://localhost:3001/api/reports/${reportId}`); 
+            const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+            const response = await fetch(`${apiBaseUrl}/api/reports/${reportId}`); 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

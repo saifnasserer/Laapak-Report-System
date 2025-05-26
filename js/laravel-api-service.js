@@ -6,7 +6,7 @@
 class LaravelApiService {
     constructor() {
         // Set the Laravel backend API URL to match the Node.js API port
-        this.baseUrl = 'http://localhost:3001/api';
+        this.baseUrl = `${config.api.baseUrl}/api`;
         this.authToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
     }
 
