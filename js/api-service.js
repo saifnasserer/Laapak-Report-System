@@ -16,7 +16,10 @@ class ApiService {
         } 
         // For localhost development, use port 3001
         else if (isLocalhost) {
-            this.baseUrl = config.api.baseUrl;
+            // Safely access config with fallback
+            this.baseUrl = (window.config && window.config.api && window.config.api.baseUrl) || 
+                          (typeof config !== 'undefined' && config.api && config.api.baseUrl) || 
+                          'http://35.180.127.5:3001';
         } 
         // For production, use the same origin but with /api
         else {
@@ -754,10 +757,33 @@ class ApiService {
     }
 }
 
-// Create a global instance
-const apiService = new ApiService();
-
-// Export for module usage
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = apiService;
+// Export class for module environments
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = ApiService;
 }
+
+// Create a global instance of ApiService for direct use in browser
+// Use var instead of const to ensure it's accessible from all scopes
+var apiService;
+
+// Initialize with a self-executing function to ensure it runs immediately
+(function() {
+    try {
+        // Check if apiService already exists to avoid re-creating it
+        if (!window.apiService) {
+            apiService = new ApiService();
+            // Make it available globally
+            window.apiService = apiService;
+            console.log('Global apiService instance created successfully');
+        } else {
+            apiService = window.apiService;
+            console.log('Using existing global apiService instance');
+        }
+    } catch (error) {
+        console.error('Error initializing apiService:', error);
+        // Create a fallback service with the production URL
+        apiService = new ApiService('http://35.180.127.5:3001');
+        window.apiService = apiService;
+        console.log('Created fallback apiService with hardcoded URL');
+    }
+})();

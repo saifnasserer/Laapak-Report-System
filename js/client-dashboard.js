@@ -3,6 +3,12 @@
  * Handles client dashboard functionality and authentication
  */
 
+// Ensure we have access to the API service
+if (typeof apiService === 'undefined' && window.ApiService) {
+    console.log('Creating apiService instance');
+    window.apiService = new ApiService();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Check if client is logged in using auth-middleware
     if (!authMiddleware.isClientLoggedIn()) {
@@ -30,13 +36,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // The logoutBtn event listener is set up in that component
     
     // Load client reports and related data
-    const loadClientReports = async () => {
+    async function loadClientReports() {
         try {
-            // Show loading indicator
             showLoading(true);
             
+            // Check if apiService exists, use window.apiService as fallback
+            let service = typeof apiService !== 'undefined' ? apiService : window.apiService;
+            
+            if (!service) {
+                console.error('API Service not available - creating emergency instance');
+                // Create emergency instance if needed
+                window.apiService = new ApiService();
+                // Use the newly created instance
+                service = window.apiService;
+            }
+            
+            console.log('Using API service with base URL:', service.baseUrl);
+            
             // Fetch reports from API
-            const apiResponse = await apiService.getClientReports();
+            const apiResponse = await service.getClientReports();
             console.log('Reports data from API:', apiResponse);
             
             // Hide loading indicator

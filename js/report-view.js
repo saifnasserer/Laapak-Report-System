@@ -48,11 +48,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchReportData() {
         try {
-            // IMPORTANT: Adjust this API endpoint to your actual backend route for fetching a single report
-            const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-            const response = await fetch(`${apiBaseUrl}/api/reports/${reportId}`); 
+            // Try to get apiService from different sources
+            const service = typeof apiService !== 'undefined' ? apiService : 
+                          (window && window.apiService) ? window.apiService : null;
+            
+            // Determine base URL safely
+            const apiBaseUrl = service && service.baseUrl ? service.baseUrl : 
+                             (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
+                             'http://35.180.127.5:3001';
+                             
+            console.log('Using API base URL:', apiBaseUrl);
+            console.log('Fetching report with ID:', reportId);
+            
+            // The correct API endpoint structure
+            const response = await fetch(`${apiBaseUrl}/api/reports/${reportId}`);
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Try alternative endpoint if the first one fails
+                console.log('First endpoint failed, trying alternative endpoint...');
+                const altResponse = await fetch(`${apiBaseUrl}/api/client/reports/${reportId}`);
+                
+                if (!altResponse.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await altResponse.json();
             }
             const data = await response.json();
             if (data.success && data.report) {

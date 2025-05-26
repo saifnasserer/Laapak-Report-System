@@ -193,7 +193,7 @@ class LpkHeader {
                            href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
                            style="width: 40px; height: 40px; background-color: white; transition: all 0.3s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
                            title="الحساب">
-                            <i class="fas fa-user" style="background-image: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; font-size: 1.2rem;"></i>
+                            <i class="fas fa-user text-success" style="font-size: 1.2rem;"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 240px; border-radius: 12px; margin-top: 10px;">
                             <li class="dropdown-header p-3 border-bottom">

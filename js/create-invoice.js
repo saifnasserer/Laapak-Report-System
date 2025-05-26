@@ -268,14 +268,29 @@ async function loadReports() {
         // Try to get reports from API
         let reports = [];
         try {
-            // Check if apiService is defined and has getReports method
-            if (typeof apiService !== 'undefined' && typeof apiService.getReports === 'function') {
+            // Try to get apiService from different sources
+            const service = typeof apiService !== 'undefined' ? apiService : 
+                         (window && window.apiService) ? window.apiService : null;
+            
+            if (service && typeof service.getReports === 'function') {
                 // Get reports with billing_enabled=0
-                reports = await apiService.getReports({billing_enabled: false});
+                reports = await service.getReports({billing_enabled: false});
                 
                 console.log('Reports with billing_enabled=0 for create-invoice page:', reports);
             } else {
-                throw new Error('API service not available');
+                // Wait a moment and try again - apiService might be initializing
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Try again after waiting
+                const retryService = typeof apiService !== 'undefined' ? apiService : 
+                                   (window && window.apiService) ? window.apiService : null;
+                
+                if (retryService && typeof retryService.getReports === 'function') {
+                    reports = await retryService.getReports({billing_enabled: false});
+                    console.log('Reports fetched on retry for create-invoice page:', reports);
+                } else {
+                    throw new Error('API service not available or not initialized yet');
+                }
             }
         } catch (apiError) {
             console.warn('Error fetching reports from API, falling back to localStorage:', apiError);
