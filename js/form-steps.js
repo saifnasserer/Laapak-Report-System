@@ -766,6 +766,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const billingEnabled = document.getElementById('enableBilling')?.checked || false;
                     reportData.billing_enabled = billingEnabled;
                     
+                    // Assign device price to amount field
+                    if (window.globalDeviceDetails && window.globalDeviceDetails.devicePrice) {
+                        reportData.amount = window.globalDeviceDetails.devicePrice;
+                        console.log('Setting report amount from device price:', window.globalDeviceDetails.devicePrice);
+                    }
+                    
                     // Prepare technical tests data
                     const technicalTests = [];
                     

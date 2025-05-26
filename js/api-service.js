@@ -171,20 +171,20 @@ class ApiService {
         return this.request(`/api/clients${queryParams}`);
     }
     
-    async getClient(clientId) {
-        return this.request(`/api/clients/${clientId}`);
+    async getClient(client_id) {
+        return this.request(`/api/clients/${client_id}`);
     }
     
     async createClient(clientData) {
         return this.request('/api/clients', 'POST', clientData);
     }
     
-    async updateClient(clientId, clientData) {
-        return this.request(`/api/clients/${clientId}`, 'PUT', clientData);
+    async updateClient(client_id, clientData) {
+        return this.request(`/api/clients/${client_id}`, 'PUT', clientData);
     }
     
-    async deleteClient(clientId) {
-        return this.request(`/api/clients/${clientId}`, 'DELETE');
+    async deleteClient(client_id) {
+        return this.request(`/api/clients/${client_id}`, 'DELETE');
     }
 
     // Invoice Management API Methods
@@ -456,7 +456,7 @@ class ApiService {
                 external_images: reportData.external_images || '[]',
                 notes: reportData.notes || '',
                 billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
-                amount: Number(reportData.amount || 0),
+                amount: Number(reportData.amount || reportData.devicePrice || 0),
                 status: reportData.status || 'active'
             };
             
