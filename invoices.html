@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الفواتير | Laapak</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/custom-admin.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+    
+    <style>
+        /* Custom utility class for smaller font size on mobile */
+        .fs-sm-6 {
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 767.98px) {
+            .fs-sm-6 {
+                font-size: 0.75rem;
+            }
+            
+            /* Smaller nav icons on mobile */
+            .nav-item .nav-link.rounded-circle {
+                width: 32px !important;
+                height: 32px !important;
+                padding: 0 !important;
+            }
+            
+            /* Reduce horizontal spacing on mobile */
+            .navbar-nav .nav-item {
+                margin-left: 2px !important;
+                margin-right: 2px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+    
+    <!-- Main Content -->
+    <div class="container-fluid p-4 mt-2">
+        <!-- Invoices Content Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-dark fw-bold">إدارة الفواتير</h2>
+            
+        </div>
+        
+        <!-- Invoices Table -->
+        <div class="card mb-4 shadow">
+            <div class="card-header" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white;">
+                <h5 class="mb-0 fw-bold">جميع الفواتير</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <!-- Loading Indicator -->
+                    <div id="loadingIndicator" class="text-center py-5 d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="mt-2">جاري تحميل الفواتير...</p>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div id="errorContainer" class="alert alert-danger d-none" role="alert"></div>
+                    
+                    <table id="invoicesTable" class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>رقم الفاتورة</th>
+                                <th>العميل</th>
+                                <th>التاريخ</th>
+                                <th>المبلغ</th>
+                                <th>حالة الدفع</th>
+                                <th>طريقة الدفع</th>
+                                <th class="text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoicesTableBody">
+                            <!-- Invoices will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            
+                <!-- Pagination -->
+                <nav aria-label="Page navigation" class="p-3 border-top">
+                    <ul class="pagination justify-content-center m-0" id="invoicesPagination">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">السابق</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">التالي</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        
+
+    </div>
+
+    <!-- Add Invoice Modal -->
+    <div class="modal fade" id="addInvoiceModal" tabindex="-1" aria-labelledby="addInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addInvoiceModalLabel">إضافة فاتورة جديدة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addInvoiceForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="clientId" class="form-label">العميل <span class="text-danger">*</span></label>
+                                <select class="form-select" id="clientId" required>
+                                    <option value="" selected disabled>اختر العميل</option>
+                                    <!-- Options will be loaded dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="reportId" class="form-label">رقم التقرير (اختياري)</label>
+                                <select class="form-select" id="reportId">
+                                    <option value="" selected>اختر التقرير</option>
+                                    <!-- Options will be loaded dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="invoiceDate" class="form-label">تاريخ الفاتورة <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="invoiceDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="paymentStatus" class="form-label">حالة الدفع <span class="text-danger">*</span></label>
+                                <select class="form-select" id="paymentStatus" required>
+                                    <option value="unpaid" selected>غير مدفوعة</option>
+                                    <option value="partial">مدفوعة جزئيًا</option>
+                                    <option value="paid">مدفوعة</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="paymentMethod" class="form-label">طريقة الدفع</label>
+                                <select class="form-select" id="paymentMethod">
+                                    <option value="" selected disabled>اختر طريقة الدفع</option>
+                                    <option value="cash">نقدًا</option>
+                                    <option value="credit_card">بطاقة ائتمان</option>
+                                    <option value="bank_transfer">تحويل بنكي</option>
+                                    <option value="other">أخرى</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="taxRate" class="form-label">نسبة الضريبة (%)</label>
+                                <input type="number" class="form-control" id="taxRate" value="14.00" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <hr>
+                        <h6 class="mb-3">بنود الفاتورة</h6>
+                        <div id="invoiceItems">
+                            <div class="invoice-item border rounded p-3 mb-3">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">الوصف <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control item-description" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">النوع <span class="text-danger">*</span></label>
+                                        <select class="form-select item-type" required>
+                                            <option value="laptop">لابتوب</option>
+                                            <option value="item">قطعة</option>
+                                            <option value="service">خدمة</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label">السعر <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control item-amount" step="0.01" min="0" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">الكمية</label>
+                                        <input type="number" class="form-control item-quantity" value="1" min="1" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">الرقم التسلسلي</label>
+                                        <input type="text" class="form-control item-serial">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-item">حذف البند</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center mb-3">
+                            <button type="button" id="addItemBtn" class="btn btn-outline-success">
+                                <i class="fas fa-plus-circle me-2"></i> إضافة بند جديد
+                            </button>
+                        </div>
+                        <div class="row justify-content-end mt-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>المجموع الفرعي:</span>
+                                            <span id="subtotalDisplay">0.00 ج.م.</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>الخصم:</span>
+                                            <div class="input-group input-group-sm" style="width: 120px">
+                                                <input type="number" class="form-control" id="discountAmount" value="0" min="0" step="0.01">
+                                                <span class="input-group-text">ج.م.</span>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>الضريبة (<span id="taxRateDisplay">14</span>%):</span>
+                                            <span id="taxDisplay">0.00 ج.م.</span>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between fw-bold">
+                                            <span>الإجمالي:</span>
+                                            <span id="totalDisplay">0.00 ج.م.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveInvoiceBtn">حفظ الفاتورة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Invoice Modal -->
+    <div class="modal fade" id="editInvoiceModal" tabindex="-1" aria-labelledby="editInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editInvoiceModalLabel">تعديل الفاتورة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editInvoiceForm">
+                        <input type="hidden" id="editInvoiceId">
+                        <!-- Same form fields as add invoice modal -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editClientId" class="form-label">العميل <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editClientId" required>
+                                    <option value="" selected disabled>اختر العميل</option>
+                                    <!-- Options will be loaded dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editReportId" class="form-label">رقم التقرير (اختياري)</label>
+                                <select class="form-select" id="editReportId">
+                                    <option value="" selected>اختر التقرير</option>
+                                    <!-- Options will be loaded dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editInvoiceDate" class="form-label">تاريخ الفاتورة <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="editInvoiceDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editPaymentStatus" class="form-label">حالة الدفع <span class="text-danger">*</span></label>
+                                <select class="form-select" id="editPaymentStatus" required>
+                                    <option value="unpaid">غير مدفوعة</option>
+                                    <option value="partial">مدفوعة جزئيًا</option>
+                                    <option value="paid">مدفوعة</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editPaymentMethod" class="form-label">طريقة الدفع</label>
+                                <select class="form-select" id="editPaymentMethod">
+                                    <option value="" selected disabled>اختر طريقة الدفع</option>
+                                    <option value="cash">نقدًا</option>
+                                    <option value="credit_card">بطاقة ائتمان</option>
+                                    <option value="bank_transfer">تحويل بنكي</option>
+                                    <option value="other">أخرى</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editTaxRate" class="form-label">نسبة الضريبة (%)</label>
+                                <input type="number" class="form-control" id="editTaxRate" value="14.00" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <hr>
+                        <h6 class="mb-3">بنود الفاتورة</h6>
+                        <div id="editInvoiceItems">
+                            <!-- Invoice items will be loaded dynamically -->
+                        </div>
+                        <div class="d-flex justify-content-center mb-3">
+                            <button type="button" id="editAddItemBtn" class="btn btn-outline-success">
+                                <i class="fas fa-plus-circle me-2"></i> إضافة بند جديد
+                            </button>
+                        </div>
+                        <div class="row justify-content-end mt-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>المجموع الفرعي:</span>
+                                            <span id="editSubtotalDisplay">0.00 ج.م.</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>الخصم:</span>
+                                            <div class="input-group input-group-sm" style="width: 120px">
+                                                <input type="number" class="form-control" id="editDiscountAmount" value="0" min="0" step="0.01">
+                                                <span class="input-group-text">ج.م.</span>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>الضريبة (<span id="editTaxRateDisplay">14</span>%):</span>
+                                            <span id="editTaxDisplay">0.00 ج.م.</span>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between fw-bold">
+                                            <span>الإجمالي:</span>
+                                            <span id="editTotalDisplay">0.00 ج.م.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="updateInvoiceBtn">تحديث الفاتورة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Invoice Modal -->
+    <div class="modal fade" id="viewInvoiceModal" tabindex="-1" aria-labelledby="viewInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewInvoiceModalLabel">تفاصيل الفاتورة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="viewInvoiceContent">
+                    <!-- Invoice details will be loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                        <i class="fas fa-print me-2"></i> طباعة الفاتورة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteInvoiceModal" tabindex="-1" aria-labelledby="deleteInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteInvoiceModalLabel">تأكيد الحذف</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>هل أنت متأكد من رغبتك في حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء.</p>
+                    <input type="hidden" id="deleteInvoiceId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteInvoiceBtn">حذف</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-light py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">© 2025 نظام تقارير لاباك. جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Toastr JS for notifications -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <!-- Moment.js for date handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <!-- Header Component -->
+    <script src="js/header-component.js"></script>
+    <!-- Auth Middleware -->
+    <script src="js/auth-middleware.js"></script>
+    <!-- Service Worker Registration -->
+    <script src="js/sw-register.js"></script>
+    <!-- Invoices JS -->
+    <script src="js/invoices.js"></script>
+</body>
+</html>

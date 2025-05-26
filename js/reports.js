@@ -55,7 +55,7 @@ function initReports() {
             }
             
             // If connected, fetch reports from API
-            return apiService.getReports();
+            return apiService.getReports({ fetch_mode: 'all_reports' });
         })
         .then(data => {
             // Hide loading indicator
@@ -247,11 +247,10 @@ function populateReportsTable(reports, updatePagination = true) {
         let formattedDate = 'غير محدد';
         if (mappedReport.inspectionDate) {
             const date = new Date(mappedReport.inspectionDate);
-            formattedDate = date.toLocaleDateString('ar-SA', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }).replace(/\//g, '-');
+            const year = date.getFullYear();
+            const month = ('0' + (date.getMonth() + 1)).slice(-2);
+            const day = ('0' + date.getDate()).slice(-2);
+            formattedDate = `${year}-${month}-${day}`;
         }
         
         row.innerHTML = `

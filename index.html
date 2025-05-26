@@ -11,6 +11,9 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Google Fonts -->    
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css">
     
@@ -28,49 +31,124 @@
     
     <style>
         body {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #f0f2f5 0%, #e6e9ec 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            font-family: 'Tajawal', sans-serif;
+            color: #333;
+            padding-top: 50px;
         }
-        .hero-section {
-            background: #ebebeb;
-            background-size: cover;
-            background-position: center;
-            color: white;
-            padding: 30px 0 30px 0;
-            margin-bottom: 30px;
+        
+        .main-logo {
+            max-width: 150px;
+            margin-bottom: 20px;
         }
+        
+        .login-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 0;
+            position: relative;
+            z-index: 2;
+            padding: 40px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
         .login-form {
-            max-width: 450px;
             width: 100%;
-            padding: 30px;
-            border-radius: 15px;
-            background: white;
-            box-shadow: 0 5px 30px rgba(0,0,0,0.05);
+            padding: 40px;
+            border-radius: 20px;
+            background: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.1);
             margin: 0 auto;
+            transition: all 0.3s ease;
+            border: none;
+            position: relative;
+            overflow: hidden;
         }
+        
+        .login-form::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #007553, #00a67a);
+        }
+        
+        .login-form h3 {
+            color: #333;
+            font-size: 1.75rem;
+            margin-bottom: 5px;
+        }
+        
+        .form-control {
+            padding: 12px 15px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            color: #495057;
+        }
+        
         .form-control:focus, .btn:focus {
-            box-shadow: 0 0 0 0.25rem rgba(10, 54, 34, 0.25);
-            border-color: #0a3622;
+            box-shadow: 0 0 0 0.25rem rgba(0, 117, 83, 0.15);
+            border-color: #00a67a;
+            background: #ffffff;
         }
-        .btn-primary {
+        
+        .input-group-text {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            color: #6c757d;
+        }
+        
+        .btn-primary, .btn-success {
             background: linear-gradient(135deg, #007553 0%, #004d35 100%);
             border: none;
-            padding: 10px 20px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,117,83,0.2);
         }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #198754 0%, #0c6c41 100%);
+        }
+        
+        .btn-primary:hover, .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,117,83,0.3);
+        }
+        
         .btn-outline-primary {
             border-color: #007553;
             color: #007553;
+            border-radius: 10px;
+            transition: all 0.3s ease;
         }
+        
         .btn-outline-primary:hover {
             background-color: #007553;
             color: white;
         }
+        
         .login-logo {
             width: 120px;
             margin-bottom: 20px;
+            animation: pulse 2s infinite;
         }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
         .login-divider {
             display: flex;
             align-items: center;
@@ -83,8 +161,23 @@
         }
         .login-divider span {
             padding: 0 10px;
-            color: #6c757d;
+            color: rgba(255, 255, 255, 0.8);
             font-size: 0.9rem;
+        }
+        
+        .form-label {
+            color: #495057;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .text-muted {
+            color: #6c757d !important;
+        }
+        
+        .form-text {
+            color: #6c757d;
+            font-size: 0.85rem;
         }
         .login-type-toggle {
             margin-bottom: 20px;
@@ -93,25 +186,149 @@
             background-color: #007553;
             border-color: #007553;
         }
+        
+        /* Feature Cards */
+        .features-section {
+            padding: 60px 0;
+            background-color: #f8f9fa;
+        }
+        
+        .feature-card {
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
         .feature-icon {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             color: white;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
         }
+        
+        .feature-icon::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            z-index: -1;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover .feature-icon::after {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        
+        .feature-card .card-title {
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card .card-text {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+        
+        /* Offline Alert */
+        .offline-alert {
+            display: none;
+            background-color: #ffc107;
+            color: #333;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Footer */
         .bg-dark-green {
             background-color: #0a3622;
         }
+        
+        footer {
+            background: linear-gradient(135deg, #0a3622 0%, #007553 100%);
+        }
+        
+        footer h5 {
+            font-weight: 700;
+            margin-bottom: 20px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        footer h5::after {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 2px;
+            background-color: #fff;
+            bottom: -8px;
+            right: 0;
+        }
+        
+        footer .contact-item {
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        footer .contact-item:hover {
+            transform: translateX(-5px);
+        }
+        
+        /* General */
         main {
             flex: 1;
         }
+        
+        .section-title {
+            position: relative;
+            margin-bottom: 40px;
+            font-weight: 700;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, #007553, transparent);
+            bottom: -15px;
+            right: 0;
+            left: 0;
+            margin: 0 auto;
+        }
+        
         .form-switch .form-check-input {
             width: 3em;
             height: 1.5em;
         }
+        
         .form-switch .form-check-input:focus {
             border-color: rgba(0, 0, 0, 0.25);
             box-shadow: none;
@@ -121,153 +338,190 @@
 <body>
     <!-- Offline Alert -->
     <div class="offline-alert" id="offlineAlert">
-        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+        <i class="fas fa-wifi-slash"></i> أنت غير متصل بالإنترنت حاليًا. سيتم إعادة الاتصال تلقائيًا عند توفر الإنترنت.
     </div>
     
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="container text-center">
-            <img src="img/logo.png" alt="Laapak" width="200" class="mb-4">
-        </div>
-    </section>
-    
-    <main>
-        <!-- Unified Login Form -->
-        <div class="container mb-5">
+    <main class="d-flex align-items-center justify-content-center flex-grow-1">
+        <!-- Login Section with modern design -->
+        <div class="container py-5">
             <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="login-form">
-                        <!-- Logo -->
-                        <div class="text-center">
-                            <h3 class="mb-3 fw-bold" id="loginTypeLabel">تسجيل دخول العملاء</h3>
+                <div class="col-md-10 col-lg-8 col-xl-6">
+                    <div class="text-center mb-4">
+                        <img src="img/logo.png" alt="Laapak" class="main-logo">
+                        <h2 class="fw-bold text-dark">نظام تقارير Laapak</h2>
+                        <p class="text-muted">منصة متكاملة لادارة التقارير ونظام الضمان</p>
+                    </div>
+                    <div class="login-form shadow-lg">
+                            <!-- Login Form Header -->
+                            <div class="text-center mb-4">
+                                <h3 class="fw-bold">تسجيل الدخول</h3>
+                                <p class="text-muted">أدخل بياناتك للوصول إلى حسابك</p>
+                            </div>
                             
-                            <!-- Login Type Toggle -->
-                            <div class="login-type-toggle d-flex justify-content-center align-items-center mb-4">
-                                <span class="me-2">عميل</span>
-                                <div class="form-check form-switch mx-2">
-                                    <input class="form-check-input" type="checkbox" id="loginTypeSwitch">
+                            <!-- Glassmorphism Effect and Tab Styling -->
+                            <style>
+                                .glass-card {
+                                    background: rgba(255, 255, 255, 0.25);
+                                    backdrop-filter: blur(10px);
+                                    -webkit-backdrop-filter: blur(10px);
+                                    border: 1px solid rgba(255, 255, 255, 0.3);
+                                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                                }
+                                
+                                /* Custom Tab Styling */
+                                .nav-tabs {
+                                    border-bottom: 1px solid #e9ecef;
+                                    margin-bottom: 25px;
+                                }
+                                
+                                .nav-tabs .nav-link {
+                                    color: #6c757d;
+                                    border: none;
+                                    border-radius: 0;
+                                    padding: 10px 25px;
+                                    margin-right: 5px;
+                                    font-weight: 600;
+                                    transition: all 0.3s ease;
+                                    position: relative;
+                                }
+                                
+                                .nav-tabs .nav-link:hover {
+                                    color: #007553;
+                                }
+                                
+                                .nav-tabs .nav-link.active {
+                                    color: #007553;
+                                    background-color: transparent;
+                                    border: none;
+                                }
+                                
+                                .nav-tabs .nav-link.active::after {
+                                    content: '';
+                                    position: absolute;
+                                    bottom: -1px;
+                                    left: 0;
+                                    width: 100%;
+                                    height: 2px;
+                                    background: #007553;
+                                }
+                                
+                                .nav-tabs .nav-link i {
+                                    margin-right: 8px;
+                                }
+                            </style>
+                            
+                            <!-- Login Tabs -->
+                            <ul class="nav nav-tabs nav-fill mb-4" id="loginTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="client-tab" data-bs-toggle="tab" data-bs-target="#client-pane" type="button" role="tab" aria-controls="client-pane" aria-selected="true">
+                                        <i class="fas fa-user me-2"></i> عميل
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="employee-tab" data-bs-toggle="tab" data-bs-target="#employee-pane" type="button" role="tab" aria-controls="employee-pane" aria-selected="false">
+                                        <i class="fas fa-user-tie me-2"></i> موظف
+                                    </button>
+                                </li>
+                            </ul>
+                            <div class="tab-content" id="loginTabContent">
+                                <!-- Client Login Tab -->
+                                <div class="tab-pane fade show active" id="client-pane" role="tabpanel" aria-labelledby="client-tab">
+                                    <form id="clientLoginForm" class="text-start">
+                                        <div class="mb-3">
+                                            <label for="phoneNumber" class="form-label fw-medium">رقم الموبايل</label>
+                                            <div class="input-group input-group-lg">
+                                                <span class="input-group-text bg-light"><i class="fas fa-phone text-primary"></i></span>
+                                                <input type="tel" class="form-control" id="phoneNumber" placeholder="01012345678" dir="ltr">
+                                            </div>
+                                            <div class="form-text"><i class="fas fa-info-circle me-1"></i> اكتب رقم الموبايل اللي عملت بيه الاوردر</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="orderCode" class="form-label fw-medium">كود الطلب</label>
+                                            <div class="input-group input-group-lg">
+                                                <span class="input-group-text bg-light"><i class="fas fa-key text-primary"></i></span>
+                                                <input type="password" class="form-control" id="orderCode" placeholder="LPK123">
+                                                <button class="btn btn-light border" type="button" id="toggleOrderCode">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                            <div class="form-text"><i class="fas fa-info-circle me-1"></i> اتواصل مع ممثل خدمة العملاء لو مش عارفه</div>
+                                        </div>
+                                        
+                                        <div class="alert alert-danger d-none" id="clientLoginError" role="alert">
+                                            <i class="fas fa-exclamation-circle me-2"></i> خطأ في بيانات الدخول. يرجى المحاولة مرة أخرى.
+                                        </div>
+                                        
+                                        <div class="d-grid mt-4">
+                                            <button type="submit" class="btn btn-primary rounded-pill py-3 fw-bold">
+                                                <i class="fas fa-sign-in-alt me-2"></i> تسجيل دخول
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
-                                <span class="ms-2">موظف</span>
+                                
+                                <!-- Employee Login Tab -->
+                                <div class="tab-pane fade" id="employee-pane" role="tabpanel" aria-labelledby="employee-tab">
+                                    <form id="employeeLoginForm" class="text-start">
+                                        <div class="mb-3">
+                                            <label for="username" class="form-label fw-medium">اسم المستخدم</label>
+                                            <div class="input-group input-group-lg">
+                                                <span class="input-group-text bg-light"><i class="fas fa-user text-primary"></i></span>
+                                                <input type="text" class="form-control" id="username" placeholder="اسم المستخدم">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="password" class="form-label fw-medium">كلمة المرور</label>
+                                            <div class="input-group input-group-lg">
+                                                <span class="input-group-text bg-light"><i class="fas fa-lock text-primary"></i></span>
+                                                <input type="password" class="form-control" id="password" placeholder="أدخل كلمة المرور">
+                                                <button class="btn btn-light border" type="button" id="togglePassword">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        
+                                        <div class="alert alert-danger d-none" id="employeeLoginError" role="alert">
+                                            <i class="fas fa-exclamation-circle me-2"></i> خطأ في بيانات الدخول. يرجى المحاولة مرة أخرى.
+                                        </div>
+                                        
+                                        <div class="d-grid mt-4">
+                                            <button type="submit" class="btn btn-success rounded-pill py-3 fw-bold">
+                                                <i class="fas fa-sign-in-alt me-2"></i> تسجيل دخول
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Login Form -->
-                        <form id="unifiedLoginForm" class="text-start">
-                            <!-- Admin Login Fields -->
-                            <div id="adminLoginFields" class="d-none">
-                                <div class="mb-3">
-                                    <label for="username" class="form-label">اسم المستخدم</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                        <input type="text" class="form-control" id="username" placeholder="اسم المستخدم">
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="password" class="form-label">كلمة المرور</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                        <input type="password" class="form-control" id="password" placeholder="كلمة المرور">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Client Login Fields -->
-                            <div id="clientLoginFields">
-                                <div class="mb-3">
-                                    <label for="phoneNumber" class="form-label">رقم الموبايل</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                                        <input type="tel" class="form-control" id="phoneNumber" placeholder="01012345678">
-                                    </div>
-                                    <div class="form-text">اكتب رقم الموبايل اللي عملت بيه الاوردر</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="orderCode" class="form-label">كود الطلب</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-key"></i></span>
-                                        <input type="password" class="form-control" id="orderCode" placeholder="LPK123">
-                                    </div>
-                                    <div class="form-text">اتواصل مع ممثل خدمة العملاء لو مش عارفه</div>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="rememberMe">
-                                <label class="form-check-label" for="rememberMe">تذكرني</label>
-                            </div>
-                            
-                            <div class="alert alert-danger d-none" id="loginError" role="alert">
-                                خطأ في بيانات الدخول. يرجى المحاولة مرة أخرى.
-                            </div>
-                            
-                            <div class="d-grid gap-2">
-                                <button type="submit" id="loginSubmitBtn" class="btn btn-primary rounded-pill py-2 fw-bold">تسجيل دخول العملاء</button>
-                            </div>
-                        </form>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Features -->
-        <div class="container py-4">
-            <h2 class="text-center mb-4">مميزات نظام تقارير Laapak</h2>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-body">
-                            <div class="feature-icon bg-primary bg-gradient rounded-circle mb-3">
-                                <i class="fas fa-laptop-medical"></i>
-                            </div>
-                            <h5 class="card-title">تقارير فحص شاملة</h5>
-                            <p class="card-text">تقارير مفصلة لجميع مكونات اللابتوب مع صور توضيحية ونتائج دقيقة</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-body">
-                            <div class="feature-icon bg-success bg-gradient rounded-circle mb-3">
-                                <i class="fas fa-share-alt"></i>
-                            </div>
-                            <h5 class="card-title">مشاركة سهلة للتقارير</h5>
-                            <p class="card-text">إمكانية مشاركة التقارير عبر رابط مباشر أو رمز QR أو تحميلها كملف PDF</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-body">
-                            <div class="feature-icon bg-info bg-gradient rounded-circle mb-3">
-                                <i class="fas fa-mobile-alt"></i>
-                            </div>
-                            <h5 class="card-title">تجاوب كامل مع الأجهزة</h5>
-                            <p class="card-text">يعمل النظام بشكل ممتاز على جميع الأجهزة من الموبايل للكمبيوتر</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </main>
     
     <!-- Footer -->
-    <footer class="bg-dark-green text-white py-4 mt-4">
+    <footer class="text-white py-5 mt-4">
         <div class="container">
             <div class="row">
-                <div class="col-md-6">
-                    <h5>شركة Laapak</h5>
-                    <p>ضمان - ثقة - امان</p>
+                <div class="col-md-6 text-center text-md-start">
+                    
+                    <h5 class="mb-3">شركة Laapak</h5>
+
+                    <p class="mb-0"><a href="https://laapak.com" class="text-white text-decoration-none" target="_blank"><i class="fas fa-globe me-2"></i>www.laapak.com</a></p>
                 </div>
-                <div class="col-md-6 text-md-end">
-                    <h5>تواصل معنا</h5>
+                <div class="col-md-6 text-center text-md-end mt-4 mt-md-0">
+                    <h5 class="mb-3">تواصل معنا</h5>
                     <ul class="list-unstyled">
-                        <li><i class="fas fa-envelope me-2"></i> info@laapak.com</li>
-                        <li><i class="fas fa-phone me-2"></i> 01013148007</li>
-                        <li><i class="fas fa-map-marker-alt me-2"></i> القاهرة ، تحرير ، 19 شارع يوسف الجندي</li>
+                        <li class="contact-item mb-2"><i class="fas fa-envelope me-2"></i> info@laapak.com</li>
+                        <li class="contact-item mb-2"><i class="fas fa-phone me-2"></i> 01013148007</li>
+                        <li class="contact-item mb-2"><i class="fas fa-map-marker-alt me-2"></i> القاهرة، تحرير، 19 شارع يوسف الجندي</li>
                     </ul>
+                    <a href="https://wa.me/201013148007" class="btn btn-success rounded-pill mt-2" target="_blank">
+                        <i class="fab fa-whatsapp me-2"></i> تواصل عبر واتساب
+                    </a>
                 </div>
             </div>
-            <hr>
+            <hr class="mt-4 mb-3 opacity-25">
             <div class="text-center">
                 <p class="mb-0">&copy; 2025 Laapak. جميع الحقوق محفوظة.</p>
             </div>
@@ -294,6 +548,223 @@
                     });
             });
         }
+    </script>
+    
+    <!-- Login Tabs Functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Client form submission
+            const clientForm = document.getElementById('clientLoginForm');
+            if (clientForm) {
+                clientForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const phoneNumber = document.getElementById('phoneNumber').value;
+                    const orderCode = document.getElementById('orderCode').value;
+                    
+                    if (!phoneNumber || !orderCode) {
+                        showError('clientLoginError', 'الرجاء إدخال جميع البيانات المطلوبة');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    const submitBtn = clientForm.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
+                    
+                    // Make real API call to backend
+                    fetch('http://localhost:3001/api/clients/auth', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phone: phoneNumber,
+                            orderCode: orderCode
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Login failed');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Log the response to see what fields are available
+                        console.log('Client login response:', data);
+                        
+                        // Store authentication data
+                        localStorage.setItem('clientToken', data.token);
+                        
+                        // Create client info object with appropriate name field
+                        const clientInfo = {
+                            id: data.id || data.client?.id || '',
+                            phone: data.phone || data.client?.phone || phoneNumber
+                        };
+                        
+                        // Check different possible field names for the client name
+                        if (data.name) {
+                            clientInfo.name = data.name;
+                        } else if (data.client && data.client.name) {
+                            clientInfo.name = data.client.name;
+                        } else if (data.client) {
+                            clientInfo.name = data.client.firstName || data.client.full_name || data.client.fullName || 'العميل';
+                        } else {
+                            clientInfo.name = 'العميل';
+                        }
+                        
+                        // Store client info
+                        localStorage.setItem('clientInfo', JSON.stringify(clientInfo));
+                        
+                        // Redirect to dashboard
+                        window.location.href = 'client-dashboard.html';
+                    })
+                    .catch(error => {
+                        console.error('Login error:', error);
+                        showError('clientLoginError', 'خطأ في تسجيل الدخول. تأكد من رقم الموبايل وكود الطلب');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                    });
+                });
+            }
+            
+            // Employee form submission
+            const employeeForm = document.getElementById('employeeLoginForm');
+            if (employeeForm) {
+                employeeForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    
+                    if (!username || !password) {
+                        showError('employeeLoginError', 'الرجاء إدخال جميع البيانات المطلوبة');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    const submitBtn = employeeForm.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
+                    
+                    // Make real API call to backend
+                    fetch('http://localhost:3001/api/auth/admin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            password: password
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Login failed');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Log the response to see what fields are available
+                        console.log('Admin login response:', data);
+                        
+                        // Store authentication data
+                        localStorage.setItem('adminToken', data.token);
+                        
+                        // Create admin info object with appropriate fields
+                        const adminInfo = {
+                            id: data.id || data.admin?.id || '',
+                            username: data.username || data.admin?.username || username,
+                            role: data.role || data.admin?.role || 'viewer'
+                        };
+                        
+                        // Check different possible field names for the admin name
+                        // More detailed logging to see the structure
+                        console.log('Admin name fields:', {
+                            'data.name': data.name,
+                            'data.admin?.name': data.admin?.name,
+                            'data.firstName': data.firstName,
+                            'data.fullName': data.fullName
+                        });
+                        
+                        // Try to extract name from various possible fields
+                        let extractedName = '';
+                        
+                        if (data.name) {
+                            extractedName = data.name;
+                        } else if (data.admin && data.admin.name) {
+                            extractedName = data.admin.name;
+                        } else if (data.firstName || data.first_name) {
+                            extractedName = data.firstName || data.first_name;
+                        } else if (data.fullName || data.full_name) {
+                            extractedName = data.fullName || data.full_name;
+                        } else if (data.admin) {
+                            extractedName = data.admin.firstName || data.admin.first_name || 
+                                          data.admin.fullName || data.admin.full_name || '';
+                        }
+                        
+                        // For development/testing: use a test name if nothing was found
+                        if (!extractedName) {
+                            console.warn('No name found in admin data, using a test name for development');
+                            extractedName = 'محمد احمد'; // 'Muhammad Ahmad'
+                        }
+                        
+                        adminInfo.name = extractedName;
+                        
+                        // Store admin info
+                        localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+                        
+                        // Get role for redirection
+                        const role = adminInfo.role;
+                        
+                        // Redirect to admin.html regardless of role
+                        // Different views will be shown based on role after login
+                        window.location.href = 'admin.html';
+                    })
+                    .catch(error => {
+                        console.error('Login error:', error);
+                        showError('employeeLoginError', 'خطأ في تسجيل الدخول. تأكد من اسم المستخدم وكلمة المرور');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                    });
+                });
+            }
+            
+            // Helper function to show error messages
+            function showError(elementId, message) {
+                const errorElement = document.getElementById(elementId);
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.classList.remove('d-none');
+                    setTimeout(() => {
+                        errorElement.classList.add('d-none');
+                    }, 3000);
+                }
+            }
+            
+            // Password visibility toggle for both forms
+            document.getElementById('togglePassword')?.addEventListener('click', function() {
+                const pwdField = document.getElementById('password');
+                if (pwdField.type === 'password') {
+                    pwdField.type = 'text';
+                    this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                } else {
+                    pwdField.type = 'password';
+                    this.innerHTML = '<i class="fas fa-eye"></i>';
+                }
+            });
+            
+            document.getElementById('toggleOrderCode')?.addEventListener('click', function() {
+                const codeField = document.getElementById('orderCode');
+                if (codeField.type === 'password') {
+                    codeField.type = 'text';
+                    this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                } else {
+                    codeField.type = 'password';
+                    this.innerHTML = '<i class="fas fa-eye"></i>';
+                }
+            });
+        });
     </script>
 </body>
 </html>

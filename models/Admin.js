@@ -17,7 +17,8 @@ const Admin = sequelize.define('Admin', {
     username: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
+        // Remove the unique constraint that's causing the 'Too many keys' error
+        // The uniqueness will be enforced through validation instead
         validate: {
             notEmpty: true
         }

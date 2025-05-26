@@ -65,26 +65,26 @@ function generateInvoice(reportData, invoiceFormData = null) {
                     const laptopInvoiceId = invoiceId + '-' + (index + 1);
                     
                     invoiceItems.push({
+                        invoiceId: invoiceId, // Link to main invoice
                         description: laptop.name + serialInfo,
-                        amount: laptop.price,
+                        amount: parseFloat(laptop.price) || 0,
                         quantity: 1,
-                        totalAmount: laptop.price,
+                        totalAmount: parseFloat(laptop.price) || 0,
                         type: 'laptop',
-                        serialNumber: laptop.serial,
-                        reportId: reportData.id + '-' + (index + 1)
+                        serialNumber: laptop.serial || null
                     });
                 } else {
                     // Multiple laptops - create separate report for each one
                     // Start with the main serial number
                     if (laptop.serial) {
                         invoiceItems.push({
+                            invoiceId: invoiceId, // Link to main invoice
                             description: laptop.name + ` (SN: ${laptop.serial})`,
-                            amount: laptop.price,
+                            amount: parseFloat(laptop.price) || 0,
                             quantity: 1,
-                            totalAmount: laptop.price,
+                            totalAmount: parseFloat(laptop.price) || 0,
                             type: 'laptop',
-                            serialNumber: laptop.serial,
-                            reportId: reportData.id + '-' + (index + 1) + '-1'
+                            serialNumber: laptop.serial || null
                         });
                     }
                     
@@ -93,13 +93,13 @@ function generateInvoice(reportData, invoiceFormData = null) {
                         laptop.additionalSerials.forEach((serial, serialIndex) => {
                             if (serial) {
                                 invoiceItems.push({
+                                    invoiceId: invoiceId, // Link to main invoice
                                     description: laptop.name + ` (SN: ${serial})`,
-                                    amount: laptop.price,
+                                    amount: parseFloat(laptop.price) || 0,
                                     quantity: 1,
-                                    totalAmount: laptop.price,
+                                    totalAmount: parseFloat(laptop.price) || 0,
                                     type: 'laptop',
-                                    serialNumber: serial,
-                                    reportId: reportData.id + '-' + (index + 1) + '-' + (serialIndex + 2)
+                                    serialNumber: serial || null
                                 });
                             }
                         });
@@ -115,11 +115,13 @@ function generateInvoice(reportData, invoiceFormData = null) {
             // Add additional items to invoice items
             invoiceFormData.additionalItems.forEach(item => {
                 invoiceItems.push({
+                    invoiceId: invoiceId, // Link to main invoice
                     description: item.name,
-                    amount: item.price,
-                    quantity: item.quantity,
-                    totalAmount: item.totalPrice,
-                    type: 'item'
+                    amount: parseFloat(item.price) || 0,
+                    quantity: parseInt(item.quantity) || 1,
+                    totalAmount: parseFloat(item.totalPrice) || 0,
+                    type: 'item', // Assuming 'item' is a valid enum, or could be 'service'
+                    serialNumber: item.serialNumber || null // If additional items can have serial numbers
                 });
             });
         }
@@ -154,11 +156,13 @@ function generateInvoice(reportData, invoiceFormData = null) {
             const price = 0;
             
             invoiceItems.push({
+                invoiceId: invoiceId, // Link to main invoice
                 description: reportData.deviceModel + serialInfo,
-                amount: price,
+                amount: parseFloat(price) || 0,
                 quantity: 1,
-                totalAmount: price,
-                type: 'laptop'
+                totalAmount: parseFloat(price) || 0,
+                type: 'laptop',
+                serialNumber: reportData.serialNumber || null
             });
             
             // Add to laptops array
@@ -191,25 +195,26 @@ function generateInvoice(reportData, invoiceFormData = null) {
     
     // Create invoice object
     const invoice = {
-        id: invoiceId,
-        date: invoiceDate.toISOString(),
-        reportId: reportData.id,
-        client_id: reportData.client_id,
-        clientName: reportData.clientName,
-        clientPhone: reportData.clientPhone,
-        orderCode: reportData.orderCode || 'LP' + Math.floor(10000 + Math.random() * 90000),
-        items: invoiceItems,
-        laptops: laptops,
-        additionalItems: additionalItems,
-        subtotal: subtotal,
-        discount: discount,
-        taxRate: taxRate,
-        tax: tax,
-        total: total,
-        paid: paymentStatus === 'paid',
-        partiallyPaid: paymentStatus === 'partial',
-        paymentMethod: paymentMethod,
-        paymentDate: (paymentStatus === 'paid' || paymentStatus === 'partial') ? new Date().toISOString() : null
+        id: invoiceId, // Matches 'invoices.id'
+        client_id: parseInt(reportData.client_id), // Matches 'invoices.client_id', ensure integer
+        date: invoiceDate.toISOString(), // Matches 'invoices.date'
+        subtotal: parseFloat(subtotal.toFixed(2)) || 0,
+        discount: parseFloat(discount.toFixed(2)) || 0,
+        taxRate: parseFloat(taxRate) || 0, // Matches 'invoices.taxRate'
+        tax: parseFloat(tax.toFixed(2)) || 0,
+        total: parseFloat(total.toFixed(2)) || 0,
+        paymentStatus: paymentStatus, // Matches 'invoices.paymentStatus' enum ('unpaid', 'partial', 'paid')
+        paymentMethod: paymentMethod || null, // Matches 'invoices.paymentMethod'
+        paymentDate: (paymentStatus === 'paid' || paymentStatus === 'partial') ? invoiceDate.toISOString() : null, // Matches 'invoices.paymentDate'
+        report_id: reportData.id || null, // Matches 'invoices.report_id'
+        // created_at and updated_at are typically handled by the backend/database
+
+        // The 'items' array will be handled separately when saving, 
+        // as it corresponds to the 'invoice_items' table, not columns in the 'invoices' table.
+        // For the purpose of the object returned by this function, we can include it,
+        // but the API call to save the invoice might need to send 'items' in a specific way
+        // or make separate calls to save invoice items.
+        items: invoiceItems 
     };
     
     // Save the invoice to storage
@@ -246,31 +251,51 @@ async function saveInvoice(invoice) {
         // Try to save to API first
         if (window.apiService && typeof window.apiService.createInvoice === 'function') {
             const apiInvoiceData = {
-                reportId: invoice.reportId,
+                id: invoice.id, // Main invoice ID
                 client_id: invoice.client_id,
+                date: invoice.date, // Invoice date
                 subtotal: invoice.subtotal,
                 discount: invoice.discount || 0,
-                taxRate: invoice.taxRate || 14,
+                taxRate: invoice.taxRate || 0, // Default to 0 if not specified, DB default is 14
                 tax: invoice.tax,
                 total: invoice.total,
-                paymentStatus: invoice.paid ? 'paid' : (invoice.partiallyPaid ? 'partial' : 'unpaid'),
-                paymentMethod: invoice.paymentMethod,
+                paymentStatus: invoice.paymentStatus, // Direct use of the status string
+                paymentMethod: invoice.paymentMethod || null,
+                paymentDate: invoice.paymentDate || null, // Payment date
+                report_id: invoice.report_id || null, // Use report_id
                 items: invoice.items.map(item => ({
+                    invoiceId: item.invoiceId, // Crucial: ID linking item to this invoice
                     description: item.description,
                     type: item.type,
-                    amount: item.amount,
-                    quantity: item.quantity || 1,
-                    totalAmount: item.totalAmount,
-                    serialNumber: item.serialNumber
+                    amount: parseFloat(item.amount) || 0,
+                    quantity: parseInt(item.quantity) || 1,
+                    totalAmount: parseFloat(item.totalAmount) || 0,
+                    serialNumber: item.serialNumber || null
                 }))
             };
             
+            console.log('Attempting to save invoice to API with data:', JSON.stringify(apiInvoiceData, null, 2)); // Log the data being sent
             const savedInvoice = await window.apiService.createInvoice(apiInvoiceData);
             console.log('Invoice saved to API:', savedInvoice);
             return savedInvoice;
         }
     } catch (error) {
-        console.error('Error saving invoice to API:', error);
+        console.error('Detailed error saving invoice to API:');
+        console.error('Error Message:', error.message);
+        if (error.stack) {
+            console.error('Error Stack:', error.stack);
+        }
+        if (error.response) {
+            // If the error object has a 'response' property (common for HTTP errors from libraries like Axios)
+            console.error('Error Response Data:', error.response.data);
+            console.error('Error Response Status:', error.response.status);
+            console.error('Error Response Headers:', error.response.headers);
+        } else {
+            // Log the whole error object if no 'response' property for more clues
+            console.error('Full Error Object:', error);
+        }
+        // Optionally, re-throw the error if you want calling functions to handle it too
+        // throw error;
     }
     
     // Fall back to localStorage if API fails or is not available

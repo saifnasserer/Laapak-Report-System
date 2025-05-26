@@ -26,19 +26,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const formSteps = document.querySelectorAll('.form-step');
     const stepButtons = document.querySelectorAll('.step-button');
     const stepItems = document.querySelectorAll('.step-item');
-    const nextButtons = document.querySelectorAll('.btn-next-step');
-    const prevButtons = document.querySelectorAll('.btn-prev-step');
+    
+    // Centralized navigation buttons
+    const globalNextBtn = document.getElementById('globalNextBtn');
+    const globalPrevBtn = document.getElementById('globalPrevBtn');
+    const submitBtn = document.getElementById('submitReportBtn');
     const progressBar = document.querySelector('.steps-progress-bar');
     
-    let     currentStep = 0;
+    let currentStep = 0;
     
     // Initialize form
     showStep(currentStep);
     updateProgressBar();
     
-    // Event listeners for next/prev buttons
-    nextButtons.forEach(button => {
-        button.addEventListener('click', function() {
+    // Event listener for centralized next button
+    if (globalNextBtn) {
+        globalNextBtn.addEventListener('click', function() {
             // Hide all step errors before validation
             if (typeof hideAllStepErrors === 'function') {
                 hideAllStepErrors();
@@ -191,15 +194,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-    });
+    }
     
-    prevButtons.forEach(button => {
-        button.addEventListener('click', () => {
+    // Event listener for previous button
+    if (globalPrevBtn) {
+        globalPrevBtn.addEventListener('click', function() {
             currentStep--;
             showStep(currentStep);
             updateProgressBar();
         });
-    });
+    }
     
     // Allow clicking directly on step indicators (if previous steps are complete)
     stepButtons.forEach((button, index) => {
@@ -214,47 +218,77 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show specific step and update indicators
     function showStep(stepIndex) {
-        // Hide all steps
-        formSteps.forEach(step => {
+        // Hide all form steps
+        formSteps.forEach((step, index) => {
             step.style.display = 'none';
         });
         
-        // Show current step
-        formSteps[stepIndex].style.display = 'block';
+        // Show the current step
+        if (formSteps[stepIndex]) {
+            formSteps[stepIndex].style.display = 'block';
+            
+            // Scroll to the top of the step
+            formSteps[stepIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         
+        // Add console logging for debugging
+        console.log(`[form-steps] showStep called. currentStep (stepIndex): ${stepIndex}, formSteps.length: ${formSteps.length}`);
+        if(submitBtn) {
+            console.log(`[form-steps] submitBtn found. Initial display style: ${submitBtn.style.display}`);
+        }
+        if(globalNextBtn) {
+            console.log(`[form-steps] globalNextBtn found. Initial display style: ${globalNextBtn.style.display}`);
+        }
+
         // Update step indicators
-        stepItems.forEach((item, idx) => {
-            if (idx < stepIndex) {
-                // Completed steps
-                item.classList.remove('active');
+        stepItems.forEach((item, index) => {
+            // Reset all steps
+            item.classList.remove('active', 'completed');
+            const button = item.querySelector('.step-button');
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-outline-primary');
+            
+            // Mark current and previous steps
+            if (index < stepIndex) {
+                // Previous steps: completed
                 item.classList.add('completed');
-                item.querySelector('.step-button').classList.remove('btn-outline-primary', 'btn-primary');
-                item.querySelector('.step-button').classList.add('btn-success');
-                // Add check icon
-                item.querySelector('.step-button').innerHTML = '<i class="fas fa-check"></i>';
-            } else if (idx === stepIndex) {
-                // Current step
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-primary');
+            } else if (index === stepIndex) {
+                // Current step: active
                 item.classList.add('active');
-                item.classList.remove('completed');
-                item.querySelector('.step-button').classList.remove('btn-outline-primary', 'btn-success');
-                item.querySelector('.step-button').classList.add('btn-primary');
-                // Restore step number
-                item.querySelector('.step-button').textContent = idx + 1;
-            } else {
-                // Future steps
-                item.classList.remove('active', 'completed');
-                item.querySelector('.step-button').classList.remove('btn-primary', 'btn-success');
-                item.querySelector('.step-button').classList.add('btn-outline-primary');
-                // Restore step number
-                item.querySelector('.step-button').textContent = idx + 1;
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-primary');
             }
         });
         
-        // Show/hide prev button based on step
-        if (stepIndex === 0) {
-            document.querySelectorAll('.btn-prev-step').forEach(btn => btn.style.display = 'none');
+        // Update centralized navigation buttons
+        if (globalPrevBtn) {
+            globalPrevBtn.style.display = stepIndex === 0 ? 'none' : 'inline-block';
+        }
+        
+        // Debug formSteps length and current step index
+        console.log(`[DEBUG] formSteps.length: ${formSteps.length}, stepIndex: ${stepIndex}, Last step index: ${formSteps.length - 1}`);
+        
+        // Handle the last step for Submit button - Step 5 has index 4 (zero-based)
+        if (stepIndex === 4) { // Explicitly check for step 5 (index 4)
+            if (globalNextBtn) {
+                globalNextBtn.style.display = 'none';
+                console.log(`[form-steps] Hiding globalNextBtn for last step (${stepIndex})`);
+            }
+            if (submitBtn) {
+                submitBtn.classList.remove('d-none');
+                console.log(`[form-steps] Showing submitBtn for last step (${stepIndex})`);
+            }
         } else {
-            document.querySelectorAll('.btn-prev-step').forEach(btn => btn.style.display = 'inline-block');
+            if (globalNextBtn) {
+                globalNextBtn.style.display = 'inline-block';
+                console.log(`[form-steps] Showing globalNextBtn for step ${stepIndex}`);
+            }
+            if (submitBtn) {
+                submitBtn.classList.add('d-none');
+                console.log(`[form-steps] Hiding submitBtn for step ${stepIndex}`);
+            }
         }
         
         // Change next button text on last step
@@ -453,47 +487,51 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedComponents.join('، ')}`);
         }
         
-        // Check component images
-        const componentImageInputs = stepEl.querySelectorAll('.component-image-upload');
-        const missingImages = [];
+        // Check test screenshots (now using URLs instead of file uploads)
+        // We'll make this a warning rather than an error, as it's not strictly required
+        const components = ['cpu', 'gpu', 'hdd', 'battery'];
+        const missingScreenshots = [];
         
-        componentImageInputs.forEach(input => {
-            const componentName = input.getAttribute('data-component-name');
-            const isRequired = input.hasAttribute('required');
-            
-            // Check if input has files or if there's a preview image already
-            const hasFiles = input.files && input.files.length > 0;
-            const previewContainer = input.closest('.component-container').querySelector('.image-preview');
-            const hasPreview = previewContainer && previewContainer.querySelector('img');
-            
-            if (isRequired && !hasFiles && !hasPreview) {
-                missingImages.push(componentName || 'مكون');
-                isValid = false;
-                
-                // Highlight the component image container
-                const container = input.closest('.component-container');
-                if (container) {
-                    container.classList.add('border-danger');
+        components.forEach(component => {
+            const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
+            if (previewContainer) {
+                const hasScreenshots = previewContainer.querySelectorAll('.card[data-url]').length > 0;
+                if (!hasScreenshots) {
+                    // Get component display name
+                    let componentName = component;
+                    switch(component) {
+                        case 'cpu': componentName = 'المعالج'; break;
+                        case 'gpu': componentName = 'كرت الشاشة'; break;
+                        case 'hdd': componentName = 'القرص الصلب'; break;
+                        case 'battery': componentName = 'البطارية'; break;
+                    }
+                    missingScreenshots.push(componentName);
                     
-                    // Remove highlight when an image is selected
-                    input.addEventListener('change', function() {
-                        if (this.files && this.files.length > 0) {
-                            container.classList.remove('border-danger');
-                        }
-                    }, { once: true });
+                    // Highlight the input field
+                    const input = document.getElementById(`${component}ScreenshotUrl`);
+                    if (input) {
+                        input.classList.add('border-warning');
+                        
+                        // Remove highlight when a URL is entered
+                        input.addEventListener('input', function() {
+                            this.classList.remove('border-warning');
+                        }, { once: true });
+                    }
                 }
             }
         });
         
-        if (missingImages.length > 0) {
-            errorMessages.push(`الرجاء إضافة صور للمكونات التالية: ${missingImages.join('، ')}`);
-            
-            // Show specific error in step2 error container
-            const stepErrorContainer = document.getElementById('step2ErrorContainer');
-            const stepErrorText = document.getElementById('step2ErrorText');
-            if (stepErrorContainer && stepErrorText) {
-                stepErrorText.textContent = `يجب إضافة صور للمكونات المطلوبة قبل المتابعة`;
-                stepErrorContainer.style.display = 'block';
+        if (missingScreenshots.length > 0) {
+            // Show warning in step2 warning container
+            const stepWarningContainer = document.getElementById('step2WarningContainer');
+            if (stepWarningContainer) {
+                stepWarningContainer.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>لم تقم بإضافة صور لنتائج الاختبارات التالية: ${missingScreenshots.join('، ')}. يُفضل إضافة صور لتوثيق نتائج الاختبارات.</div>`;
+                stepWarningContainer.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    stepWarningContainer.style.display = 'none';
+                }, 5000);
             }
         }
         
@@ -551,6 +589,24 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (unselectedConditions.length > 0) {
             errorMessages.push(`الرجاء تحديد ${unselectedConditions.join('، ')}`);
+        }
+        
+        // Check if at least one image URL has been added
+        const imageUrlBadges = document.querySelectorAll('#imageUrlBadges .badge');
+        if (imageUrlBadges.length === 0) {
+            // Not making this a hard requirement, just a warning
+            const warningContainer = document.getElementById('step3WarningContainer') || 
+                                     document.querySelector('.step-warning-container');
+            
+            if (warningContainer) {
+                warningContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>لم تقم بإضافة أي صور للفحص الخارجي. يُفضل إضافة صور لتوثيق حالة الجهاز.</div>';
+                warningContainer.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    warningContainer.style.display = 'none';
+                }, 5000);
+            }
         }
         
         return isValid;
@@ -697,9 +753,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentApiService = formApiService;
                 try {
                     // Show loading indicator
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
+                    const submitBtn = this.querySelector('#submitReportBtn'); // Use specific ID
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإنشاء...';
+                    }
                     
                     // Collect form data
                     const reportData = collectReportData();
@@ -789,10 +847,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('API Service available:', !!currentApiService);
                     console.log('createReport function available:', typeof currentApiService?.createReport === 'function');
                     
-                    if (currentApiService && typeof currentApiService.createReport === 'function') {
+                    if (currentApiService && typeof currentApiService.createNewReport === 'function') {
                         try {
-                            console.log('Making API call to create report with data:', JSON.stringify(reportData, null, 2));
-                            savedReport = await currentApiService.createReport(reportData);
+                            console.log('Making API call to create report with data using dedicated endpoint:', JSON.stringify(reportData, null, 2));
+                            savedReport = await currentApiService.createNewReport(reportData);
                             console.log('Report saved to API successfully:', savedReport);
                         } catch (apiError) {
                             console.error('Error saving report to API:', apiError);
@@ -857,65 +915,86 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (!client_id) {
                                 console.warn('No client ID available for invoice creation - skipping invoice');
                             } else {
-                                // Get values from the invoice form fields
-                                const deviceName = document.getElementById('invoiceDeviceName')?.value || window.globalDeviceDetails?.deviceModel || savedReport.deviceModel || '';
-                                const serialNumber = document.getElementById('invoiceSerialNumber')?.value || window.globalDeviceDetails?.serialNumber || savedReport.serialNumber || '';
-                                const price = parseFloat(document.getElementById('invoicePrice')?.value || '250');
-                                const taxRate = parseFloat(document.getElementById('taxRate')?.value || '14');
-                                const discount = parseFloat(document.getElementById('discount')?.value || '0');
-                                
-                                // Calculate totals
-                                const subtotal = price;
-                                const tax = (subtotal * taxRate) / 100; // Convert tax rate from percentage to decimal
-                                const total = subtotal + tax - discount;
-                                
-                                console.log('Invoice details:', { deviceName, serialNumber, price, taxRate, discount, subtotal, tax, total });
-                                
-                                // Create basic invoice data with all required fields
-                                const invoiceData = {
-                                    reportId: savedReport.id,
-                                    client_id: client_id,
-                                    subtotal: subtotal,
-                                    tax: tax,
-                                    taxRate: taxRate,
-                                    discount: discount,
-                                    total: total,
-                                    paymentStatus: 'unpaid',
-                                    items: []
+                                // 1. Collect form details for invoice generation
+                                const deviceName = document.getElementById('invoiceDeviceName')?.value || window.globalDeviceDetails?.deviceModel || (savedReport && savedReport.deviceModel) || '';
+                                const serialNumber = document.getElementById('invoiceSerialNumber')?.value || window.globalDeviceDetails?.serialNumber || (savedReport && savedReport.serialNumber) || '';
+                                const price = parseFloat(document.getElementById('invoicePrice')?.value || '0'); // Default to 0, as price might not always be applicable (e.g. warranty)
+                                const formTaxRate = parseFloat(document.getElementById('taxRate')?.value || '0'); // Default to 0% if not found in form
+                                const formDiscount = parseFloat(document.getElementById('discount')?.value || '0');
+                                const formNotes = document.getElementById('invoiceNotes')?.value || ''; // Assuming an ID 'invoiceNotes' for notes field
+
+                                const invoiceFormDetails = {
+                                    laptops: [],
+                                    additionalItems: [], // Populate this if form-steps.js has a section for additional items
+                                    paymentStatus: 'unpaid', // Default, can be overridden by form if a field exists
+                                    paymentMethod: null,     // Default, can be overridden by form
+                                    taxRate: formTaxRate,
+                                    discount: formDiscount,
+                                    notes: formNotes
                                 };
-                                
-                                // Log the exact data being sent to the API
-                                console.log('Invoice data being sent to API:', JSON.stringify(invoiceData, null, 2));
-                                
-                                // Add device as an item
-                                if (deviceName) {
-                                    invoiceData.items.push({
-                                        description: deviceName + (serialNumber ? ` (SN: ${serialNumber})` : ''),
-                                        type: 'laptop',
-                                        amount: price,
-                                        quantity: 1,
-                                        totalAmount: price,
-                                        serialNumber: serialNumber
+
+                                if (deviceName || price > 0) { // Only add as a laptop item if there's a device name or a price
+                                    invoiceFormDetails.laptops.push({
+                                        name: deviceName,
+                                        serial: serialNumber,
+                                        price: price,
+                                        quantity: 1 // Assuming quantity 1 for the main device from this form
                                     });
                                 }
-                                
-                                // Try to save invoice to API but don't block on failure
+
+                                // 2. Generate the complete invoice object using window.generateInvoice (from invoice-generator.js)
+                                let completeInvoiceData;
+                                if (typeof window.generateInvoice === 'function') {
+                                    completeInvoiceData = window.generateInvoice(savedReport, invoiceFormDetails);
+                                    console.log('Complete invoice data generated by invoiceGenerator.js:', JSON.stringify(completeInvoiceData, null, 2));
+                                } else {
+                                    console.error('window.generateInvoice function is not available. Cannot create detailed invoice data.');
+                                    // Set to null or an empty object to prevent sending malformed data, or throw an error
+                                    completeInvoiceData = null; 
+                                }
+
+                                // 3. Try to save the complete invoice data to API with improved error handling
                                 try {
-                                    // Use the apiService reference defined at the top of the file
-                                    if (currentApiService && typeof currentApiService.createInvoice === 'function') {
-                                        invoice = await currentApiService.createInvoice(invoiceData);
-                                        console.log('Invoice saved to API:', invoice);
+                                    // Check for API availability and data completeness
+                                    if (currentApiService && typeof currentApiService.createInvoice === 'function' && completeInvoiceData) {
+                                        try {
+                                            // Attempt to create invoice via API with a shorter timeout
+                                            const invoicePromise = currentApiService.createInvoice(completeInvoiceData);
+                                            // Create a timeout promise to abort if it takes too long
+                                            const timeoutPromise = new Promise((_, reject) => {
+                                                setTimeout(() => reject(new Error('Invoice API timeout')), 3000); // 3 second timeout
+                                            });
+                                            
+                                            // Race the two promises
+                                            invoice = await Promise.race([invoicePromise, timeoutPromise]);
+                                            console.log('Invoice saved to API:', invoice);
+                                        } catch (connectionError) {
+                                            // Handle connection errors separately
+                                            console.warn('Connection error with invoice API, skipping to local fallback:', connectionError);
+                                            throw new Error('Connection refused to invoice API');
+                                        }
                                     } else {
-                                        console.warn('API service not available for invoice creation');
-                                        invoice = generateInvoice(savedReport);
+                                        if (!completeInvoiceData) {
+                                            console.warn('Invoice data could not be generated. Skipping API call.');
+                                        } else {
+                                            console.warn('API service not available for invoice creation. Using local generation.');
+                                        }
+                                        throw new Error('API service or invoice data unavailable');
                                     }
                                 } catch (apiError) {
-                                    console.warn('Invoice creation failed but continuing with report creation:', apiError);
-                                    // Generate a local invoice as fallback
+                                    // Any error here means we need to use the fallback
+                                    console.warn('Using local invoice generation:', apiError);
                                     try {
-                                        invoice = generateInvoice(savedReport);
+                                        if (typeof window.generateInvoice === 'function') {
+                                            invoice = window.generateInvoice(savedReport, invoiceFormDetails); // Use the same detailed generator
+                                            console.log('Fallback local invoice generated (API error):', invoice);
+                                        } else {
+                                            console.error('Fallback invoice generation also not possible as window.generateInvoice is missing.');
+                                            invoice = null;
+                                        }
                                     } catch (fallbackError) {
                                         console.error('Even fallback invoice generation failed:', fallbackError);
+                                        invoice = null;
                                     }
                                 }
                             }
@@ -925,6 +1004,37 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } else {
                         console.log('Billing not enabled - skipping invoice creation');
+                    }
+                    
+                    // Clear all validation errors before showing success
+                    // Hide all step error containers
+                    if (typeof hideAllStepErrors === 'function') {
+                        hideAllStepErrors();
+                    } else {
+                        // Fallback implementation
+                        for (let i = 1; i <= 5; i++) {
+                            const stepErrorContainer = document.getElementById(`step${i}ErrorContainer`);
+                            if (stepErrorContainer) {
+                                stepErrorContainer.style.display = 'none';
+                            }
+                        }
+                    }
+                    
+                    // Hide any form validation markings
+                    const invalidFields = document.querySelectorAll('.is-invalid');
+                    invalidFields.forEach(field => {
+                        field.classList.remove('is-invalid');
+                        // Remove any invalid-feedback elements next to this field
+                        const feedback = field.nextElementSibling;
+                        if (feedback && feedback.classList.contains('invalid-feedback')) {
+                            feedback.textContent = '';
+                        }
+                    });
+                    
+                    // Hide any general form alert
+                    const reportFormAlert = document.getElementById('reportFormAlert');
+                    if (reportFormAlert) {
+                        reportFormAlert.style.display = 'none';
                     }
                     
                     // Update success modal with report and invoice info
@@ -944,9 +1054,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('حدث خطأ أثناء إنشاء التقرير. الرجاء المحاولة مرة أخرى.');
                     
                     // Re-enable submit button
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'إنشاء التقرير';
+                    const submitBtn = this.querySelector('#submitReportBtn'); // Use specific ID
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'إنشاء التقرير';
+                    }
                 }
             } else {
                 console.error('collectReportData function not found. Make sure create-report.js is loaded before form-steps.js');

@@ -12,6 +12,29 @@ const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 const { Op } = require('sequelize');
 
+// @route   GET api/clients/count
+// @desc    Get count of clients
+// @access  Private (Admin and client)
+router.get('/count', auth, async (req, res) => {
+    try {
+        const { status } = req.query;
+        
+        let whereClause = {};
+        
+        // If status filter is provided
+        if (status) {
+            whereClause.status = status;
+        }
+        
+        const count = await Client.count({ where: whereClause });
+        
+        res.json({ count });
+    } catch (error) {
+        console.error('Error counting clients:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
 // @route   GET api/clients
 // @desc    Get all clients
 // @access  Private (Admin only)

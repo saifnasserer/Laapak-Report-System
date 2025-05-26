@@ -24,7 +24,11 @@ class ApiService {
         }
         
         console.log('API Service initialized with baseUrl:', this.baseUrl);
-        this.authToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        // Prioritize clientToken if available, otherwise fallback to adminToken
+        this.authToken = localStorage.getItem('clientToken') || 
+                         sessionStorage.getItem('clientToken') || 
+                         localStorage.getItem('adminToken') || 
+                         sessionStorage.getItem('adminToken');
     }
     
     /**
@@ -64,11 +68,15 @@ class ApiService {
     }
 
     // Generic API request method
-    async request(endpoint, method = 'GET', data = null) {
+    async request(endpoint, method = 'GET', data = null, customHeaders = null) {
         const url = `${this.baseUrl}${endpoint}`;
         const options = {
             method,
-            headers: this.getAuthHeaders()
+            headers: {
+                ...this.getAuthHeaders(),
+                // Add any custom headers passed to the method
+                ...(customHeaders || {})
+            }
         };
 
         if (data && (method === 'POST' || method === 'PUT')) {
@@ -132,6 +140,26 @@ class ApiService {
         }
     }
     
+    // Invoice methods
+    async getInvoice(invoiceId, token = null) {
+        // Allow passing a specific token, otherwise use the default
+        const customHeaders = token ? { 'Authorization': `Bearer ${token}` } : null;
+        
+        try {
+            // First try to get the invoice directly
+            return await this.request(`/api/invoices/${invoiceId}`, 'GET', null, customHeaders);
+        } catch (error) {
+            // If direct access fails, try the client-accessible endpoint
+            try {
+                console.log('Trying client-accessible invoice endpoint...');
+                return await this.request(`/api/client/invoices/${invoiceId}`, 'GET', null, customHeaders);
+            } catch (secondError) {
+                console.error('Both invoice endpoints failed:', secondError);
+                throw secondError;
+            }
+        }
+    }
+    
     // Client management methods
     async getClients(filters = {}) {
         let queryParams = '';
@@ -157,6 +185,12 @@ class ApiService {
     
     async deleteClient(client_id) {
         return this.request(`/api/clients/${client_id}`, 'DELETE');
+    }
+
+    // Invoice Management API Methods
+    async saveInvoice(invoiceData) {
+        console.log('ApiService: Attempting to save invoice with payload:', invoiceData);
+        return this.request('/api/invoices', 'POST', invoiceData);
     }
 
     // User Management API Methods
@@ -215,7 +249,7 @@ class ApiService {
         // Build query string from filters
         const queryParams = new URLSearchParams();
         for (const key in filters) {
-            if (filters[key]) {
+            if (filters.hasOwnProperty(key) && filters[key] !== undefined && filters[key] !== null) {
                 queryParams.append(key, filters[key]);
             }
         }
@@ -259,80 +293,63 @@ class ApiService {
         return this.request(`/api/reports/${id}`);
     }
     
-    async createReport(reportData) {
-        console.log('Creating report with data:', reportData);
+    async updateReport(reportId, updateData) {
         try {
-            // Parse client_id to ensure it's a valid number
-            let client_id;
-            try {
-                client_id = parseInt(reportData.client_id || reportData.client_id || '0', 10);
-                if (isNaN(client_id) || client_id <= 0) {
-                    throw new Error('Client ID must be a valid positive number');
-                }
-            } catch (e) {
-                console.error('Error parsing client_id:', e);
-                throw new Error('Client ID must be a valid number');
+            console.log(`Updating report ${reportId} with data:`, updateData);
+            
+            // Ensure we have a valid report ID
+            if (!reportId) {
+                throw new Error('Report ID is required for update');
             }
             
-            // Format hardware_status as a JSON string if it's not already
-            let hardwareStatus;
-            try {
-                if (typeof reportData.hardware_status === 'string') {
-                    // Keep it as is if it's already a string
-                    hardwareStatus = reportData.hardware_status;
-                } else if (Array.isArray(reportData.hardware_status)) {
-                    hardwareStatus = JSON.stringify(reportData.hardware_status);
-                } else if (reportData.hardwareStatus) {
-                    if (typeof reportData.hardwareStatus === 'string') {
-                        hardwareStatus = reportData.hardwareStatus;
-                    } else {
-                        hardwareStatus = JSON.stringify(reportData.hardwareStatus);
-                    }
-                } else {
-                    hardwareStatus = '[]';
-                }
-            } catch (e) {
-                console.error('Error formatting hardware_status:', e);
-                hardwareStatus = '[]';
+            // Prepare request data
+            let requestData = { ...updateData };
+            
+            // If hardware_status is an object, stringify it
+            if (typeof requestData.hardware_status === 'object') {
+                requestData.hardware_status = JSON.stringify(requestData.hardware_status);
             }
             
-            // Format external_images as a JSON string if it's not already
-            let externalImages = null;
-            try {
-                if (typeof reportData.external_images === 'string' && reportData.external_images) {
-                    externalImages = reportData.external_images;
-                } else if (Array.isArray(reportData.external_images)) {
-                    externalImages = JSON.stringify(reportData.external_images);
-                } else if (reportData.externalImages) {
-                    if (typeof reportData.externalImages === 'string' && reportData.externalImages) {
-                        externalImages = reportData.externalImages;
-                    } else {
-                        externalImages = JSON.stringify(reportData.externalImages);
-                    }
-                }
-            } catch (e) {
-                console.error('Error formatting external_images:', e);
-                externalImages = null;
+            // If external_images is an object, stringify it
+            if (typeof requestData.external_images === 'object') {
+                requestData.external_images = JSON.stringify(requestData.external_images);
             }
             
+            // Make the API request
+            return this.request(`/api/reports/${reportId}`, 'PUT', requestData);
+        } catch (error) {
+            console.error('Error updating report:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Create a new report - Used by create-report.html
+     * This is a dedicated endpoint for the create-report page
+     * @param {Object} reportData - Report data to create
+     * @returns {Promise<Object>} Created report
+     */
+    async createNewReport(reportData) {
+        try {
+            console.log('Using dedicated createNewReport method for create-report.html');
             // Generate a report ID if not provided
-            const reportId = reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000));
+            let reportId = reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000));
             
             // Generate a title for the report if not provided
-            const title = reportData.title || 
+            let title = reportData.title || 
                           `Report for ${reportData.device_model || reportData.deviceModel || ''} - ${reportData.client_name || reportData.clientName || 'Client'}`;
             
             // Create a report object that includes both the fields expected by the route handler
             // and the fields that match the database schema
-            const reportObject = {
+            let reportObject = {
                 // Fields required by the route handler
-                client_id: client_id,
+                clientId: reportData.client_id || reportData.clientId,
                 title: title,
                 description: reportData.notes || '',
                 
                 // Database schema fields
                 id: reportId,
-                client_id: client_id,
+                client_id: reportData.client_id || reportData.clientId,
                 client_name: reportData.client_name || reportData.clientName || '',
                 client_phone: reportData.client_phone || reportData.clientPhone || '',
                 client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
@@ -343,8 +360,100 @@ class ApiService {
                 inspection_date: reportData.inspection_date instanceof Date ? 
                     reportData.inspection_date.toISOString() : 
                     new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),
-                hardware_status: hardwareStatus,
-                external_images: externalImages,
+                hardware_status: reportData.hardware_status || '[]',
+                external_images: reportData.external_images || '[]',
+                notes: reportData.notes || '',
+                billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
+                amount: Number(reportData.amount || 0),
+                status: reportData.status || 'active'
+            };
+            
+            // Make a direct fetch request using the standard reports endpoint
+            const url = `${this.baseUrl}/api/reports`;
+            let options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add auth token if available
+                    ...this.getAuthHeaders(),
+                },
+                body: JSON.stringify(reportObject) // Add the request body
+            };
+            
+            console.log(`Direct API Request to dedicated endpoint: POST ${url}`);
+            console.log('Report data being sent:', reportObject);
+            
+            const response = await fetch(url, options);
+            console.log(`API Response status: ${response.status}`);
+            
+            // Handle the response
+            if (!response.ok) {
+                let errorMessage = `API request failed with status ${response.status}`;
+                try {
+                    let errorData = await response.json();
+                    console.error('Server error details:', errorData);
+                    if (errorData.details) {
+                        errorMessage = `${errorData.error || 'Error'}: ${errorData.details}`;
+                    } else {
+                        errorMessage = errorData.message || errorData.error || errorMessage;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse error response:', e);
+                }
+                throw new Error(errorMessage);
+            }
+            
+            const result = await response.json();
+            console.log('New report created successfully through dedicated endpoint:', result);
+            return result;
+        } catch (error) {
+            console.error('Error creating new report:', error);
+            // Provide a more user-friendly error message
+            if (error.message.includes('database')) {
+                throw new Error('Failed to save report to database. Please check database connection.');
+            }
+            throw error;
+        }
+    }
+    
+    /**
+     * Legacy create report method - maintained for backwards compatibility
+     * @param {Object} reportData - Report data to create
+     * @returns {Promise<Object>} Created report
+     */
+    async createReport(reportData) {
+        console.log('Using legacy createReport method - consider updating to createNewReport');
+        try {
+            // Generate a report ID if not provided
+            let reportId = reportData.id || ('RPT' + Date.now() + Math.floor(Math.random() * 1000));
+            
+            // Generate a title for the report if not provided
+            let title = reportData.title || 
+                          `Report for ${reportData.device_model || reportData.deviceModel || ''} - ${reportData.client_name || reportData.clientName || 'Client'}`;
+            
+            // Create a report object that includes both the fields expected by the route handler
+            // and the fields that match the database schema
+            let reportObject = {
+                // Fields required by the route handler
+                clientId: reportData.client_id || reportData.clientId,
+                title: title,
+                description: reportData.notes || '',
+                
+                // Database schema fields
+                id: reportId,
+                client_id: reportData.client_id || reportData.clientId,
+                client_name: reportData.client_name || reportData.clientName || '',
+                client_phone: reportData.client_phone || reportData.clientPhone || '',
+                client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
+                client_address: reportData.client_address || reportData.clientAddress || '',
+                order_number: reportData.order_number || reportData.orderNumber || '',
+                device_model: reportData.device_model || reportData.deviceModel || '',
+                serial_number: reportData.serial_number || reportData.serialNumber || '',
+                inspection_date: reportData.inspection_date instanceof Date ? 
+                    reportData.inspection_date.toISOString() : 
+                    new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),
+                hardware_status: reportData.hardware_status || '[]',
+                external_images: reportData.external_images || '[]',
                 notes: reportData.notes || '',
                 billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
                 amount: Number(reportData.amount || reportData.devicePrice || 0),
@@ -353,12 +462,15 @@ class ApiService {
             
             // Make a direct fetch request
             const url = `${this.baseUrl}/api/reports`;
-            const options = {
+            let options = {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    // Add auth token if available
+                    ...this.getAuthHeaders(),
+                    // Add any custom headers passed to the method
                 },
-                body: JSON.stringify(reportObject)
+                body: JSON.stringify(reportObject) // Add the request body
             };
             
             console.log(`Direct API Request: POST ${url}`);
@@ -371,7 +483,7 @@ class ApiService {
             if (!response.ok) {
                 let errorMessage = `API request failed with status ${response.status}`;
                 try {
-                    const errorData = await response.json();
+                    let errorData = await response.json();
                     console.error('Server error details:', errorData);
                     if (errorData.details) {
                         errorMessage = `${errorData.error || 'Error'}: ${errorData.details}`;
@@ -397,9 +509,7 @@ class ApiService {
         }
     }
     
-    async updateReport(id, reportData) {
-        return this.request(`/api/reports/${id}`, 'PUT', reportData);
-    }
+    // This method is now implemented above with more comprehensive functionality
     
     async deleteReport(id) {
         return this.request(`/api/reports/${id}`, 'DELETE');
@@ -407,93 +517,213 @@ class ApiService {
     
     // Invoice API Methods
     async getInvoices(filters = {}) {
-        let queryParams = '';
-        if (Object.keys(filters).length > 0) {
-            queryParams = '?' + Object.entries(filters)
-                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                .join('&');
+        try {
+            let queryParams = '';
+            if (filters && Object.keys(filters).length > 0) {
+                queryParams = '?' + new URLSearchParams(filters).toString();
+            }
+            return this.request(`/api/invoices${queryParams}`);
+        } catch (error) {
+            console.error('Error fetching invoices:', error);
+            
+            // Fall back to localStorage if API fails
+            const storedInvoices = localStorage.getItem('lpk_invoices');
+            if (storedInvoices) {
+                let invoices = JSON.parse(storedInvoices);
+                
+                // Apply filters if any
+                if (filters) {
+                    if (filters.client_id) {
+                        invoices = invoices.filter(invoice => invoice.client_id.toString() === filters.client_id.toString());
+                    }
+                    if (filters.paymentStatus) {
+                        invoices = invoices.filter(invoice => invoice.paymentStatus === filters.paymentStatus);
+                    }
+                    if (filters.dateFrom) {
+                        const dateFrom = new Date(filters.dateFrom);
+                        invoices = invoices.filter(invoice => new Date(invoice.date) >= dateFrom);
+                    }
+                    if (filters.dateTo) {
+                        const dateTo = new Date(filters.dateTo);
+                        dateTo.setHours(23, 59, 59, 999); // End of day
+                        invoices = invoices.filter(invoice => new Date(invoice.date) <= dateTo);
+                    }
+                }
+                
+                return invoices;
+            }
+            throw error;
         }
-        return this.request(`/api/invoices${queryParams}`);
     }
     
-    async getInvoice(id) {
-        return this.request(`/api/invoices/${id}`);
+    async getInvoice(id, adminToken = null) {
+        try {
+            // Prepare custom headers for this request
+            let headers = {};
+            
+            // First, use the provided adminToken if available
+            if (adminToken) {
+                headers['x-auth-token'] = adminToken;
+            } 
+            // Fallback to class auth token (typically client token)
+            else if (this.authToken) {
+                headers['x-auth-token'] = this.authToken;
+            }
+            // Final fallback - try to get admin token directly from storage
+            else {
+                const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+                if (token) {
+                    headers['x-auth-token'] = token;
+                }
+            }
+            
+            return this.request(`/api/invoices/${id}`, 'GET', null, headers);
+        } catch (error) {
+            console.error(`Error fetching invoice ${id}:`, error);
+            
+            // Fall back to localStorage if API fails
+            const storedInvoices = localStorage.getItem('lpk_invoices');
+            if (storedInvoices) {
+                const invoices = JSON.parse(storedInvoices);
+                const invoice = invoices.find(inv => inv.id === id);
+                if (invoice) {
+                    return invoice;
+                }
+            }
+            throw error;
+        }
+    }
+    
+    async updateInvoice(id, invoiceData) {
+        try {
+            // Format data for API
+            const formattedData = {
+                title: invoiceData.title || '',
+                date: invoiceData.date || new Date().toISOString(),
+                client_id: invoiceData.client_id,
+                subtotal: parseFloat(invoiceData.subtotal) || 0,
+                discount: parseFloat(invoiceData.discount) || 0,
+                taxRate: parseFloat(invoiceData.taxRate) || 0,
+                tax: parseFloat(invoiceData.tax) || 0,
+                total: parseFloat(invoiceData.total) || 0,
+                paymentStatus: invoiceData.paymentStatus || 'unpaid',
+                paymentMethod: invoiceData.paymentMethod || 'cash',
+                notes: invoiceData.notes || '',
+                items: invoiceData.items.map(item => ({
+                    description: item.description || '',
+                    type: item.type || 'service',
+                    quantity: parseInt(item.quantity) || 1,
+                    amount: parseFloat(item.unitPrice) || 0,
+                    totalAmount: parseFloat(item.total) || 0
+                }))
+            };
+            
+            return this.request(`/api/invoices/${id}`, 'PUT', formattedData);
+        } catch (error) {
+            console.error(`Error updating invoice ${id}:`, error);
+            
+            // Fall back to localStorage if API fails
+            const storedInvoices = localStorage.getItem('lpk_invoices');
+            if (storedInvoices) {
+                let invoices = JSON.parse(storedInvoices);
+                const index = invoices.findIndex(inv => inv.id === id);
+                
+                if (index !== -1) {
+                    // Update the invoice
+                    invoices[index] = {
+                        ...invoices[index],
+                        ...invoiceData,
+                        updated_at: new Date().toISOString()
+                    };
+                    
+                    // Save back to localStorage
+                    localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
+                    return invoices[index];
+                }
+            }
+            throw error;
+        }
     }
     
     async createInvoice(invoiceData) {
         console.log('Creating invoice with data:', invoiceData);
         try {
-            // Ensure we have at least one item in the items array
-            let items = [];
-            
-            // If items array exists and has items, use it
-            if (Array.isArray(invoiceData.items) && invoiceData.items.length > 0) {
-                items = invoiceData.items.map(item => ({
-                    description: item.description || '',
-                    quantity: Number(item.quantity || 1),
-                    unit_price: Number(item.unit_price || item.amount || 0),
-                    total: Number(item.total || item.totalAmount || (item.unit_price * item.quantity) || 0)
-                }));
-            } 
-            // If no items but we have device information, create an item from it
-            else if (invoiceData.deviceModel || invoiceData.device_model || invoiceData.serialNumber || invoiceData.serial_number) {
-                const deviceName = invoiceData.deviceModel || invoiceData.device_model || 'Device';
-                const serialNumber = invoiceData.serialNumber || invoiceData.serial_number || '';
-                const price = Number(invoiceData.subtotal || invoiceData.amount || 0);
-                
-                items.push({
-                    description: deviceName + (serialNumber ? ` (SN: ${serialNumber})` : ''),
-                    quantity: 1,
-                    unit_price: price,
-                    total: price
-                });
+            console.log('ApiService.createInvoice received data:', JSON.stringify(invoiceData, null, 2));
+
+            // --- Essential Validations ---
+            if (!invoiceData) {
+                throw new Error('Invoice data is undefined or null.');
             }
-            // Default fallback item if nothing else is available
-            else {
-                items.push({
-                    description: 'Service Fee',
-                    quantity: 1,
-                    unit_price: Number(invoiceData.subtotal || invoiceData.amount || 0),
-                    total: Number(invoiceData.total || invoiceData.subtotal || invoiceData.amount || 0)
-                });
+            if (!invoiceData.id || typeof invoiceData.id !== 'string') {
+                throw new Error('Invoice ID (invoiceData.id) is missing or not a string.');
             }
-            
-            // Generate a unique invoice number
-            const invoiceNumber = invoiceData.invoice_number || ('INV' + Date.now() + Math.floor(Math.random() * 1000));
-            
-            // Get client details from the input data
-            const client_id = Number(invoiceData.client_id || invoiceData.client_id || 0);
-            const clientName = invoiceData.clientName || invoiceData.client_name || '';
-            const clientPhone = invoiceData.clientPhone || invoiceData.client_phone || '';
-            const clientEmail = (invoiceData.clientEmail || invoiceData.client_email || '').trim() === '' ? null : 
-                               (invoiceData.clientEmail || invoiceData.client_email);
-            const clientAddress = invoiceData.clientAddress || invoiceData.client_address || '';
-            
-            // Format the data according to what the route expects
-            const formattedData = {
-                invoice_number: invoiceNumber,
-                report_id: invoiceData.reportId || invoiceData.report_id || null,
-                client_id: client_id,
-                client_name: clientName,
-                client_phone: clientPhone,
-                client_email: clientEmail,
-                client_address: clientAddress,
+            if (typeof invoiceData.client_id !== 'number' || invoiceData.client_id <= 0) {
+                throw new Error('Client ID (invoiceData.client_id) must be a valid positive number.');
+            }
+            if (!invoiceData.date || isNaN(new Date(invoiceData.date).getTime())) {
+                throw new Error('Invoice date (invoiceData.date) is missing or invalid.');
+            }
+             if (invoiceData.report_id && typeof invoiceData.report_id !== 'string') { // report_id is optional
+                throw new Error('Report ID (invoiceData.report_id) must be a string if provided.');
+            }
+            if (!Array.isArray(invoiceData.items)) {
+                throw new Error('Invoice items (invoiceData.items) must be an array.');
+            }
+
+            // Create a structured payload for the API
+            const payload = {
+                id: invoiceData.id || this._generateUniqueId('INV'),
+                client_id: Number(invoiceData.client_id),
+                date: invoiceData.date ? new Date(invoiceData.date).toISOString() : new Date().toISOString(),
+                report_id: invoiceData.report_id || null, // Keep report_id field
                 subtotal: Number(invoiceData.subtotal || 0),
-                tax: Number(invoiceData.tax || 0),
                 discount: Number(invoiceData.discount || 0),
+                taxRate: Number(invoiceData.taxRate || 0), // Ensure taxRate is present
+                tax: Number(invoiceData.tax || 0),
                 total: Number(invoiceData.total || 0),
-                notes: invoiceData.notes || '',
-                status: invoiceData.status || invoiceData.paymentStatus || 'pending',
-                items: items
+                paymentStatus: invoiceData.paymentStatus || 'unpaid',
+                paymentMethod: invoiceData.paymentMethod || null,
+                paymentDate: invoiceData.paymentDate ? new Date(invoiceData.paymentDate).toISOString() : null,
+                items: []
             };
+
+            // Validate and map items
+            payload.items = invoiceData.items.map(item => {
+                if (!item.description || typeof item.description !== 'string') {
+                    throw new Error('Item description is missing or not a string.');
+                }
+
+                // Determine the unit price: invoice-generator.js provides 'amount' for the unit price in its items.
+                const unitPrice = item.amount ?? item.price; // Prefer item.amount as invoice-generator produces it.
+                // Determine the line total: invoice-generator.js provides 'totalAmount'.
+                const lineTotal = item.totalAmount ?? item.total;
+
+                if (typeof unitPrice !== 'number' || unitPrice < 0) { 
+                    throw new Error('Item unit price (from item.amount or item.price) is missing or not a valid non-negative number.');
+                }
+                if (typeof lineTotal !== 'number' || lineTotal < 0) { 
+                    throw new Error('Item line total (from item.totalAmount or item.total) is missing or not a valid non-negative number.');
+                }
+
+                return {
+                    invoiceId: payload.id, // Link to the main invoice
+                    description: item.description,
+                    type: item.type || 'service', // Default to 'service' if not provided
+                    amount: Number(unitPrice), // This is unit_price, maps to 'amount' in DB invoice_items table
+                    quantity: Number(item.quantity || 1),
+                    totalAmount: Number(lineTotal), // This is line total, maps to 'totalAmount' in DB
+                    serialNumber: item.serialNumber || item.serial || null // Prefer item.serialNumber from invoice-generator
+                };
+            });
             
-            // Validate client_id is a number and greater than 0
-            if (isNaN(formattedData.client_id) || formattedData.client_id <= 0) {
-                throw new Error('Client ID must be a valid number');
+            // Final check on client_id (redundant with above but good for safety)
+            if (isNaN(payload.client_id) || payload.client_id <= 0) {
+                console.error('CRITICAL: Client ID became invalid after processing:', payload.client_id, 'Original:', invoiceData.client_id);
+                throw new Error('Client ID is invalid in the final payload.');
             }
-            
-            console.log('Creating invoice with formatted data:', formattedData);
-            return this.request('/api/invoices', 'POST', formattedData);
+
+            console.log('ApiService.createInvoice is sending payload:', JSON.stringify(payload, null, 2));
+            return this.request('/api/invoices', 'POST', payload);
         } catch (error) {
             console.error('Error formatting invoice data:', error);
             throw error;
@@ -509,7 +739,14 @@ class ApiService {
     }
     
     async getClientReports() {
-        return this.request('/api/reports/client');
+        // Ensure this token is for a client user, handled by the constructor logic
+        return this.request('/api/reports/client/me', 'GET');
+    }
+
+    async getClientInvoices() {
+        // Ensure this token is for a client user
+        // This will call a new backend endpoint: /api/invoices/client/me
+        return this.request('/api/invoices/client', 'GET');
     }
     
     async searchReports(query) {

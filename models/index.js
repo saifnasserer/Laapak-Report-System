@@ -1,43 +1,23 @@
-/**
- * Laapak Report System - Models Index
- * Exports all models and initializes database relationships
- */
-
-const { sequelize } = require('../config/db');
 const Admin = require('./Admin');
 const Client = require('./Client');
-const Report = require('./Report');
-// Removed ReportTechnicalTest
 const Invoice = require('./Invoice');
 const InvoiceItem = require('./InvoiceItem');
+const Report = require('./Report');
+const ReportTechnicalTest = require('./ReportTechnicalTest');
+const InvoiceReport = require('./invoicereport'); 
+const Login = require('./login');
 
-// Define relationships between models
+// Import the sequelize instance from the config/db.js file
+const { sequelize } = require('../config/db');
 
-// Client relationships - removed direct relationship to Report
-Client.hasMany(Invoice, { foreignKey: 'client_id' });
-
-// Report relationships
-Report.belongsTo(Client, { foreignKey: 'client_id' });
-Report.belongsTo(Admin, { foreignKey: 'admin_id', as: 'technician' });
-Report.hasOne(Invoice, { foreignKey: 'report_id' });
-
-// Invoice relationships
-Invoice.belongsTo(Report, { foreignKey: 'report_id' });
-Invoice.belongsTo(Client, { foreignKey: 'client_id' });
-Invoice.hasMany(InvoiceItem, { foreignKey: 'invoice_id', onDelete: 'CASCADE' });
-
-// Invoice Item relationships
-InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoice_id' });
-
-// Removed Technical Test relationships
-
-// Export models
 module.exports = {
-    sequelize,
-    Admin,
-    Client,
-    Report,
-    // ReportTechnicalTest removed,
-    Invoice,
-    InvoiceItem
+  Admin,
+  Client,
+  Invoice,
+  InvoiceItem,
+  Report,
+  ReportTechnicalTest,
+  InvoiceReport, 
+  Login,
+  sequelize, // Export the sequelize instance
 };

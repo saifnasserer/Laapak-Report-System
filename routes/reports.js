@@ -1,25 +1,151 @@
 const express = require('express');
 const { Sequelize, Op } = require('sequelize');
-const { Report, Client } = require('../models');
+const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport } = require('../models'); // Added InvoiceReport
+const { auth, clientAuth, adminAuth } = require('../middleware/auth'); // Import all auth middlewares
 
 const router = express.Router();
 
-// GET /reports - get all reports
+// GET /reports/count - get count of reports
+router.get('/count', auth, async (req, res) => {
+    try {
+        const { status, startDate, endDate } = req.query;
+        
+        let whereClause = {};
+        
+        // If status filter is provided
+        if (status) {
+            whereClause.status = status;
+        }
+        
+        // If date range is provided
+        if (startDate && endDate) {
+            whereClause.inspection_date = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        } else if (startDate) {
+            whereClause.inspection_date = {
+                [Op.gte]: new Date(startDate)
+            };
+        } else if (endDate) {
+            whereClause.inspection_date = {
+                [Op.lte]: new Date(endDate)
+            };
+        }
+        
+        const count = await Report.count({ where: whereClause });
+        
+        res.json({ count });
+    } catch (error) {
+        console.error('Error counting reports:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// GET /reports - get all reports or a single report by query ID (e.g., /reports?id=REPORT_ID)
 router.get('/', async (req, res) => {
-  try {
-    console.log('Fetching all reports');
-    const reports = await Report.findAll({
-      include: {
-        model: Client,
-        attributes: ['id', 'name', 'phone', 'email'],
-      },
-      order: [['created_at', 'DESC']],
-    });
-    console.log(`Found ${reports.length} reports`);
-    res.json(reports);
-  } catch (error) {
-    console.error('Failed to fetch reports:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    console.log('Backend: Received request to /api/reports');
+    console.log('Backend: req.query:', JSON.stringify(req.query, null, 2));
+  const { id } = req.query;
+  console.log(`Backend: Extracted id: ${id}`);
+
+  if (id) {
+    console.log('Backend: Processing request for a SINGLE report with ID:', id);
+    // Fetch a single report by ID
+    try {
+      console.log(`Fetching report with ID from query: ${id}`);
+      const reportInstance = await Report.findByPk(id, {
+        include: [
+          {
+            model: Client,
+            attributes: ['id', 'name', 'phone', 'email', 'address'], // Ensure all needed client fields are here
+          },
+          {
+            model: ReportTechnicalTest, // Assuming 'ReportTechnicalTest' is the correct model name
+            as: 'technical_tests', // Assuming this alias is defined in your Report model associations
+            attributes: ['componentName', 'status', 'notes', 'type', 'icon'], // Specify attributes needed by frontend
+          }
+        ],
+      });
+
+      if (!reportInstance) {
+        console.log(`Report with ID ${id} not found`);
+        return res.status(404).json({ error: 'Report not found' });
+      }
+
+      console.log(`Found report: ${reportInstance.id}`);
+      
+      // Structure the response to match the frontend's expected format { report: {}, technical_tests: [] }
+      const responseData = {
+        report: {
+          id: reportInstance.id,
+          client_name: reportInstance.client_name,
+          order_number: reportInstance.order_number,
+          inspection_date: reportInstance.inspection_date,
+          device_model: reportInstance.device_model,
+          device_serial: reportInstance.serial_number,
+          status_badge: reportInstance.status, // Map DB 'status' to 'status_badge'
+          external_images: reportInstance.external_images, // Will be parsed by frontend
+          hardware_status: reportInstance.hardware_status, // Will be parsed by frontend
+          notes: reportInstance.notes,
+          // You can add other fields from reportInstance as needed
+          // If client details are preferred from the association:
+          // client_info_associated: reportInstance.Client ? reportInstance.Client.toJSON() : null
+        },
+        technical_tests: reportInstance.technical_tests ? reportInstance.technical_tests.map(tt => tt.toJSON()) : []
+      };
+      
+      res.json(responseData);
+
+    } catch (error) {
+      console.error(`Failed to fetch report with ID ${id}:`, error);
+      res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+  } else {
+    console.log('Backend: ID not provided or falsy. Processing request for ALL reports.');
+    // Fetch all reports (existing logic)
+    try {
+      console.log('Fetching all reports eligible for invoicing');
+      // We need to import the Invoice model at the top of the file
+      // const { Report, Client, ReportTechnicalTest, Invoice } = require('../models');
+      const { Invoice } = require('../models'); // Assuming Invoice is already destructured or add it.
+
+      const whereClause = {}; // Start with an empty where clause
+
+      // Handle 'billing_enabled' filter
+      if (req.query.billing_enabled !== undefined) {
+        const beParam = req.query.billing_enabled.toString().toLowerCase();
+        if (beParam === 'false' || beParam === '0') {
+          whereClause.billing_enabled = false;
+        } else if (beParam === 'true' || beParam === '1') {
+          whereClause.billing_enabled = true;
+        }
+      }
+
+      // Handle 'fetch_mode' for invoiced reports
+      // Default: exclude invoiced reports (e.g., for create-invoice page)
+      // If fetch_mode is 'all_reports', then don't add this Op.notIn condition.
+      if (req.query.fetch_mode !== 'all_reports') {
+        whereClause.id = { // Report ID
+          [Op.notIn]: [
+            Sequelize.literal(`SELECT report_id FROM invoice_reports WHERE report_id IS NOT NULL`)
+          ]
+        };
+      }
+
+      const reports = await Report.findAll({
+        where: whereClause,
+        include: {
+          model: Client,
+          attributes: ['id', 'name', 'phone', 'email'],
+        },
+        order: [['created_at', 'DESC']],
+      });
+      console.log(`Found ${reports.length} reports`);
+      res.json(reports);
+    } catch (error) {
+      console.error('Failed to fetch all reports:', error);
+      res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
   }
 });
 
@@ -38,9 +164,46 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Report not found' });
     }
     console.log(`Found report: ${report.id}`);
-    res.json(report);
+    res.json({ success: true, report: report });
   } catch (error) {
     console.error('Failed to fetch report:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// GET /reports/client/me - get reports for the authenticated client
+router.get('/client/me', clientAuth, async (req, res) => {
+  try {
+    const clientId = req.user.id; // clientAuth middleware sets req.user
+    if (!clientId) {
+      console.error('Client ID not found in token after auth middleware');
+      return res.status(401).json({ error: 'Authentication error: Client ID missing.' });
+    }
+
+    console.log(`Fetching reports for authenticated client ID: ${clientId}`);
+    const reports = await Report.findAll({
+      where: { client_id: clientId }, // Ensure 'client_id' matches your Report model's foreign key field name
+      include: [
+        {
+          model: Client,
+          attributes: ['id', 'name', 'phone', 'email', 'address'],
+        },
+        // Optional: Include ReportTechnicalTest if needed for client dashboard preview
+        // {
+        //   model: ReportTechnicalTest,
+        //   as: 'technical_tests',
+        //   attributes: ['componentName', 'status', 'notes', 'type', 'icon'],
+        // }
+      ],
+      order: [['inspection_date', 'DESC']], // Order by inspection_date, or 'created_at' if preferred
+    });
+
+    // It's not an error if a client has no reports, return empty array
+    console.log(`Found ${reports ? reports.length : 0} reports for client ID ${clientId}`);
+    res.json({ success: true, data: reports || [] });
+
+  } catch (error) {
+    console.error('Failed to fetch reports for authenticated client:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعديل فاتورة | Laapak</title>
+
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Toastr CSS for notifications -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/custom-admin.css">
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+</head>
+<body>
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+
+    <!-- Main Content -->
+    <div class="container-fluid p-4 mt-2">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-dark fw-bold">تعديل فاتورة <span id="invoiceIdDisplay" class="fs-5 text-muted"></span></h2>
+            <a href="invoices.html" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-right me-2"></i> العودة إلى الفواتير
+            </a>
+        </div>
+
+        <form id="editInvoiceForm">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">تفاصيل الفاتورة</h5>
+                </div>
+                <div class="card-body">
+                    <div id="loadingIndicator" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="mt-2">جاري تحميل بيانات الفاتورة...</p>
+                    </div>
+                    <div id="formContent" class="d-none">
+                        <input type="hidden" id="invoiceId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="clientId" class="form-label">العميل <span class="text-danger">*</span></label>
+                                <select class="form-select" id="clientId" required disabled>
+                                    <option value="" selected disabled>اختر العميل</option>
+                                    <!-- Options will be loaded dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="reportId" class="form-label">رقم التقرير</label>
+                                <input type="text" class="form-control" id="reportId" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="invoiceDate" class="form-label">تاريخ الفاتورة <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="invoiceDate" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="paymentStatus" class="form-label">حالة الدفع <span class="text-danger">*</span></label>
+                                <select class="form-select" id="paymentStatus" required>
+                                    <option value="unpaid">غير مدفوعة</option>  
+                                    <option value="paid">مدفوعة</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="paymentMethod" class="form-label">طريقة الدفع</label>
+                                <select class="form-select" id="paymentMethod">
+                                    <option value="" selected>اختر طريقة الدفع</option>
+                                    <option value="cash">كاش</option>
+                                    <option value="card">فيزا</option>
+                                    <option value="instapay">انستاباي</option>
+                                    <option value="bank">تحويل بنكي</option>
+                                    <option value="other">أخرى</option>
+                                </select>
+                            </div>
+                             <div class="col-md-6">
+                                <label for="paymentDate" class="form-label">تاريخ الدفع</label>
+                                <input type="date" class="form-control" id="paymentDate">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">بنود الفاتورة</h5>
+                    <button type="button" class="btn btn-sm btn-success" id="addItemBtn">
+                        <i class="fas fa-plus me-1"></i> إضافة بند
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="invoiceItemsContainer" class="mb-3">
+                        <!-- Invoice items will be dynamically added here -->
+                    </div>
+                    <div class="alert alert-info d-none" id="noItemsAlert">لا توجد بنود في هذه الفاتورة. قم بإضافة بند جديد.</div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">ملخص الفاتورة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row justify-content-end">
+                        <div class="col-md-6 col-lg-4">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th class="fw-normal">المجموع الفرعي:</th>
+                                        <td id="subtotalAmount" class="text-end">0.00 جنيه</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="fw-normal">
+                                            <label for="discount" class="form-label mb-0">الخصم:</label>
+                                        </th>
+                                        <td class="d-flex align-items-center">
+                                            <input type="number" class="form-control form-control-sm text-end me-1" id="discount" value="0.00" step="0.01" min="0" style="width: 100px;">
+                                            <span>جنيه</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="fw-normal">
+                                            <label for="taxRate" class="form-label mb-0">نسبة الضريبة (%):</label>
+                                        </th>
+                                        <td class="d-flex align-items-center">
+                                             <input type="number" class="form-control form-control-sm text-end me-1" id="taxRate" value="14.00" step="0.01" min="0" style="width: 80px;">
+                                             <span>%</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="fw-normal">مبلغ الضريبة:</th>
+                                        <td id="taxAmount" class="text-end">0.00 جنيه</td>
+                                    </tr>
+                                    <tr class="border-top">
+                                        <th class="fw-bold fs-5">الإجمالي:</th>
+                                        <td id="totalAmount" class="fw-bold fs-5 text-end">0.00 جنيه</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-lg px-5" id="updateInvoiceBtn">
+                    <i class="fas fa-save me-2"></i> تحديث الفاتورة
+                </button>
+                <a href="invoices.html" class="btn btn-outline-secondary btn-lg px-5 ms-2">
+                    <i class="fas fa-times me-2"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Footer Container - will be populated by footer-component.js -->
+    <div id="footer-container"></div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery (required for Toastr) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Toastr JS for notifications -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/header-component.js"></script>
+    <script src="js/auth-middleware.js"></script>
+    <script src="js/edit-invoice.js"></script>
+    <script src="js/sw-register.js"></script>
+</body>
+</html>
