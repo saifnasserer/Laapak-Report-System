@@ -576,7 +576,7 @@
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
                     
                     // Make real API call to backend
-                    const apiBaseUrl = window.config ? window.config.api.baseUrl : '${window.location.origin}';
+                    const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                     fetch(`${apiBaseUrl}/api/clients/auth`, {
                         method: 'POST',
                         headers: {
@@ -652,7 +652,7 @@
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
                     
                     // Make real API call to backend
-                    const apiBaseUrl = window.config ? window.config.api.baseUrl : '${window.location.origin}';
+                    const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                     fetch(`${apiBaseUrl}/api/auth/admin`, {
                         method: 'POST',
                         headers: {
