@@ -9,7 +9,8 @@
  */
 function checkEmptyDatabase(callback) {
     // Try to get a count of reports
-    fetch('http://localhost:3001/api/reports/count')
+    const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    fetch(`${apiBaseUrl}/api/reports/count`)
         .then(response => response.json())
         .then(data => {
             // If count is 0, database is empty

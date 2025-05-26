@@ -104,7 +104,8 @@ async function loadInvoicesData(filters = {}) {
         }
         
         // Build API URL with filters
-        let apiUrl = 'http://localhost:3001/api/invoices';
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        let apiUrl = `${apiBaseUrl}/api/invoices`;
         const queryParams = [];
         
         // Add filters to query params if any
@@ -317,7 +318,8 @@ function formatInvoiceForTable(invoice) {
 async function loadClientsData() {
     try {
         // Build API URL
-        const apiUrl = 'http://localhost:3001/api/clients';
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        const apiUrl = `${apiBaseUrl}/api/clients`;
         
         // Get token for authentication
         const token = authMiddleware.getAdminToken();
@@ -355,7 +357,8 @@ async function loadClientsData() {
 async function loadReportsData() {
     try {
         // Build API URL
-        const apiUrl = 'http://localhost:3001/api/reports';
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        const apiUrl = `${apiBaseUrl}/api/reports`;
         
         // Get token for authentication
         const token = authMiddleware.getAdminToken();
@@ -818,7 +821,8 @@ async function saveInvoice() {
         }
         
         // Send to API
-        const response = await fetch('http://localhost:3001/api/invoices', {
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        const response = await fetch(`${apiBaseUrl}/api/invoices`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -984,7 +988,8 @@ async function updateInvoice() {
         }
         
         // Send to API
-        const response = await fetch(`http://localhost:3001/api/invoices/${invoiceId}`, {
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -1029,7 +1034,8 @@ async function viewInvoice(invoiceId) {
         }
         
         // Fetch invoice details from API
-        const response = await fetch(`http://localhost:3001/api/invoices/${invoiceId}`, {
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -1216,7 +1222,8 @@ async function editInvoice(invoiceId) {
         }
         
         // Fetch invoice details from API
-        const response = await fetch(`http://localhost:3001/api/invoices/${invoiceId}`, {
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -1333,7 +1340,8 @@ async function confirmDeleteInvoice() {
         }
         
         // Send delete request to API
-        const response = await fetch(`http://localhost:3001/api/invoices/${invoiceId}`, {
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`

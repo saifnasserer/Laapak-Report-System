@@ -132,7 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers['X-User-Type'] = isAdmin ? 'admin' : 'client';
                 }
                 
-                const response = await fetch(`http://localhost:3001/api/invoices/${invoiceIdParam}`, {
+                const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceIdParam}`, {
                     method: 'GET',
                     headers: headers
                 });

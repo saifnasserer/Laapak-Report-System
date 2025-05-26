@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginSubmitBtn = document.getElementById('loginSubmitBtn');
     const loginTypeLabel = document.getElementById('loginTypeLabel');
     
-    // API endpoints
-    const API_URL = window.location.origin;
+    // API endpoints - Use config object if available, otherwise fallback to environment value
+    const API_URL = window.config ? window.config.api.baseUrl : 'http://35.180.127.5:3001';
     const ADMIN_LOGIN_URL = `${API_URL}/api/auth/admin`;
     const CLIENT_LOGIN_URL = `${API_URL}/api/clients/auth`;
     

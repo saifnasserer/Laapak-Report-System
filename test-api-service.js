@@ -7,7 +7,14 @@ const fetch = require('node-fetch');
 class ApiService {
     constructor() {
         // Set the backend API URL to match the test script
-        this.baseUrl = 'http://localhost:3001';
+        // Get API base URL from environment or config if available, otherwise use the config object
+        try {
+            const config = require('./config/config');
+            this.baseUrl = config.api.baseUrl;
+        } catch (e) {
+            // Fallback to global config or default URL
+            this.baseUrl = window.config ? window.config.api.baseUrl : 'http://35.180.127.5:3001';
+        }
         this.authToken = null; // No localStorage in Node.js
     }
     

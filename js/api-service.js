@@ -16,7 +16,7 @@ class ApiService {
         } 
         // For localhost development, use port 3001
         else if (isLocalhost) {
-            this.baseUrl = 'http://localhost:3001';
+            this.baseUrl = config.api.baseUrl;
         } 
         // For production, use the same origin but with /api
         else {
