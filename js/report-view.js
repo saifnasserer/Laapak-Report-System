@@ -863,28 +863,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const componentNameMap = {
-            'card_reader_status': 'مدخل الكارت',
-            'touchpad_status': 'التاتش باد',
-            'keyboard_status': 'لوحة المفاتيح',
-            'wifi_status': 'Wi-Fi',
-            'Bluetooth_status': 'البلوتوث',
-            'usb_status': 'المنافذ (USB, HDMI, etc.)',
-            'speakers_status': 'مكبرات الصوت',
-            'microphone_status': 'الميكروفون',
-            'camera_status': 'الكاميرا',
-            'audio_jack_status': 'مدخل السماعات',
-            // Add more mappings for hardware components with data attributes
+            // Hardware components mapping
             'microphone': 'الميكروفون',
             'camera': 'الكاميرا',
-            'Wi-Fi': 'واي فاي',
-            'LAN': 'منفذ الشبكة',
-            'Ports': 'منافذ USB',
+            'Wi-Fi': 'Wi-Fi',
+            'LAN': 'منفذ Ethernet (LAN)',
+            'Ports': 'منافذ USB,Type-C',
             'keyboard': 'لوحة المفاتيح',
-            'Touchpad': 'لوحة اللمس',
-            'card': 'قارئ البطاقات',
+            'Touchpad': 'Touchpad',
+            'card': 'Card Reader',
             'audio_jack': 'منفذ الصوت',
-            'DisplayPort': 'منافذ العرض',
-            'Bluetooth': 'البلوتوث'
+            'DisplayPort': 'منفذ العرض (HDMI)',
+            'Bluetooth': 'بلوتوث',
+            'speakers': 'السماعات',
+            'touchscreen': 'شاشة التاتش'
         };
 
         // Filter out items with type "note"
