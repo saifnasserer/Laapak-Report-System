@@ -19,7 +19,7 @@ class ApiService {
             // Safely access config with fallback
             this.baseUrl = (window.config && window.config.api && window.config.api.baseUrl) || 
                           (typeof config !== 'undefined' && config.api && config.api.baseUrl) || 
-                          'https://35.180.127.5:3001';
+                          'https://reports.laapak.com';
         } 
         // For production, use the same origin but with /api
         else {
@@ -783,7 +783,7 @@ var apiService;
     } catch (error) {
         console.error('Error initializing apiService:', error);
         // Create a fallback service with the production URL
-        apiService = new ApiService('https://35.180.127.5:3001');
+        apiService = new ApiService('https://reports.laapak.com');
         window.apiService = apiService;
         console.log('Created fallback apiService with hardcoded URL');
     }

@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Determine base URL safely
             const apiBaseUrl = service && service.baseUrl ? service.baseUrl : 
                              (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
-                             'https://35.180.127.5:3001';
+                             'https://reports.laapak.com';
                              
             console.log('Using API base URL:', apiBaseUrl);
             console.log('Fetching report with ID:', reportId);
