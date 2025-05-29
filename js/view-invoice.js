@@ -197,14 +197,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const row = invoiceItemsTableBodyEl.insertRow();
                 row.insertCell().textContent = index + 1;
                 row.insertCell().textContent = get(item, 'description');
-                row.insertCell().textContent = get(item, 'type'); // Consider translating this if needed
                 row.insertCell().textContent = get(item, 'serialNumber', 'لا يوجد');
-                row.insertCell().textContent = get(item, 'quantity', 1);
                 row.insertCell().textContent = formatCurrency(get(item, 'amount'));
-                row.insertCell().textContent = formatCurrency(get(item, 'totalAmount'));
             });
         } else {
-            invoiceItemsTableBodyEl.innerHTML = '<tr><td colspan="7" class="text-center text-muted">لا توجدรายการ في هذه الفاتورة.</td></tr>';
+            invoiceItemsTableBodyEl.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا توجد عناصر في هذه الفاتورة.</td></tr>';
         }
 
         // Invoice Summary

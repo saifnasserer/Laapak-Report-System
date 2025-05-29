@@ -42,6 +42,11 @@ function initializeDataTable() {
             return;
         }
         
+        // Clear any existing DataTable instance to avoid duplication
+        if ($.fn.DataTable.isDataTable(table)) {
+            table.DataTable().destroy();
+        }
+        
         // Initialize DataTable with configuration for local database data to match clients.html style
         invoicesTable = table.DataTable({
             language: {
@@ -140,7 +145,7 @@ async function loadInvoicesData(filters = {}) {
         }
         
         const data = await response.json();
-        console.log('Received data from server:', data);
+        // console.log('Received data from server:', data);
         
         // Extract invoices array from response
         let invoices = [];
@@ -184,8 +189,8 @@ async function loadInvoicesData(filters = {}) {
  */
 function formatInvoiceForTable(invoice) {
     try {
-        // Log the raw invoice data to understand its structure
-        console.log('Formatting invoice:', invoice);
+        // Log the raw invoice data for debugging
+        // console.log('Formatting invoice:', invoice);
         
         if (!invoice || typeof invoice !== 'object') {
             console.error('Invalid invoice data:', invoice);
@@ -1497,7 +1502,7 @@ function applyFilters() {
         filters.dateTo = dateToFilter;
     }
     
-    loadInvoices(filters);
+    loadInvoicesData(filters);
 }
 
 // Reset filters
@@ -1507,7 +1512,7 @@ function resetFilters() {
     document.getElementById('dateFromFilter').value = '';
     document.getElementById('dateToFilter').value = '';
     
-    loadInvoices();
+    loadInvoicesData();
 }
 
 // Delete invoice
@@ -1536,7 +1541,7 @@ async function deleteInvoice(invoiceId) {
         showToast('تم حذف الفاتورة بنجاح', 'success');
         
         // Reload invoices
-        loadInvoices();
+        loadInvoicesData();
         
     } catch (error) {
         console.error('Error deleting invoice:', error);

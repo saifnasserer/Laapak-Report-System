@@ -12,7 +12,7 @@ let invoiceTemplates = [];
 let invoiceSettings = {
     title: 'فاتورة',
     date: new Date().toISOString().split('T')[0],
-    taxRate: 15,
+    taxRate: 14,
     discountRate: 0,
     paymentMethod: 'cash',
     paymentStatus: 'unpaid', // Added default payment status
@@ -646,7 +646,7 @@ function initiateDirectInvoiceCreation() {
     const defaultInvoiceSettings = {
         title: `فاتورة بتاريخ ${today.toLocaleDateString('ar-SA')}`,
         date: today.toISOString().split('T')[0], // YYYY-MM-DD format
-        taxRate: parseFloat(localStorage.getItem('lpk_default_tax_rate')) || 15,
+        taxRate: parseFloat(localStorage.getItem('lpk_default_tax_rate')) || 14,
         discountRate: parseFloat(localStorage.getItem('lpk_default_discount_rate')) || 0,
         paymentMethod: localStorage.getItem('lpk_default_payment_method') || 'bank_transfer',
         paymentStatus: localStorage.getItem('lpk_default_payment_status') || 'unpaid', // Added default payment status
@@ -921,7 +921,7 @@ function showEditItemsModal() {
             invoiceItems.push({
                 id: 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
                 description: `${report.deviceModel || 'جهاز'} (${report.id})`,
-                quantity: 1,
+                serialNumber: report.serialNumber || '',
                 unitPrice: report.amount || 0,
                 total: report.amount || 0
             });
@@ -938,7 +938,7 @@ function showEditItemsModal() {
                 <input type="text" class="form-control item-description" value="${item.description}">
             </td>
             <td>
-                <input type="number" class="form-control item-quantity" value="${item.quantity}" min="1" step="1" onchange="updateItemTotal(this)">
+                <input type="text" class="form-control item-serial" value="${item.serialNumber || ''}" placeholder="الرقم التسلسلي">
             </td>
             <td>
                 <input type="number" class="form-control item-price" value="${item.unitPrice}" min="0" step="0.01" onchange="updateItemTotal(this)">
@@ -957,18 +957,17 @@ function showEditItemsModal() {
     });
     
     // Show modal
-    const editItemsModal = new bootstrap.Modal(document.getElementById('editItemsModal'));
-    editItemsModal.show();
 }
 
 /**
- * Update item total when quantity or price changes
+ * Update the total amount for an invoice item based on the price
  */
 function updateItemTotal(input) {
     const row = input.closest('tr');
-    const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
     const price = parseFloat(row.querySelector('.item-price').value) || 0;
-    const total = quantity * price;
+    
+    // Since we've removed the quantity field, the total is the same as the price
+    const total = price;
     
     row.querySelector('.item-total').value = total.toFixed(2);
 }
@@ -984,7 +983,7 @@ function addNewInvoiceItem() {
     const newItem = {
         id: 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
         description: '',
-        quantity: 1,
+        serialNumber: '',
         unitPrice: 0,
         total: 0
     };
@@ -997,17 +996,15 @@ function addNewInvoiceItem() {
     row.setAttribute('data-item-id', newItem.id);
     
     row.innerHTML = `
+        <td>${itemsTableBody.children.length + 1}</td>
         <td>
             <input type="text" class="form-control item-description" value="">
         </td>
         <td>
-            <input type="number" class="form-control item-quantity" value="1" min="1" step="1" onchange="updateItemTotal(this)">
+            <input type="text" class="form-control item-serial" value="" placeholder="الرقم التسلسلي">
         </td>
         <td>
-            <input type="number" class="form-control item-price" value="0" min="0" step="0.01" onchange="updateItemTotal(this)">
-        </td>
-        <td>
-            <input type="number" class="form-control item-total" value="0" readonly>
+            <input type="number" class="form-control item-price" value="0" min="0" step="0.01">
         </td>
         <td class="text-center">
             <button type="button" class="btn btn-sm btn-danger delete-item-btn" onclick="deleteInvoiceItem('${newItem.id}')">
@@ -1037,6 +1034,40 @@ function deleteInvoiceItem(itemId) {
 }
 
 /**
+ * Collect invoice items from the form
+ * @returns {Array} - Array of invoice items
+ */
+function collectInvoiceItems() {
+    const itemsTableBody = document.getElementById('invoiceItemsTableBody');
+    if (!itemsTableBody) return [];
+    
+    const items = [];
+    
+    // Loop through all rows
+    const rows = itemsTableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const itemId = row.getAttribute('data-item-id');
+        
+        // Get values from input fields
+        const description = row.querySelector('.item-description').value;
+        const serialNumber = row.querySelector('.item-serial').value || null;
+        const unitPrice = parseFloat(row.querySelector('.item-price').value) || 0;
+        const total = parseFloat(row.querySelector('.item-total').value) || 0;
+        
+        // Add item to array
+        items.push({
+            id: itemId,
+            description: description,
+            serialNumber: serialNumber,
+            unitPrice: unitPrice,
+            total: total
+        });
+    });
+    
+    return items;
+}
+
+/**
  * Save invoice items
  */
 function saveInvoiceItems() {
@@ -1053,17 +1084,17 @@ function saveInvoiceItems() {
     rows.forEach(row => {
         const itemId = row.getAttribute('data-item-id');
         const description = row.querySelector('.item-description').value;
-        const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+        const serialNumber = row.querySelector('.item-serial').value || null;
         const unitPrice = parseFloat(row.querySelector('.item-price').value) || 0;
         const total = parseFloat(row.querySelector('.item-total').value) || 0;
         
         // Add to items array
         invoiceItems.push({
             id: itemId,
-            description,
-            quantity,
-            unitPrice,
-            total
+            description: description,
+            serialNumber: serialNumber,
+            unitPrice: unitPrice,
+            total: total
         });
     });
     
@@ -1249,10 +1280,9 @@ function generateInvoicePreview() {
                             <thead class="table-light">
                                 <tr>
                                     <th>#</th>
-                                    <th colspan="2">الوصف</th>
-                                    <th>الكمية</th>
+                                    <th>الوصف</th>
+                                    <th>السيريال</th>
                                     <th>السعر</th>
-                                    <th>المبلغ</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1260,10 +1290,9 @@ function generateInvoicePreview() {
                                     return `
                                         <tr>
                                             <td>${index + 1}</td>
-                                            <td colspan="2">${item.description}</td>
-                                            <td class="text-center">${item.quantity}</td>
+                                            <td>${item.description}</td>
+                                            <td class="text-center">${item.serialNumber || 'لا يوجد'}</td>
                                             <td class="text-end">${(parseFloat(item.unitPrice) || 0).toFixed(2)} جنية</td>
-                                            <td class="text-end">${(parseFloat(item.total) || 0).toFixed(2)} جنية</td>
                                         </tr>
                                     `;
                                 }).join('')}
@@ -1433,15 +1462,18 @@ async function saveInvoice() {
         // Backend will generate the invoice ID (primary key)
         // const invoiceNumber = generateInvoiceNumber(); // Keep for local use if needed, but not for API payload 'id'
 
+        // Generate invoice ID first - required by the API
+        const invoiceId = generateInvoiceNumber();
+
         // Create invoice object for the API
         const invoicePayload = {
-            // title: currentInvoiceSettings.title, // Removed as it's not in the 'invoices' table schema
+            id: invoiceId, // Include the invoice ID as required by the API
             date: currentInvoiceSettings.date, 
             client_id: client_id, // Correct client_id from currentInvoiceSettings
             report_id: report_ids_to_invoice.length > 0 ? report_ids_to_invoice[0] : null, // Send first report ID (API expects single report_id)
             items: currentInvoiceItems.map(item => ({
                 description: item.description,
-                quantity: parseInt(item.quantity) || 1,
+                quantity: 1, // Always set to 1 since we're not using quantity anymore
                 type: item.type || 'service', // Ensure 'type' is included as per invoice_items schema
                 amount: parseFloat(item.unitPrice) || 0, 
                 totalAmount: parseFloat(item.total) || 0, 

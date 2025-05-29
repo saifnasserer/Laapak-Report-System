@@ -367,7 +367,8 @@ class ApiService {
                 external_images: reportData.external_images || '[]',
                 notes: reportData.notes || '',
                 billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
-                amount: Number(reportData.amount || 0),
+                // Ensure amount is preserved regardless of billing_enabled status
+                amount: Number(reportData.amount || reportData.devicePrice || window.globalDeviceDetails?.devicePrice || 0),
                 status: reportData.status || 'active'
             };
             
@@ -459,7 +460,8 @@ class ApiService {
                 external_images: reportData.external_images || '[]',
                 notes: reportData.notes || '',
                 billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
-                amount: Number(reportData.amount || reportData.devicePrice || 0),
+                // Ensure amount is preserved regardless of billing_enabled status
+                amount: Number(reportData.amount || reportData.devicePrice || window.globalDeviceDetails?.devicePrice || 0),
                 status: reportData.status || 'active'
             };
             
@@ -656,8 +658,7 @@ class ApiService {
             // --- Essential Validations ---
             if (!invoiceData) {
                 throw new Error('Invoice data is undefined or null.');
-            }
-            if (!invoiceData.id || typeof invoiceData.id !== 'string') {
+            }            if (!invoiceData.id || typeof invoiceData.id !== 'string') {
                 throw new Error('Invoice ID (invoiceData.id) is missing or not a string.');
             }
             if (typeof invoiceData.client_id !== 'number' || invoiceData.client_id <= 0) {
