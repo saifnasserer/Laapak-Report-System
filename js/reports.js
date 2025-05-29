@@ -157,7 +157,7 @@ async function checkServerConnection() {
         // Determine base URL safely
         const baseUrl = service && service.baseUrl ? service.baseUrl : 
                       (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
-                      'http://35.180.127.5:3001';
+                      'https://35.180.127.5:3001';
         
         // Try to connect to the server - use /api/reports since we know that endpoint exists
         const response = await fetch(`${baseUrl}/api/reports`, {

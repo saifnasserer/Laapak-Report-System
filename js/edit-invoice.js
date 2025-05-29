@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch('http://35.180.127.5:3001/api/clients?all=true', {
+            const response = await fetch('https://35.180.127.5:3001/api/clients?all=true', {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch(`http://35.180.127.5:3001/api/invoices/${invoiceId}`, {
+            const response = await fetch(`https://35.180.127.5:3001/api/invoices/${invoiceId}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch(`http://35.180.127.5:3001/api/invoices/${invoiceData.id}`, {
+            const response = await fetch(`https://35.180.127.5:3001/api/invoices/${invoiceData.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

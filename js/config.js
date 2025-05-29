@@ -3,7 +3,7 @@ var config = {
     // API configuration
     api: {
         // Default to window.location.origin if no API_BASE_URL is set
-        baseUrl: 'http://35.180.127.5:3001',
+        baseUrl: 'https://35.180.127.5:3001',
         version: 'v1'
     }
 };
