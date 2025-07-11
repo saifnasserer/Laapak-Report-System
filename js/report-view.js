@@ -139,17 +139,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const hardwareStatusData = safeJsonParse(report.hardware_status, []);
         populateHardwareComponentsTable(hardwareStatusData);
 
-        // Step 4: Technician Notes
+        // Step 5: Technician Notes (was Step 4)
+        const notesStep = document.getElementById('step5');
+        const notesStepNav = document.querySelector('.step-item[data-step="5"]');
+        const technicianNotes = document.getElementById('technicianNotes');
         // First check if there are notes in hardware_status with type 'note'
         const notesComponent = hardwareStatusData.find(item => item.type === 'note' && item.componentName === 'notes');
+        let notesValue = '';
         if (notesComponent && notesComponent.notes) {
-            technicianNotes.textContent = notesComponent.notes;
+            notesValue = notesComponent.notes;
+            if (technicianNotes) technicianNotes.textContent = notesComponent.notes;
         } else {
-            // Fallback to the regular notes field if no notes found in hardware_status
-            technicianNotes.textContent = get(report, 'notes');
+            notesValue = get(report, 'notes');
+            if (technicianNotes) technicianNotes.textContent = notesValue;
         }
-
-        // Step 5: Billing Summary (Now handled by static content in Step 6 in HTML)
+        // Hide Step 5 if notes are empty or only whitespace
+        if ((!notesValue || notesValue.trim() === '' || notesValue === '-') && notesStep && notesStepNav) {
+            notesStep.style.display = 'none';
+            notesStepNav.style.display = 'none';
+            // Optionally, adjust total steps and progress bar
+            // Remove step 5 from steps/stepItems NodeLists if needed for navigation logic
+        }
+        // Step 6: Billing Summary (Now handled by static content in Step 6 in HTML)
     }
 
     function safeJsonParse(jsonString, defaultValue = []) {
@@ -1370,72 +1381,115 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         return 'bg-light text-dark';
     }
 
-    // Step navigation logic
+    // Utility: Get all visible steps and stepItems
+    function getVisibleSteps() {
+        return Array.from(steps).filter(step => step.style.display !== 'none');
+    }
+    function getVisibleStepItems() {
+        return Array.from(stepItems).filter(item => item.style.display !== 'none');
+    }
+
+    // Step navigation logic (updated to skip hidden steps)
     function updateSteps() {
         // Scroll to top of the page with a smooth animation
         window.scrollTo({
             top: 0,
             behavior: 'smooth'
         });
-        steps.forEach((step, index) => {
-            if (index + 1 === currentStep) {
-                step.classList.add('active');
-            } else {
+        const visibleSteps = getVisibleSteps();
+        const visibleStepItems = getVisibleStepItems();
+        // Clamp currentStep to visible steps
+        if (currentStep > visibleSteps.length) currentStep = visibleSteps.length;
+        if (currentStep < 1) currentStep = 1;
+        // Dynamically update step numbers in the circles
+        visibleStepItems.forEach((item, idx) => {
+            const btn = item.querySelector('.step-button');
+            if (btn) btn.textContent = (idx + 1).toString();
+        });
+        // Activate only visible steps
+        let visibleIndex = 0;
+        steps.forEach((step) => {
+            if (step.style.display === 'none') {
                 step.classList.remove('active');
-            }
-        });
-
-        stepItems.forEach((item, index) => {
-            const button = item.querySelector('.step-button');
-            if (index + 1 === currentStep) {
-                item.classList.add('active');
-                button.classList.remove('btn-outline-primary');
-                button.classList.add('btn-primary');
-            } else if (index + 1 < currentStep) {
-                item.classList.add('completed'); // Optional: Mark past steps as completed
-                item.classList.remove('active');
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-success'); // Mark completed steps with success color
             } else {
-                item.classList.remove('active', 'completed');
-                button.classList.remove('btn-primary', 'btn-success');
-                button.classList.add('btn-outline-primary');
+                visibleIndex++;
+                if (visibleIndex === currentStep) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
             }
         });
-
+        // Activate only visible stepItems
+        visibleIndex = 0;
+        stepItems.forEach((item) => {
+            const button = item.querySelector('.step-button');
+            if (item.style.display === 'none') {
+                item.classList.remove('active', 'completed');
+                if (button) button.classList.remove('btn-primary', 'btn-success', 'btn-outline-primary');
+            } else {
+                visibleIndex++;
+                if (visibleIndex === currentStep) {
+                    item.classList.add('active');
+                    if (button) {
+                        button.classList.remove('btn-outline-primary');
+                        button.classList.add('btn-primary');
+                    }
+                } else if (visibleIndex < currentStep) {
+                    item.classList.add('completed');
+                    item.classList.remove('active');
+                    if (button) {
+                        button.classList.remove('btn-primary');
+                        button.classList.add('btn-success');
+                    }
+                } else {
+                    item.classList.remove('active', 'completed');
+                    if (button) {
+                        button.classList.remove('btn-primary', 'btn-success');
+                        button.classList.add('btn-outline-primary');
+                    }
+                }
+            }
+        });
+        // Update prev/next buttons
         prevBtn.disabled = currentStep === 1;
-        nextBtn.disabled = currentStep === steps.length;
-        
+        nextBtn.disabled = currentStep === visibleSteps.length;
         // Update progress bar
-        const progressPercentage = ((currentStep -1) / (steps.length -1)) * 100;
+        const progressPercentage = ((currentStep - 1) / (visibleSteps.length - 1)) * 100;
         progressBar.style.width = `${progressPercentage}%`;
     }
 
-    nextBtn.addEventListener('click', () => {
-        if (currentStep < steps.length) {
-            // Scroll to top of the page with a smooth animation
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-            
+    // Helper to move to the next visible step
+    function goToNextVisibleStep() {
+        const visibleSteps = getVisibleSteps();
+        if (currentStep < visibleSteps.length) {
             currentStep++;
             updateSteps();
         }
-    });
-
-    prevBtn.addEventListener('click', () => {
+    }
+    // Helper to move to the previous visible step
+    function goToPrevVisibleStep() {
         if (currentStep > 1) {
             currentStep--;
             updateSteps();
         }
+    }
+
+    nextBtn.addEventListener('click', () => {
+        goToNextVisibleStep();
+    });
+
+    prevBtn.addEventListener('click', () => {
+        goToPrevVisibleStep();
     });
 
     stepItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            // Allow navigation by clicking step items if needed and if step is not disabled
-            const stepNumber = parseInt(item.dataset.step);
-            if (stepNumber) {
+            if (item.style.display === 'none') return;
+            // Only allow navigation to visible steps
+            const visibleStepItems = getVisibleStepItems();
+            const stepNumber = visibleStepItems.indexOf(item) + 1;
+            if (stepNumber > 0) {
                 currentStep = stepNumber;
                 updateSteps();
             }

@@ -481,47 +481,40 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add Enter key press event for test screenshot URL inputs with improved reliability
     const testScreenshotInputs = document.querySelectorAll('.test-screenshot-url');
     testScreenshotInputs.forEach(input => {
-        // Use both keypress and keydown to ensure cross-browser compatibility
-        ['keypress', 'keydown'].forEach(eventType => {
-            input.addEventListener(eventType, function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault(); // Prevent form submission
-                    e.stopPropagation(); // Stop event bubbling
-                    
-                    // Get the component name from data attribute
-                    const component = this.getAttribute('data-component');
-                    
-                    // Find the corresponding add button
-                    const button = document.querySelector(`.add-screenshot-url-btn[data-component="${component}"]`);
-                    if (button) {
-                        console.log(`Enter key pressed in ${component} input - triggering add button`);
-                        button.click();
-                    }
+        // Use only keydown for Enter key
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent form submission
+                e.stopPropagation(); // Stop event bubbling
+                // Get the component name from data attribute
+                const component = this.getAttribute('data-component');
+                // Find the corresponding add button
+                const button = document.querySelector(`.add-screenshot-url-btn[data-component="${component}"]`);
+                if (button) {
+                    console.log(`Enter key pressed in ${component} input - triggering add button`);
+                    button.click();
                 }
-            });
+            }
         });
     });
     
     // Ensure all inputs with URL type also have Enter key functionality
     document.querySelectorAll('input[type="url"]').forEach(input => {
         if (!input.classList.contains('test-screenshot-url')) { // Avoid duplicate handlers
-            ['keypress', 'keydown'].forEach(eventType => {
-                input.addEventListener(eventType, function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        // Find the closest button that might be the add button
-                        const parentGroup = this.closest('.input-group');
-                        if (parentGroup) {
-                            const addBtn = parentGroup.querySelector('button');
-                            if (addBtn) {
-                                console.log('Enter key pressed in URL input - triggering closest button');
-                                addBtn.click();
-                            }
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Find the closest button that might be the add button
+                    const parentGroup = this.closest('.input-group');
+                    if (parentGroup) {
+                        const addBtn = parentGroup.querySelector('button');
+                        if (addBtn) {
+                            console.log('Enter key pressed in URL input - triggering closest button');
+                            addBtn.click();
                         }
                     }
-                });
+                }
             });
         }
     });
@@ -532,15 +525,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (addImageUrlBtn && imageUrlInput) {
         // Add Enter key functionality to the image URL input
-        ['keypress', 'keydown'].forEach(eventType => {
-            imageUrlInput.addEventListener(eventType, function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    addImageUrlBtn.click();
-                    console.log('Enter key pressed in external image input - triggering add button');
-                }
-            });
+        imageUrlInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                addImageUrlBtn.click();
+                console.log('Enter key pressed in external image input - triggering add button');
+            }
         });
         
         // Click handler for the add image button
@@ -610,6 +601,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const videoUrlInput = document.getElementById('videoUrlInput');
     
     if (addVideoUrlBtn && videoUrlInput) {
+        videoUrlInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                addVideoUrlBtn.click();
+            }
+        });
+        
         addVideoUrlBtn.addEventListener('click', function() {
             const videoUrl = videoUrlInput.value.trim();
             
