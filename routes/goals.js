@@ -237,6 +237,10 @@ router.put('/achievements/:id', adminAuth, async (req, res) => {
 router.post('/', adminAuth, async (req, res) => {
     try {
         const { title, type, target, unit, period } = req.body;
+        // Validation: Ensure all required fields are present
+        if (!title || !type || !target || !unit || !period) {
+            return res.status(400).json({ message: 'All fields (title, type, target, unit, period) are required.' });
+        }
         const currentDate = new Date();
         const currentMonth = currentDate.toLocaleString('ar-SA', { month: 'long' });
         const currentYear = currentDate.getFullYear();
@@ -255,6 +259,10 @@ router.post('/', adminAuth, async (req, res) => {
         res.json(goal);
     } catch (error) {
         console.error('Error creating goal:', error);
+        // Return validation errors if present
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({ message: 'Validation error', details: error.errors.map(e => e.message) });
+        }
         res.status(500).json({ message: 'Server error' });
     }
 });

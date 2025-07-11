@@ -390,19 +390,19 @@ router.get('/insights/device-models', auth, async (req, res) => {
                 endOfPeriod = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         }
 
-        // Get device models with count and trend
+        // Get device models with count and trend (use inspection_date instead of created_at)
         const deviceModels = await Report.findAll({
             where: {
-                created_at: {
+                inspection_date: {
                     [Op.between]: [startOfPeriod, endOfPeriod]
                 }
             },
             attributes: [
                 'device_model',
                 [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
-                [sequelize.fn('DATE', sequelize.col('created_at')), 'date']
+                [sequelize.fn('DATE', sequelize.col('inspection_date')), 'date']
             ],
-            group: ['device_model', sequelize.fn('DATE', sequelize.col('created_at'))],
+            group: ['device_model', sequelize.fn('DATE', sequelize.col('inspection_date'))],
             order: sortBy === 'name' ? [['device_model', 'ASC']] : [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
             limit: parseInt(limit)
         });
@@ -416,7 +416,7 @@ router.get('/insights/device-models', auth, async (req, res) => {
 
         const previousPeriodData = await Report.findAll({
             where: {
-                created_at: {
+                inspection_date: {
                     [Op.between]: [previousStart, previousEnd]
                 }
             },
@@ -797,7 +797,7 @@ router.get('/insights/technical-analysis', auth, async (req, res) => {
     } catch (error) {
         console.error('Error getting technical analysis:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
-    }
+  }
 });
 
 module.exports = router;
