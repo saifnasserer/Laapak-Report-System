@@ -521,15 +521,21 @@ class AdminDashboard {
             const title = document.getElementById('goalTitle')?.value;
             const type = document.getElementById('goalType')?.value;
             const period = document.getElementById('goalPeriod')?.value;
-            const target = parseInt(document.getElementById('goalTarget')?.value);
+            const targetRaw = document.getElementById('goalTarget')?.value;
             const unit = document.getElementById('goalUnit')?.value;
+            const target = parseInt(targetRaw);
 
-            // Hide previous feedback
+            // Debug log for payload
+            console.log('Goal payload:', { title, type, target, unit, period });
+
             const feedback = document.getElementById('goalDialogFeedback');
             if (feedback) feedback.style.display = 'none';
 
-            if (!title || !type || !target || !unit || !period) {
-                this.showGoalDialogError('يرجى ملء جميع الحقول المطلوبة');
+            // Enhanced validation
+            const validTypes = ['reports', 'clients', 'revenue', 'custom'];
+            const validPeriods = ['monthly', 'quarterly', 'yearly'];
+            if (!title || !type || !unit || !period || isNaN(target) || target < 1 || !validTypes.includes(type) || !validPeriods.includes(period)) {
+                this.showGoalDialogError('يرجى ملء جميع الحقول المطلوبة بشكل صحيح');
                 return;
             }
 
@@ -571,7 +577,11 @@ class AdminDashboard {
                 let errorMsg = 'خطأ في حفظ الهدف';
                 try {
                     const err = await response.json();
-                    errorMsg = err.message || errorMsg;
+                    if (err.details && Array.isArray(err.details)) {
+                        errorMsg = err.details.join(', ');
+                    } else {
+                        errorMsg = err.message || errorMsg;
+                    }
                 } catch {}
                 this.showGoalDialogError(errorMsg);
                 throw new Error(errorMsg);

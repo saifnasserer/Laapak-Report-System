@@ -236,6 +236,7 @@ router.put('/achievements/:id', adminAuth, async (req, res) => {
 // Create a new goal
 router.post('/', adminAuth, async (req, res) => {
     try {
+        console.log('DEBUG POST /api/goals req.body:', JSON.stringify(req.body), 'raw:', req.body); // Enhanced debug log
         const { title, type, target, unit, period } = req.body;
         // Validation: Ensure all required fields are present
         if (!title || !type || !target || !unit || !period) {
