@@ -233,6 +233,32 @@ router.put('/achievements/:id', adminAuth, async (req, res) => {
     }
 });
 
+// Create a new goal
+router.post('/', adminAuth, async (req, res) => {
+    try {
+        const { title, type, target, unit, period } = req.body;
+        const currentDate = new Date();
+        const currentMonth = currentDate.toLocaleString('ar-SA', { month: 'long' });
+        const currentYear = currentDate.getFullYear();
+
+        // Create new goal for the specified period
+        const goal = await Goal.create({
+            month: currentMonth,
+            year: currentYear,
+            type,
+            title,
+            target,
+            unit,
+            period,
+            createdBy: req.user.id
+        });
+        res.json(goal);
+    } catch (error) {
+        console.error('Error creating goal:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Get all goals
 router.get('/', adminAuth, async (req, res) => {
     try {

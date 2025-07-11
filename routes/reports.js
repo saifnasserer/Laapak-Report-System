@@ -435,13 +435,13 @@ router.get('/insights/device-models', auth, async (req, res) => {
 
         // Add trend data to current results
         const results = deviceModels.map(item => {
-            const currentCount = parseInt(item.count);
+            const currentCount = parseInt(item.count) || 0;
             const previousCount = trendMap[item.device_model] || 0;
             const trend = previousCount === 0 ? 100 : ((currentCount - previousCount) / previousCount) * 100;
             
             return {
                 device_model: item.device_model,
-                count: currentCount,
+                count: isNaN(currentCount) ? 0 : currentCount,
                 trend: Math.round(trend * 100) / 100,
                 trend_direction: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable'
             };

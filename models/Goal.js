@@ -56,6 +56,11 @@ const Goal = sequelize.define('Goal', {
         allowNull: false,
         defaultValue: 'تقرير'
     },
+    period: {
+        type: DataTypes.ENUM('monthly', 'quarterly', 'yearly'),
+        allowNull: false,
+        defaultValue: 'monthly'
+    },
     isActive: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

@@ -110,6 +110,17 @@ class AdminDashboard {
         // Goals management
         document.getElementById('editGoalBtn')?.addEventListener('click', () => this.editBannerGoal());
         document.getElementById('saveGoalBtn')?.addEventListener('click', () => this.saveGoal());
+        // Add New Goal button
+        document.getElementById('addGoalBtn')?.addEventListener('click', () => {
+            document.getElementById('goalId').value = '';
+            document.getElementById('goalTitle').value = '';
+            document.getElementById('goalType').value = 'reports';
+            document.getElementById('goalPeriod').value = 'monthly';
+            document.getElementById('goalTarget').value = '';
+            document.getElementById('goalUnit').value = 'تقرير';
+            const modal = new bootstrap.Modal(document.getElementById('editGoalModal'));
+            modal.show();
+        });
     }
 
     updateActiveFilter(clickedElement) {
@@ -243,6 +254,7 @@ class AdminDashboard {
             const trendClass = device.trend_direction === 'up' ? 'text-success' : 
                              device.trend_direction === 'down' ? 'text-danger' : 'text-muted';
             
+            const count = (device.count === null || device.count === undefined) ? 0 : device.count;
             return `
                 <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded-3 bg-light bg-opacity-50">
                     <div class="d-flex align-items-center">
@@ -253,7 +265,7 @@ class AdminDashboard {
                         </div>
                         <div>
                             <h6 class="mb-1 fw-bold">${device.device_model}</h6>
-                            <small class="text-muted">${device.count} جهاز مباع</small>
+                            <small class="text-muted">${count} جهاز مباع</small>
                         </div>
                     </div>
                     <div class="text-end">
@@ -469,10 +481,11 @@ class AdminDashboard {
             const goalId = document.getElementById('goalId')?.value;
             const title = document.getElementById('goalTitle')?.value;
             const type = document.getElementById('goalType')?.value;
+            const period = document.getElementById('goalPeriod')?.value;
             const target = parseInt(document.getElementById('goalTarget')?.value);
             const unit = document.getElementById('goalUnit')?.value;
 
-            if (!title || !type || !target || !unit) {
+            if (!title || !type || !target || !unit || !period) {
                 alert('يرجى ملء جميع الحقول المطلوبة');
                 return;
             }
@@ -489,9 +502,10 @@ class AdminDashboard {
 
             const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
             
-            // Determine if this is a new goal or updating existing
-            const url = goalId ? `${baseUrl}/api/goals/${goalId}` : `${baseUrl}/api/goals/current`;
-            const method = goalId ? 'PUT' : 'PUT';
+            // Always use POST for new goal, PUT for edit
+            const isEdit = !!goalId;
+            const url = isEdit ? `${baseUrl}/api/goals/${goalId}` : `${baseUrl}/api/goals`;
+            const method = isEdit ? 'PUT' : 'POST';
             
             const response = await fetch(url, {
                 method: method,
@@ -503,7 +517,8 @@ class AdminDashboard {
                     title,
                     type,
                     target,
-                    unit
+                    unit,
+                    period
                 })
             });
 
@@ -519,6 +534,7 @@ class AdminDashboard {
             document.getElementById('goalId').value = '';
             document.getElementById('goalTitle').value = '';
             document.getElementById('goalType').value = 'reports';
+            document.getElementById('goalPeriod').value = 'monthly';
             document.getElementById('goalTarget').value = '';
             document.getElementById('goalUnit').value = 'تقرير';
 
@@ -585,6 +601,12 @@ class AdminDashboard {
         // Find the banner goal (isBanner)
         const bannerGoalId = goals.find(g => g.isBanner)?.id;
 
+        const periodLabels = {
+            monthly: 'شهري',
+            quarterly: 'ربع سنوي',
+            yearly: 'سنوي'
+        };
+
         const html = goals.map(goal => `
             <div class="card mb-3 border-0 shadow-sm${goal.id === bannerGoalId ? ' border-primary' : ''}">
                 <div class="card-body">
@@ -608,6 +630,7 @@ class AdminDashboard {
                             </ul>
                         </div>
                     </div>
+                    <div class="mb-2"><span class="badge bg-secondary">${periodLabels[goal.period] || ''}</span></div>
                     ${goal.description ? `<p class="card-text small text-muted">${goal.description}</p>` : ''}
                     <div class="progress mb-2" style="height: 8px;">
                         <div class="progress-bar bg-primary" role="progressbar" 
@@ -651,11 +674,12 @@ async function editGoal(goalId) {
         const goalIdInput = document.getElementById('goalId');
         const goalTitle = document.getElementById('goalTitle');
         const goalType = document.getElementById('goalType');
+        const goalPeriod = document.getElementById('goalPeriod');
         const goalTarget = document.getElementById('goalTarget');
         const goalUnit = document.getElementById('goalUnit');
         const editGoalModal = document.getElementById('editGoalModal');
         
-        if (!goalIdInput || !goalTitle || !goalType || !goalTarget || !goalUnit || !editGoalModal) {
+        if (!goalIdInput || !goalTitle || !goalType || !goalPeriod || !goalTarget || !goalUnit || !editGoalModal) {
             console.error('Edit goal modal elements not found');
             alert('خطأ في تحميل نافذة التعديل');
             return;
@@ -665,6 +689,7 @@ async function editGoal(goalId) {
         goalIdInput.value = goal.id || '';
         goalTitle.value = goal.title || '';
         goalType.value = goal.type || 'reports';
+        goalPeriod.value = goal.period || 'monthly';
         goalTarget.value = goal.target || '';
         goalUnit.value = goal.unit || 'تقرير';
         
