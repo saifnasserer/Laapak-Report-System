@@ -178,6 +178,17 @@ class AdminDashboard {
                 document.getElementById('banner-goal-progress').style.width = `${Math.min(progress, 100)}%`;
                 document.getElementById('banner-goal-current').textContent = goal.current;
                 document.getElementById('banner-goal-target').textContent = goal.target;
+                // Update banner title with period and goal name
+                const periodLabels = {
+                    monthly: 'الهدف الشهري',
+                    quarterly: 'الهدف الربع سنوي',
+                    yearly: 'الهدف السنوي'
+                };
+                const bannerTitle = `${periodLabels[goal.period] || ''} : ${goal.title} (${goal.target} ${goal.unit})`;
+                const bannerTitleEl = document.getElementById('banner-goal-title');
+                if (bannerTitleEl) {
+                    bannerTitleEl.textContent = bannerTitle;
+                }
             }
         } catch (error) {
             console.error('Error loading banner goal:', error);
