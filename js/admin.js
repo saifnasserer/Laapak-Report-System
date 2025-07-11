@@ -582,11 +582,17 @@ class AdminDashboard {
             return;
         }
 
+        // Find the banner goal (isBanner)
+        const bannerGoalId = goals.find(g => g.isBanner)?.id;
+
         const html = goals.map(goal => `
-            <div class="card mb-3 border-0 shadow-sm">
+            <div class="card mb-3 border-0 shadow-sm${goal.id === bannerGoalId ? ' border-primary' : ''}">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6 class="card-title mb-0">${goal.title}</h6>
+                        <h6 class="card-title mb-0">
+                            ${goal.title}
+                            ${goal.id === bannerGoalId ? '<span class="badge bg-primary ms-2">هدف البانر</span>' : ''}
+                        </h6>
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-ellipsis-v"></i>
@@ -598,10 +604,11 @@ class AdminDashboard {
                                 <li><a class="dropdown-item text-danger" href="#" onclick="deleteGoal(${goal.id})">
                                     <i class="fas fa-trash me-2"></i>حذف
                                 </a></li>
+                                ${goal.id !== bannerGoalId ? `<li><a class="dropdown-item text-primary" href="#" onclick="setBannerGoal(${goal.id})"><i class="fas fa-bullseye me-2"></i>تعيين كهدف البانر</a></li>` : ''}
                             </ul>
                         </div>
                     </div>
-                    <p class="card-text small text-muted">${goal.description}</p>
+                    ${goal.description ? `<p class="card-text small text-muted">${goal.description}</p>` : ''}
                     <div class="progress mb-2" style="height: 8px;">
                         <div class="progress-bar bg-primary" role="progressbar" 
                              style="width: ${Math.min((goal.current / goal.target) * 100, 100)}%"></div>
@@ -641,21 +648,21 @@ async function editGoal(goalId) {
         const goal = await response.json();
         
         // Check if modal elements exist before populating
-        const goalId = document.getElementById('goalId');
+        const goalIdInput = document.getElementById('goalId');
         const goalTitle = document.getElementById('goalTitle');
         const goalType = document.getElementById('goalType');
         const goalTarget = document.getElementById('goalTarget');
         const goalUnit = document.getElementById('goalUnit');
         const editGoalModal = document.getElementById('editGoalModal');
         
-        if (!goalId || !goalTitle || !goalType || !goalTarget || !goalUnit || !editGoalModal) {
+        if (!goalIdInput || !goalTitle || !goalType || !goalTarget || !goalUnit || !editGoalModal) {
             console.error('Edit goal modal elements not found');
             alert('خطأ في تحميل نافذة التعديل');
             return;
         }
         
         // Populate edit modal
-        goalId.value = goal.id || '';
+        goalIdInput.value = goal.id || '';
         goalTitle.value = goal.title || '';
         goalType.value = goal.type || 'reports';
         goalTarget.value = goal.target || '';
@@ -696,7 +703,34 @@ async function deleteGoal(goalId) {
     }
 }
 
-
+// Add global function to set banner goal
+window.setBannerGoal = async function(goalId) {
+    try {
+        const token = typeof authMiddleware !== 'undefined' ? authMiddleware.getAdminToken() : null;
+        const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
+        const response = await fetch(`${baseUrl}/api/goals/${goalId}/set-banner`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        alert('تم تعيين الهدف كهدف البانر بنجاح');
+        // Reload goals and banner
+        if (window.dashboard) {
+            window.dashboard.loadGoals();
+            window.dashboard.loadBannerGoal();
+        } else {
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Error setting banner goal:', error);
+        alert('خطأ في تعيين هدف البانر');
+    }
+}
 
 /**
  * Load dashboard statistics from API

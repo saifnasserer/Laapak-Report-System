@@ -9,7 +9,7 @@ const { Goal, Achievement, Report, Client, Invoice } = require('../models');
 const { adminAuth } = require('../middleware/auth');
 const { Op } = require('sequelize');
 
-// Get current month's goals
+// Get current month's banner goal
 router.get('/current', adminAuth, async (req, res) => {
     console.log('DEBUG /api/goals/current req.user:', req.user); // Debug log
     try {
@@ -17,16 +17,29 @@ router.get('/current', adminAuth, async (req, res) => {
         const currentMonth = currentDate.toLocaleString('ar-SA', { month: 'long' });
         const currentYear = currentDate.getFullYear();
 
-        // Get current month's goal
+        // Try to get the banner goal for this month/year
         let goal = await Goal.findOne({
             where: {
                 month: currentMonth,
                 year: currentYear,
-                isActive: true
+                isActive: true,
+                isBanner: true
             }
         });
 
-        // If no goal exists for current month, create a default one
+        // If no banner goal, fallback to the first goal for this month/year
+        if (!goal) {
+            goal = await Goal.findOne({
+                where: {
+                    month: currentMonth,
+                    year: currentYear,
+                    isActive: true
+                },
+                order: [['createdAt', 'ASC']]
+            });
+        }
+
+        // If still no goal, create a default one
         if (!goal) {
             // Get current month's statistics
             const startOfMonth = new Date(currentYear, currentDate.getMonth(), 1);
@@ -289,6 +302,29 @@ router.delete('/:id', adminAuth, async (req, res) => {
         res.json({ message: 'Goal deleted successfully' });
     } catch (error) {
         console.error('Error deleting goal:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Set a goal as the banner for the current month/year
+router.post('/:id/set-banner', adminAuth, async (req, res) => {
+    try {
+        const goal = await Goal.findByPk(req.params.id);
+        if (!goal) {
+            return res.status(404).json({ message: 'Goal not found' });
+        }
+        // Unset isBanner for all goals in the same month/year
+        await Goal.update({ isBanner: false }, {
+            where: {
+                month: goal.month,
+                year: goal.year
+            }
+        });
+        // Set isBanner for this goal
+        await goal.update({ isBanner: true });
+        res.json({ message: 'Banner goal set successfully', goal });
+    } catch (error) {
+        console.error('Error setting banner goal:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
