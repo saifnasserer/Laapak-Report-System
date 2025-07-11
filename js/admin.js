@@ -502,6 +502,19 @@ class AdminDashboard {
         }
     }
 
+    showGoalDialogError(message) {
+        let feedback = document.getElementById('goalDialogFeedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.id = 'goalDialogFeedback';
+            feedback.className = 'alert alert-danger mt-2';
+            const modalBody = document.querySelector('#editGoalModal .modal-body');
+            if (modalBody) modalBody.prepend(feedback);
+        }
+        feedback.textContent = message;
+        feedback.style.display = 'block';
+    }
+
     async saveGoal() {
         try {
             const goalId = document.getElementById('goalId')?.value;
@@ -511,8 +524,12 @@ class AdminDashboard {
             const target = parseInt(document.getElementById('goalTarget')?.value);
             const unit = document.getElementById('goalUnit')?.value;
 
+            // Hide previous feedback
+            const feedback = document.getElementById('goalDialogFeedback');
+            if (feedback) feedback.style.display = 'none';
+
             if (!title || !type || !target || !unit || !period) {
-                alert('يرجى ملء جميع الحقول المطلوبة');
+                this.showGoalDialogError('يرجى ملء جميع الحقول المطلوبة');
                 return;
             }
 
@@ -533,7 +550,13 @@ class AdminDashboard {
             const url = isEdit ? `${baseUrl}/api/goals/${goalId}` : `${baseUrl}/api/goals`;
             const method = isEdit ? 'PUT' : 'POST';
             
-            console.log('Saving goal:', { isEdit, url, method, goalData: { title, type, target, unit, period } });
+            const body = JSON.stringify({
+                title,
+                type,
+                target,
+                unit,
+                period
+            });
             
             const response = await fetch(url, {
                 method: method,
@@ -541,18 +564,17 @@ class AdminDashboard {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
                 },
-                body: JSON.stringify({
-                    title,
-                    type,
-                    target,
-                    unit,
-                    period
-                })
+                body
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+                let errorMsg = 'خطأ في حفظ الهدف';
+                try {
+                    const err = await response.json();
+                    errorMsg = err.message || errorMsg;
+                } catch {}
+                this.showGoalDialogError(errorMsg);
+                throw new Error(errorMsg);
             }
 
             // Close modal
@@ -576,7 +598,6 @@ class AdminDashboard {
             alert('تم حفظ الهدف بنجاح');
         } catch (error) {
             console.error('Error saving goal:', error);
-            alert(`خطأ في حفظ الهدف: ${error.message}`);
         }
     }
 

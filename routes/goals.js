@@ -245,11 +245,7 @@ router.post('/', adminAuth, async (req, res) => {
         const currentMonth = currentDate.toLocaleString('ar-SA', { month: 'long' });
         const currentYear = currentDate.getFullYear();
 
-        // Duplicate check
-        const existingGoal = await Goal.findOne({ where: { month: currentMonth, year: currentYear } });
-        if (existingGoal) {
-            return res.status(409).json({ message: 'A goal for this month and year already exists.' });
-        }
+        // Duplicate check removed to allow multiple goals per period
 
         // Create new goal for the specified period
         const goal = await Goal.create({
@@ -257,7 +253,6 @@ router.post('/', adminAuth, async (req, res) => {
             year: currentYear,
             type,
             title,
-            target,
             unit,
             period,
             createdBy: req.user.id
@@ -272,7 +267,6 @@ router.post('/', adminAuth, async (req, res) => {
         // Log full error for debugging
         if (error.parent) {
             console.error('Parent error:', error.parent.message);
-            if (error.parent.sql) console.error('SQL query:', error.parent.sql);
         }
         res.status(500).json({ message: 'Server error', error: error.message });
     }
