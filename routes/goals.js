@@ -308,21 +308,20 @@ router.get('/:id', adminAuth, async (req, res) => {
 // Update goal by ID
 router.put('/:id', adminAuth, async (req, res) => {
     try {
-        const { title, type, target, unit } = req.body;
-        
+        const { title, type, target, unit, period } = req.body;
         const goal = await Goal.findByPk(req.params.id);
-        
         if (!goal) {
             return res.status(404).json({ message: 'Goal not found' });
         }
-        
+        console.log('DEBUG PUT /api/goals/:id req.body:', req.body);
         await goal.update({
-            title: title || goal.title,
-            type: type || goal.type,
-            target: target || goal.target,
-            unit: unit || goal.unit
+            title: typeof title !== 'undefined' ? title : goal.title,
+            type: typeof type !== 'undefined' ? type : goal.type,
+            target: typeof target !== 'undefined' ? target : goal.target,
+            unit: typeof unit !== 'undefined' ? unit : goal.unit,
+            period: typeof period !== 'undefined' ? period : goal.period
         });
-        
+        console.log('DEBUG PUT /api/goals/:id updated goal:', goal.toJSON());
         res.json(goal);
     } catch (error) {
         console.error('Error updating goal:', error);
@@ -354,6 +353,7 @@ router.post('/:id/set-banner', adminAuth, async (req, res) => {
         if (!goal) {
             return res.status(404).json({ message: 'Goal not found' });
         }
+        console.log('DEBUG POST /api/goals/:id/set-banner goal:', goal.toJSON());
         // Unset isBanner for all goals in the same month/year
         await Goal.update({ isBanner: false }, {
             where: {
@@ -363,6 +363,7 @@ router.post('/:id/set-banner', adminAuth, async (req, res) => {
         });
         // Set isBanner for this goal
         await goal.update({ isBanner: true });
+        console.log('DEBUG POST /api/goals/:id/set-banner updated goal:', goal.toJSON());
         res.json({ message: 'Banner goal set successfully', goal });
     } catch (error) {
         console.error('Error setting banner goal:', error);

@@ -78,12 +78,13 @@ const Goal = sequelize.define('Goal', {
 }, {
     tableName: 'goals',
     timestamps: true,
-    indexes: [
-        {
-            fields: ['month', 'year'],
-            unique: true
-        }
-    ]
+    // Removed unique index on (month, year) to allow multiple goals per period
+    // indexes: [
+    //     {
+    //         fields: ['month', 'year'],
+    //         unique: true
+    //     }
+    // ]
 });
 
 module.exports = Goal; 
