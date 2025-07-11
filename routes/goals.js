@@ -11,6 +11,7 @@ const { Op } = require('sequelize');
 
 // Get current month's goals
 router.get('/current', adminAuth, async (req, res) => {
+    console.log('DEBUG /api/goals/current req.user:', req.user); // Debug log
     try {
         const currentDate = new Date();
         const currentMonth = currentDate.toLocaleString('ar-SA', { month: 'long' });
@@ -41,7 +42,7 @@ router.get('/current', adminAuth, async (req, res) => {
 
             const clientsCount = await Client.count({
                 where: {
-                    created_at: {
+                    createdAt: {
                         [Op.between]: [startOfMonth, endOfMonth]
                     }
                 }
@@ -76,7 +77,7 @@ router.get('/current', adminAuth, async (req, res) => {
 
         const currentClients = await Client.count({
             where: {
-                created_at: {
+                createdAt: {
                     [Op.between]: [startOfMonth, endOfMonth]
                 }
             }
@@ -377,8 +378,8 @@ async function checkForNewAchievements(adminId) {
 
         const monthlyReports = await Report.count({
             where: {
-                createdAt: {
-                    [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
+                created_at: {
+                    [Op.between]: [startOfMonth, endOfMonth]
                 }
             }
         });
