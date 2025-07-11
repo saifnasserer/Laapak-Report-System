@@ -422,7 +422,9 @@ router.get('/insights/device-models', auth, async (req, res) => {
             logging: (sql) => console.log('Device Models SQL:', sql)
         });
 
-        console.log('Raw deviceModels from DB:', JSON.stringify(deviceModelsRaw, null, 2));
+        // Convert Sequelize instances to plain objects
+        const deviceModelsPlain = deviceModelsRaw.map(item => item.get({ plain: true }));
+        console.log('Plain deviceModels:', JSON.stringify(deviceModelsPlain, null, 2));
 
         // Calculate trends (compare with previous period)
         const previousStart = new Date(startOfPeriod);
@@ -444,16 +446,18 @@ router.get('/insights/device-models', auth, async (req, res) => {
             group: ['device_model']
         });
 
-        console.log('Previous period deviceModels:', JSON.stringify(previousPeriodData, null, 2));
+        // Convert previous period data to plain objects
+        const previousPeriodPlain = previousPeriodData.map(item => item.get({ plain: true }));
+        console.log('Previous period deviceModels:', JSON.stringify(previousPeriodPlain, null, 2));
 
         // Create trend mapping
         const trendMap = {};
-        previousPeriodData.forEach(item => {
+        previousPeriodPlain.forEach(item => {
             trendMap[item.device_model] = parseInt(item.count);
         });
 
         // Add trend data to current results
-        const results = deviceModelsRaw.map(item => {
+        const results = deviceModelsPlain.map(item => {
             const currentCount = parseInt(item.count) || 0;
             const previousCount = trendMap[item.device_model] || 0;
             const trend = previousCount === 0 ? 100 : ((currentCount - previousCount) / previousCount) * 100;
