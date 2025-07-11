@@ -405,7 +405,7 @@ router.get('/insights/device-models', auth, async (req, res) => {
         });
         console.log('Reports count in period:', reportsCount);
 
-        // Log the raw SQL query for the device models aggregation
+        // FIX: Only group by device_model
         const deviceModelsRaw = await Report.findAll({
             where: {
                 inspection_date: {
@@ -414,10 +414,9 @@ router.get('/insights/device-models', auth, async (req, res) => {
             },
             attributes: [
                 'device_model',
-                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
-                [sequelize.fn('DATE', sequelize.col('inspection_date')), 'date']
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
             ],
-            group: ['device_model', sequelize.fn('DATE', sequelize.col('inspection_date'))],
+            group: ['device_model'],
             order: sortBy === 'name' ? [['device_model', 'ASC']] : [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
             limit: parseInt(limit),
             logging: (sql) => console.log('Device Models SQL:', sql)

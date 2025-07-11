@@ -401,12 +401,12 @@
                                         Client options will be loaded dynamically
                                     </select>
                                 </div> -->
-                                <div class="input-group" style="flex: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: var(--input-radius); overflow: hidden; border: 2px solid rgba(14, 175, 84, 0.2);">
+                                <div class="input-group position-relative" style="flex: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: var(--input-radius); border: 2px solid rgba(14, 175, 84, 0.2);">
                                     <span class="input-group-text" style="background: linear-gradient(135deg, rgba(14, 175, 84, 0.1) 0%, rgba(14, 175, 84, 0.05) 100%); border: none;">
                                         <i class="fas fa-search" style="color: var(--primary-color); font-size: 1.1rem;"></i>
                                     </span>
                                     <input type="text" class="form-control border-0 shadow-none" id="clientSearchInput" placeholder="ابحث بالاسم أو رقم الهاتف..." autocomplete="off" style="height: 40px;padding: 0 1.25rem !important; font-size: 1.05rem; background-color: #fafffe;" />
-                                    <div id="clientSearchResults" class="list-group position-absolute w-100" style="z-index: 10; top: 100%; right: 0;"></div>
+                                    <div id="clientSearchResults" class="list-group position-absolute w-100" style="z-index: 1000; top: 100%; left: 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 0.5rem; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-height: 240px; overflow-y: auto; display: none;"></div>
                                 </div>
                                 <button class="btn btn-success ms-2" type="button" data-bs-toggle="modal" data-bs-target="#addClientModal" style="box-shadow: 0 5px 15px rgba(14, 175, 84, 0.2); border-radius: var(--btn-radius); padding: 0.75rem 1.25rem; font-weight: 500;">
                                     <i class="fas fa-plus me-2"></i> عميل جديد
@@ -455,9 +455,10 @@
                                                 <div class="col-md-6">
                                                     <label for="orderNumber" class="form-label">رقم الطلب</label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" id="orderNumber" placeholder="LPK00000" value="LPK" required>
+                                                        <input type="text" class="form-control" id="orderNumber" placeholder="00000" style="border-right: none;" required>
+                                                        <span class="input-group-text bg-light text-muted" style="border-left: none;">LPK</span>
                                                     </div>
-                                                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i> سيتم إضافة البادئة LPK تلقائيًا</small>
+                                                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i> أدخل الأرقام فقط، سيتم إضافة LPK تلقائيًا</small>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="inspectionDate" class="form-label">تاريخ الفحص</label>
@@ -474,21 +475,21 @@
                                                 <div class="col-md-6">
                                                     <label for="deviceModel" class="form-label">موديل الجهاز</label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" id="deviceModel" value="Dell 5550" required>
+                                                        <input type="text" class="form-control" id="deviceModel" placeholder="Model Name" required>
                                                         <span class="input-group-text bg-light text-muted"><i class="fas fa-laptop"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="serialNumber" class="form-label">الرقم التسلسلي</label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" id="serialNumber" value="123456789" required>
+                                                        <input type="text" class="form-control" id="serialNumber" placeholder="Serial Number" required>
                                                         <span class="input-group-text bg-light text-muted"><i class="fas fa-barcode"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="devicePrice" class="form-label">السعر</label>
                                                     <div class="input-group">
-                                                        <input type="number" class="form-control" id="devicePrice" value="250" min="0" step="1">
+                                                        <input type="number" class="form-control" id="devicePrice" placeholder="Price" min="0" step="1">
                                                         <span class="input-group-text">جنية</span>
                                                     </div>
                                                     <small class="text-muted">سيتم استخدام هذا السعر في الفاتورة</small>
@@ -535,7 +536,7 @@
                                                             <td><i class="fas fa-camera text-primary me-2"></i> الكاميرا</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="camera" class="form-check-input" type="radio" name="camera_status" id="camera_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="camera" class="form-check-input" type="radio" name="camera_status" id="camera_working" value="working" >
                                                                     <label class="form-check-label" for="camera_working"></label>
                                                                 </div>
                                                             </td>
@@ -552,7 +553,7 @@
                                                             <td><i class="fas fa-volume-up text-primary me-2"></i> السماعات</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="speakers" class="form-check-input" type="radio" name="speakers_status" id="speakers_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="speakers" class="form-check-input" type="radio" name="speakers_status" id="speakers_working" value="working" >
                                                                     <label class="form-check-label" for="speakers_working"></label>
                                                                 </div>
                                                             </td>
@@ -569,7 +570,7 @@
                                                             <td><i class="fas fa-microphone text-primary me-2"></i> الميكروفون</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="microphone" class="form-check-input" type="radio" name="microphone_status" id="microphone_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="microphone" class="form-check-input" type="radio" name="microphone_status" id="microphone_working" value="working" >
                                                                     <label class="form-check-label" for="microphone_working"></label>
                                                                 </div>
                                                             </td>
@@ -586,7 +587,7 @@
                                                             <td><i class="fas fa-wifi text-primary me-2"></i> واي فاي</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="Wi-Fi" class="form-check-input" type="radio" name="wifi_status" id="wifi_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="Wi-Fi" class="form-check-input" type="radio" name="wifi_status" id="wifi_working" value="working" >
                                                                     <label class="form-check-label" for="wifi_working"></label>
                                                                 </div>
                                                             </td>
@@ -603,7 +604,7 @@
                                                             <td><i class="fas fa-network-wired text-primary me-2"></i> منفذ الشبكة (LAN)</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="LAN" class="form-check-input" type="radio" name="lan_status" id="lan_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="LAN" class="form-check-input" type="radio" name="lan_status" id="lan_working" value="working" >
                                                                     <label class="form-check-label" for="lan_working"></label>
                                                                 </div>
                                                             </td>
@@ -620,7 +621,7 @@
                                                             <td><i class="fas fa-usb text-primary me-2"></i> منافذ USB</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="Ports" class="form-check-input" type="radio" name="usb_status" id="usb_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="Ports" class="form-check-input" type="radio" name="usb_status" id="usb_working" value="working" >
                                                                     <label class="form-check-label" for="usb_working"></label>
                                                                 </div>
                                                             </td>
@@ -637,7 +638,7 @@
                                                             <td><i class="fas fa-keyboard text-primary me-2"></i> لوحة المفاتيح</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="keyboard" class="form-check-input" type="radio" name="keyboard_status" id="keyboard_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="keyboard" class="form-check-input" type="radio" name="keyboard_status" id="keyboard_working" value="working" >
                                                                     <label class="form-check-label" for="keyboard_working"></label>
                                                                 </div>
                                                             </td>
@@ -654,7 +655,7 @@
                                                             <td><i class="fas fa-hand-pointer text-primary me-2"></i> لوحة اللمس</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="Touchpad" class="form-check-input" type="radio" name="touchpad_status" id="touchpad_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="Touchpad" class="form-check-input" type="radio" name="touchpad_status" id="touchpad_working" value="working" >
                                                                     <label class="form-check-label" for="touchpad_working"></label>
                                                                 </div>
                                                             </td>
@@ -671,7 +672,7 @@
                                                             <td><i class="fas fa-sd-card text-primary me-2"></i> قارئ البطاقات</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="card" class="form-check-input" type="radio" name="card_reader_status" id="card_reader_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="card" class="form-check-input" type="radio" name="card_reader_status" id="card_reader_working" value="working" >
                                                                     <label class="form-check-label" for="card_reader_working"></label>
                                                                 </div>
                                                             </td>
@@ -688,7 +689,7 @@
                                                             <td><i class="fas fa-headphones text-primary me-2"></i> منفذ الصوت</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="audio_jack" class="form-check-input" type="radio" name="audio_jack_status" id="audio_jack_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="audio_jack" class="form-check-input" type="radio" name="audio_jack_status" id="audio_jack_working" value="working" >
                                                                     <label class="form-check-label" for="audio_jack_working"></label>
                                                                 </div>
                                                             </td>
@@ -705,7 +706,7 @@
                                                             <td><i class="fas fa-desktop text-primary me-2"></i> منافذ العرض (HDMI/DisplayPort)</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="DisplayPort" class="form-check-input" type="radio" name="display_ports_status" id="display_ports_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="DisplayPort" class="form-check-input" type="radio" name="display_ports_status" id="display_ports_working" value="working" >
                                                                     <label class="form-check-label" for="display_ports_working"></label>
                                                                 </div>
                                                             </td>
@@ -722,7 +723,7 @@
                                                             <td><i class="fab fa-bluetooth-b text-primary me-2"></i> بلوتوث</td>
                                                             <td class="text-center">
                                                                 <div class="form-check d-inline-block">
-                                                                    <input data-hardwarecomponent="Bluetooth" class="form-check-input" type="radio" name="bluetooth_status" id="bluetooth_working" value="working" checked>
+                                                                    <input data-hardwarecomponent="Bluetooth" class="form-check-input" type="radio" name="bluetooth_status" id="bluetooth_working" value="working" >
                                                                     <label class="form-check-label" for="bluetooth_working"></label>
                                                                 </div>
                                                             </td>
@@ -1643,7 +1644,11 @@
                         </div>
                         <div class="mb-3">
                             <label for="clientOrderCode" class="form-label">رقم الطلب <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="clientOrderCode" required>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="clientOrderCode" placeholder="00000" style="border-right: none;" required>
+                                <span class="input-group-text bg-light text-muted" style="border-left: none;">LPK</span>
+                            </div>
+                            <small class="text-muted"><i class="fas fa-info-circle me-1"></i> أدخل الأرقام فقط، سيتم إضافة LPK تلقائيًا</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label d-block">حالة العميل</label>

@@ -8,6 +8,7 @@ const router = express.Router();
 const { Admin, Client } = require('../models');
 const { auth, adminAuth, adminRoleAuth } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 
 // Get all admins (admin only)
 router.get('/admins', adminRoleAuth(['admin']), async (req, res) => {
@@ -143,7 +144,22 @@ router.delete('/admins/:id', adminRoleAuth(['admin']), async (req, res) => {
 // Get all clients (admin only)
 router.get('/clients', adminAuth, async (req, res) => {
     try {
-        const clients = await Client.findAll();
+        const { search } = req.query;
+        let whereClause = {};
+
+        if (search) {
+            whereClause = {
+                [Op.or]: [
+                    { name: { [Op.like]: `%${search}%` } },
+                    { phone: { [Op.like]: `%${search}%` } }
+                ]
+            };
+        }
+
+        const clients = await Client.findAll({
+            where: whereClause,
+            order: [['createdAt', 'DESC']]
+        });
         
         res.json(clients);
     } catch (error) {

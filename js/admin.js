@@ -205,17 +205,20 @@ class AdminDashboard {
                 token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
             }
             
-            console.log('Token for device models request:', token ? 'Present' : 'Missing');
-            console.log('Requesting device models with period:', period);
-            
             const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
             const params = new URLSearchParams({
                 period: period,
                 sortBy,
                 limit
             });
-
-            const response = await fetch(`${baseUrl}/api/reports/insights/device-models?${params}`, {
+            const apiUrl = `${baseUrl}/api/reports/insights/device-models?${params}`;
+            
+            console.log('Token for device models request:', token ? 'Present' : 'Missing');
+            console.log('Requesting device models with period:', period);
+            console.log('Device models API URL:', apiUrl);
+            console.log('Query params:', { period, sortBy, limit });
+            
+            const response = await fetch(apiUrl, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
@@ -227,11 +230,25 @@ class AdminDashboard {
             }
             
             const data = await response.json();
-
             console.log('Device models data received from backend:', data);
 
-            this.renderDeviceModels(data);
-            this.updateDevicePeriodInfo(data);
+            // Handle different response formats
+            let deviceModels = [];
+            let totalDevices = 0;
+            
+            if (data.deviceModels && Array.isArray(data.deviceModels)) {
+                deviceModels = data.deviceModels;
+                totalDevices = data.totalDevices || deviceModels.reduce((sum, device) => sum + (device.count || 0), 0);
+            } else if (Array.isArray(data)) {
+                deviceModels = data;
+                totalDevices = deviceModels.reduce((sum, device) => sum + (device.count || 0), 0);
+            } else {
+                console.error('Unexpected device models data format:', data);
+                throw new Error('Invalid data format received from server');
+            }
+
+            this.renderDeviceModels({ deviceModels, totalDevices });
+            this.updateDevicePeriodInfo({ totalDevices });
         } catch (error) {
             console.error('Error loading device models:', error);
             if (container) {
@@ -259,7 +276,7 @@ class AdminDashboard {
                              device.trend_direction === 'down' ? 'text-danger' : 'text-muted';
             
             const count = (device.count === null || device.count === undefined) ? 0 : device.count;
-            console.log(`Device: ${device.device_model}, Count: ${count}`);
+            console.log(`Device: ${device.device_model}, Count: ${count}, Raw device data:`, device);
             return `
                 <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded-3 bg-light bg-opacity-50">
                     <div class="d-flex align-items-center">
@@ -269,7 +286,7 @@ class AdminDashboard {
                             </div>
                         </div>
                         <div>
-                            <h6 class="mb-1 fw-bold">${device.device_model}</h6>
+                            <h6 class="mb-1 fw-bold">${device.device_model || 'غير محدد'}</h6>
                             <small class="text-muted">${count} جهاز مباع</small>
                         </div>
                     </div>
@@ -434,6 +451,7 @@ class AdminDashboard {
             document.getElementById('goalId').value = '';
             document.getElementById('goalTitle').value = '';
             document.getElementById('goalType').value = 'reports';
+            document.getElementById('goalPeriod').value = 'monthly';
             document.getElementById('goalTarget').value = '';
             document.getElementById('goalUnit').value = 'تقرير';
 
@@ -453,12 +471,14 @@ class AdminDashboard {
                 // Populate modal fields
                 document.getElementById('goalTitle').value = goal.title || '';
                 document.getElementById('goalType').value = goal.type || 'reports';
+                document.getElementById('goalPeriod').value = goal.period || 'monthly';
                 document.getElementById('goalTarget').value = goal.target || '';
                 document.getElementById('goalUnit').value = goal.unit || 'تقرير';
             } else {
                 // Set default values if no current goal
                 document.getElementById('goalTitle').value = 'هدف الشهر';
                 document.getElementById('goalType').value = 'reports';
+                document.getElementById('goalPeriod').value = 'monthly';
                 document.getElementById('goalTarget').value = '15';
                 document.getElementById('goalUnit').value = 'تقرير';
             }
@@ -472,6 +492,7 @@ class AdminDashboard {
             // Set default values on error
             document.getElementById('goalTitle').value = 'هدف الشهر';
             document.getElementById('goalType').value = 'reports';
+            document.getElementById('goalPeriod').value = 'monthly';
             document.getElementById('goalTarget').value = '15';
             document.getElementById('goalUnit').value = 'تقرير';
             
@@ -507,10 +528,12 @@ class AdminDashboard {
 
             const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
             
-            // Always use POST for new goal, PUT for edit
-            const isEdit = !!goalId;
+            // Determine if this is an edit or new goal
+            const isEdit = goalId && goalId.trim() !== '';
             const url = isEdit ? `${baseUrl}/api/goals/${goalId}` : `${baseUrl}/api/goals`;
             const method = isEdit ? 'PUT' : 'POST';
+            
+            console.log('Saving goal:', { isEdit, url, method, goalData: { title, type, target, unit, period } });
             
             const response = await fetch(url, {
                 method: method,
@@ -528,12 +551,15 @@ class AdminDashboard {
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
             }
 
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('editGoalModal'));
-            modal.hide();
+            if (modal) {
+                modal.hide();
+            }
 
             // Clear the form
             document.getElementById('goalId').value = '';
@@ -550,7 +576,7 @@ class AdminDashboard {
             alert('تم حفظ الهدف بنجاح');
         } catch (error) {
             console.error('Error saving goal:', error);
-            alert('خطأ في حفظ الهدف');
+            alert(`خطأ في حفظ الهدف: ${error.message}`);
         }
     }
 
@@ -697,6 +723,15 @@ async function editGoal(goalId) {
         goalPeriod.value = goal.period || 'monthly';
         goalTarget.value = goal.target || '';
         goalUnit.value = goal.unit || 'تقرير';
+        
+        console.log('Populated goal modal with:', { 
+            id: goal.id, 
+            title: goal.title, 
+            type: goal.type, 
+            period: goal.period, 
+            target: goal.target, 
+            unit: goal.unit 
+        });
         
         // Show modal
         const modal = new bootstrap.Modal(editGoalModal);

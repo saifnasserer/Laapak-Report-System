@@ -221,11 +221,7 @@ class ApiService {
         return this.request('/api/users/change-password', 'POST', data);
     }
 
-    // Client Management API Methods
-    async getClients() {
-        return this.request('/api/users/clients');
-    }
-
+    // Client Management API Methods (using /api/users/clients endpoints)
     async getClient(id) {
         return this.request(`/api/users/clients/${id}`);
     }

@@ -959,7 +959,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update global device details
         window.globalDeviceDetails = {
-            orderNumber: document.getElementById('orderNumber')?.value || '',
+            orderNumber: window.getFullOrderCode ? window.getFullOrderCode() : (document.getElementById('orderNumber')?.value || ''),
             inspectionDate: document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0],
             deviceModel: document.getElementById('deviceModel')?.value || '',
             serialNumber: document.getElementById('serialNumber')?.value || ''
@@ -1138,10 +1138,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                         
                         // Race between API request and timeout
-                        clients = await Promise.race([
+                        const response = await Promise.race([
                             apiService.getClients(),
                             timeoutPromise
                         ]);
+                        
+                        console.log('[DEBUG] LoadClients API response:', response);
+                        // Fix: extract the array if response is an object
+                        clients = Array.isArray(response) ? response : (response.clients || []);
+                        console.log('[DEBUG] LoadClients extracted clients array:', clients);
+                        console.log('[DEBUG] LoadClients number of clients found:', clients.length);
                         
                         if (Array.isArray(clients) && clients.length > 0) {
                             console.log(`Successfully fetched ${clients.length} clients from API`);
@@ -1842,6 +1848,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const clientOrderCode = clientOrderCodeInput?.value.trim() || '';
             const clientStatus = Array.from(statusInputs).find(input => input.checked)?.value || 'active';
             
+            // Get full order code with LPK prefix
+            const fullOrderCode = window.getFullClientOrderCode ? window.getFullClientOrderCode() : clientOrderCode;
+            
             // Validate required fields
             let isValid = true;
             let focusSet = false;
@@ -1925,7 +1934,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 phone: clientPhone,
                 email: clientEmail || null,
                 address: clientAddress || null,
-                orderCode: clientOrderCode,
+                orderCode: fullOrderCode,
                 status: clientStatus,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
@@ -2435,11 +2444,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     let clients = [];
                     if (window.apiService && typeof window.apiService.getClients === 'function') {
-                        clients = await window.apiService.getClients({ search: query });
+                        const response = await window.apiService.getClients({ search: query });
+                        console.log('[DEBUG] Customer search API response:', response);
+                        // Fix: extract the array if response is an object
+                        clients = Array.isArray(response) ? response : (response.clients || []);
+                        console.log('[DEBUG] Extracted clients array:', clients);
+                        console.log('[DEBUG] Number of clients found:', clients.length);
                     }
                     clientSearchResults.innerHTML = '';
+                    console.log('[DEBUG] About to display results. clients.length:', clients.length);
                     if (clients && clients.length > 0) {
-                        clients.forEach(client => {
+                        console.log('[DEBUG] Creating result items for', clients.length, 'clients');
+                        clients.forEach((client, index) => {
+                            console.log('[DEBUG] Creating item', index + 1, 'for client:', client.name);
                             const item = document.createElement('button');
                             item.type = 'button';
                             item.className = 'list-group-item list-group-item-action';
@@ -2452,8 +2469,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             };
                             clientSearchResults.appendChild(item);
                         });
+                        console.log('[DEBUG] Setting display to block for results');
                         clientSearchResults.style.display = 'block';
+                        // More debug: parent info
+                        console.log('[DEBUG] Results container parent:', clientSearchResults.parentElement);
+                        console.log('[DEBUG] Results container parent overflow:', window.getComputedStyle(clientSearchResults.parentElement).overflow);
+                        console.log('[DEBUG] Results container parent position:', window.getComputedStyle(clientSearchResults.parentElement).position);
+                        // Remove debug styles and restore default look
+                        clientSearchResults.style.border = '';
+                        clientSearchResults.style.backgroundColor = '';
+                        clientSearchResults.style.color = '';
+                        clientSearchResults.style.fontWeight = '';
+                        clientSearchResults.style.fontSize = '';
+                        clientSearchResults.style.position = 'absolute';
+                        clientSearchResults.style.zIndex = '1000';
+                        clientSearchResults.style.top = '100%';
+                        clientSearchResults.style.left = '0';
+                        clientSearchResults.style.width = '100%';
+                        clientSearchResults.style.minHeight = '';
                     } else {
+                        console.log('[DEBUG] No clients found, showing no results message');
                         const noResult = document.createElement('div');
                         noResult.className = 'list-group-item text-muted';
                         noResult.textContent = 'لا يوجد عملاء مطابقون';
@@ -2471,24 +2506,56 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function selectClient(client) {
+        console.log('[DEBUG] Selected client data:', client);
+        
+        // Always ensure order code has LPK prefix
+        let fullOrderCode = client.orderCode || '';
+        if (fullOrderCode && !fullOrderCode.startsWith('LPK')) {
+            fullOrderCode = 'LPK' + fullOrderCode.replace(/\D/g, '');
+        }
+
         window.globalClientDetails = {
             client_id: client.id,
             clientName: client.name,
             clientPhone: client.phone,
             clientEmail: client.email || '',
             clientAddress: client.address || '',
-            clientOrderCode: client.order_code || '',
+            clientOrderCode: fullOrderCode,
             clientStatus: client.status || ''
         };
+        
+        // Auto-fill only the order number field with client's order code
+        const orderNumberInput = document.getElementById('orderNumber');
+        console.log('[DEBUG] Order number input found:', !!orderNumberInput);
+        console.log('[DEBUG] Client orderCode:', client.orderCode);
+        
+        if (orderNumberInput && client.orderCode) {
+            // Use the new function to handle LPK prefix properly
+            if (window.setOrderNumberFromFullCode) {
+                window.setOrderNumberFromFullCode(client.orderCode);
+                console.log('[DEBUG] Auto-filled order number with:', client.orderCode);
+            } else {
+                // Fallback to direct assignment
+                orderNumberInput.value = client.orderCode;
+                console.log('[DEBUG] Auto-filled order number with:', client.orderCode);
+            }
+        } else {
+            console.log('[DEBUG] Could not auto-fill order number. Input exists:', !!orderNumberInput, 'Order code exists:', !!client.orderCode);
+        }
+        
+        // Update selected client info display
         if (selectedClientInfo) {
             selectedClientInfo.style.display = 'block';
             selectedClientName.textContent = client.name;
             selectedClientPhone.innerHTML = `<i class='fas fa-phone me-1'></i> ${client.phone}`;
             selectedClientEmail.innerHTML = `<i class='fas fa-envelope me-1'></i> ${client.email || ''}`;
-            selectedClientOrderCode.textContent = client.order_code || '';
+            selectedClientOrderCode.textContent = fullOrderCode;
             selectedClientStatus.textContent = client.status === 'active' ? 'نشط' : 'غير نشط';
             selectedClientStatus.className = 'badge ' + (client.status === 'active' ? 'bg-success' : 'bg-secondary') + ' text-white ms-1';
         }
+        
+        // Show success feedback
+        showToast(`تم اختيار العميل: ${client.name}`, 'success');
     }
 
     // Listen for custom event when a new client is added from the modal
@@ -2505,4 +2572,101 @@ document.addEventListener('DOMContentLoaded', function() {
             clientSearchResults.style.display = 'none';
         }
     });
+
+    // LPK Order Number Prefix Functionality
+    function setupOrderNumberPrefix() {
+        const orderNumberInput = document.getElementById('orderNumber');
+        if (!orderNumberInput) return;
+
+        // Function to get full order code with LPK prefix
+        function getFullOrderCode() {
+            const numericPart = orderNumberInput.value.replace(/\D/g, ''); // Remove non-digits
+            return numericPart ? `LPK${numericPart}` : '';
+        }
+
+        // Function to set order number from full code (handles LPK prefix)
+        function setOrderNumberFromFullCode(fullCode) {
+            if (!fullCode) return;
+            
+            // If the code already has LPK prefix, extract the numeric part
+            if (fullCode.startsWith('LPK')) {
+                orderNumberInput.value = fullCode.substring(3); // Remove LPK prefix
+            } else {
+                // If no LPK prefix, assume it's just the numeric part
+                orderNumberInput.value = fullCode.replace(/\D/g, '');
+            }
+        }
+
+        // Input validation - only allow digits
+        orderNumberInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            const numericOnly = value.replace(/\D/g, '');
+            if (value !== numericOnly) {
+                e.target.value = numericOnly;
+            }
+        });
+
+        // Prevent LPK from being typed
+        orderNumberInput.addEventListener('keydown', function(e) {
+            const value = e.target.value;
+            if (e.key === 'L' || e.key === 'P' || e.key === 'K') {
+                e.preventDefault();
+            }
+        });
+
+        // Make functions globally available
+        window.getFullOrderCode = getFullOrderCode;
+        window.setOrderNumberFromFullCode = setOrderNumberFromFullCode;
+    }
+
+    // Initialize order number prefix functionality
+    setupOrderNumberPrefix();
+
+    // LPK Order Number Prefix Functionality for Add Client Modal
+    function setupAddClientOrderCodePrefix() {
+        const clientOrderCodeInput = document.getElementById('clientOrderCode');
+        if (!clientOrderCodeInput) return;
+
+        // Function to get full order code with LPK prefix
+        function getFullClientOrderCode() {
+            const numericPart = clientOrderCodeInput.value.replace(/\D/g, ''); // Remove non-digits
+            return numericPart ? `LPK${numericPart}` : '';
+        }
+
+        // Function to set order code from full code (handles LPK prefix)
+        function setClientOrderCodeFromFullCode(fullCode) {
+            if (!fullCode) return;
+            
+            // If the code already has LPK prefix, extract the numeric part
+            if (fullCode.startsWith('LPK')) {
+                clientOrderCodeInput.value = fullCode.substring(3); // Remove LPK prefix
+            } else {
+                // If no LPK prefix, assume it's just the numeric part
+                clientOrderCodeInput.value = fullCode.replace(/\D/g, '');
+            }
+        }
+
+        // Input validation - only allow digits
+        clientOrderCodeInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            const numericOnly = value.replace(/\D/g, '');
+            if (value !== numericOnly) {
+                e.target.value = numericOnly;
+            }
+        });
+
+        // Prevent LPK from being typed
+        clientOrderCodeInput.addEventListener('keydown', function(e) {
+            if (e.key === 'L' || e.key === 'P' || e.key === 'K') {
+                e.preventDefault();
+            }
+        });
+
+        // Make functions globally available
+        window.getFullClientOrderCode = getFullClientOrderCode;
+        window.setClientOrderCodeFromFullCode = setClientOrderCodeFromFullCode;
+    }
+
+    // Initialize add client order code prefix functionality
+    setupAddClientOrderCodePrefix();
 });
