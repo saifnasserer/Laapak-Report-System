@@ -254,6 +254,7 @@ router.post('/', adminAuth, async (req, res) => {
             year: currentYear,
             type,
             title,
+            target, // <-- Fix: include target
             unit,
             period,
             createdBy: req.user.id
