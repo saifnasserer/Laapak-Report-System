@@ -23,7 +23,7 @@ class ApiService {
         } 
         // For production, use the same origin but with /api
         else {
-            this.baseUrl = window.location.origin;
+            this.baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         }
         
         console.log('API Service initialized with baseUrl:', this.baseUrl);

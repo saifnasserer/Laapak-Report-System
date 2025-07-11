@@ -400,6 +400,21 @@
     <script src="js/client-dashboard.js"></script>  <!-- Main logic for the dashboard, uses ApiService & display functions -->
     <script src="js/invoice-generator.js"></script> <!-- Other utilities -->
 
+    <!-- Authentication Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication first before initializing anything
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isClientLoggedIn()) {
+                    console.log('Client not authenticated, redirecting to login page');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                console.log('Client authenticated, proceeding with dashboard initialization');
+            }
+        });
+    </script>
+
     <!-- Print functionality -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {

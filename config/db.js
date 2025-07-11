@@ -1,24 +1,35 @@
 /**
  * Laapak Report System - Database Configuration
- * Configures Sequelize ORM connection to MySQL database
+ * Sets up Sequelize ORM to connect to MySQL
  */
 
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-// Database configuration from environment variables
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_USER = process.env.DB_USER || 'root';
-const DB_PASSWORD = process.env.DB_PASSWORD || '';
-const DB_NAME = process.env.DB_NAME || 'laapak_report_system';
-const DB_PORT = process.env.DB_PORT || 3306;
+// Validate required environment variables
+const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'DB_PORT'];
+requiredEnvVars.forEach((varName) => {
+    if (!process.env[varName]) {
+        throw new Error(`Missing required environment variable: ${varName}`);
+    }
+});
+
+// Destructure environment variables
+const {
+    DB_HOST,
+    DB_USER,
+    DB_PASSWORD,
+    DB_NAME,
+    DB_PORT,
+    NODE_ENV
+} = process.env;
 
 // Create Sequelize instance
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
     host: DB_HOST,
-    port: DB_PORT,
+    port: Number(DB_PORT),
     dialect: 'mysql',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: NODE_ENV === 'development' ? console.log : false,
     pool: {
         max: 5,
         min: 0,
@@ -27,14 +38,14 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
     }
 });
 
-// Test database connection
+// Function to test DB connection
 const testConnection = async () => {
     try {
         await sequelize.authenticate();
-        console.log('Database connection has been established successfully.');
+        console.log('✅ Database connected successfully.');
         return true;
     } catch (error) {
-        console.error('Unable to connect to the database:', error);
+        console.error('❌ Unable to connect to the database:', error.message);
         return false;
     }
 };

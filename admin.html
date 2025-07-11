@@ -240,7 +240,119 @@
             </div>
         </div>
         
-        <!-- here we are going to add further analysis reports -->
+        <!-- Goals and Achievements Section -->
+        <div class="row mb-5">
+            <!-- Monthly Goal Card -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card border-0 rounded-4 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fas fa-bullseye text-primary me-2"></i>
+                                أهداف الشهر
+                            </h5>
+                            <button class="btn btn-sm btn-outline-primary" type="button" id="editGoalBtn">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        <p class="text-muted small mb-0 mt-2">تتبع تقدمك نحو تحقيق الأهداف الشهرية</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div id="goalContent">
+                            <!-- Goal content will be loaded here -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Achievements Card -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card border-0 rounded-4 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fas fa-trophy text-warning me-2"></i>
+                                الإنجازات
+                            </h5>
+                            <button class="btn btn-sm btn-outline-warning" type="button" id="addAchievementBtn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <p class="text-muted small mb-0 mt-2">احتفل بإنجازاتك وإنجازات الفريق</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div id="achievementsContent">
+                            <!-- Achievements content will be loaded here -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-warning" role="status">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Insights Section -->
+        <div class="row mb-5">
+            <!-- Device Models Sold This Month -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card border-0 rounded-4 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fas fa-laptop text-info me-2"></i>
+                                الأجهزة المباعة هذا الشهر
+                            </h5>
+                            <span class="badge bg-info rounded-pill px-3" id="device-models-count">0</span>
+                        </div>
+                        <p class="text-muted small mb-0 mt-2">أفضل الأجهزة مبيعاً في الشهر الحالي</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div id="deviceModelsContent">
+                            <!-- Device models content will be loaded here -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-info" role="status">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Warranty Alerts -->
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card border-0 rounded-4 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                تنبيهات الضمان
+                            </h5>
+                            <span class="badge bg-warning rounded-pill px-3" id="warranty-alerts-count">0</span>
+                        </div>
+                        <p class="text-muted small mb-0 mt-2">العملاء الذين تنتهي ضماناتهم خلال 7 أيام</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div id="warrantyAlertsContent">
+                            <!-- Warranty alerts content will be loaded here -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-warning" role="status">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         
         <!-- Recent Reports Section
@@ -320,6 +432,109 @@
         </div> -->
     </div>
 
+    <!-- Edit Goal Modal -->
+    <div class="modal fade" id="editGoalModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-bullseye me-2"></i>
+                        تعديل هدف الشهر
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editGoalForm">
+                        <div class="mb-3">
+                            <label for="goalTitle" class="form-label">عنوان الهدف</label>
+                            <input type="text" class="form-control" id="goalTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="goalType" class="form-label">نوع الهدف</label>
+                            <select class="form-select" id="goalType" required>
+                                <option value="reports">تقارير</option>
+                                <option value="clients">عملاء</option>
+                                <option value="revenue">إيرادات</option>
+                                <option value="custom">مخصص</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="goalTarget" class="form-label">الهدف المطلوب</label>
+                            <input type="number" class="form-control" id="goalTarget" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="goalUnit" class="form-label">الوحدة</label>
+                            <input type="text" class="form-control" id="goalUnit" value="تقرير" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveGoalBtn">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ الهدف
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Achievement Modal -->
+    <div class="modal fade" id="addAchievementModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="fas fa-trophy me-2"></i>
+                        إضافة إنجاز جديد
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addAchievementForm">
+                        <div class="mb-3">
+                            <label for="achievementTitle" class="form-label">عنوان الإنجاز</label>
+                            <input type="text" class="form-control" id="achievementTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="achievementDescription" class="form-label">وصف الإنجاز</label>
+                            <textarea class="form-control" id="achievementDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="achievementMetric" class="form-label">المقياس</label>
+                            <select class="form-select" id="achievementMetric" required>
+                                <option value="total_reports">إجمالي التقارير</option>
+                                <option value="total_clients">إجمالي العملاء</option>
+                                <option value="total_invoices">إجمالي الفواتير</option>
+                                <option value="monthly_reports">التقارير الشهرية</option>
+                                <option value="custom">مخصص</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="achievementValue" class="form-label">القيمة المطلوبة</label>
+                            <input type="number" class="form-control" id="achievementValue" min="1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="achievementIcon" class="form-label">الأيقونة</label>
+                            <input type="text" class="form-control" id="achievementIcon" value="fas fa-trophy">
+                        </div>
+                        <div class="mb-3">
+                            <label for="achievementColor" class="form-label">اللون</label>
+                            <input type="color" class="form-control form-control-color" id="achievementColor" value="#007553">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-warning" id="saveAchievementBtn">
+                        <i class="fas fa-plus me-2"></i>
+                        إضافة الإنجاز
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -327,22 +542,35 @@
     <!-- Configuration -->
     <script src="js/config.js"></script>
     
+    <!-- Authentication Check - Must be loaded first -->
+    <script src="js/auth-middleware.js"></script>
+    <script src="js/auth-check.js"></script>
+    
     <!-- App scripts -->
     <script src="js/header-component.js"></script>
-    <script src="js/auth-middleware.js"></script>
     <script src="js/api-service.js"></script>
     <script src="js/admin.js"></script>
+    <script src="js/auth-test.js"></script>
     <script src="js/sw-register.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication first before initializing anything
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isAdminLoggedIn()) {
+                    console.log('Admin not authenticated, redirecting to login page');
+                    window.location.href = 'index.html';
+                    return;
+                }
+            }
+            
             // Initialize header component
             const header = new LpkHeader({
                 containerId: 'header-container',
                 activeItem: 'dashboard'
             });
             
-            // Check auth
+            // Check auth (this is a backup check)
             checkAdminAuth();
         });
     </script>
