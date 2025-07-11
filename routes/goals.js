@@ -174,6 +174,51 @@ router.post('/achievements', adminAuth, async (req, res) => {
     }
 });
 
+// Delete achievement
+router.delete('/achievements/:id', adminAuth, async (req, res) => {
+    try {
+        const achievement = await Achievement.findByPk(req.params.id);
+        
+        if (!achievement) {
+            return res.status(404).json({ message: 'Achievement not found' });
+        }
+        
+        await achievement.destroy();
+        res.json({ message: 'Achievement deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting achievement:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Update achievement
+router.put('/achievements/:id', adminAuth, async (req, res) => {
+    try {
+        const { title, description, metric, value, icon, color, type } = req.body;
+        
+        const achievement = await Achievement.findByPk(req.params.id);
+        
+        if (!achievement) {
+            return res.status(404).json({ message: 'Achievement not found' });
+        }
+        
+        await achievement.update({
+            title: title || achievement.title,
+            description: description || achievement.description,
+            metric: metric || achievement.metric,
+            value: value || achievement.value,
+            icon: icon || achievement.icon,
+            color: color || achievement.color,
+            type: type || achievement.type
+        });
+        
+        res.json(achievement);
+    } catch (error) {
+        console.error('Error updating achievement:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Helper function to check for new achievements
 async function checkForNewAchievements(adminId) {
     const newAchievements = [];

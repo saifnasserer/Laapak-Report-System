@@ -344,41 +344,134 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// GET /reports/insights/device-models - get device models sold this month
+// GET /reports/insights/device-models - get device models with advanced filtering
 router.get('/insights/device-models', auth, async (req, res) => {
     try {
-        const currentDate = new Date();
-        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const { 
+            period = 'month', // month, quarter, year, custom
+            startDate, 
+            endDate,
+            limit = 10,
+            sortBy = 'count' // count, name, trend
+        } = req.query;
 
+        let startOfPeriod, endOfPeriod;
+        const currentDate = new Date();
+
+        // Calculate date range based on period
+        switch (period) {
+            case 'week':
+                startOfPeriod = new Date(currentDate);
+                startOfPeriod.setDate(currentDate.getDate() - 7);
+                endOfPeriod = currentDate;
+                break;
+            case 'month':
+                startOfPeriod = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endOfPeriod = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                break;
+            case 'quarter':
+                const quarter = Math.floor(currentDate.getMonth() / 3);
+                startOfPeriod = new Date(currentDate.getFullYear(), quarter * 3, 1);
+                endOfPeriod = new Date(currentDate.getFullYear(), (quarter + 1) * 3, 0);
+                break;
+            case 'year':
+                startOfPeriod = new Date(currentDate.getFullYear(), 0, 1);
+                endOfPeriod = new Date(currentDate.getFullYear(), 11, 31);
+                break;
+            case 'custom':
+                if (!startDate || !endDate) {
+                    return res.status(400).json({ message: 'startDate and endDate required for custom period' });
+                }
+                startOfPeriod = new Date(startDate);
+                endOfPeriod = new Date(endDate);
+                break;
+            default:
+                startOfPeriod = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endOfPeriod = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        }
+
+        // Get device models with count and trend
         const deviceModels = await Report.findAll({
             where: {
                 created_at: {
-                    [Op.between]: [startOfMonth, endOfMonth]
+                    [Op.between]: [startOfPeriod, endOfPeriod]
+                }
+            },
+            attributes: [
+                'device_model',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+                [sequelize.fn('DATE', sequelize.col('created_at')), 'date']
+            ],
+            group: ['device_model', sequelize.fn('DATE', sequelize.col('created_at'))],
+            order: sortBy === 'name' ? [['device_model', 'ASC']] : [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
+            limit: parseInt(limit)
+        });
+
+        // Calculate trends (compare with previous period)
+        const previousStart = new Date(startOfPeriod);
+        const previousEnd = new Date(endOfPeriod);
+        const periodLength = endOfPeriod - startOfPeriod;
+        previousStart.setTime(previousStart.getTime() - periodLength);
+        previousEnd.setTime(previousEnd.getTime() - periodLength);
+
+        const previousPeriodData = await Report.findAll({
+            where: {
+                created_at: {
+                    [Op.between]: [previousStart, previousEnd]
                 }
             },
             attributes: [
                 'device_model',
                 [sequelize.fn('COUNT', sequelize.col('id')), 'count']
             ],
-            group: ['device_model'],
-            order: [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
-            limit: 10
+            group: ['device_model']
         });
 
-        res.json(deviceModels);
+        // Create trend mapping
+        const trendMap = {};
+        previousPeriodData.forEach(item => {
+            trendMap[item.device_model] = parseInt(item.count);
+        });
+
+        // Add trend data to current results
+        const results = deviceModels.map(item => {
+            const currentCount = parseInt(item.count);
+            const previousCount = trendMap[item.device_model] || 0;
+            const trend = previousCount === 0 ? 100 : ((currentCount - previousCount) / previousCount) * 100;
+            
+            return {
+                device_model: item.device_model,
+                count: currentCount,
+                trend: Math.round(trend * 100) / 100,
+                trend_direction: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable'
+            };
+        });
+
+        res.json({
+            period,
+            startDate: startOfPeriod,
+            endDate: endOfPeriod,
+            totalDevices: results.reduce((sum, item) => sum + item.count, 0),
+            deviceModels: results
+        });
     } catch (error) {
         console.error('Error getting device models insights:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-// GET /reports/insights/warranty-alerts - get clients with warranty ending soon
+// GET /reports/insights/warranty-alerts - get clients with warranty ending soon with advanced filtering
 router.get('/insights/warranty-alerts', auth, async (req, res) => {
     try {
+        const { 
+            daysAhead = 7,
+            warrantyType, // manufacturing, replacement, maintenance, all
+            sortBy = 'urgency' // urgency, client_name, device_model
+        } = req.query;
+
         const currentDate = new Date();
-        const sevenDaysFromNow = new Date(currentDate);
-        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+        const daysFromNow = new Date(currentDate);
+        daysFromNow.setDate(currentDate.getDate() + parseInt(daysAhead));
 
         // Get all reports with their clients
         const reports = await Report.findAll({
@@ -406,15 +499,20 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
             const maintenanceEnd = new Date(inspectionDate);
             maintenanceEnd.setFullYear(maintenanceEnd.getFullYear() + 1);
 
-            // Check if any warranty is ending within 7 days
-            const warranties = [
-                { type: 'manufacturing', endDate: manufacturingEnd, days: 180 },
-                { type: 'replacement', endDate: replacementEnd, days: 14 },
-                { type: 'maintenance', endDate: maintenanceEnd, days: 365 }
-            ];
+            // Check warranties based on type filter
+            const warranties = [];
+            if (!warrantyType || warrantyType === 'manufacturing' || warrantyType === 'all') {
+                warranties.push({ type: 'manufacturing', endDate: manufacturingEnd, days: 180 });
+            }
+            if (!warrantyType || warrantyType === 'replacement' || warrantyType === 'all') {
+                warranties.push({ type: 'replacement', endDate: replacementEnd, days: 14 });
+            }
+            if (!warrantyType || warrantyType === 'maintenance' || warrantyType === 'all') {
+                warranties.push({ type: 'maintenance', endDate: maintenanceEnd, days: 365 });
+            }
 
             warranties.forEach(warranty => {
-                if (warranty.endDate >= currentDate && warranty.endDate <= sevenDaysFromNow) {
+                if (warranty.endDate >= currentDate && warranty.endDate <= daysFromNow) {
                     const daysRemaining = Math.ceil((warranty.endDate - currentDate) / (1000 * 60 * 60 * 24));
                     
                     warrantyAlerts.push({
@@ -427,18 +525,277 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
                         warranty_type: warranty.type,
                         warranty_end_date: warranty.endDate,
                         days_remaining: daysRemaining,
+                        urgency_level: daysRemaining <= 3 ? 'critical' : daysRemaining <= 5 ? 'high' : 'medium',
                         report_id: report.id
                     });
                 }
             });
         });
 
-        // Sort by days remaining (most urgent first)
-        warrantyAlerts.sort((a, b) => a.days_remaining - b.days_remaining);
+        // Sort based on criteria
+        switch (sortBy) {
+            case 'client_name':
+                warrantyAlerts.sort((a, b) => a.client_name.localeCompare(b.client_name));
+                break;
+            case 'device_model':
+                warrantyAlerts.sort((a, b) => a.device_model.localeCompare(b.device_model));
+                break;
+            case 'urgency':
+            default:
+                warrantyAlerts.sort((a, b) => a.days_remaining - b.days_remaining);
+                break;
+        }
 
-        res.json(warrantyAlerts);
+        // Group by urgency level
+        const groupedAlerts = {
+            critical: warrantyAlerts.filter(alert => alert.urgency_level === 'critical'),
+            high: warrantyAlerts.filter(alert => alert.urgency_level === 'high'),
+            medium: warrantyAlerts.filter(alert => alert.urgency_level === 'medium')
+        };
+
+        res.json({
+            total_alerts: warrantyAlerts.length,
+            days_ahead: parseInt(daysAhead),
+            warranty_type_filter: warrantyType || 'all',
+            grouped_alerts: groupedAlerts,
+            alerts: warrantyAlerts
+        });
     } catch (error) {
         console.error('Error getting warranty alerts:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// GET /reports/insights/revenue-trends - get revenue trends with filtering
+router.get('/insights/revenue-trends', auth, async (req, res) => {
+    try {
+        const { period = 'month', groupBy = 'day' } = req.query;
+        
+        const currentDate = new Date();
+        let startDate, endDate;
+        
+        switch (period) {
+            case 'week':
+                startDate = new Date(currentDate);
+                startDate.setDate(currentDate.getDate() - 7);
+                endDate = currentDate;
+                break;
+            case 'month':
+                startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                break;
+            case 'quarter':
+                const quarter = Math.floor(currentDate.getMonth() / 3);
+                startDate = new Date(currentDate.getFullYear(), quarter * 3, 1);
+                endDate = new Date(currentDate.getFullYear(), (quarter + 1) * 3, 0);
+                break;
+            case 'year':
+                startDate = new Date(currentDate.getFullYear(), 0, 1);
+                endDate = new Date(currentDate.getFullYear(), 11, 31);
+                break;
+            default:
+                startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        }
+
+        // Get revenue data from invoices
+        const revenueData = await Invoice.findAll({
+            where: {
+                created_at: {
+                    [Op.between]: [startDate, endDate]
+                },
+                status: 'paid'
+            },
+            attributes: [
+                [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
+                [sequelize.fn('SUM', sequelize.col('total_amount')), 'total_revenue'],
+                [sequelize.fn('COUNT', sequelize.col('id')), 'invoice_count']
+            ],
+            group: [sequelize.fn('DATE', sequelize.col('created_at'))],
+            order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']]
+        });
+
+        const totalRevenue = revenueData.reduce((sum, item) => sum + parseFloat(item.total_revenue), 0);
+        const totalInvoices = revenueData.reduce((sum, item) => sum + parseInt(item.invoice_count), 0);
+
+        res.json({
+            period,
+            startDate,
+            endDate,
+            totalRevenue,
+            totalInvoices,
+            averageRevenue: totalInvoices > 0 ? totalRevenue / totalInvoices : 0,
+            dailyData: revenueData.map(item => ({
+                date: item.date,
+                revenue: parseFloat(item.total_revenue),
+                invoiceCount: parseInt(item.invoice_count)
+            }))
+        });
+    } catch (error) {
+        console.error('Error getting revenue trends:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// GET /reports/insights/client-performance - get top performing clients
+router.get('/insights/client-performance', auth, async (req, res) => {
+    try {
+        const { period = 'month', limit = 10, metric = 'revenue' } = req.query;
+        
+        const currentDate = new Date();
+        let startDate, endDate;
+        
+        switch (period) {
+            case 'month':
+                startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                break;
+            case 'quarter':
+                const quarter = Math.floor(currentDate.getMonth() / 3);
+                startDate = new Date(currentDate.getFullYear(), quarter * 3, 1);
+                endDate = new Date(currentDate.getFullYear(), (quarter + 1) * 3, 0);
+                break;
+            case 'year':
+                startDate = new Date(currentDate.getFullYear(), 0, 1);
+                endDate = new Date(currentDate.getFullYear(), 11, 31);
+                break;
+            default:
+                startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        }
+
+        let orderBy;
+        let attributes;
+
+        if (metric === 'revenue') {
+            attributes = [
+                'client_id',
+                [sequelize.fn('SUM', sequelize.col('total_amount')), 'total_revenue'],
+                [sequelize.fn('COUNT', sequelize.col('id')), 'invoice_count']
+            ];
+            orderBy = [[sequelize.fn('SUM', sequelize.col('total_amount')), 'DESC']];
+        } else if (metric === 'devices') {
+            attributes = [
+                'client_id',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'device_count']
+            ];
+            orderBy = [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']];
+        }
+
+        const clientPerformance = await Report.findAll({
+            where: {
+                created_at: {
+                    [Op.between]: [startDate, endDate]
+                }
+            },
+            include: [
+                {
+                    model: Client,
+                    attributes: ['id', 'name', 'phone', 'email']
+                }
+            ],
+            attributes,
+            group: ['client_id'],
+            order: orderBy,
+            limit: parseInt(limit)
+        });
+
+        res.json({
+            period,
+            metric,
+            startDate,
+            endDate,
+            topClients: clientPerformance
+        });
+    } catch (error) {
+        console.error('Error getting client performance:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// GET /reports/insights/technical-analysis - get technical issues and solutions
+router.get('/insights/technical-analysis', auth, async (req, res) => {
+    try {
+        const { period = 'month', issueType } = req.query;
+        
+        const currentDate = new Date();
+        let startDate, endDate;
+        
+        switch (period) {
+            case 'month':
+                startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                break;
+            case 'quarter':
+                const quarter = Math.floor(currentDate.getMonth() / 3);
+                startDate = new Date(currentDate.getFullYear(), quarter * 3, 1);
+                endDate = new Date(currentDate.getFullYear(), (quarter + 1) * 3, 0);
+                break;
+            case 'year':
+                startDate = new Date(currentDate.getFullYear(), 0, 1);
+                endDate = new Date(currentDate.getFullYear(), 11, 31);
+                break;
+            default:
+                startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        }
+
+        // Analyze technical issues from reports
+        const technicalIssues = await Report.findAll({
+            where: {
+                created_at: {
+                    [Op.between]: [startDate, endDate]
+                }
+            },
+            attributes: [
+                'technical_issues',
+                'solutions_applied',
+                'device_model',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'issue_count']
+            ],
+            group: ['technical_issues', 'solutions_applied', 'device_model'],
+            order: [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']]
+        });
+
+        // Group issues by type
+        const issueTypes = {
+            hardware: technicalIssues.filter(issue => 
+                issue.technical_issues && 
+                issue.technical_issues.toLowerCase().includes('hardware')
+            ),
+            software: technicalIssues.filter(issue => 
+                issue.technical_issues && 
+                issue.technical_issues.toLowerCase().includes('software')
+            ),
+            network: technicalIssues.filter(issue => 
+                issue.technical_issues && 
+                issue.technical_issues.toLowerCase().includes('network')
+            ),
+            other: technicalIssues.filter(issue => 
+                issue.technical_issues && 
+                !issue.technical_issues.toLowerCase().includes('hardware') &&
+                !issue.technical_issues.toLowerCase().includes('software') &&
+                !issue.technical_issues.toLowerCase().includes('network')
+            )
+        };
+
+        res.json({
+            period,
+            startDate,
+            endDate,
+            totalIssues: technicalIssues.length,
+            issueTypes,
+            topIssues: technicalIssues.slice(0, 10),
+            deviceModelIssues: technicalIssues.reduce((acc, issue) => {
+                if (!acc[issue.device_model]) {
+                    acc[issue.device_model] = 0;
+                }
+                acc[issue.device_model] += parseInt(issue.issue_count);
+                return acc;
+            }, {})
+        });
+    } catch (error) {
+        console.error('Error getting technical analysis:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });

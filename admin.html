@@ -116,6 +116,25 @@
                             <div class="col-lg-7">
                                 <h2 class="fw-bold mb-3">مرحبًا بك في لوحة تحكم لاباك</h2>
                                 <p class="mb-4 opacity-75">"التميز ليس فعلًا، بل عادة. أنت تصبح متميزًا من خلال ما تفعله بشكل متكرر."</p>
+                                
+                                <!-- Monthly Goal Progress -->
+                                <div class="mb-4" id="banner-goal">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-bullseye text-warning me-2"></i>
+                                        <h6 class="mb-0 fw-bold">هدف الشهر</h6>
+                                        <button class="btn btn-sm btn-outline-warning ms-auto" id="editBannerGoalBtn">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 0%" id="banner-goal-progress"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between small text-white-50">
+                                        <span id="banner-goal-current">0</span>
+                                        <span id="banner-goal-target">0</span>
+                                    </div>
+                                </div>
+                                
                                 <div class="d-flex">
                                     <span class="badge bg-white text-success px-3 py-2 rounded-pill">
                                         <i class="fas fa-calendar-alt me-2"></i><span id="current-date"></span>
@@ -301,53 +320,118 @@
         
         <!-- Insights Section -->
         <div class="row mb-5">
-            <!-- Device Models Sold This Month -->
-            <div class="col-lg-6 col-md-12 mb-4">
-                <div class="card border-0 rounded-4 shadow-sm h-100">
-                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="fw-bold mb-0">
-                                <i class="fas fa-laptop text-info me-2"></i>
-                                الأجهزة المباعة هذا الشهر
-                            </h5>
-                            <span class="badge bg-info rounded-pill px-3" id="device-models-count">0</span>
+            <!-- الأجهزة المباعة -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-mobile-alt me-2"></i>
+                            الأجهزة المباعة
+                        </h5>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" data-period="week">الأسبوع</a></li>
+                                <li><a class="dropdown-item active" href="#" data-period="month">الشهر</a></li>
+                                <li><a class="dropdown-item" href="#" data-period="quarter">الربع</a></li>
+                                <li><a class="dropdown-item" href="#" data-period="year">السنة</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" data-period="custom">مخصص</a></li>
+                            </ul>
                         </div>
-                        <p class="text-muted small mb-0 mt-2">أفضل الأجهزة مبيعاً في الشهر الحالي</p>
                     </div>
-                    <div class="card-body p-4">
-                        <div id="deviceModelsContent">
-                            <!-- Device models content will be loaded here -->
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <select class="form-select form-select-sm" id="deviceSortBy">
+                                        <option value="count">ترتيب حسب العدد</option>
+                                        <option value="name">ترتيب حسب الاسم</option>
+                                        <option value="trend">ترتيب حسب الاتجاه</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="number" class="form-control form-control-sm" id="deviceLimit" placeholder="عدد النتائج" value="10" min="1" max="50">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="deviceModelsContainer">
                             <div class="text-center py-4">
-                                <div class="spinner-border text-info" role="status">
+                                <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">جاري التحميل...</span>
                                 </div>
                             </div>
                         </div>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <span id="devicePeriodInfo">بيانات الشهر الحالي</span>
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Warranty Alerts -->
-            <div class="col-lg-6 col-md-12 mb-4">
-                <div class="card border-0 rounded-4 shadow-sm h-100">
-                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="fw-bold mb-0">
-                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                                تنبيهات الضمان
-                            </h5>
-                            <span class="badge bg-warning rounded-pill px-3" id="warranty-alerts-count">0</span>
+
+            <!-- تنبيهات الضمان -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-header bg-gradient-warning text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            تنبيهات الضمان
+                        </h5>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" data-days="3">3 أيام</a></li>
+                                <li><a class="dropdown-item active" href="#" data-days="7">7 أيام</a></li>
+                                <li><a class="dropdown-item" href="#" data-days="14">14 يوم</a></li>
+                                <li><a class="dropdown-item" href="#" data-days="30">30 يوم</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" data-days="custom">مخصص</a></li>
+                            </ul>
                         </div>
-                        <p class="text-muted small mb-0 mt-2">العملاء الذين تنتهي ضماناتهم خلال 7 أيام</p>
                     </div>
-                    <div class="card-body p-4">
-                        <div id="warrantyAlertsContent">
-                            <!-- Warranty alerts content will be loaded here -->
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <select class="form-select form-select-sm" id="warrantyType">
+                                        <option value="all">جميع أنواع الضمان</option>
+                                        <option value="manufacturing">ضمان التصنيع</option>
+                                        <option value="replacement">ضمان الاستبدال</option>
+                                        <option value="maintenance">ضمان الصيانة</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <select class="form-select form-select-sm" id="warrantySortBy">
+                                        <option value="urgency">ترتيب حسب الأولوية</option>
+                                        <option value="client_name">ترتيب حسب العميل</option>
+                                        <option value="device_model">ترتيب حسب الجهاز</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="warrantyAlertsContainer">
                             <div class="text-center py-4">
                                 <div class="spinner-border text-warning" role="status">
                                     <span class="visually-hidden">جاري التحميل...</span>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <span id="warrantyPeriodInfo">تنبيهات خلال 7 أيام</span>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -575,4 +659,5 @@
         });
     </script>
 </body>
+</html>
 </html>
