@@ -219,6 +219,53 @@ router.put('/achievements/:id', adminAuth, async (req, res) => {
     }
 });
 
+// Get all goals
+router.get('/', adminAuth, async (req, res) => {
+    try {
+        const goals = await Goal.findAll({
+            where: { isActive: true },
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json(goals);
+    } catch (error) {
+        console.error('Error getting goals:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get goal by ID
+router.get('/:id', adminAuth, async (req, res) => {
+    try {
+        const goal = await Goal.findByPk(req.params.id);
+        
+        if (!goal) {
+            return res.status(404).json({ message: 'Goal not found' });
+        }
+        
+        res.json(goal);
+    } catch (error) {
+        console.error('Error getting goal:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get achievement by ID
+router.get('/achievements/:id', adminAuth, async (req, res) => {
+    try {
+        const achievement = await Achievement.findByPk(req.params.id);
+        
+        if (!achievement) {
+            return res.status(404).json({ message: 'Achievement not found' });
+        }
+        
+        res.json(achievement);
+    } catch (error) {
+        console.error('Error getting achievement:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Helper function to check for new achievements
 async function checkForNewAchievements(adminId) {
     const newAchievements = [];

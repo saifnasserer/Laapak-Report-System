@@ -14,7 +14,7 @@ class ApiService {
         if (baseUrl) {
             this.baseUrl = baseUrl;
         } 
-        // For localhost development, use port 3001
+        // For localhost development, use production server
         else if (isLocalhost) {
             // Safely access config with fallback
             this.baseUrl = (window.config && window.config.api && window.config.api.baseUrl) || 

@@ -1,7 +1,57 @@
 /**
- * Laapak Report System - Admin Dashboard JavaScript
- * Handles functionality specific to the admin dashboard
+ * Laapak Report System - Admin Dashboard
+ * Enhanced dashboard with goals, achievements, and insights
  */
+
+// Check if admin is authenticated
+function checkAdminAuth() {
+    // Check if authMiddleware is available
+    if (typeof authMiddleware === 'undefined') {
+        console.error('AuthMiddleware not available');
+        return;
+    }
+    
+    console.log('Checking admin authentication...');
+    
+    // Use authMiddleware to check if admin is logged in
+    if (!authMiddleware.isAdminLoggedIn()) {
+        console.log('Admin not authenticated, redirecting to login page');
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    console.log('Admin authenticated, access granted');
+    
+    // Optional: Validate token with server
+    const adminToken = authMiddleware.getAdminToken();
+    if (adminToken) {
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        
+        fetch(`${apiBaseUrl}/api/auth/me`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': adminToken
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.log('Token validation failed, clearing admin session');
+                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminInfo');
+                sessionStorage.removeItem('adminToken');
+                sessionStorage.removeItem('adminInfo');
+                window.location.href = 'index.html';
+            } else {
+                console.log('Admin token validation successful');
+            }
+        })
+        .catch(error => {
+            console.error('Token validation error:', error);
+            // On network error, don't clear sessions immediately
+        });
+    }
+}
 
 // Enhanced Admin Dashboard JavaScript
 class AdminDashboard {
@@ -9,6 +59,7 @@ class AdminDashboard {
         this.currentPeriod = 'month';
         this.currentDaysAhead = 7;
         this.currentWarrantyType = 'all';
+        this.authMiddleware = window.authMiddleware;
         this.init();
     }
 
@@ -73,14 +124,20 @@ class AdminDashboard {
 
     async loadBannerGoal() {
         try {
-            const response = await fetch('/api/goals/current');
+            const token = this.authMiddleware?.getAdminToken();
+            const response = await fetch('/api/goals/current', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
             const goal = await response.json();
             
             if (goal) {
-                const progress = (goal.current_value / goal.target_value) * 100;
+                const progress = (goal.current / goal.target) * 100;
                 document.getElementById('banner-goal-progress').style.width = `${Math.min(progress, 100)}%`;
-                document.getElementById('banner-goal-current').textContent = goal.current_value;
-                document.getElementById('banner-goal-target').textContent = goal.target_value;
+                document.getElementById('banner-goal-current').textContent = goal.current;
+                document.getElementById('banner-goal-target').textContent = goal.target;
             }
         } catch (error) {
             console.error('Error loading banner goal:', error);
@@ -93,13 +150,19 @@ class AdminDashboard {
         const limit = document.getElementById('deviceLimit')?.value || 10;
 
         try {
+            const token = this.authMiddleware?.getAdminToken();
             const params = new URLSearchParams({
                 period: this.currentPeriod,
                 sortBy,
                 limit
             });
 
-            const response = await fetch(`/api/reports/insights/device-models?${params}`);
+            const response = await fetch(`/api/reports/insights/device-models?${params}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
             const data = await response.json();
 
             this.renderDeviceModels(data);
@@ -161,13 +224,19 @@ class AdminDashboard {
         const sortBy = document.getElementById('warrantySortBy')?.value || 'urgency';
 
         try {
+            const token = this.authMiddleware?.getAdminToken();
             const params = new URLSearchParams({
                 daysAhead: this.currentDaysAhead,
                 warrantyType,
                 sortBy
             });
 
-            const response = await fetch(`/api/reports/insights/warranty-alerts?${params}`);
+            const response = await fetch(`/api/reports/insights/warranty-alerts?${params}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
             const data = await response.json();
 
             this.renderWarrantyAlerts(data);
@@ -251,6 +320,130 @@ class AdminDashboard {
         modal.show();
     }
 
+    async loadGoals() {
+        try {
+            const token = this.authMiddleware?.getAdminToken();
+            const response = await fetch('/api/goals', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+            const goals = await response.json();
+            this.renderGoals(goals);
+        } catch (error) {
+            console.error('Error loading goals:', error);
+            document.getElementById('goalsContainer').innerHTML = '<div class="text-center text-danger">خطأ في تحميل الأهداف</div>';
+        }
+    }
+
+    async loadAchievements() {
+        try {
+            const token = this.authMiddleware?.getAdminToken();
+            const response = await fetch('/api/goals/achievements', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+            const achievements = await response.json();
+            this.renderAchievements(achievements);
+        } catch (error) {
+            console.error('Error loading achievements:', error);
+            document.getElementById('achievementsContainer').innerHTML = '<div class="text-center text-danger">خطأ في تحميل الإنجازات</div>';
+        }
+    }
+
+    renderGoals(goals) {
+        const container = document.getElementById('goalsContainer');
+        if (!container) return;
+
+        if (!goals || goals.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted">لا توجد أهداف محددة</div>';
+            return;
+        }
+
+        const html = goals.map(goal => `
+            <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0">${goal.title}</h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="editGoal(${goal.id})">
+                                    <i class="fas fa-edit me-2"></i>تعديل
+                                </a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteGoal(${goal.id})">
+                                    <i class="fas fa-trash me-2"></i>حذف
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="card-text small text-muted">${goal.description}</p>
+                    <div class="progress mb-2" style="height: 8px;">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: ${Math.min((goal.current / goal.target) * 100, 100)}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                        <span>${goal.current} / ${goal.target}</span>
+                        <span>${Math.round((goal.current / goal.target) * 100)}%</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    renderAchievements(achievements) {
+        const container = document.getElementById('achievementsContainer');
+        if (!container) return;
+
+        if (!achievements || achievements.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted">لا توجد إنجازات</div>';
+            return;
+        }
+
+        const html = achievements.map(achievement => `
+            <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex align-items-center">
+                            <div class="achievement-icon me-3" style="color: ${achievement.color}">
+                                <i class="fas ${achievement.icon} fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="card-title mb-0">${achievement.title}</h6>
+                                <p class="card-text small text-muted mb-0">${achievement.description}</p>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="editAchievement(${achievement.id})">
+                                    <i class="fas fa-edit me-2"></i>تعديل
+                                </a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteAchievement(${achievement.id})">
+                                    <i class="fas fa-trash me-2"></i>حذف
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="achievement-metric">
+                        <span class="badge bg-light text-dark">${achievement.metric}: ${achievement.value}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
     // ... existing methods for goals and achievements ...
 }
 
@@ -258,6 +451,114 @@ class AdminDashboard {
 document.addEventListener('DOMContentLoaded', () => {
     new AdminDashboard();
 });
+
+// Global functions for goal and achievement management
+async function editGoal(goalId) {
+    try {
+        const token = window.authMiddleware?.getAdminToken();
+        const response = await fetch(`/api/goals/${goalId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            }
+        });
+        const goal = await response.json();
+        
+        // Populate edit modal
+        document.getElementById('editGoalId').value = goal.id;
+        document.getElementById('editGoalTitle').value = goal.title;
+        document.getElementById('editGoalDescription').value = goal.description;
+        document.getElementById('editGoalTarget').value = goal.target;
+        document.getElementById('editGoalType').value = goal.type;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('editGoalModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error loading goal for edit:', error);
+        alert('خطأ في تحميل بيانات الهدف');
+    }
+}
+
+async function deleteGoal(goalId) {
+    if (!confirm('هل أنت متأكد من حذف هذا الهدف؟')) return;
+    
+    try {
+        const token = window.authMiddleware?.getAdminToken();
+        const response = await fetch(`/api/goals/${goalId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            }
+        });
+        
+        if (response.ok) {
+            alert('تم حذف الهدف بنجاح');
+            location.reload();
+        } else {
+            alert('خطأ في حذف الهدف');
+        }
+    } catch (error) {
+        console.error('Error deleting goal:', error);
+        alert('خطأ في حذف الهدف');
+    }
+}
+
+async function editAchievement(achievementId) {
+    try {
+        const token = window.authMiddleware?.getAdminToken();
+        const response = await fetch(`/api/goals/achievements/${achievementId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            }
+        });
+        const achievement = await response.json();
+        
+        // Populate edit modal
+        document.getElementById('editAchievementId').value = achievement.id;
+        document.getElementById('editAchievementTitle').value = achievement.title;
+        document.getElementById('editAchievementDescription').value = achievement.description;
+        document.getElementById('editAchievementMetric').value = achievement.metric;
+        document.getElementById('editAchievementValue').value = achievement.value;
+        document.getElementById('editAchievementIcon').value = achievement.icon;
+        document.getElementById('editAchievementColor').value = achievement.color;
+        document.getElementById('editAchievementType').value = achievement.type;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('editAchievementModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error loading achievement for edit:', error);
+        alert('خطأ في تحميل بيانات الإنجاز');
+    }
+}
+
+async function deleteAchievement(achievementId) {
+    if (!confirm('هل أنت متأكد من حذف هذا الإنجاز؟')) return;
+    
+    try {
+        const token = window.authMiddleware?.getAdminToken();
+        const response = await fetch(`/api/goals/achievements/${achievementId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            }
+        });
+        
+        if (response.ok) {
+            alert('تم حذف الإنجاز بنجاح');
+            location.reload();
+        } else {
+            alert('خطأ في حذف الإنجاز');
+        }
+    } catch (error) {
+        console.error('Error deleting achievement:', error);
+        alert('خطأ في حذف الإنجاز');
+    }
+}
 
 /**
  * Load dashboard statistics from API
@@ -1102,559 +1403,4 @@ function displayAchievements(achievements, newAchievements = []) {
     });
     
     achievementsContent.innerHTML = achievementsHtml;
-}
-
-/**
- * Display achievements error
- */
-function displayAchievementsError() {
-    const achievementsContent = document.getElementById('achievementsContent');
-    if (!achievementsContent) return;
-    
-    achievementsContent.innerHTML = `
-        <div class="text-center py-4">
-            <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
-            <p class="text-muted">تعذر تحميل الإنجازات</p>
-        </div>
-    `;
-}
-
-/**
- * Initialize goals and achievements event listeners
- */
-function initializeGoalsAndAchievements() {
-    // Edit goal button
-    const editGoalBtn = document.getElementById('editGoalBtn');
-    if (editGoalBtn) {
-        editGoalBtn.addEventListener('click', function() {
-            if (window.currentGoal) {
-                populateGoalForm(window.currentGoal);
-                const modal = new bootstrap.Modal(document.getElementById('editGoalModal'));
-                modal.show();
-            }
-        });
-    }
-    
-    // Save goal button
-    const saveGoalBtn = document.getElementById('saveGoalBtn');
-    if (saveGoalBtn) {
-        saveGoalBtn.addEventListener('click', function() {
-            saveGoal();
-        });
-    }
-    
-    // Add achievement button
-    const addAchievementBtn = document.getElementById('addAchievementBtn');
-    if (addAchievementBtn) {
-        addAchievementBtn.addEventListener('click', function() {
-            const modal = new bootstrap.Modal(document.getElementById('addAchievementModal'));
-            modal.show();
-        });
-    }
-    
-    // Save achievement button
-    const saveAchievementBtn = document.getElementById('saveAchievementBtn');
-    if (saveAchievementBtn) {
-        saveAchievementBtn.addEventListener('click', function() {
-            saveAchievement();
-        });
-    }
-}
-
-/**
- * Populate goal form with current data
- */
-function populateGoalForm(goal) {
-    document.getElementById('goalTitle').value = goal.title;
-    document.getElementById('goalType').value = goal.type;
-    document.getElementById('goalTarget').value = goal.target;
-    document.getElementById('goalUnit').value = goal.unit;
-}
-
-/**
- * Save goal
- */
-function saveGoal() {
-    const authMiddleware = new AuthMiddleware();
-    const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-    
-    const goalData = {
-        title: document.getElementById('goalTitle').value,
-        type: document.getElementById('goalType').value,
-        target: parseInt(document.getElementById('goalTarget').value),
-        unit: document.getElementById('goalUnit').value
-    };
-    
-    fetch(`${baseUrl}/api/goals/current`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-        },
-        body: JSON.stringify(goalData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to update goal');
-        }
-        return response.json();
-    })
-    .then(updatedGoal => {
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('editGoalModal'));
-        modal.hide();
-        
-        // Reload goals
-        loadGoalsAndAchievements();
-        
-        // Show success message
-        showToast('تم تحديث الهدف بنجاح', 'success');
-    })
-    .catch(error => {
-        console.error('Error updating goal:', error);
-        showToast('فشل في تحديث الهدف', 'error');
-    });
-}
-
-/**
- * Save achievement
- */
-function saveAchievement() {
-    const authMiddleware = new AuthMiddleware();
-    const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-    
-    const achievementData = {
-        title: document.getElementById('achievementTitle').value,
-        description: document.getElementById('achievementDescription').value,
-        metric: document.getElementById('achievementMetric').value,
-        value: parseInt(document.getElementById('achievementValue').value),
-        icon: document.getElementById('achievementIcon').value,
-        color: document.getElementById('achievementColor').value,
-        type: 'custom'
-    };
-    
-    fetch(`${baseUrl}/api/goals/achievements`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-        },
-        body: JSON.stringify(achievementData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to create achievement');
-        }
-        return response.json();
-    })
-    .then(newAchievement => {
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addAchievementModal'));
-        modal.hide();
-        
-        // Clear form
-        document.getElementById('addAchievementForm').reset();
-        
-        // Reload achievements
-        loadGoalsAndAchievements();
-        
-        // Show success message
-        showToast('تم إضافة الإنجاز بنجاح', 'success');
-    })
-    .catch(error => {
-        console.error('Error creating achievement:', error);
-        showToast('فشل في إضافة الإنجاز', 'error');
-    });
-}
-
-/**
- * Show toast message
- */
-function showToast(message, type = 'info') {
-    // Create toast element
-    const toastHtml = `
-        <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0" 
-             role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    `;
-    
-    // Add toast to page
-    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
-    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-    
-    // Show toast
-    const toastElement = toastContainer.lastElementChild;
-    const toast = new bootstrap.Toast(toastElement);
-    toast.show();
-    
-    // Remove toast after it's hidden
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        toastElement.remove();
-    });
-}
-
-/**
- * Create toast container if it doesn't exist
- */
-function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toastContainer';
-    container.className = 'toast-container position-fixed top-0 end-0 p-3';
-    container.style.zIndex = '9999';
-    document.body.appendChild(container);
-    return container;
-}
-
-/**
- * Check if admin is authenticated
- */
-function checkAdminAuth() {
-    // Check if authMiddleware is available
-    if (typeof authMiddleware === 'undefined') {
-        console.error('AuthMiddleware not available');
-        return;
-    }
-    
-    console.log('Checking admin authentication...');
-    
-    // Use authMiddleware to check if admin is logged in
-    if (!authMiddleware.isAdminLoggedIn()) {
-        console.log('Admin not authenticated, redirecting to login page');
-        window.location.href = 'index.html';
-        return;
-    }
-    
-    console.log('Admin authenticated, access granted');
-    
-    // Optional: Validate token with server
-    const adminToken = authMiddleware.getAdminToken();
-    if (adminToken) {
-        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-        
-        fetch(`${apiBaseUrl}/api/auth/me`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': adminToken
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                console.log('Token validation failed, clearing admin session');
-                localStorage.removeItem('adminToken');
-                localStorage.removeItem('adminInfo');
-                sessionStorage.removeItem('adminToken');
-                sessionStorage.removeItem('adminInfo');
-    window.location.href = 'index.html';
-            } else {
-                console.log('Admin token validation successful');
-            }
-        })
-        .catch(error => {
-            console.error('Token validation error:', error);
-            // On network error, don't clear sessions immediately
-        });
-    }
-}
-
-/**
- * Test API connectivity
- */
-function testAPIConnectivity() {
-    console.log('Testing API connectivity...');
-    
-    const authMiddleware = new AuthMiddleware();
-    const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-    
-    console.log('Testing with:', {
-        baseUrl: baseUrl,
-        hasToken: !!token,
-        tokenLength: token ? token.length : 0
-    });
-    
-    // Test a simple endpoint
-    fetch(`${baseUrl}/api/reports/count`, {
-        headers: {
-            'x-auth-token': token || ''
-        }
-    })
-    .then(response => {
-        console.log('API Test Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-        });
-        return response.json();
-    })
-    .then(data => {
-        console.log('API Test Data:', data);
-    })
-    .catch(error => {
-        console.error('API Test Error:', error);
-    });
-}
-
-/**
- * Test goals API endpoints
- */
-function testGoalsAPI() {
-    console.log('Testing goals API endpoints...');
-    
-    const authMiddleware = new AuthMiddleware();
-    const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-    
-    // Test goals endpoints
-    Promise.all([
-        fetch(`${baseUrl}/api/goals/current`, {
-            headers: {
-                'x-auth-token': token || ''
-            }
-        }),
-        fetch(`${baseUrl}/api/goals/achievements`, {
-            headers: {
-                'x-auth-token': token || ''
-            }
-        })
-    ])
-    .then(responses => {
-        console.log('Goals API Test Results:');
-        responses.forEach((response, index) => {
-            const endpoint = index === 0 ? 'current goal' : 'achievements';
-            console.log(`${endpoint} endpoint:`, {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok
-            });
-        });
-    })
-    .catch(error => {
-        console.error('Goals API Test Error:', error);
-    });
-}
-
-/**
- * Load device models sold this month
- */
-function loadDeviceModelsInsights() {
-    console.log('Loading device models insights');
-    
-    const authMiddleware = new AuthMiddleware();
-    const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-    
-    fetch(`${baseUrl}/api/reports/insights/device-models`, {
-        headers: {
-            'x-auth-token': token
-        }
-    })
-    .then(response => {
-        console.log('Device models response status:', response.status, response.statusText);
-        if (!response.ok) {
-            throw new Error(`Failed to load device models: ${response.status} ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Device models data:', data);
-        displayDeviceModels(data);
-    })
-    .catch(error => {
-        console.error('Error loading device models:', error);
-        displayDeviceModelsError();
-    });
-}
-
-/**
- * Display device models insights
- */
-function displayDeviceModels(deviceModels) {
-    const content = document.getElementById('deviceModelsContent');
-    const countBadge = document.getElementById('device-models-count');
-    
-    if (!content) return;
-    
-    if (!deviceModels || deviceModels.length === 0) {
-        content.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-laptop text-muted fa-2x mb-3"></i>
-                <p class="text-muted">لا توجد أجهزة مباعة هذا الشهر</p>
-            </div>
-        `;
-        if (countBadge) countBadge.textContent = '0';
-        return;
-    }
-    
-    let html = '';
-    let totalCount = 0;
-    
-    deviceModels.forEach((model, index) => {
-        totalCount += parseInt(model.count);
-        const percentage = ((model.count / deviceModels.reduce((sum, m) => sum + parseInt(m.count), 0)) * 100).toFixed(1);
-        
-        html += `
-            <div class="d-flex align-items-center mb-3 p-3 rounded" 
-                 style="background-color: rgba(13, 110, 253, 0.05); border-left: 4px solid #0d6efd;">
-                <div class="me-3">
-                    <div class="fw-bold text-primary">${index + 1}</div>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1 fw-bold">${model.device_model}</h6>
-                    <div class="d-flex align-items-center">
-                        <span class="badge bg-primary me-2">${model.count} جهاز</span>
-                        <small class="text-muted">${percentage}% من المبيعات</small>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    content.innerHTML = html;
-    if (countBadge) countBadge.textContent = deviceModels.length;
-}
-
-/**
- * Display device models error
- */
-function displayDeviceModelsError() {
-    const content = document.getElementById('deviceModelsContent');
-    if (!content) return;
-    
-    content.innerHTML = `
-        <div class="text-center py-4">
-            <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
-            <p class="text-muted">تعذر تحميل بيانات الأجهزة</p>
-        </div>
-    `;
-}
-
-/**
- * Load warranty alerts
- */
-function loadWarrantyAlerts() {
-    console.log('Loading warranty alerts');
-    
-    const authMiddleware = new AuthMiddleware();
-    const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-    
-    fetch(`${baseUrl}/api/reports/insights/warranty-alerts`, {
-        headers: {
-            'x-auth-token': token
-        }
-    })
-    .then(response => {
-        console.log('Warranty alerts response status:', response.status, response.statusText);
-        if (!response.ok) {
-            throw new Error(`Failed to load warranty alerts: ${response.status} ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Warranty alerts data:', data);
-        displayWarrantyAlerts(data);
-    })
-    .catch(error => {
-        console.error('Error loading warranty alerts:', error);
-        displayWarrantyAlertsError();
-    });
-}
-
-/**
- * Display warranty alerts
- */
-function displayWarrantyAlerts(alerts) {
-    const content = document.getElementById('warrantyAlertsContent');
-    const countBadge = document.getElementById('warranty-alerts-count');
-    
-    if (!content) return;
-    
-    if (!alerts || alerts.length === 0) {
-        content.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-shield-check text-success fa-2x mb-3"></i>
-                <p class="text-muted">لا توجد تنبيهات ضمان</p>
-            </div>
-        `;
-        if (countBadge) countBadge.textContent = '0';
-        return;
-    }
-    
-    let html = '';
-    
-    alerts.forEach(alert => {
-        const urgencyClass = alert.days_remaining <= 3 ? 'border-danger' : 
-                           alert.days_remaining <= 5 ? 'border-warning' : 'border-info';
-        const urgencyColor = alert.days_remaining <= 3 ? '#dc3545' : 
-                           alert.days_remaining <= 5 ? '#ffc107' : '#0dcaf0';
-        
-        const warrantyTypeText = {
-            'manufacturing': 'ضمان عيوب الصناعة',
-            'replacement': 'ضمان الاستبدال',
-            'maintenance': 'ضمان الصيانة الدورية'
-        }[alert.warranty_type] || alert.warranty_type;
-        
-        html += `
-            <div class="d-flex align-items-center mb-3 p-3 rounded" 
-                 style="background-color: ${urgencyColor}15; border-left: 4px solid ${urgencyColor};">
-                <div class="me-3">
-                    <i class="fas fa-exclamation-triangle" style="color: ${urgencyColor}; font-size: 1.2rem;"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1 fw-bold">${alert.client_name}</h6>
-                    <p class="text-muted mb-1 small">${alert.device_model}</p>
-                    <div class="d-flex align-items-center">
-                        <span class="badge ${alert.days_remaining <= 3 ? 'bg-danger' : alert.days_remaining <= 5 ? 'bg-warning' : 'bg-info'} me-2">
-                            ${alert.days_remaining} يوم
-                        </span>
-                        <small class="text-muted">${warrantyTypeText}</small>
-                    </div>
-                </div>
-                <div class="text-end">
-                    <small class="text-muted d-block">${formatDate(new Date(alert.warranty_end_date))}</small>
-                    <a href="report.html?id=${alert.report_id}" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye"></i>
-                    </a>
-                </div>
-            </div>
-        `;
-    });
-    
-    content.innerHTML = html;
-    if (countBadge) countBadge.textContent = alerts.length;
-}
-
-/**
- * Display warranty alerts error
- */
-function displayWarrantyAlertsError() {
-    const content = document.getElementById('warrantyAlertsContent');
-    if (!content) return;
-    
-    content.innerHTML = `
-        <div class="text-center py-4">
-            <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
-            <p class="text-muted">تعذر تحميل تنبيهات الضمان</p>
-        </div>
-    `;
-}
-
-/**
- * Format date for display
- */
-function formatDate(date) {
-    return new Intl.DateTimeFormat('ar-SA', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    }).format(date);
 }
