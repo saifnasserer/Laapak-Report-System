@@ -560,6 +560,10 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap Select for modern dropdowns
+            if (window.jQuery && $('.selectpicker').length) {
+                $('.selectpicker').selectpicker();
+            }
             // Check authentication first before initializing anything
             if (typeof authMiddleware !== 'undefined') {
                 if (!authMiddleware.isAdminLoggedIn()) {

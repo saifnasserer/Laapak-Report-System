@@ -245,6 +245,12 @@ router.post('/', adminAuth, async (req, res) => {
         const currentMonth = currentDate.toLocaleString('ar-SA', { month: 'long' });
         const currentYear = currentDate.getFullYear();
 
+        // Duplicate check
+        const existingGoal = await Goal.findOne({ where: { month: currentMonth, year: currentYear } });
+        if (existingGoal) {
+            return res.status(409).json({ message: 'A goal for this month and year already exists.' });
+        }
+
         // Create new goal for the specified period
         const goal = await Goal.create({
             month: currentMonth,
@@ -263,7 +269,12 @@ router.post('/', adminAuth, async (req, res) => {
         if (error.name === 'SequelizeValidationError') {
             return res.status(400).json({ message: 'Validation error', details: error.errors.map(e => e.message) });
         }
-        res.status(500).json({ message: 'Server error' });
+        // Log full error for debugging
+        if (error.parent) {
+            console.error('Parent error:', error.parent.message);
+            if (error.parent.sql) console.error('SQL query:', error.parent.sql);
+        }
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 

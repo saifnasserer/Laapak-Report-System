@@ -355,6 +355,8 @@ router.get('/insights/device-models', auth, async (req, res) => {
             sortBy = 'count' // count, name, trend
         } = req.query;
 
+        console.log('Device Models Insights Request:', { period, startDate, endDate, limit, sortBy });
+
         let startOfPeriod, endOfPeriod;
         const currentDate = new Date();
 
@@ -380,6 +382,7 @@ router.get('/insights/device-models', auth, async (req, res) => {
                 break;
             case 'custom':
                 if (!startDate || !endDate) {
+                    console.log('Custom period missing startDate or endDate');
                     return res.status(400).json({ message: 'startDate and endDate required for custom period' });
                 }
                 startOfPeriod = new Date(startDate);
@@ -390,8 +393,20 @@ router.get('/insights/device-models', auth, async (req, res) => {
                 endOfPeriod = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         }
 
-        // Get device models with count and trend (use inspection_date instead of created_at)
-        const deviceModels = await Report.findAll({
+        console.log('Calculated period:', { startOfPeriod, endOfPeriod });
+
+        // Log the count of reports in the period
+        const reportsCount = await Report.count({
+            where: {
+                inspection_date: {
+                    [Op.between]: [startOfPeriod, endOfPeriod]
+                }
+            }
+        });
+        console.log('Reports count in period:', reportsCount);
+
+        // Log the raw SQL query for the device models aggregation
+        const deviceModelsRaw = await Report.findAll({
             where: {
                 inspection_date: {
                     [Op.between]: [startOfPeriod, endOfPeriod]
@@ -404,8 +419,11 @@ router.get('/insights/device-models', auth, async (req, res) => {
             ],
             group: ['device_model', sequelize.fn('DATE', sequelize.col('inspection_date'))],
             order: sortBy === 'name' ? [['device_model', 'ASC']] : [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
-            limit: parseInt(limit)
+            limit: parseInt(limit),
+            logging: (sql) => console.log('Device Models SQL:', sql)
         });
+
+        console.log('Raw deviceModels from DB:', JSON.stringify(deviceModelsRaw, null, 2));
 
         // Calculate trends (compare with previous period)
         const previousStart = new Date(startOfPeriod);
@@ -427,6 +445,8 @@ router.get('/insights/device-models', auth, async (req, res) => {
             group: ['device_model']
         });
 
+        console.log('Previous period deviceModels:', JSON.stringify(previousPeriodData, null, 2));
+
         // Create trend mapping
         const trendMap = {};
         previousPeriodData.forEach(item => {
@@ -434,11 +454,10 @@ router.get('/insights/device-models', auth, async (req, res) => {
         });
 
         // Add trend data to current results
-        const results = deviceModels.map(item => {
+        const results = deviceModelsRaw.map(item => {
             const currentCount = parseInt(item.count) || 0;
             const previousCount = trendMap[item.device_model] || 0;
             const trend = previousCount === 0 ? 100 : ((currentCount - previousCount) / previousCount) * 100;
-            
             return {
                 device_model: item.device_model,
                 count: isNaN(currentCount) ? 0 : currentCount,
@@ -446,6 +465,8 @@ router.get('/insights/device-models', auth, async (req, res) => {
                 trend_direction: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable'
             };
         });
+
+        console.log('Final deviceModels results:', JSON.stringify(results, null, 2));
 
         res.json({
             period,

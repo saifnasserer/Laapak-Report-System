@@ -228,6 +228,8 @@ class AdminDashboard {
             
             const data = await response.json();
 
+            console.log('Device models data received from backend:', data);
+
             this.renderDeviceModels(data);
             this.updateDevicePeriodInfo(data);
         } catch (error) {
@@ -241,6 +243,8 @@ class AdminDashboard {
     renderDeviceModels(data) {
         const container = document.getElementById('deviceModelsContainer');
         
+        console.log('Rendering device models:', data);
+
         if (!data.deviceModels || data.deviceModels.length === 0) {
             container.innerHTML = '<div class="text-center text-muted py-4">لا توجد بيانات متاحة</div>';
             return;
@@ -255,6 +259,7 @@ class AdminDashboard {
                              device.trend_direction === 'down' ? 'text-danger' : 'text-muted';
             
             const count = (device.count === null || device.count === undefined) ? 0 : device.count;
+            console.log(`Device: ${device.device_model}, Count: ${count}`);
             return `
                 <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded-3 bg-light bg-opacity-50">
                     <div class="d-flex align-items-center">
