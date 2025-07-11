@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { Goal, Achievement, Report, Client, Invoice } = require('../models');
 const { adminAuth } = require('../middleware/auth');
+const { Op } = require('sequelize');
 
 // Get current month's goals
 router.get('/current', adminAuth, async (req, res) => {
@@ -32,8 +33,8 @@ router.get('/current', adminAuth, async (req, res) => {
 
             const reportsCount = await Report.count({
                 where: {
-                    createdAt: {
-                        [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
+                    created_at: {
+                        [Op.between]: [startOfMonth, endOfMonth]
                     }
                 }
             });
@@ -41,7 +42,7 @@ router.get('/current', adminAuth, async (req, res) => {
             const clientsCount = await Client.count({
                 where: {
                     createdAt: {
-                        [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
+                        [Op.between]: [startOfMonth, endOfMonth]
                     }
                 }
             });
@@ -67,8 +68,8 @@ router.get('/current', adminAuth, async (req, res) => {
 
         const currentReports = await Report.count({
             where: {
-                createdAt: {
-                    [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
+                created_at: {
+                    [Op.between]: [startOfMonth, endOfMonth]
                 }
             }
         });
@@ -76,7 +77,7 @@ router.get('/current', adminAuth, async (req, res) => {
         const currentClients = await Client.count({
             where: {
                 createdAt: {
-                    [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
+                    [Op.between]: [startOfMonth, endOfMonth]
                 }
             }
         });

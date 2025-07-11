@@ -353,7 +353,7 @@ router.get('/insights/device-models', auth, async (req, res) => {
 
         const deviceModels = await Report.findAll({
             where: {
-                createdAt: {
+                created_at: {
                     [Op.between]: [startOfMonth, endOfMonth]
                 }
             },
