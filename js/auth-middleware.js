@@ -6,7 +6,7 @@
 // Authentication middleware for client and admin pages
 class AuthMiddleware {
     constructor() {
-        this.API_URL = window.location.origin;
+        this.API_URL = window.config ? window.config.api.baseUrl : window.location.origin;
         this.ME_URL = `${this.API_URL}/api/auth/me`;
     }
 

@@ -22,6 +22,7 @@ const healthRoutes = require('./routes/health');
 const clientsRoutes = require('./routes/clients');
 const reportsRoutes = require('./routes/reports');
 const invoicesRoutes = require('./routes/invoices');
+const goalsRoutes = require('./routes/goals');
 const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
@@ -44,6 +45,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/invoices', invoicesRoutes);
+app.use('/api/goals', goalsRoutes);
 
 // Protected routes examples
 app.get('/api/protected', auth, (req, res) => {

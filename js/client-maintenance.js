@@ -93,9 +93,11 @@ function displayMaintenanceSchedule(reports) {
                             </div>` : 
                             `<div class="progress mb-1" style="height:5px;">
                                 <div class="progress-bar ${firstStatus === 'due' ? 'bg-danger' : 
-                                                      firstStatus === 'upcoming' ? 'bg-info' : 'bg-secondary'}" 
+                                                      firstStatus === 'upcoming' ? 'bg-info' : 
+                                                      firstStatus === 'scheduled' ? 'bg-secondary' : 'bg-secondary'}" 
                                      style="width: ${firstStatus === 'due' ? 100 : 
-                                                firstStatus === 'upcoming' ? 100 - (firstMaintenance.daysRemaining / 30 * 100) : 0}%"></div>
+                                                 firstStatus === 'upcoming' ? Math.min(firstMaintenance.percentPassed, 100) : 
+                                                 firstStatus === 'scheduled' ? Math.min(firstMaintenance.percentPassed, 100) : 0}%"></div>
                             </div>
                             <div class="d-flex justify-content-between mt-1 small text-muted">
                                 ${firstStatus === 'upcoming' ? 
@@ -139,9 +141,11 @@ function displayMaintenanceSchedule(reports) {
                             </div>` : 
                             `<div class="progress mb-1" style="height:5px;">
                                 <div class="progress-bar ${secondStatus === 'due' ? 'bg-danger' : 
-                                                      secondStatus === 'upcoming' ? 'bg-info' : 'bg-secondary'}" 
+                                                      secondStatus === 'upcoming' ? 'bg-info' : 
+                                                      secondStatus === 'scheduled' ? 'bg-secondary' : 'bg-secondary'}" 
                                      style="width: ${secondStatus === 'due' ? 100 : 
-                                                secondStatus === 'upcoming' ? 100 - (secondMaintenance.daysRemaining / 30 * 100) : 0}%"></div>
+                                                 secondStatus === 'upcoming' ? Math.min(secondMaintenance.percentPassed, 100) : 
+                                                 secondStatus === 'scheduled' ? Math.min(secondMaintenance.percentPassed, 100) : 0}%"></div>
                             </div>
                             <div class="d-flex justify-content-between mt-1 small text-muted">
                                 ${secondStatus === 'upcoming' ? 

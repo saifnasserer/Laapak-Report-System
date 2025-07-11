@@ -10,7 +10,11 @@ const { Admin, Client } = require('../models');
 const { auth, adminAuth, clientAuth } = require('../middleware/auth');
 
 // JWT Secret Key
-const JWT_SECRET = process.env.JWT_SECRET || 'laapak-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error("FATAL ERROR: JWT_SECRET is not defined in environment variables. Please set it before running the application.");
+    process.exit(1);
+}
 
 // Admin Login
 router.post('/admin', async (req, res) => {
@@ -34,33 +38,7 @@ router.post('/admin', async (req, res) => {
         
         console.log('Admin found:', { id: admin.id, username: admin.username, role: admin.role });
         
-        // For testing purposes - allow admin123 password for admin user
-        // This is a temporary solution for testing
-        if (username === 'admin' && password === 'admin123') {
-            console.log('Admin login successful with test credentials');
-            
-            // Update last login time
-            await admin.update({ lastLogin: new Date() });
-            
-            // Create JWT token
-            const token = jwt.sign(
-                { id: admin.id, username: admin.username, role: admin.role, type: 'admin' },
-                JWT_SECRET,
-                { expiresIn: '24h' }
-            );
-            
-            return res.json({
-                token,
-                user: {
-                    id: admin.id,
-                    name: admin.name,
-                    username: admin.username,
-                    role: admin.role
-                }
-            });
-        }
-        
-        // Regular password check for other users
+        // Regular password check for users
         console.log('Checking password...');
         const isMatch = await admin.checkPassword(password);
         console.log('Password match result:', isMatch);

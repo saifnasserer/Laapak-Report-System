@@ -262,10 +262,25 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Fetching clients with filters:', filters);
             let data;
             try {
-                if (typeof apiService !== 'undefined' && typeof apiService.getClients === 'function') {
-                    data = await apiService.getClients();
+                // First try to get apiService from window global if it's not directly available
+                const service = typeof apiService !== 'undefined' ? apiService : 
+                              (window && window.apiService) ? window.apiService : null;
+                
+                if (service && typeof service.getClients === 'function') {
+                    data = await service.getClients();
                 } else {
-                    throw new Error('API service not available');
+                    // Wait a moment in case apiService is being initialized asynchronously
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Try one more time
+                    const retryService = typeof apiService !== 'undefined' ? apiService : 
+                                      (window && window.apiService) ? window.apiService : null;
+                                      
+                    if (retryService && typeof retryService.getClients === 'function') {
+                        data = await retryService.getClients();
+                    } else {
+                        throw new Error('API service not available or not initialized yet');
+                    }
                 }
                 console.log('Clients data received:', data);
             } catch (apiError) {

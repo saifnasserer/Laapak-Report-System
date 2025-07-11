@@ -7,7 +7,11 @@ const jwt = require('jsonwebtoken');
 const { Admin, Client } = require('../models');
 
 // JWT Secret Key
-const JWT_SECRET = process.env.JWT_SECRET || 'laapak-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error("FATAL ERROR: JWT_SECRET is not defined in environment variables. Please set it before running the application.");
+    process.exit(1);
+}
 
 // General Authentication Middleware
 const auth = async (req, res, next) => {

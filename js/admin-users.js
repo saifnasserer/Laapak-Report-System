@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     authMiddleware.updateUserUI('admin-name', 'admin-role');
     
     // API endpoints
-    const API_URL = window.location.origin;
+    const API_URL = window.config ? window.config.api.baseUrl : window.location.origin;
     const ADMINS_URL = `${API_URL}/api/users/admins`;
     const CLIENTS_URL = `${API_URL}/api/users/clients`;
     

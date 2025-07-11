@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch('/api/clients?all=true', {
+            const response = await fetch('https://reports.laapak.com/api/clients?all=true', {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch(`/api/invoices/${invoiceId}`, {
+            const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch(`/api/invoices/${invoiceData.id}`, {
+            const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceData.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

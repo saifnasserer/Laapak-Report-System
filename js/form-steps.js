@@ -81,12 +81,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 // If we're on step 1, update global device details and client details before moving to next step
                 if (currentStep === 0) {
                     // Direct update to window.globalDeviceDetails
+                    // Get the existing device price if available
+                    const existingDevicePrice = window.globalDeviceDetails?.devicePrice || '';
+                    const devicePriceInput = document.getElementById('devicePrice');
+                    
                     window.globalDeviceDetails = {
                         orderNumber: document.getElementById('orderNumber')?.value || '',
                         inspectionDate: document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0],
                         deviceModel: document.getElementById('deviceModel')?.value || '',
-                        serialNumber: document.getElementById('serialNumber')?.value || ''
+                        serialNumber: document.getElementById('serialNumber')?.value || '',
+                        // Preserve existing device price or use value from input if available
+                        devicePrice: devicePriceInput?.value ? parseFloat(devicePriceInput.value) : existingDevicePrice
                     };
+                    
+                    console.log('Updated globalDeviceDetails with price:', window.globalDeviceDetails);
                     
                     // Store client selection in global variable
                     const clientSelect = document.getElementById('clientSelect');
@@ -766,11 +774,41 @@ document.addEventListener('DOMContentLoaded', function() {
                     const billingEnabled = document.getElementById('enableBilling')?.checked || false;
                     reportData.billing_enabled = billingEnabled;
                     
-                    // Assign device price to amount field
-                    if (window.globalDeviceDetails && window.globalDeviceDetails.devicePrice) {
-                        reportData.amount = window.globalDeviceDetails.devicePrice;
-                        console.log('Setting report amount from device price:', window.globalDeviceDetails.devicePrice);
+                    // First, ensure global device price is updated from the input field
+                    const devicePriceInput = document.getElementById('devicePrice');
+                    if (devicePriceInput && devicePriceInput.value) {
+                        const priceValue = parseFloat(devicePriceInput.value) || 0;
+                        if (window.globalDeviceDetails) {
+                            window.globalDeviceDetails.devicePrice = priceValue;
+                        }
+                        // Also store directly in reportData object
+                        reportData.devicePrice = priceValue;
+                        console.log('Updated device price:', priceValue);
                     }
+                    
+                    // CRITICAL: Set amount field directly and explicitly
+                    // Try multiple sources to ensure we get a value
+                    let devicePrice = 0;
+                    
+                    // Source priority (most reliable first):
+                    if (devicePriceInput && devicePriceInput.value) {
+                        // 1. Direct from input field (most reliable)
+                        devicePrice = parseFloat(devicePriceInput.value) || 0;
+                    } else if (reportData.devicePrice) {
+                        // 2. From report data if already set
+                        devicePrice = parseFloat(reportData.devicePrice) || 0;
+                    } else if (window.globalDeviceDetails && window.globalDeviceDetails.devicePrice) {
+                        // 3. From global device details if input field isn't available
+                        devicePrice = parseFloat(window.globalDeviceDetails.devicePrice) || 0;
+                    }
+                    
+                    // Always set the amount field EXPLICITLY regardless of billing_enabled status
+                    reportData.amount = devicePrice;
+                    console.log('Final report amount set to:', reportData.amount);
+                    
+                    // Force direct assignment to window.reportData for debugging purposes
+                    window.reportData = reportData;
+                    console.log('Report data with amount:', reportData);
                     
                     // Prepare technical tests data
                     const technicalTests = [];
@@ -865,145 +903,92 @@ document.addEventListener('DOMContentLoaded', function() {
                         savedReport = reportData;
                     }
                     
-                    // Generate invoice if needed
+                    // Generate invoice if billing is enabled
                     let invoice = null;
                     
-                    // Check if billing is enabled from the form data
-                    // Note: We're using a different variable name to avoid redeclaration
-                    const billingToggle = document.getElementById('enableBilling');
-                    
-                    // Directly read the DOM state of the billing toggle
-                    // This ensures we always get the current state, not a cached value
+                    // Get the billing toggle state
                     const freshBillingToggle = document.getElementById('enableBilling');
                     let isBillingEnabled = false;
                     
                     if (freshBillingToggle) {
-                        // Force a direct DOM read of the current checked state
                         isBillingEnabled = freshBillingToggle.checked;
-                        console.log('Billing toggle DOM element:', freshBillingToggle);
-                        console.log('Billing toggle checked attribute:', freshBillingToggle.getAttribute('checked'));
-                        console.log('Billing toggle checked property:', freshBillingToggle.checked);
+                        console.log('Billing toggle checked property:', isBillingEnabled);
                     } else {
                         console.warn('Billing toggle element not found in the DOM');
                     }
                     
-                    console.log('Billing enabled:', isBillingEnabled);
-                    console.log('Billing toggle element:', billingToggle);
+                    // Always ensure devicePrice is captured in amount field regardless of billing status
+                    // This ensures that reports show the correct price even if billing is disabled
+                    if (!reportData.amount && window.globalDeviceDetails?.devicePrice) {
+                        reportData.amount = window.globalDeviceDetails.devicePrice;
+                        console.log('Setting report amount from globalDeviceDetails.devicePrice:', reportData.amount);
+                    }
                     
-                    // If billing is enabled, try to generate invoice but don't block report creation
-                    if (isBillingEnabled) {
-                        // Wrap the entire invoice creation in a try/catch to prevent it from blocking report creation
+                    // If amount is still not set, check for devicePrice directly
+                    if (!reportData.amount && reportData.devicePrice) {
+                        reportData.amount = reportData.devicePrice;
+                        console.log('Setting report amount from reportData.devicePrice:', reportData.amount);
+                    }
+                    
+                    // Ensure savedReport also has the amount
+                    if (savedReport && !savedReport.amount && (window.globalDeviceDetails?.devicePrice || reportData.amount)) {
+                        savedReport.amount = window.globalDeviceDetails?.devicePrice || reportData.amount;
+                        console.log('Updating savedReport.amount:', savedReport.amount);
+                    }
+                    
+                    console.log('Report created with billing_enabled:', isBillingEnabled);
+                    
+                    // Create invoice only if billing is enabled
+                    if (isBillingEnabled && savedReport && savedReport.id && currentApiService && 
+                        typeof currentApiService.getInvoices === 'function' && 
+                        typeof currentApiService.createInvoice === 'function') {
+                        
                         try {
-                            // First try to get client ID from the saved report
-                            let client_id = savedReport.client_id;
-                            
-                            // If not available in the report, try global client details
-                            if (!client_id && window.globalClientDetails) {
-                                client_id = window.globalClientDetails.client_id;
-                                console.log('Using client ID from global client details:', client_id);
-                            }
-                            
-                            // As a last resort, try to get it from the form
-                            if (!client_id) {
-                                client_id = document.getElementById('clientSelect')?.value;
-                                console.log('Using client ID from form element:', client_id);
-                            }
-                            
-                            // Log client ID for debugging
-                            console.log('Creating invoice with client ID:', client_id);
-                            
-                            if (!client_id) {
-                                console.warn('No client ID available for invoice creation - skipping invoice');
+                            // First verify no invoice exists for this report
+                            console.log('Checking if invoice already exists for report:', savedReport.id);
+                            const existingInvoices = await currentApiService.getInvoices();
+                            const existingInvoice = existingInvoices.find(inv => 
+                                inv.report_id === savedReport.id);
+                                
+                            if (existingInvoice) {
+                                // Already exists, just use it
+                                console.log('Found existing invoice for this report:', existingInvoice);
+                                invoice = existingInvoice;
                             } else {
-                                // 1. Collect form details for invoice generation
-                                const deviceName = document.getElementById('invoiceDeviceName')?.value || window.globalDeviceDetails?.deviceModel || (savedReport && savedReport.deviceModel) || '';
-                                const serialNumber = document.getElementById('invoiceSerialNumber')?.value || window.globalDeviceDetails?.serialNumber || (savedReport && savedReport.serialNumber) || '';
-                                const price = parseFloat(document.getElementById('invoicePrice')?.value || '0'); // Default to 0, as price might not always be applicable (e.g. warranty)
-                                const formTaxRate = parseFloat(document.getElementById('taxRate')?.value || '0'); // Default to 0% if not found in form
-                                const formDiscount = parseFloat(document.getElementById('discount')?.value || '0');
-                                const formNotes = document.getElementById('invoiceNotes')?.value || ''; // Assuming an ID 'invoiceNotes' for notes field
-
-                                const invoiceFormDetails = {
-                                    laptops: [],
-                                    additionalItems: [], // Populate this if form-steps.js has a section for additional items
-                                    paymentStatus: 'unpaid', // Default, can be overridden by form if a field exists
-                                    paymentMethod: null,     // Default, can be overridden by form
-                                    taxRate: formTaxRate,
-                                    discount: formDiscount,
-                                    notes: formNotes
+                                // Create a basic invoice for the report
+                                const basicInvoiceData = {
+                                    id: `INV${Date.now()}`, // Generate a unique ID for the invoice
+                                    client_id: Number(savedReport.client_id), // Convert to number to pass validation
+                                    report_id: savedReport.id,
+                                    date: new Date().toISOString(),
+                                    // Use device price from report or global, or default to 0
+                                    subtotal: savedReport.amount || window.globalDeviceDetails?.devicePrice || 0,
+                                    taxRate: 0, // Default tax rate set to 0% as requested
+                                    discount: 0, // Default discount
+                                    paymentStatus: 'unpaid',
+                                    items: [{
+                                        description: `${savedReport.deviceModel || window.globalDeviceDetails?.deviceModel || 'Device'} (SN: ${savedReport.serialNumber || window.globalDeviceDetails?.serialNumber || 'N/A'})`,
+                                        amount: savedReport.amount || window.globalDeviceDetails?.devicePrice || 0,
+                                        quantity: 1,
+                                        totalAmount: (savedReport.amount || window.globalDeviceDetails?.devicePrice || 0) * 1, // Calculate line total (price * quantity)
+                                        type: 'laptop',
+                                        serialNumber: savedReport.serialNumber || window.globalDeviceDetails?.serialNumber || ''
+                                    }]
                                 };
-
-                                if (deviceName || price > 0) { // Only add as a laptop item if there's a device name or a price
-                                    invoiceFormDetails.laptops.push({
-                                        name: deviceName,
-                                        serial: serialNumber,
-                                        price: price,
-                                        quantity: 1 // Assuming quantity 1 for the main device from this form
-                                    });
-                                }
-
-                                // 2. Generate the complete invoice object using window.generateInvoice (from invoice-generator.js)
-                                let completeInvoiceData;
-                                if (typeof window.generateInvoice === 'function') {
-                                    completeInvoiceData = window.generateInvoice(savedReport, invoiceFormDetails);
-                                    console.log('Complete invoice data generated by invoiceGenerator.js:', JSON.stringify(completeInvoiceData, null, 2));
-                                } else {
-                                    console.error('window.generateInvoice function is not available. Cannot create detailed invoice data.');
-                                    // Set to null or an empty object to prevent sending malformed data, or throw an error
-                                    completeInvoiceData = null; 
-                                }
-
-                                // 3. Try to save the complete invoice data to API with improved error handling
-                                try {
-                                    // Check for API availability and data completeness
-                                    if (currentApiService && typeof currentApiService.createInvoice === 'function' && completeInvoiceData) {
-                                        try {
-                                            // Attempt to create invoice via API with a shorter timeout
-                                            const invoicePromise = currentApiService.createInvoice(completeInvoiceData);
-                                            // Create a timeout promise to abort if it takes too long
-                                            const timeoutPromise = new Promise((_, reject) => {
-                                                setTimeout(() => reject(new Error('Invoice API timeout')), 3000); // 3 second timeout
-                                            });
-                                            
-                                            // Race the two promises
-                                            invoice = await Promise.race([invoicePromise, timeoutPromise]);
-                                            console.log('Invoice saved to API:', invoice);
-                                        } catch (connectionError) {
-                                            // Handle connection errors separately
-                                            console.warn('Connection error with invoice API, skipping to local fallback:', connectionError);
-                                            throw new Error('Connection refused to invoice API');
-                                        }
-                                    } else {
-                                        if (!completeInvoiceData) {
-                                            console.warn('Invoice data could not be generated. Skipping API call.');
-                                        } else {
-                                            console.warn('API service not available for invoice creation. Using local generation.');
-                                        }
-                                        throw new Error('API service or invoice data unavailable');
-                                    }
-                                } catch (apiError) {
-                                    // Any error here means we need to use the fallback
-                                    console.warn('Using local invoice generation:', apiError);
-                                    try {
-                                        if (typeof window.generateInvoice === 'function') {
-                                            invoice = window.generateInvoice(savedReport, invoiceFormDetails); // Use the same detailed generator
-                                            console.log('Fallback local invoice generated (API error):', invoice);
-                                        } else {
-                                            console.error('Fallback invoice generation also not possible as window.generateInvoice is missing.');
-                                            invoice = null;
-                                        }
-                                    } catch (fallbackError) {
-                                        console.error('Even fallback invoice generation failed:', fallbackError);
-                                        invoice = null;
-                                    }
-                                }
+                                
+                                // Calculate tax and total
+                                const taxAmount = basicInvoiceData.subtotal * (basicInvoiceData.taxRate / 100);
+                                basicInvoiceData.tax = parseFloat(taxAmount.toFixed(2));
+                                basicInvoiceData.total = basicInvoiceData.subtotal + basicInvoiceData.tax - basicInvoiceData.discount;
+                                
+                                console.log('Creating basic invoice for report:', basicInvoiceData);
+                                invoice = await currentApiService.createInvoice(basicInvoiceData);
+                                console.log('Successfully created invoice:', invoice);
                             }
                         } catch (invoiceError) {
-                            console.warn('Error during invoice creation process, but continuing with report:', invoiceError);
-                            // We'll still show the success message even if invoice creation failed
+                            console.warn('Error during invoice creation:', invoiceError);
+                            // Continue with the report creation process even if invoice creation fails
                         }
-                    } else {
-                        console.log('Billing not enabled - skipping invoice creation');
                     }
                     
                     // Clear all validation errors before showing success

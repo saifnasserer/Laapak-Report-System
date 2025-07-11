@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إنشاء تقرير جديد | Laapak</title>
+    <title>Laapak Reports</title>
+    <link rel="icon" type="image/png" href="img/cropped-Logo-mark.png.png">
+    <link rel="shortcut icon" type="image/png" href="img/cropped-Logo-mark.png.png">
     
     <!-- Bootstrap RTL CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
@@ -23,7 +25,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Laapak Reports">
-    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" href="img/cropped-Logo-mark.png.png">
     
     <!-- Theme color for browser -->
     <meta name="theme-color" content="#0a3622">
@@ -724,6 +726,23 @@
                                                                 </div>
                                                             </td>
                                                         </tr>
+                                                        
+                                                        <!-- Touchscreen -->
+                                                        <tr>
+                                                            <td><i class="fas fa-hand-pointer text-primary me-2"></i> الشاشة تاتش</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="touchscreen" class="form-check-input" type="radio" name="touchscreen_status" id="touchscreen_working" value="working">
+                                                                    <label class="form-check-label" for="touchscreen_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="touchscreen_status" id="touchscreen_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="touchscreen_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -1413,6 +1432,7 @@
     
     <!-- Custom JS Files -->
     <script src="js/offline-handler.js"></script>
+    <script src="js/config.js"></script>
     <script src="js/api-service.js"></script>
     <script src="js/auth-middleware.js"></script>
     <script src="js/reset-service-worker.js"></script>

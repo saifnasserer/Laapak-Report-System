@@ -150,8 +150,17 @@ async function checkServerConnection() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
+        // Try to get apiService from different sources
+        const service = typeof apiService !== 'undefined' ? apiService : 
+                      (window && window.apiService) ? window.apiService : null;
+        
+        // Determine base URL safely
+        const baseUrl = service && service.baseUrl ? service.baseUrl : 
+                      (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
+                      'https://reports.laapak.com';
+        
         // Try to connect to the server - use /api/reports since we know that endpoint exists
-        const response = await fetch(`${apiService.baseUrl}/api/reports`, {
+        const response = await fetch(`${baseUrl}/api/reports`, {
             method: 'GET',
             signal: controller.signal,
             headers: {

@@ -2,6 +2,7 @@ const express = require('express');
 const { Sequelize, Op } = require('sequelize');
 const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport } = require('../models'); // Added InvoiceReport
 const { auth, clientAuth, adminAuth } = require('../middleware/auth'); // Import all auth middlewares
+const { sequelize } = require('../config/db');
 
 const router = express.Router();
 
@@ -341,6 +342,105 @@ router.get('/search', async (req, res) => {
     console.error('Failed to search reports:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
+});
+
+// GET /reports/insights/device-models - get device models sold this month
+router.get('/insights/device-models', auth, async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+        const deviceModels = await Report.findAll({
+            where: {
+                createdAt: {
+                    [Op.between]: [startOfMonth, endOfMonth]
+                }
+            },
+            attributes: [
+                'device_model',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+            ],
+            group: ['device_model'],
+            order: [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
+            limit: 10
+        });
+
+        res.json(deviceModels);
+    } catch (error) {
+        console.error('Error getting device models insights:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// GET /reports/insights/warranty-alerts - get clients with warranty ending soon
+router.get('/insights/warranty-alerts', auth, async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const sevenDaysFromNow = new Date(currentDate);
+        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+        // Get all reports with their clients
+        const reports = await Report.findAll({
+            include: [
+                {
+                    model: Client,
+                    attributes: ['id', 'name', 'phone', 'email']
+                }
+            ],
+            order: [['inspection_date', 'DESC']]
+        });
+
+        const warrantyAlerts = [];
+
+        reports.forEach(report => {
+            const inspectionDate = new Date(report.inspection_date);
+            
+            // Calculate warranty end dates
+            const manufacturingEnd = new Date(inspectionDate);
+            manufacturingEnd.setMonth(manufacturingEnd.getMonth() + 6);
+            
+            const replacementEnd = new Date(inspectionDate);
+            replacementEnd.setDate(replacementEnd.getDate() + 14);
+            
+            const maintenanceEnd = new Date(inspectionDate);
+            maintenanceEnd.setFullYear(maintenanceEnd.getFullYear() + 1);
+
+            // Check if any warranty is ending within 7 days
+            const warranties = [
+                { type: 'manufacturing', endDate: manufacturingEnd, days: 180 },
+                { type: 'replacement', endDate: replacementEnd, days: 14 },
+                { type: 'maintenance', endDate: maintenanceEnd, days: 365 }
+            ];
+
+            warranties.forEach(warranty => {
+                if (warranty.endDate >= currentDate && warranty.endDate <= sevenDaysFromNow) {
+                    const daysRemaining = Math.ceil((warranty.endDate - currentDate) / (1000 * 60 * 60 * 24));
+                    
+                    warrantyAlerts.push({
+                        client_id: report.client_id,
+                        client_name: report.client_name,
+                        client_phone: report.client_phone,
+                        device_model: report.device_model,
+                        serial_number: report.serial_number,
+                        inspection_date: report.inspection_date,
+                        warranty_type: warranty.type,
+                        warranty_end_date: warranty.endDate,
+                        days_remaining: daysRemaining,
+                        report_id: report.id
+                    });
+                }
+            });
+        });
+
+        // Sort by days remaining (most urgent first)
+        warrantyAlerts.sort((a, b) => a.days_remaining - b.days_remaining);
+
+        res.json(warrantyAlerts);
+    } catch (error) {
+        console.error('Error getting warranty alerts:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
 });
 
 module.exports = router;

@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laapak Report System</title>
+    <title>Laapak Reports</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="img/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="img/cropped-Logo-mark.png.png" type="image/png">
     
     <!-- Bootstrap RTL CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
@@ -24,7 +28,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Laapak Reports">
-    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" href="img/cropped-Logo-mark.png.png">
     
     <!-- Theme color for browser -->
     <meta name="theme-color" content="#0a3622">
@@ -531,6 +535,10 @@
     <!-- Configuration -->
     <script src="js/config.js"></script>
     
+    <!-- Authentication Check - Must be loaded first -->
+    <script src="js/auth-middleware.js"></script>
+    <script src="js/auth-check.js"></script>
+    
     <!-- Bootstrap core JS-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -551,6 +559,28 @@
                     });
             });
         }
+    </script>
+    
+    <!-- Authentication Redirect Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is already authenticated and redirect accordingly
+            if (typeof authMiddleware !== 'undefined') {
+                // Check if admin is logged in
+                if (authMiddleware.isAdminLoggedIn()) {
+                    console.log('Admin already authenticated, redirecting to admin dashboard');
+                    window.location.href = 'admin.html';
+                    return;
+                }
+                
+                // Check if client is logged in
+                if (authMiddleware.isClientLoggedIn()) {
+                    console.log('Client already authenticated, redirecting to client dashboard');
+                    window.location.href = 'client-dashboard.html';
+                    return;
+                }
+            }
+        });
     </script>
     
     <!-- Login Tabs Functionality -->
@@ -576,7 +606,7 @@
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
                     
                     // Make real API call to backend
-                    const apiBaseUrl = window.config ? window.config.api.baseUrl : '${window.location.origin}';
+                    const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                     fetch(`${apiBaseUrl}/api/clients/auth`, {
                         method: 'POST',
                         headers: {
@@ -652,7 +682,7 @@
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تسجيل الدخول...';
                     
                     // Make real API call to backend
-                    const apiBaseUrl = window.config ? window.config.api.baseUrl : '${window.location.origin}';
+                    const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                     fetch(`${apiBaseUrl}/api/auth/admin`, {
                         method: 'POST',
                         headers: {

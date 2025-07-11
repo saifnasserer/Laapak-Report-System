@@ -31,11 +31,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportStatus = document.getElementById('reportStatus');
 
     const externalImagesGallery = document.getElementById('externalImagesGallery');
-    const deviceVideoEmbed = document.getElementById('deviceVideoEmbed');
+    // const deviceVideoEmbed = document.getElementById('deviceVideoEmbed'); // Replaced by specific player elements
     const testScreenshotsGallery = document.getElementById('testScreenshotsGallery');
     const hardwareStatusTableBody = document.getElementById('hardwareStatusTableBody');
-    
 
+    // Video Player Elements
+    let player; // To store YouTube or HTML5 player instance
+    const videoPlaceholder = document.getElementById('videoPlaceholder');
+    const videoThumbnail = document.getElementById('videoThumbnail'); // New thumbnail element
+    const deviceVideoContainer = document.getElementById('deviceVideoContainer');
+    const videoPlayerWrapper = document.getElementById('videoPlayerWrapper');
+    const videoControlsOverlay = document.getElementById('videoControlsOverlay');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const videoProgressBarEl = document.getElementById('videoProgressBar'); // Renamed for video controls
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('durationTime');
+    const muteBtn = document.getElementById('muteBtn');
+    const volumeHighIcon = document.getElementById('volumeHighIcon');
+    const volumeMuteIcon = document.getElementById('volumeMuteIcon');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const standaloneFullscreenBtn = document.getElementById('standaloneFullscreenBtn'); // New standalone button
+    
     const billingEnabled = document.getElementById('billingEnabled');
     const billingAmount = document.getElementById('billingAmount');
     const billingSummaryContainer = document.getElementById('billingSummaryContainer');
@@ -48,11 +66,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchReportData() {
         try {
-            // IMPORTANT: Adjust this API endpoint to your actual backend route for fetching a single report
-            const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-            const response = await fetch(`${apiBaseUrl}/api/reports/${reportId}`); 
+            // Try to get apiService from different sources
+            const service = typeof apiService !== 'undefined' ? apiService : 
+                          (window && window.apiService) ? window.apiService : null;
+            
+            // Determine base URL safely
+            const apiBaseUrl = service && service.baseUrl ? service.baseUrl : 
+                             (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
+                             'https://reports.laapak.com';
+                             
+            console.log('Using API base URL:', apiBaseUrl);
+            console.log('Fetching report with ID:', reportId);
+            
+            // The correct API endpoint structure
+            const response = await fetch(`${apiBaseUrl}/api/reports/${reportId}`);
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Try alternative endpoint if the first one fails
+                console.log('First endpoint failed, trying alternative endpoint...');
+                const altResponse = await fetch(`${apiBaseUrl}/api/client/reports/${reportId}`);
+                
+                if (!altResponse.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await altResponse.json();
             }
             const data = await response.json();
             if (data.success && data.report) {
@@ -439,13 +477,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderDeviceVideo(externalImages) {
-        const videoContainer = document.getElementById('deviceVideoContainer');
-        if (!videoContainer) {
-            console.error('Video container element not found');
+        // const videoContainer = document.getElementById('deviceVideoContainer'); // Already defined globally
+        if (!deviceVideoContainer || !videoPlayerWrapper || !videoPlaceholder) {
+            console.error('Video container, player wrapper, or placeholder element not found');
             return;
         }
         
-        videoContainer.innerHTML = ''; // Clear previous content
+        videoPlayerWrapper.innerHTML = ''; // Clear previous player
+        videoPlaceholder.style.display = 'flex'; // Show loading placeholder
+        if(videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden'; // Hide controls initially
+        
+        // Show thumbnail if it exists
+        if (videoThumbnail) {
+            videoThumbnail.style.display = 'flex';
+            // Add click event to play video
+            videoThumbnail.onclick = function() {
+                if (player) {
+                    // Hide thumbnail
+                    videoThumbnail.style.display = 'none';
+                    // Play video
+                    if (player.playVideo) { // YouTube
+                        player.playVideo();
+                    } else if (player.play) { // HTML5 video
+                        player.play();
+                    }
+                    // Show controls
+                    if (videoControlsOverlay) {
+                        videoControlsOverlay.style.visibility = 'visible';
+                        videoControlsOverlay.style.opacity = '1';
+                    }
+                }
+            };
+        }
         
         // Find any video media (supports multiple types)
         const videoItems = externalImages.filter(item => {
@@ -456,7 +519,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         if (videoItems.length === 0) {
-            videoContainer.innerHTML = '<div class="text-muted text-center py-5"><i class="fas fa-video-slash fa-3x mb-3 text-secondary"></i><p>لا يوجد فيديو مرفق للجهاز.</p></div>';
+            videoPlaceholder.innerHTML = '<div class="text-muted text-center py-5"><i class="fas fa-video-slash fa-3x mb-3 text-secondary"></i><p>لا يوجد فيديو مرفق للجهاز.</p></div>';
+            videoPlaceholder.style.display = 'flex';
+            if(videoPlayerWrapper) videoPlayerWrapper.innerHTML = ''; // Clear player wrapper if no video
+            if(videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
             return;
         }
         
@@ -464,23 +530,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const videoItem = videoItems[0];
         try {
             // Determine video type by URL or explicit type
+            if (videoPlaceholder) {
+                videoPlaceholder.style.display = 'none';
+                videoPlaceholder.style.visibility = 'hidden';
+                videoPlaceholder.style.opacity = '0';
+            } // Hide placeholder completely
+            // Controls overlay visibility will be handled by initializeVideoControls or player readiness
+
             if (videoItem.type === 'youtube' || (videoItem.url && isYouTubeUrl(videoItem.url))) {
-                embedYouTubeVideo(videoItem.url, videoContainer);
+                embedYouTubeVideo(videoItem.url, videoPlayerWrapper);
             } else if (videoItem.url.match(/\.(mp4|webm|ogg|mov)$/i)) {
                 // Direct video file
-                embedDirectVideo(videoItem.url, videoContainer, videoItem.autoplay);
+                embedDirectVideo(videoItem.url, videoPlayerWrapper, videoItem.autoplay);
             } else if (videoItem.url.includes('vimeo.com')) {
-                // Vimeo video
-                embedVimeoVideo(videoItem.url, videoContainer);
+                // Vimeo video (Note: Custom controls might not work with Vimeo iframe without specific API)
+                embedVimeoVideo(videoItem.url, videoPlayerWrapper);
+                // For Vimeo, custom controls might be limited. Consider hiding custom controls if Vimeo.
+                if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden'; 
             } else {
                 // Unknown format - try iframe as fallback
-                const iframe = document.createElement('iframe');
-                iframe.src = videoItem.url;
-                iframe.setAttribute('allowfullscreen', 'true');
-                iframe.width = '100%';
-                iframe.height = '500px';
-                iframe.style.border = 'none';
-                videoContainer.appendChild(iframe);
+                if (videoPlaceholder) {
+                    videoPlaceholder.innerHTML = '<div class="alert alert-warning text-center">صيغة الفيديو غير مدعومة.</div>';
+                    videoPlaceholder.style.display = 'flex';
+                }
+                if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
+                videoPlayerWrapper.innerHTML = ''; // Clear player wrapper for unsupported format
             }
             
             // If there are multiple videos, add thumbnails below (optional feature for later)
@@ -492,105 +566,503 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } catch (e) {
             console.error('Error processing video:', e);
-            videoContainer.innerHTML = '<div class="alert alert-warning text-center">خطأ في معالجة الفيديو. يرجى التحقق من صحة الرابط.</div>';
-        }
-    }
-    
-    // Helper function to check if URL is YouTube
-    function isYouTubeUrl(url) {
-        try {
-            const videoUrl = new URL(url);
-            return videoUrl.hostname === 'www.youtube.com' || 
-                   videoUrl.hostname === 'youtube.com' || 
-                   videoUrl.hostname === 'youtu.be';
-        } catch (e) {
-            return false;
-        }
-    }
-    
-    // Helper to embed YouTube videos with modern player interface
-    function embedYouTubeVideo(url, container) {
-        try {
-            // Clear any loading placeholders
-            container.innerHTML = '';
-            
-            const videoUrl = new URL(url);
-            let videoId = '';
-            
-            if (videoUrl.hostname === 'youtu.be') {
-                videoId = videoUrl.pathname.substring(1);
-            } else if (videoUrl.pathname === '/watch') {
-                videoId = videoUrl.searchParams.get('v');
-            } else if (videoUrl.pathname.startsWith('/embed/')) {
-                videoId = videoUrl.pathname.split('/').pop();
+            if (videoPlaceholder) {
+                videoPlaceholder.innerHTML = '<div class="alert alert-warning text-center">خطأ في معالجة الفيديو. يرجى التحقق من صحة الرابط.</div>';
+                videoPlaceholder.style.display = 'flex';
             }
-            
-            if (videoId) {
-                // Create enhanced YouTube player with custom controls
-                const iframe = document.createElement('iframe');
-                iframe.id = 'youtubeVideo';
-                // Add enablejsapi=1 to enable the YouTube Player API
-                iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&enablejsapi=1`;
-                iframe.setAttribute('allowfullscreen', 'true');
-                iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-                iframe.style.width = '100%';
-                iframe.style.height = '400px';
-                iframe.style.border = 'none';
-                container.appendChild(iframe);
-                
-                // Include YouTube API script if it's not already loaded
-                if (!window.YT) {
+            if (videoPlayerWrapper) videoPlayerWrapper.innerHTML = '';
+            if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
+        }
+    } // Closing brace for renderDeviceVideo function
+
+// Helper function to check if URL is YouTube
+function isYouTubeUrl(url) {
+    try {
+        const videoUrl = new URL(url);
+        return videoUrl.hostname === 'www.youtube.com' || 
+               videoUrl.hostname === 'youtube.com' || 
+               videoUrl.hostname === 'youtu.be';
+    } catch (e) {
+        return false;
+    }
+}
+
+// Helper to embed YouTube videos with modern player interface
+function embedYouTubeVideo(url, playerWrapperArgument) { // Renamed argument to avoid conflict with global
+    try {
+        playerWrapperArgument.innerHTML = ''; // Clear previous player
+        const youtubeHostDiv = document.createElement('div');
+        youtubeHostDiv.id = 'youtubePlayerHost'; // API will replace this div
+        playerWrapperArgument.appendChild(youtubeHostDiv);
+
+        const videoUrl = new URL(url);
+        let videoId = '';
+        if (videoUrl.hostname === 'youtu.be') {
+            videoId = videoUrl.pathname.substring(1);
+        } else if (videoUrl.pathname === '/watch') {
+            videoId = videoUrl.searchParams.get('v');
+        } else if (videoUrl.pathname.startsWith('/embed/')) {
+            videoId = videoUrl.pathname.split('/').pop();
+        }
+
+        if (videoId) {
+            const initPlayer = () => {
+                if (document.getElementById('youtubePlayerHost')) { // Ensure host element exists
+                    player = new YT.Player('youtubePlayerHost', {
+                        height: '100%',
+                        width: '100%',
+                        videoId: videoId,
+                        playerVars: {
+                            'playsinline': 1,
+                            'rel': 0,       // No related videos
+                            'controls': 0,  // Hide default YouTube controls
+                            'showinfo': 0,  // Hide video title, uploader before video starts
+                            'modestbranding': 1 // Hide YouTube logo as much as possible
+                        },
+                        events: {
+                            'onReady': onYouTubePlayerReady,
+                            'onStateChange': onYouTubePlayerStateChange
+                        }
+                    });
+                } else {
+                    console.error('YouTube player host element not found for initialization.');
+                }
+            };
+
+            if (window.YT && window.YT.Player) {
+                initPlayer();
+            } else {
+                window.onYouTubeIframeAPIReady = initPlayer; // This will be called once API is loaded
+                if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
                     const tag = document.createElement('script');
                     tag.src = 'https://www.youtube.com/iframe_api';
                     const firstScriptTag = document.getElementsByTagName('script')[0];
-                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                    if (firstScriptTag && firstScriptTag.parentNode) {
+                       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                    } else {
+                       document.head.appendChild(tag);
+                    }
                 }
-                
-                // Set up event handler for YouTube API Ready
-                window.onYouTubeIframeAPIReady = function() {
-                    // Initialize the player
-                    new YT.Player('youtubeVideo', {
-                        events: {
-                            'onReady': onPlayerReady,
-                            'onStateChange': onPlayerStateChange
-                        }
-                    });
-                };
-                
-            } else {
-                throw new Error('Invalid YouTube URL');
             }
-        } catch (e) {
-            console.error('YouTube embedding error:', e);
-            container.innerHTML = `
-                <div class="text-center p-4">
-                    <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
-                    <p class="mb-0">خطأ في تضمين فيديو YouTube</p>
-                </div>`;
+        } else {
+            throw new Error('Invalid YouTube URL');
+        }
+    } catch (e) {
+        console.error('YouTube embedding error:', e);
+        playerWrapperArgument.innerHTML = `<div class="text-center p-4 alert alert-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><p class="mb-0">خطأ في تضمين فيديو YouTube</p></div>`;
+        if (videoPlaceholder) videoPlaceholder.style.display = 'none';
+        if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
+    }
+}
+
+// Helper to embed direct video files with modern controls
+function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Renamed argument
+    playerWrapperArgument.innerHTML = ''; // Clear previous player
+    
+    const video = document.createElement('video');
+    video.id = 'html5VideoPlayer';
+    video.src = url;
+    video.controls = false; // We use custom controls
+    video.autoplay = autoplay;
+    video.style.width = '100%';
+    video.style.height = '100%'; // Fill the wrapper
+    video.style.objectFit = 'contain'; // Maintain aspect ratio and center
+    video.style.maxHeight = '100vh';
+    video.style.maxWidth = '100vw';
+    playerWrapperArgument.appendChild(video);
+
+    player = video; // Store HTML5 video element as the player
+
+    // Event listeners for HTML5 video
+    player.addEventListener('loadedmetadata', () => {
+        console.log('Video metadata loaded');
+        // Hide loading placeholder completely
+        if (videoPlaceholder) {
+            videoPlaceholder.style.display = 'none';
+            videoPlaceholder.style.visibility = 'hidden';
+            videoPlaceholder.style.opacity = '0';
+        }
+        
+        // Use first frame as thumbnail background if possible
+        if (videoThumbnail) {
+            // Try to set video frame as background for the thumbnail
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = player.videoWidth;
+                canvas.height = player.videoHeight;
+                canvas.getContext('2d').drawImage(player, 0, 0, canvas.width, canvas.height);
+                const thumbnailImage = canvas.toDataURL();
+                videoThumbnail.style.backgroundImage = `url(${thumbnailImage})`;
+                videoThumbnail.style.backgroundSize = 'cover';
+                videoThumbnail.style.backgroundPosition = 'center';
+            } catch (e) {
+                console.log('Could not set video frame as thumbnail:', e);
+            }
+        }
+        
+        // Force controls to be visible
+        if (videoControlsOverlay) {
+            console.log('Setting video controls visible');
+            videoControlsOverlay.style.visibility = 'visible';
+            videoControlsOverlay.style.opacity = '1';
+            videoControlsOverlay.style.display = 'block';
+        }
+        
+        // Directly get fullscreen button
+        const fsBtn = document.getElementById('fullscreenBtn');
+        if (fsBtn) {
+            console.log('Found fullscreen button, attaching event');
+            fsBtn.onclick = function() {
+                console.log('Fullscreen button clicked');
+                toggleFullscreen();
+            };
+            // Make sure it's visible
+            fsBtn.style.display = 'block';
+        } else {
+            console.warn('Fullscreen button not found!');
+        }
+        
+        initializeVideoControls();
+        updateVideoProgressBar(); // Initialize progress bar with duration
+        updatePlayPauseButton();
+        updateMuteButton();
+    });
+    
+    // Add more event listeners for HTML5 video controls
+    player.addEventListener('play', () => {
+        updatePlayPauseButton();
+    });
+    
+    player.addEventListener('pause', () => {
+        updatePlayPauseButton();
+    });
+    
+    player.addEventListener('volumechange', () => {
+        updateMuteButton();
+    });
+    
+    player.addEventListener('timeupdate', () => {
+        updateVideoProgressBar();
+    });
+    
+    player.addEventListener('ended', () => {
+        updatePlayPauseButton();
+        // Optionally reset to beginning
+        player.currentTime = 0;
+    });
+    
+    // Handle errors
+    player.addEventListener('error', () => {
+        console.error('Video error:', player.error);
+        if (videoPlaceholder) {
+            videoPlaceholder.innerHTML = '<div class="alert alert-danger text-center"><i class="fas fa-exclamation-triangle mb-2"></i><p>خطأ في تشغيل الفيديو</p></div>';
+            videoPlaceholder.style.display = 'flex';
+        }
+    });
+} // End of embedDirectVideo function
+
+    function onYouTubePlayerStateChange(event) {
+        updatePlayPauseButton();
+        updateVideoProgressBar(); // Keep progress bar updated
+        // YT.PlayerState.ENDED, YT.PlayerState.PLAYING, YT.PlayerState.PAUSED, etc.
+        if (event.data === YT.PlayerState.PLAYING) {
+            if (videoControlsOverlay) videoControlsOverlay.style.opacity = '1'; // Keep controls visible
+        } else if (event.data === YT.PlayerState.ENDED) {
+            if(playIcon && pauseIcon) {
+                playIcon.style.display = 'inline-block';
+                pauseIcon.style.display = 'none';
+            }
+            if(player && player.seekTo) player.seekTo(0, false); // Rewind to start, but don't play
         }
     }
-    
-    // Helper to embed direct video files with modern controls
-    function embedDirectVideo(url, container, autoplay = false) {
-        // Clear any loading placeholders
-        container.innerHTML = '';
+
+    // Video Control Functions
+    function initializeVideoControls() {
+        // More robust check for elements
+        if (!player || !deviceVideoContainer || !videoControlsOverlay) {
+            console.warn('Essential video elements are missing.');
+            return;
+        }
+
+        // Attach events to controls if they exist
+        if (playPauseBtn) {
+            playPauseBtn.onclick = togglePlayPause;
+        } else {
+            console.warn('Play/Pause button not found');
+        }
         
-        // Create custom video element
-        const video = document.createElement('video');
-        video.id = 'deviceVideo';
-        video.src = url;
-        video.controls = false; // We'll use our custom controls
-        video.autoplay = autoplay || false;
-        video.muted = autoplay || false; // Must be muted for autoplay to work on most browsers
-        video.playsInline = true;
-        video.style.width = '100%';
-        video.style.maxHeight = '80vh';
-        video.style.backgroundColor = '#000';
-        video.className = 'w-100';
-        container.appendChild(video);
+        if (muteBtn) {
+            muteBtn.onclick = toggleMute;
+        } else {
+            console.warn('Mute button not found');
+        }
+        
+        if (fullscreenBtn) {
+            console.log('Attaching fullscreen handler to button', fullscreenBtn);
+            fullscreenBtn.onclick = toggleFullscreen;
+        } else {
+            console.warn('Fullscreen button not found');
+            // Try to re-get the element in case it was added to DOM later
+            setTimeout(() => {
+                const fsBtn = document.getElementById('fullscreenBtn');
+                if (fsBtn) {
+                    console.log('Found fullscreenBtn after delay');
+                    fsBtn.onclick = toggleFullscreen;
+                }
+            }, 1000);
+        }
+        
+        if (videoProgressBarEl) {
+            videoProgressBarEl.oninput = seekVideo;
+        } else {
+            console.warn('Progress bar not found');
+        }
+
+        // Always keep controls visible
+        if (videoControlsOverlay) {
+            videoControlsOverlay.style.opacity = '1';
+            videoControlsOverlay.style.visibility = 'visible';
+            videoControlsOverlay.style.display = 'block';
+        }
+
+        updatePlayPauseButton();
+        updateMuteButton();
+        updateVideoProgressBar();
     }
+
+    function isPlaying() {
+        if (!player) return false;
+        if (player.getPlayerState) { // YouTube
+            return player.getPlayerState() === YT.PlayerState.PLAYING;
+        } else { // HTML5
+            return !!(player.currentTime > 0 && !player.paused && !player.ended && player.readyState > player.HAVE_CURRENT_DATA);
+        }
+    }
+
+    function togglePlayPause() {
+        if (!player) return;
+        if (player.getPlayerState) { // YouTube API
+            isPlaying() ? player.pauseVideo() : player.playVideo();
+        } else { // HTML5 Video
+            player.paused || player.ended ? player.play() : player.pause();
+        }
+    }
+
+    function updatePlayPauseButton() {
+        if (!playIcon || !pauseIcon) return;
+        if (isPlaying()) {
+            playIcon.style.display = 'none';
+            pauseIcon.style.display = 'inline-block';
+        } else {
+            playIcon.style.display = 'inline-block';
+            pauseIcon.style.display = 'none';
+        }
+    }
+
+    function toggleMute() {
+        if (!player) return;
+        if (player.isMuted) { // YouTube API
+            player.isMuted() ? player.unMute() : player.mute();
+            updateMuteButton(); // YouTube doesn't have a state change event for mute via API call
+        } else { // HTML5 Video
+            player.muted = !player.muted;
+            // HTML5 'volumechange' event will call updateMuteButton
+        }
+    }
+
+    function updateMuteButton() {
+        if (!volumeHighIcon || !volumeMuteIcon || !player) return;
+        let muted;
+        if (player.isMuted) { // YouTube
+            muted = player.isMuted();
+        } else { // HTML5
+            muted = player.muted;
+        }
+        if (muted) {
+            volumeHighIcon.style.display = 'none';
+            volumeMuteIcon.style.display = 'inline-block';
+        } else {
+            volumeHighIcon.style.display = 'inline-block';
+            volumeMuteIcon.style.display = 'none';
+        }
+    }
+
+    function toggleFullscreen() {
+        // Get fullscreen button icons if they exist
+        const fsIcon = fullscreenBtn ? fullscreenBtn.querySelector('i') : null;
+        const standaloneFsIcon = standaloneFullscreenBtn ? standaloneFullscreenBtn.querySelector('i') : null;
         
-    // Helper to embed Vimeo videos
+        console.log('Toggle fullscreen called', { deviceVideoContainer });
+        
+        if (!deviceVideoContainer) {
+            console.warn('Video container not found for fullscreen');
+            return;
+        }
+        
+        try {
+            const isFullScreen = document.fullscreenElement || document.webkitFullscreenElement || 
+                              document.mozFullScreenElement || document.msFullscreenElement;
+                              
+            if (isFullScreen) {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { /* Safari */
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) { /* Firefox */
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) { /* IE11 */
+                    document.msExitFullscreen();
+                }
+                
+                // Change icons to expand
+                if (fsIcon) fsIcon.className = 'fas fa-expand';
+                if (standaloneFsIcon) standaloneFsIcon.className = 'fas fa-expand text-white';
+                
+                // Reset video container styling
+                setTimeout(() => {
+                    if (deviceVideoContainer) {
+                        deviceVideoContainer.style.width = '100%';
+                        deviceVideoContainer.style.height = '100%';
+                        deviceVideoContainer.classList.remove('fullscreen-active');
+                    }
+                    
+                    if (videoPlayerWrapper) {
+                        videoPlayerWrapper.style.width = '100%';
+                        videoPlayerWrapper.style.height = '100%';
+                    }
+                    
+                    if (player) {
+                        if (player.tagName === 'VIDEO') {
+                            // Reset direct video styling
+                            player.style.width = '100%';
+                            player.style.height = '100%';
+                            player.style.maxHeight = 'none';
+                            player.style.maxWidth = 'none';
+                            player.style.objectFit = 'contain';
+                        } else if (player.getIframe && typeof player.getIframe === 'function') {
+                            // Reset YouTube player
+                            const iframe = player.getIframe();
+                            if (iframe) {
+                                iframe.style.width = '100%';
+                                iframe.style.height = '100%';
+                            }
+                        }
+                    }
+                    
+                    // Force repaint
+                    document.body.style.display = 'none';
+                    document.body.offsetHeight; // Force reflow
+                    document.body.style.display = '';
+                }, 100);
+            } else {
+                // Enter fullscreen
+                if (deviceVideoContainer.requestFullscreen) {
+                    deviceVideoContainer.requestFullscreen();
+                } else if (deviceVideoContainer.webkitRequestFullscreen) { /* Safari */
+                    deviceVideoContainer.webkitRequestFullscreen();
+                } else if (deviceVideoContainer.mozRequestFullScreen) { /* Firefox */
+                    deviceVideoContainer.mozRequestFullScreen();
+                } else if (deviceVideoContainer.msRequestFullscreen) { /* IE11 */
+                    deviceVideoContainer.msRequestFullscreen();
+                }
+                
+                // Change icons to compress
+                if (fsIcon) fsIcon.className = 'fas fa-compress';
+                if (standaloneFsIcon) standaloneFsIcon.className = 'fas fa-compress text-white';
+                
+                // Optimize video container for fullscreen
+                setTimeout(() => {
+                    if (deviceVideoContainer) {
+                        deviceVideoContainer.style.width = '100vw';
+                        deviceVideoContainer.style.height = '100vh';
+                        deviceVideoContainer.style.display = 'flex';
+                        deviceVideoContainer.style.alignItems = 'center';
+                        deviceVideoContainer.style.justifyContent = 'center';
+                        deviceVideoContainer.classList.add('fullscreen-active');
+                    }
+                    
+                    if (videoPlayerWrapper) {
+                        videoPlayerWrapper.style.width = '100%';
+                        videoPlayerWrapper.style.height = '100%';
+                        videoPlayerWrapper.style.display = 'flex';
+                        videoPlayerWrapper.style.alignItems = 'center';
+                        videoPlayerWrapper.style.justifyContent = 'center';
+                    }
+                    
+                    if (player) {
+                        if (player.tagName === 'VIDEO') {
+                            // Direct video
+                            player.style.width = '100%';
+                            player.style.height = 'auto';
+                            player.style.maxHeight = '100vh';
+                            player.style.maxWidth = '100vw';
+                            player.style.objectFit = 'contain';
+                        } else if (player.getIframe && typeof player.getIframe === 'function') {
+                            // YouTube player
+                            const iframe = player.getIframe();
+                            if (iframe) {
+                                iframe.style.width = '100%';
+                                iframe.style.height = '100%';
+                                iframe.style.maxHeight = '100vh';
+                                iframe.style.maxWidth = '100vw';
+                            }
+                        }
+                    }
+
+                    // Force repaint to ensure video fills the screen properly
+                    document.body.style.display = 'none';
+                    document.body.offsetHeight; // Force reflow
+                    document.body.style.display = '';
+                }, 100);
+            }
+        } catch (error) {
+            console.error('Error toggling fullscreen:', error);
+        }
+    }
+
+    function formatTime(timeInSeconds) {
+        if (isNaN(timeInSeconds) || timeInSeconds < 0) timeInSeconds = 0;
+        const result = new Date(timeInSeconds * 1000).toISOString().slice(11, 19);
+        return result.startsWith('00:') ? result.slice(3) : result;
+    }
+
+    function updateVideoProgressBar() {
+        if (!player || !videoProgressBarEl || !currentTimeEl || !durationEl) return;
+        let currentTime, duration;
+        if (player.getCurrentTime) { // YouTube
+            currentTime = player.getCurrentTime();
+            duration = player.getDuration();
+        } else { // HTML5
+            currentTime = player.currentTime;
+            duration = player.duration;
+        }
+
+        if (isNaN(duration) || duration === 0) {
+            videoProgressBarEl.value = 0;
+            videoProgressBarEl.max = 0;
+            currentTimeEl.textContent = formatTime(0);
+            durationEl.textContent = formatTime(0);
+            return;
+        }
+        
+        currentTimeEl.textContent = formatTime(currentTime);
+        durationEl.textContent = formatTime(duration);
+        videoProgressBarEl.value = currentTime;
+        videoProgressBarEl.max = duration;
+    }
+
+    function seekVideo() {
+        if (!player || !videoProgressBarEl) return;
+        const time = parseFloat(videoProgressBarEl.value);
+        if (player.seekTo) { // YouTube
+            player.seekTo(time, true);
+        } else { // HTML5
+            player.currentTime = time;
+        }
+    }
+
+// Helper to embed Vimeo videos
     function embedVimeoVideo(url, container) {
         try {
             const videoUrl = new URL(url);
@@ -843,28 +1315,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const componentNameMap = {
-            'card_reader_status': 'مدخل الكارت',
-            'touchpad_status': 'التاتش باد',
-            'keyboard_status': 'لوحة المفاتيح',
-            'wifi_status': 'Wi-Fi',
-            'Bluetooth_status': 'البلوتوث',
-            'usb_status': 'المنافذ (USB, HDMI, etc.)',
-            'speakers_status': 'مكبرات الصوت',
-            'microphone_status': 'الميكروفون',
-            'camera_status': 'الكاميرا',
-            'audio_jack_status': 'مدخل السماعات',
-            // Add more mappings for hardware components with data attributes
+            // Hardware components mapping
             'microphone': 'الميكروفون',
             'camera': 'الكاميرا',
-            'Wi-Fi': 'واي فاي',
-            'LAN': 'منفذ الشبكة',
-            'Ports': 'منافذ USB',
+            'Wi-Fi': 'Wi-Fi',
+            'LAN': 'منفذ Ethernet (LAN)',
+            'Ports': 'منافذ USB,Type-C',
             'keyboard': 'لوحة المفاتيح',
-            'Touchpad': 'لوحة اللمس',
-            'card': 'قارئ البطاقات',
+            'Touchpad': 'Touchpad',
+            'card': 'Card Reader',
             'audio_jack': 'منفذ الصوت',
-            'DisplayPort': 'منافذ العرض',
-            'Bluetooth': 'البلوتوث'
+            'DisplayPort': 'منفذ العرض (HDMI)',
+            'Bluetooth': 'بلوتوث',
+            'speakers': 'السماعات',
+            'touchscreen': 'شاشة التاتش'
         };
 
         // Filter out items with type "note"
@@ -978,6 +1442,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Set up standalone fullscreen button
+    if (standaloneFullscreenBtn) {
+        standaloneFullscreenBtn.addEventListener('click', function() {
+            console.log('Standalone fullscreen button clicked');
+            toggleFullscreen();
+        });
+    }
+    
     // Initial setup
     fetchReportData();
     updateSteps();

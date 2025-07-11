@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laapak</title>
+    <title>Laapak Reports</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="img/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="img/cropped-Logo-mark.png.png" type="image/png">
     
     <!-- Bootstrap RTL CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
@@ -22,7 +26,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Laapak Reports">
-    <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" href="img/cropped-Logo-mark.png.png" type="image/png">
     
     <!-- Theme color for browser -->
     <meta name="theme-color" content="#0a3622">
@@ -382,6 +386,9 @@
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Configuration -->
+    <script src="js/config.js"></script>
+    
     <!-- Custom JS -->
     <script src="js/auth-middleware.js"></script> <!-- Defines how auth token is handled -->
     <script src="js/api-service.js"></script>    <!-- Defines ApiService, must be before scripts that use it -->
@@ -392,6 +399,21 @@
     <script src="js/client-maintenance.js"></script> <!-- Maintenance related functions -->
     <script src="js/client-dashboard.js"></script>  <!-- Main logic for the dashboard, uses ApiService & display functions -->
     <script src="js/invoice-generator.js"></script> <!-- Other utilities -->
+
+    <!-- Authentication Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication first before initializing anything
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isClientLoggedIn()) {
+                    console.log('Client not authenticated, redirecting to login page');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                console.log('Client authenticated, proceeding with dashboard initialization');
+            }
+        });
+    </script>
 
     <!-- Print functionality -->
     <script>
