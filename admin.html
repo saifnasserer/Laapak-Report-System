@@ -262,7 +262,7 @@
         <!-- Goals and Achievements Section -->
         <div class="row mb-5">
             <!-- Monthly Goal Card -->
-            <div class="col-lg-6 col-md-12 mb-4">
+            <div class="col-lg-12 col-md-12 mb-4">
                 <div class="card border-0 rounded-4 shadow-sm h-100">
                     <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
                         <div class="d-flex justify-content-between align-items-center">
@@ -277,7 +277,7 @@
                         <p class="text-muted small mb-0 mt-2">تتبع تقدمك نحو تحقيق الأهداف الشهرية</p>
                     </div>
                     <div class="card-body p-4">
-                        <div id="goalContent">
+                        <div id="goalsContainer">
                             <!-- Goal content will be loaded here -->
                             <div class="text-center py-4">
                                 <div class="spinner-border text-primary" role="status">
@@ -289,71 +289,49 @@
                 </div>
             </div>
             
-            <!-- Achievements Card -->
-            <div class="col-lg-6 col-md-12 mb-4">
-                <div class="card border-0 rounded-4 shadow-sm h-100">
-                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="fw-bold mb-0">
-                                <i class="fas fa-trophy text-warning me-2"></i>
-                                الإنجازات
-                            </h5>
-                            <button class="btn btn-sm btn-outline-warning" type="button" id="addAchievementBtn">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                        <p class="text-muted small mb-0 mt-2">احتفل بإنجازاتك وإنجازات الفريق</p>
-                    </div>
-                    <div class="card-body p-4">
-                        <div id="achievementsContent">
-                            <!-- Achievements content will be loaded here -->
-                            <div class="text-center py-4">
-                                <div class="spinner-border text-warning" role="status">
-                                    <span class="visually-hidden">جاري التحميل...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
         </div>
         
         <!-- Insights Section -->
         <div class="row mb-5">
             <!-- الأجهزة المباعة -->
             <div class="col-lg-6 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-mobile-alt me-2"></i>
-                            الأجهزة المباعة
-                        </h5>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-filter"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" data-period="week">الأسبوع</a></li>
-                                <li><a class="dropdown-item active" href="#" data-period="month">الشهر</a></li>
-                                <li><a class="dropdown-item" href="#" data-period="quarter">الربع</a></li>
-                                <li><a class="dropdown-item" href="#" data-period="year">السنة</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" data-period="custom">مخصص</a></li>
-                            </ul>
+                <div class="card h-100 border-0 rounded-4 shadow-sm">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fas fa-laptop text-primary me-2"></i>
+                                الأجهزة المباعة
+                            </h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-filter me-1"></i>
+                                    الفترة
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" data-period="week">الأسبوع</a></li>
+                                    <li><a class="dropdown-item active" href="#" data-period="month">الشهر</a></li>
+                                    <li><a class="dropdown-item" href="#" data-period="quarter">الربع</a></li>
+                                    <li><a class="dropdown-item" href="#" data-period="year">السنة</a></li>
+                                </ul>
+                            </div>
                         </div>
+                        <p class="text-muted small mb-0 mt-2">أفضل الأجهزة مبيعاً حسب الفترة المحددة</p>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <div class="mb-3">
-                            <div class="row g-2">
+                            <div class="row g-3">
                                 <div class="col-md-6">
+                                    <label class="form-label small text-muted mb-1">ترتيب حسب</label>
                                     <select class="form-select form-select-sm" id="deviceSortBy">
-                                        <option value="count">ترتيب حسب العدد</option>
-                                        <option value="name">ترتيب حسب الاسم</option>
-                                        <option value="trend">ترتيب حسب الاتجاه</option>
+                                        <option value="count">العدد</option>
+                                        <option value="name">الاسم</option>
+                                        <option value="trend">الاتجاه</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <input type="number" class="form-control form-control-sm" id="deviceLimit" placeholder="عدد النتائج" value="10" min="1" max="50">
+                                    <label class="form-label small text-muted mb-1">عدد النتائج</label>
+                                    <input type="number" class="form-control form-control-sm" id="deviceLimit" placeholder="10" value="10" min="1" max="50">
                                 </div>
                             </div>
                         </div>
@@ -366,7 +344,7 @@
                             </div>
                         </div>
                         
-                        <div class="mt-3">
+                        <div class="mt-3 pt-3 border-top">
                             <small class="text-muted">
                                 <i class="fas fa-info-circle me-1"></i>
                                 <span id="devicePeriodInfo">بيانات الشهر الحالي</span>
@@ -378,42 +356,46 @@
 
             <!-- تنبيهات الضمان -->
             <div class="col-lg-6 mb-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-header bg-gradient-warning text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            تنبيهات الضمان
-                        </h5>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-cog"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" data-days="3">3 أيام</a></li>
-                                <li><a class="dropdown-item active" href="#" data-days="7">7 أيام</a></li>
-                                <li><a class="dropdown-item" href="#" data-days="14">14 يوم</a></li>
-                                <li><a class="dropdown-item" href="#" data-days="30">30 يوم</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" data-days="custom">مخصص</a></li>
-                            </ul>
+                <div class="card h-100 border-0 rounded-4 shadow-sm">
+                    <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                تنبيهات الضمان
+                            </h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-warning rounded-pill px-3" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog me-1"></i>
+                                    المدة
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" data-days="3">3 أيام</a></li>
+                                    <li><a class="dropdown-item active" href="#" data-days="7">7 أيام</a></li>
+                                    <li><a class="dropdown-item" href="#" data-days="14">14 يوم</a></li>
+                                    <li><a class="dropdown-item" href="#" data-days="30">30 يوم</a></li>
+                                </ul>
+                            </div>
                         </div>
+                        <p class="text-muted small mb-0 mt-2">تنبيهات الضمان القادمة حسب المدة المحددة</p>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <div class="mb-3">
-                            <div class="row g-2">
+                            <div class="row g-3">
                                 <div class="col-md-6">
+                                    <label class="form-label small text-muted mb-1">نوع الضمان</label>
                                     <select class="form-select form-select-sm" id="warrantyType">
-                                        <option value="all">جميع أنواع الضمان</option>
+                                        <option value="all">جميع الأنواع</option>
                                         <option value="manufacturing">ضمان التصنيع</option>
                                         <option value="replacement">ضمان الاستبدال</option>
                                         <option value="maintenance">ضمان الصيانة</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label small text-muted mb-1">ترتيب حسب</label>
                                     <select class="form-select form-select-sm" id="warrantySortBy">
-                                        <option value="urgency">ترتيب حسب الأولوية</option>
-                                        <option value="client_name">ترتيب حسب العميل</option>
-                                        <option value="device_model">ترتيب حسب الجهاز</option>
+                                        <option value="urgency">الأولوية</option>
+                                        <option value="client_name">العميل</option>
+                                        <option value="device_model">الجهاز</option>
                                     </select>
                                 </div>
                             </div>
@@ -427,7 +409,7 @@
                             </div>
                         </div>
                         
-                        <div class="mt-3">
+                        <div class="mt-3 pt-3 border-top">
                             <small class="text-muted">
                                 <i class="fas fa-info-circle me-1"></i>
                                 <span id="warrantyPeriodInfo">تنبيهات خلال 7 أيام</span>
@@ -529,6 +511,7 @@
                 </div>
                 <div class="modal-body">
                     <form id="editGoalForm">
+                        <input type="hidden" id="goalId" value="">
                         <div class="mb-3">
                             <label for="goalTitle" class="form-label">عنوان الهدف</label>
                             <input type="text" class="form-control" id="goalTitle" required>
@@ -563,61 +546,7 @@
         </div>
     </div>
 
-    <!-- Add Achievement Modal -->
-    <div class="modal fade" id="addAchievementModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title">
-                        <i class="fas fa-trophy me-2"></i>
-                        إضافة إنجاز جديد
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addAchievementForm">
-                        <div class="mb-3">
-                            <label for="achievementTitle" class="form-label">عنوان الإنجاز</label>
-                            <input type="text" class="form-control" id="achievementTitle" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="achievementDescription" class="form-label">وصف الإنجاز</label>
-                            <textarea class="form-control" id="achievementDescription" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="achievementMetric" class="form-label">المقياس</label>
-                            <select class="form-select" id="achievementMetric" required>
-                                <option value="total_reports">إجمالي التقارير</option>
-                                <option value="total_clients">إجمالي العملاء</option>
-                                <option value="total_invoices">إجمالي الفواتير</option>
-                                <option value="monthly_reports">التقارير الشهرية</option>
-                                <option value="custom">مخصص</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="achievementValue" class="form-label">القيمة المطلوبة</label>
-                            <input type="number" class="form-control" id="achievementValue" min="1" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="achievementIcon" class="form-label">الأيقونة</label>
-                            <input type="text" class="form-control" id="achievementIcon" value="fas fa-trophy">
-                        </div>
-                        <div class="mb-3">
-                            <label for="achievementColor" class="form-label">اللون</label>
-                            <input type="color" class="form-control form-control-color" id="achievementColor" value="#007553">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-warning" id="saveAchievementBtn">
-                        <i class="fas fa-plus me-2"></i>
-                        إضافة الإنجاز
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- JavaScript libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

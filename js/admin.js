@@ -59,7 +59,11 @@ class AdminDashboard {
         this.currentPeriod = 'month';
         this.currentDaysAhead = 7;
         this.currentWarrantyType = 'all';
-        this.authMiddleware = window.authMiddleware;
+        this.authMiddleware = typeof authMiddleware !== 'undefined' ? authMiddleware : null;
+        
+        console.log('AdminDashboard constructor - authMiddleware available:', !!this.authMiddleware);
+        console.log('AdminDashboard constructor - global authMiddleware available:', typeof authMiddleware !== 'undefined');
+        
         this.init();
     }
 
@@ -67,6 +71,10 @@ class AdminDashboard {
         this.loadDashboard();
         this.setupEventListeners();
         this.loadBannerGoal();
+        
+        // Load dashboard stats and charts
+        loadDashboardStats();
+        initializeCharts();
     }
 
     setupEventListeners() {
@@ -98,6 +106,10 @@ class AdminDashboard {
 
         // Banner goal edit
         document.getElementById('editBannerGoalBtn')?.addEventListener('click', () => this.editBannerGoal());
+
+        // Goals management
+        document.getElementById('editGoalBtn')?.addEventListener('click', () => this.editBannerGoal());
+        document.getElementById('saveGoalBtn')?.addEventListener('click', () => this.saveGoal());
     }
 
     updateActiveFilter(clickedElement) {
@@ -113,7 +125,6 @@ class AdminDashboard {
         try {
             await Promise.all([
                 this.loadGoals(),
-                this.loadAchievements(),
                 this.loadDeviceModels(),
                 this.loadWarrantyAlerts()
             ]);
@@ -124,13 +135,31 @@ class AdminDashboard {
 
     async loadBannerGoal() {
         try {
-            const token = this.authMiddleware?.getAdminToken();
-            const response = await fetch('/api/goals/current', {
+            // Get token from multiple sources
+            let token = null;
+            if (this.authMiddleware) {
+                token = this.authMiddleware.getAdminToken();
+            } else if (typeof authMiddleware !== 'undefined') {
+                token = authMiddleware.getAdminToken();
+            } else {
+                // Fallback to direct localStorage access
+                token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+            }
+            
+            console.log('Token for banner goal request:', token ? 'Present' : 'Missing');
+            
+            const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
+            const response = await fetch(`${baseUrl}/api/goals/current`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const goal = await response.json();
             
             if (goal) {
@@ -149,27 +178,52 @@ class AdminDashboard {
         const sortBy = document.getElementById('deviceSortBy')?.value || 'count';
         const limit = document.getElementById('deviceLimit')?.value || 10;
 
+        // Validate period - only allow supported periods
+        const supportedPeriods = ['week', 'month', 'quarter', 'year'];
+        const period = supportedPeriods.includes(this.currentPeriod) ? this.currentPeriod : 'month';
+
         try {
-            const token = this.authMiddleware?.getAdminToken();
+            // Get token from multiple sources
+            let token = null;
+            if (this.authMiddleware) {
+                token = this.authMiddleware.getAdminToken();
+            } else if (typeof authMiddleware !== 'undefined') {
+                token = authMiddleware.getAdminToken();
+            } else {
+                // Fallback to direct localStorage access
+                token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+            }
+            
+            console.log('Token for device models request:', token ? 'Present' : 'Missing');
+            console.log('Requesting device models with period:', period);
+            
+            const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
             const params = new URLSearchParams({
-                period: this.currentPeriod,
+                period: period,
                 sortBy,
                 limit
             });
 
-            const response = await fetch(`/api/reports/insights/device-models?${params}`, {
+            const response = await fetch(`${baseUrl}/api/reports/insights/device-models?${params}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
 
             this.renderDeviceModels(data);
             this.updateDevicePeriodInfo(data);
         } catch (error) {
             console.error('Error loading device models:', error);
-            container.innerHTML = '<div class="text-center text-danger">خطأ في تحميل البيانات</div>';
+            if (container) {
+                container.innerHTML = '<div class="text-center text-danger">خطأ في تحميل البيانات</div>';
+            }
         }
     }
 
@@ -177,25 +231,35 @@ class AdminDashboard {
         const container = document.getElementById('deviceModelsContainer');
         
         if (!data.deviceModels || data.deviceModels.length === 0) {
-            container.innerHTML = '<div class="text-center text-muted">لا توجد بيانات متاحة</div>';
+            container.innerHTML = '<div class="text-center text-muted py-4">لا توجد بيانات متاحة</div>';
             return;
         }
 
-        const html = data.deviceModels.map(device => {
+        const html = data.deviceModels.map((device, index) => {
             const trendIcon = device.trend_direction === 'up' ? 'fa-arrow-up text-success' : 
                             device.trend_direction === 'down' ? 'fa-arrow-down text-danger' : 
                             'fa-minus text-muted';
             
+            const trendClass = device.trend_direction === 'up' ? 'text-success' : 
+                             device.trend_direction === 'down' ? 'text-danger' : 'text-muted';
+            
             return `
-                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                    <div>
-                        <h6 class="mb-1">${device.device_model}</h6>
-                        <small class="text-muted">${device.count} جهاز</small>
+                <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded-3 bg-light bg-opacity-50">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <span class="fw-bold text-primary">${index + 1}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="mb-1 fw-bold">${device.device_model}</h6>
+                            <small class="text-muted">${device.count} جهاز مباع</small>
+                        </div>
                     </div>
                     <div class="text-end">
                         <div class="d-flex align-items-center">
-                            <i class="fas ${trendIcon} me-1"></i>
-                            <span class="small">${device.trend}%</span>
+                            <i class="fas ${trendIcon} me-2"></i>
+                            <span class="badge ${trendClass} bg-opacity-10">${device.trend || device.trend_percentage || 0}%</span>
                         </div>
                     </div>
                 </div>
@@ -223,27 +287,52 @@ class AdminDashboard {
         const warrantyType = document.getElementById('warrantyType')?.value || 'all';
         const sortBy = document.getElementById('warrantySortBy')?.value || 'urgency';
 
+        // Validate days ahead - only allow supported values
+        const supportedDays = [3, 7, 14, 30];
+        const daysAhead = supportedDays.includes(this.currentDaysAhead) ? this.currentDaysAhead : 7;
+
         try {
-            const token = this.authMiddleware?.getAdminToken();
+            // Get token from multiple sources
+            let token = null;
+            if (this.authMiddleware) {
+                token = this.authMiddleware.getAdminToken();
+            } else if (typeof authMiddleware !== 'undefined') {
+                token = authMiddleware.getAdminToken();
+            } else {
+                // Fallback to direct localStorage access
+                token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+            }
+            
+            console.log('Token for warranty alerts request:', token ? 'Present' : 'Missing');
+            console.log('Requesting warranty alerts with days ahead:', daysAhead);
+            
+            const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
             const params = new URLSearchParams({
-                daysAhead: this.currentDaysAhead,
+                daysAhead: daysAhead,
                 warrantyType,
                 sortBy
             });
 
-            const response = await fetch(`/api/reports/insights/warranty-alerts?${params}`, {
+            const response = await fetch(`${baseUrl}/api/reports/insights/warranty-alerts?${params}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
 
             this.renderWarrantyAlerts(data);
             this.updateWarrantyPeriodInfo(data);
         } catch (error) {
             console.error('Error loading warranty alerts:', error);
-            container.innerHTML = '<div class="text-center text-danger">خطأ في تحميل البيانات</div>';
+            if (container) {
+                container.innerHTML = '<div class="text-center text-danger">خطأ في تحميل البيانات</div>';
+            }
         }
     }
 
@@ -251,7 +340,7 @@ class AdminDashboard {
         const container = document.getElementById('warrantyAlertsContainer');
         
         if (!data.alerts || data.alerts.length === 0) {
-            container.innerHTML = '<div class="text-center text-muted">لا توجد تنبيهات ضمان</div>';
+            container.innerHTML = '<div class="text-center text-muted py-4">لا توجد تنبيهات ضمان</div>';
             return;
         }
 
@@ -264,21 +353,21 @@ class AdminDashboard {
 
         // Critical alerts
         if (criticalAlerts.length > 0) {
-            html += '<div class="mb-3"><h6 class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>حرجة</h6>';
+            html += '<div class="mb-3"><h6 class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>حرجة</h6>';
             html += this.renderAlertGroup(criticalAlerts, 'danger');
             html += '</div>';
         }
 
         // High alerts
         if (highAlerts.length > 0) {
-            html += '<div class="mb-3"><h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>عالية</h6>';
+            html += '<div class="mb-3"><h6 class="text-warning fw-bold"><i class="fas fa-exclamation-triangle me-1"></i>عالية</h6>';
             html += this.renderAlertGroup(highAlerts, 'warning');
             html += '</div>';
         }
 
         // Medium alerts
         if (mediumAlerts.length > 0) {
-            html += '<div class="mb-3"><h6 class="text-info"><i class="fas fa-info-circle me-1"></i>متوسطة</h6>';
+            html += '<div class="mb-3"><h6 class="text-info fw-bold"><i class="fas fa-info-circle me-1"></i>متوسطة</h6>';
             html += this.renderAlertGroup(mediumAlerts, 'info');
             html += '</div>';
         }
@@ -288,16 +377,24 @@ class AdminDashboard {
 
     renderAlertGroup(alerts, alertClass) {
         return alerts.map(alert => `
-            <div class="alert alert-${alertClass} alert-sm mb-2">
+            <div class="alert alert-${alertClass} alert-dismissible fade show mb-3 border-0 shadow-sm" role="alert">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <strong>${alert.client_name}</strong><br>
-                        <small>${alert.device_model} - ${alert.warranty_type}</small>
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <div class="bg-${alertClass} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                                <i class="fas fa-exclamation-triangle text-${alertClass}"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <strong class="d-block">${alert.client_name}</strong>
+                            <small class="text-muted">${alert.device_model} - ${alert.warranty_type}</small>
+                        </div>
                     </div>
                     <div class="text-end">
-                        <span class="badge bg-${alertClass}">${alert.days_remaining} يوم</span>
+                        <span class="badge bg-${alertClass} rounded-pill">${alert.days_remaining} يوم</span>
                     </div>
                 </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         `).join('');
     }
@@ -315,44 +412,166 @@ class AdminDashboard {
     }
 
     async editBannerGoal() {
-        // Open goal edit modal
-        const modal = new bootstrap.Modal(document.getElementById('editGoalModal'));
-        modal.show();
+        try {
+            // Clear the form first
+            document.getElementById('goalId').value = '';
+            document.getElementById('goalTitle').value = '';
+            document.getElementById('goalType').value = 'reports';
+            document.getElementById('goalTarget').value = '';
+            document.getElementById('goalUnit').value = 'تقرير';
+
+            // Get current goal data first
+            const token = typeof authMiddleware !== 'undefined' ? authMiddleware.getAdminToken() : null;
+            const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
+            const response = await fetch(`${baseUrl}/api/goals/current`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+
+            if (response.ok) {
+                const goal = await response.json();
+                
+                // Populate modal fields
+                document.getElementById('goalTitle').value = goal.title || '';
+                document.getElementById('goalType').value = goal.type || 'reports';
+                document.getElementById('goalTarget').value = goal.target || '';
+                document.getElementById('goalUnit').value = goal.unit || 'تقرير';
+            } else {
+                // Set default values if no current goal
+                document.getElementById('goalTitle').value = 'هدف الشهر';
+                document.getElementById('goalType').value = 'reports';
+                document.getElementById('goalTarget').value = '15';
+                document.getElementById('goalUnit').value = 'تقرير';
+            }
+
+            // Open goal edit modal
+            const modal = new bootstrap.Modal(document.getElementById('editGoalModal'));
+            modal.show();
+        } catch (error) {
+            console.error('Error loading current goal for edit:', error);
+            
+            // Set default values on error
+            document.getElementById('goalTitle').value = 'هدف الشهر';
+            document.getElementById('goalType').value = 'reports';
+            document.getElementById('goalTarget').value = '15';
+            document.getElementById('goalUnit').value = 'تقرير';
+            
+            // Open modal anyway
+            const modal = new bootstrap.Modal(document.getElementById('editGoalModal'));
+            modal.show();
+        }
+    }
+
+    async saveGoal() {
+        try {
+            const goalId = document.getElementById('goalId')?.value;
+            const title = document.getElementById('goalTitle')?.value;
+            const type = document.getElementById('goalType')?.value;
+            const target = parseInt(document.getElementById('goalTarget')?.value);
+            const unit = document.getElementById('goalUnit')?.value;
+
+            if (!title || !type || !target || !unit) {
+                alert('يرجى ملء جميع الحقول المطلوبة');
+                return;
+            }
+
+            // Get token from multiple sources
+            let token = null;
+            if (this.authMiddleware) {
+                token = this.authMiddleware.getAdminToken();
+            } else if (typeof authMiddleware !== 'undefined') {
+                token = authMiddleware.getAdminToken();
+            } else {
+                token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+            }
+
+            const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
+            
+            // Determine if this is a new goal or updating existing
+            const url = goalId ? `${baseUrl}/api/goals/${goalId}` : `${baseUrl}/api/goals/current`;
+            const method = goalId ? 'PUT' : 'PUT';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({
+                    title,
+                    type,
+                    target,
+                    unit
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editGoalModal'));
+            modal.hide();
+
+            // Clear the form
+            document.getElementById('goalId').value = '';
+            document.getElementById('goalTitle').value = '';
+            document.getElementById('goalType').value = 'reports';
+            document.getElementById('goalTarget').value = '';
+            document.getElementById('goalUnit').value = 'تقرير';
+
+            // Reload goals
+            this.loadGoals();
+            this.loadBannerGoal();
+
+            alert('تم حفظ الهدف بنجاح');
+        } catch (error) {
+            console.error('Error saving goal:', error);
+            alert('خطأ في حفظ الهدف');
+        }
     }
 
     async loadGoals() {
         try {
-            const token = this.authMiddleware?.getAdminToken();
-            const response = await fetch('/api/goals', {
+            // Get token from multiple sources
+            let token = null;
+            if (this.authMiddleware) {
+                token = this.authMiddleware.getAdminToken();
+            } else if (typeof authMiddleware !== 'undefined') {
+                token = authMiddleware.getAdminToken();
+            } else {
+                // Fallback to direct localStorage access
+                token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+            }
+            
+            console.log('Token for goals request:', token ? 'Present' : 'Missing');
+            
+            const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
+            const response = await fetch(`${baseUrl}/api/goals`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const goals = await response.json();
             this.renderGoals(goals);
         } catch (error) {
             console.error('Error loading goals:', error);
-            document.getElementById('goalsContainer').innerHTML = '<div class="text-center text-danger">خطأ في تحميل الأهداف</div>';
+            const container = document.getElementById('goalsContainer');
+            if (container) {
+                container.innerHTML = '<div class="text-center text-danger">خطأ في تحميل الأهداف</div>';
+            }
         }
     }
 
-    async loadAchievements() {
-        try {
-            const token = this.authMiddleware?.getAdminToken();
-            const response = await fetch('/api/goals/achievements', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': token
-                }
-            });
-            const achievements = await response.json();
-            this.renderAchievements(achievements);
-        } catch (error) {
-            console.error('Error loading achievements:', error);
-            document.getElementById('achievementsContainer').innerHTML = '<div class="text-center text-danger">خطأ في تحميل الإنجازات</div>';
-        }
-    }
+
 
     renderGoals(goals) {
         const container = document.getElementById('goalsContainer');
@@ -398,51 +617,7 @@ class AdminDashboard {
         container.innerHTML = html;
     }
 
-    renderAchievements(achievements) {
-        const container = document.getElementById('achievementsContainer');
-        if (!container) return;
 
-        if (!achievements || achievements.length === 0) {
-            container.innerHTML = '<div class="text-center text-muted">لا توجد إنجازات</div>';
-            return;
-        }
-
-        const html = achievements.map(achievement => `
-            <div class="card mb-3 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="d-flex align-items-center">
-                            <div class="achievement-icon me-3" style="color: ${achievement.color}">
-                                <i class="fas ${achievement.icon} fa-2x"></i>
-                            </div>
-                            <div>
-                                <h6 class="card-title mb-0">${achievement.title}</h6>
-                                <p class="card-text small text-muted mb-0">${achievement.description}</p>
-                            </div>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#" onclick="editAchievement(${achievement.id})">
-                                    <i class="fas fa-edit me-2"></i>تعديل
-                                </a></li>
-                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteAchievement(${achievement.id})">
-                                    <i class="fas fa-trash me-2"></i>حذف
-                                </a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="achievement-metric">
-                        <span class="badge bg-light text-dark">${achievement.metric}: ${achievement.value}</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        container.innerHTML = html;
-    }
 
     // ... existing methods for goals and achievements ...
 }
@@ -455,8 +630,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Global functions for goal and achievement management
 async function editGoal(goalId) {
     try {
-        const token = window.authMiddleware?.getAdminToken();
-        const response = await fetch(`/api/goals/${goalId}`, {
+        const token = typeof authMiddleware !== 'undefined' ? authMiddleware.getAdminToken() : null;
+        const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
+        const response = await fetch(`${baseUrl}/api/goals/${goalId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-auth-token': token
@@ -464,15 +640,29 @@ async function editGoal(goalId) {
         });
         const goal = await response.json();
         
+        // Check if modal elements exist before populating
+        const goalId = document.getElementById('goalId');
+        const goalTitle = document.getElementById('goalTitle');
+        const goalType = document.getElementById('goalType');
+        const goalTarget = document.getElementById('goalTarget');
+        const goalUnit = document.getElementById('goalUnit');
+        const editGoalModal = document.getElementById('editGoalModal');
+        
+        if (!goalId || !goalTitle || !goalType || !goalTarget || !goalUnit || !editGoalModal) {
+            console.error('Edit goal modal elements not found');
+            alert('خطأ في تحميل نافذة التعديل');
+            return;
+        }
+        
         // Populate edit modal
-        document.getElementById('editGoalId').value = goal.id;
-        document.getElementById('editGoalTitle').value = goal.title;
-        document.getElementById('editGoalDescription').value = goal.description;
-        document.getElementById('editGoalTarget').value = goal.target;
-        document.getElementById('editGoalType').value = goal.type;
+        goalId.value = goal.id || '';
+        goalTitle.value = goal.title || '';
+        goalType.value = goal.type || 'reports';
+        goalTarget.value = goal.target || '';
+        goalUnit.value = goal.unit || 'تقرير';
         
         // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('editGoalModal'));
+        const modal = new bootstrap.Modal(editGoalModal);
         modal.show();
     } catch (error) {
         console.error('Error loading goal for edit:', error);
@@ -484,8 +674,9 @@ async function deleteGoal(goalId) {
     if (!confirm('هل أنت متأكد من حذف هذا الهدف؟')) return;
     
     try {
-        const token = window.authMiddleware?.getAdminToken();
-        const response = await fetch(`/api/goals/${goalId}`, {
+        const token = typeof authMiddleware !== 'undefined' ? authMiddleware.getAdminToken() : null;
+        const baseUrl = window.config?.api?.baseUrl || 'https://reports.laapak.com';
+        const response = await fetch(`${baseUrl}/api/goals/${goalId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -505,60 +696,7 @@ async function deleteGoal(goalId) {
     }
 }
 
-async function editAchievement(achievementId) {
-    try {
-        const token = window.authMiddleware?.getAdminToken();
-        const response = await fetch(`/api/goals/achievements/${achievementId}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': token
-            }
-        });
-        const achievement = await response.json();
-        
-        // Populate edit modal
-        document.getElementById('editAchievementId').value = achievement.id;
-        document.getElementById('editAchievementTitle').value = achievement.title;
-        document.getElementById('editAchievementDescription').value = achievement.description;
-        document.getElementById('editAchievementMetric').value = achievement.metric;
-        document.getElementById('editAchievementValue').value = achievement.value;
-        document.getElementById('editAchievementIcon').value = achievement.icon;
-        document.getElementById('editAchievementColor').value = achievement.color;
-        document.getElementById('editAchievementType').value = achievement.type;
-        
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('editAchievementModal'));
-        modal.show();
-    } catch (error) {
-        console.error('Error loading achievement for edit:', error);
-        alert('خطأ في تحميل بيانات الإنجاز');
-    }
-}
 
-async function deleteAchievement(achievementId) {
-    if (!confirm('هل أنت متأكد من حذف هذا الإنجاز؟')) return;
-    
-    try {
-        const token = window.authMiddleware?.getAdminToken();
-        const response = await fetch(`/api/goals/achievements/${achievementId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': token
-            }
-        });
-        
-        if (response.ok) {
-            alert('تم حذف الإنجاز بنجاح');
-            location.reload();
-        } else {
-            alert('خطأ في حذف الإنجاز');
-        }
-    } catch (error) {
-        console.error('Error deleting achievement:', error);
-        alert('خطأ في حذف الإنجاز');
-    }
-}
 
 /**
  * Load dashboard statistics from API

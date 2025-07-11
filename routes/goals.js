@@ -41,7 +41,7 @@ router.get('/current', adminAuth, async (req, res) => {
 
             const clientsCount = await Client.count({
                 where: {
-                    createdAt: {
+                    created_at: {
                         [Op.between]: [startOfMonth, endOfMonth]
                     }
                 }
@@ -76,7 +76,7 @@ router.get('/current', adminAuth, async (req, res) => {
 
         const currentClients = await Client.count({
             where: {
-                createdAt: {
+                created_at: {
                     [Op.between]: [startOfMonth, endOfMonth]
                 }
             }
@@ -246,6 +246,48 @@ router.get('/:id', adminAuth, async (req, res) => {
         res.json(goal);
     } catch (error) {
         console.error('Error getting goal:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Update goal by ID
+router.put('/:id', adminAuth, async (req, res) => {
+    try {
+        const { title, type, target, unit } = req.body;
+        
+        const goal = await Goal.findByPk(req.params.id);
+        
+        if (!goal) {
+            return res.status(404).json({ message: 'Goal not found' });
+        }
+        
+        await goal.update({
+            title: title || goal.title,
+            type: type || goal.type,
+            target: target || goal.target,
+            unit: unit || goal.unit
+        });
+        
+        res.json(goal);
+    } catch (error) {
+        console.error('Error updating goal:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Delete goal by ID
+router.delete('/:id', adminAuth, async (req, res) => {
+    try {
+        const goal = await Goal.findByPk(req.params.id);
+        
+        if (!goal) {
+            return res.status(404).json({ message: 'Goal not found' });
+        }
+        
+        await goal.destroy();
+        res.json({ message: 'Goal deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting goal:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
