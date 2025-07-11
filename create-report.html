@@ -392,14 +392,21 @@
                                 <i class="fas fa-user-check me-2"></i> اختر عميل
                             </label>
                             <div class="d-flex align-items-center mb-3">
-                                <div class="input-group" style="flex: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: var(--input-radius); overflow: hidden; border: 2px solid rgba(14, 175, 84, 0.2);">
+                                <!-- <div class="input-group" style="flex: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: var(--input-radius); overflow: hidden; border: 2px solid rgba(14, 175, 84, 0.2);">
                                     <span class="input-group-text" style="background: linear-gradient(135deg, rgba(14, 175, 84, 0.1) 0%, rgba(14, 175, 84, 0.05) 100%); border: none;">
                                         <i class="fas fa-search" style="color: var(--primary-color); font-size: 1.1rem;"></i>
                                     </span>
                                     <select class="form-select border-0 shadow-none" id="clientSelect" onchange="clientSelectionChanged(this)" style="height: 40px;padding: 0 1.25rem !important; font-size: 1.05rem; background-color: #fafffe;">
                                         <option value="" selected>اختر عميل...</option>
-                                        <!-- Client options will be loaded dynamically -->
+                                        Client options will be loaded dynamically
                                     </select>
+                                </div> -->
+                                <div class="input-group" style="flex: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: var(--input-radius); overflow: hidden; border: 2px solid rgba(14, 175, 84, 0.2);">
+                                    <span class="input-group-text" style="background: linear-gradient(135deg, rgba(14, 175, 84, 0.1) 0%, rgba(14, 175, 84, 0.05) 100%); border: none;">
+                                        <i class="fas fa-search" style="color: var(--primary-color); font-size: 1.1rem;"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-0 shadow-none" id="clientSearchInput" placeholder="ابحث بالاسم أو رقم الهاتف..." autocomplete="off" style="height: 40px;padding: 0 1.25rem !important; font-size: 1.05rem; background-color: #fafffe;" />
+                                    <div id="clientSearchResults" class="list-group position-absolute w-100" style="z-index: 10; top: 100%; right: 0;"></div>
                                 </div>
                                 <button class="btn btn-success ms-2" type="button" data-bs-toggle="modal" data-bs-target="#addClientModal" style="box-shadow: 0 5px 15px rgba(14, 175, 84, 0.2); border-radius: var(--btn-radius); padding: 0.75rem 1.25rem; font-weight: 500;">
                                     <i class="fas fa-plus me-2"></i> عميل جديد

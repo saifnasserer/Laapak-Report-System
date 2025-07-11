@@ -2073,6 +2073,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     'warning');
             }
             
+            // In the saveNewClient function, after successfully adding a client (API or local), dispatch a custom event:
+            // document.dispatchEvent(new CustomEvent('clientAdded', { detail: { client: response } }));
+            // Remove any code that tries to repopulate or select in the old dropdown.
+            
             return response;
             
         } catch (error) {
@@ -2403,4 +2407,102 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize the billing toggle functionality
     setupBillingToggle();
+
+    // --- Customer Autocomplete Logic ---
+    const clientSearchInput = document.getElementById('clientSearchInput');
+    const clientSearchResults = document.getElementById('clientSearchResults');
+    const selectedClientInfo = document.getElementById('selectedClientInfo');
+    const selectedClientName = document.getElementById('selectedClientName');
+    const selectedClientPhone = document.getElementById('selectedClientPhone');
+    const selectedClientEmail = document.getElementById('selectedClientEmail');
+    const selectedClientOrderCode = document.getElementById('selectedClientOrderCode');
+    const selectedClientStatus = document.getElementById('selectedClientStatus');
+    const clientLoadingIndicator = document.getElementById('clientLoadingIndicator');
+
+    let clientSearchTimeout = null;
+
+    if (clientSearchInput) {
+        clientSearchInput.addEventListener('input', function() {
+            const query = clientSearchInput.value.trim();
+            if (clientSearchTimeout) clearTimeout(clientSearchTimeout);
+            if (query.length < 2) {
+                clientSearchResults.innerHTML = '';
+                clientSearchResults.style.display = 'none';
+                return;
+            }
+            clientLoadingIndicator.style.display = 'inline-block';
+            clientSearchTimeout = setTimeout(async () => {
+                try {
+                    let clients = [];
+                    if (window.apiService && typeof window.apiService.getClients === 'function') {
+                        clients = await window.apiService.getClients({ search: query });
+                    }
+                    clientSearchResults.innerHTML = '';
+                    if (clients && clients.length > 0) {
+                        clients.forEach(client => {
+                            const item = document.createElement('button');
+                            item.type = 'button';
+                            item.className = 'list-group-item list-group-item-action';
+                            item.textContent = `${client.name} (${client.phone})`;
+                            item.onclick = function() {
+                                selectClient(client);
+                                clientSearchResults.innerHTML = '';
+                                clientSearchResults.style.display = 'none';
+                                clientSearchInput.value = '';
+                            };
+                            clientSearchResults.appendChild(item);
+                        });
+                        clientSearchResults.style.display = 'block';
+                    } else {
+                        const noResult = document.createElement('div');
+                        noResult.className = 'list-group-item text-muted';
+                        noResult.textContent = 'لا يوجد عملاء مطابقون';
+                        clientSearchResults.appendChild(noResult);
+                        clientSearchResults.style.display = 'block';
+                    }
+                } catch (e) {
+                    clientSearchResults.innerHTML = '<div class="list-group-item text-danger">حدث خطأ أثناء البحث</div>';
+                    clientSearchResults.style.display = 'block';
+                } finally {
+                    clientLoadingIndicator.style.display = 'none';
+                }
+            }, 300);
+        });
+    }
+
+    function selectClient(client) {
+        window.globalClientDetails = {
+            client_id: client.id,
+            clientName: client.name,
+            clientPhone: client.phone,
+            clientEmail: client.email || '',
+            clientAddress: client.address || '',
+            clientOrderCode: client.order_code || '',
+            clientStatus: client.status || ''
+        };
+        if (selectedClientInfo) {
+            selectedClientInfo.style.display = 'block';
+            selectedClientName.textContent = client.name;
+            selectedClientPhone.innerHTML = `<i class='fas fa-phone me-1'></i> ${client.phone}`;
+            selectedClientEmail.innerHTML = `<i class='fas fa-envelope me-1'></i> ${client.email || ''}`;
+            selectedClientOrderCode.textContent = client.order_code || '';
+            selectedClientStatus.textContent = client.status === 'active' ? 'نشط' : 'غير نشط';
+            selectedClientStatus.className = 'badge ' + (client.status === 'active' ? 'bg-success' : 'bg-secondary') + ' text-white ms-1';
+        }
+    }
+
+    // Listen for custom event when a new client is added from the modal
+    document.addEventListener('clientAdded', function(e) {
+        if (e.detail && e.detail.client) {
+            selectClient(e.detail.client);
+        }
+    });
+
+    // Hide results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!clientSearchResults.contains(e.target) && e.target !== clientSearchInput) {
+            clientSearchResults.innerHTML = '';
+            clientSearchResults.style.display = 'none';
+        }
+    });
 });

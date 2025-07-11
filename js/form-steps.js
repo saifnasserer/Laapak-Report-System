@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof hideAllStepErrors === 'function') {
         hideAllStepErrors();
     } else {
-        console.error('hideAllStepErrors function not found. Make sure form-steps-utils.js is loaded before form-steps.js');
         // Fallback implementation
         for (let i = 1; i <= 5; i++) {
             const errorContainer = document.getElementById(`step${i}ErrorContainer`);
@@ -94,8 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         devicePrice: devicePriceInput?.value ? parseFloat(devicePriceInput.value) : existingDevicePrice
                     };
                     
-                    console.log('Updated globalDeviceDetails with price:', window.globalDeviceDetails);
-                    
                     // Store client selection in global variable
                     const clientSelect = document.getElementById('clientSelect');
                     if (clientSelect && clientSelect.value) {
@@ -105,7 +102,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         
                         window.globalClientDetails.client_id = clientSelect.value;
-                        console.log('Selected client ID stored globally:', window.globalClientDetails.client_id);
                         
                         // If we have client data available, store more details
                         if (Array.isArray(window.clientsData)) {
@@ -115,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 window.globalClientDetails.clientPhone = selectedClient.phone;
                                 window.globalClientDetails.clientEmail = selectedClient.email || '';
                                 window.globalClientDetails.clientAddress = selectedClient.address || '';
-                                console.log('Full client details stored globally:', window.globalClientDetails);
                             }
                         }
                     }
@@ -125,7 +120,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         updateGlobalDeviceDetails();
                     }
                     
-                    console.log('Step 1 → Step 2: Updated device details:', window.globalDeviceDetails);
                 }
                 
                 currentStep++;
@@ -138,13 +132,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const invoiceSerialInput = document.getElementById('invoiceSerialNumber');
                     const invoicePriceInput = document.getElementById('invoicePrice');
                     
-                    console.log('Populating invoice device fields from global device details');
-                    console.log('Global device details:', window.globalDeviceDetails);
-                    
                     // Force update global device details from the first step
                     if (typeof updateGlobalDeviceDetails === 'function') {
                         updateGlobalDeviceDetails();
-                        console.log('Updated global device details before populating invoice fields:', window.globalDeviceDetails);
                     }
                     
                     // Always use window.globalDeviceDetails to ensure we're accessing the global variable
@@ -154,20 +144,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         const deviceModelInput = document.getElementById('deviceModel');
                         if (deviceModelInput && deviceModelInput.value) {
                             invoiceDeviceInput.value = deviceModelInput.value;
-                            console.log('Auto-filled device model from form:', deviceModelInput.value);
                         } else if (window.globalDeviceDetails.deviceModel) {
                             invoiceDeviceInput.value = window.globalDeviceDetails.deviceModel;
-                            console.log('Auto-filled device model from global:', window.globalDeviceDetails.deviceModel);
                         }
                         
                         // Get serial number from the first step
                         const serialNumberInput = document.getElementById('serialNumber');
                         if (serialNumberInput && serialNumberInput.value) {
                             invoiceSerialInput.value = serialNumberInput.value;
-                            console.log('Auto-filled serial number from form:', serialNumberInput.value);
                         } else if (window.globalDeviceDetails.serialNumber) {
                             invoiceSerialInput.value = window.globalDeviceDetails.serialNumber;
-                            console.log('Auto-filled serial number from global:', window.globalDeviceDetails.serialNumber);
                         }
                         
                         // Get price from the first step
@@ -177,10 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             const devicePriceInput = document.getElementById('devicePrice');
                             if (devicePriceInput && devicePriceInput.value) {
                                 priceInput.value = devicePriceInput.value;
-                                console.log('Auto-filled price from form:', devicePriceInput.value);
                             } else if (window.globalDeviceDetails.devicePrice) {
                                 priceInput.value = window.globalDeviceDetails.devicePrice;
-                                console.log('Auto-filled price from global:', window.globalDeviceDetails.devicePrice);
                             }
                         }
                     } else {
@@ -239,15 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
             formSteps[stepIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
-        // Add console logging for debugging
-        console.log(`[form-steps] showStep called. currentStep (stepIndex): ${stepIndex}, formSteps.length: ${formSteps.length}`);
-        if(submitBtn) {
-            console.log(`[form-steps] submitBtn found. Initial display style: ${submitBtn.style.display}`);
-        }
-        if(globalNextBtn) {
-            console.log(`[form-steps] globalNextBtn found. Initial display style: ${globalNextBtn.style.display}`);
-        }
-
         // Update step indicators
         stepItems.forEach((item, index) => {
             // Reset all steps
@@ -276,26 +251,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Debug formSteps length and current step index
-        console.log(`[DEBUG] formSteps.length: ${formSteps.length}, stepIndex: ${stepIndex}, Last step index: ${formSteps.length - 1}`);
+        // console.log(`[DEBUG] formSteps.length: ${formSteps.length}, stepIndex: ${stepIndex}, Last step index: ${formSteps.length - 1}`);
         
         // Handle the last step for Submit button - Step 5 has index 4 (zero-based)
         if (stepIndex === 4) { // Explicitly check for step 5 (index 4)
             if (globalNextBtn) {
                 globalNextBtn.style.display = 'none';
-                console.log(`[form-steps] Hiding globalNextBtn for last step (${stepIndex})`);
             }
             if (submitBtn) {
                 submitBtn.classList.remove('d-none');
-                console.log(`[form-steps] Showing submitBtn for last step (${stepIndex})`);
             }
         } else {
             if (globalNextBtn) {
                 globalNextBtn.style.display = 'inline-block';
-                console.log(`[form-steps] Showing globalNextBtn for step ${stepIndex}`);
             }
             if (submitBtn) {
                 submitBtn.classList.add('d-none');
-                console.log(`[form-steps] Hiding submitBtn for step ${stepIndex}`);
             }
         }
         
@@ -783,7 +754,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         // Also store directly in reportData object
                         reportData.devicePrice = priceValue;
-                        console.log('Updated device price:', priceValue);
                     }
                     
                     // CRITICAL: Set amount field directly and explicitly
@@ -804,11 +774,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Always set the amount field EXPLICITLY regardless of billing_enabled status
                     reportData.amount = devicePrice;
-                    console.log('Final report amount set to:', reportData.amount);
                     
                     // Force direct assignment to window.reportData for debugging purposes
                     window.reportData = reportData;
-                    console.log('Report data with amount:', reportData);
                     
                     // Prepare technical tests data
                     const technicalTests = [];
@@ -881,23 +849,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Save report data to API
                     let savedReport;
-                    console.log('Attempting to save report to API...');
-                    console.log('API Service available:', !!currentApiService);
-                    console.log('createReport function available:', typeof currentApiService?.createReport === 'function');
                     
                     if (currentApiService && typeof currentApiService.createNewReport === 'function') {
                         try {
-                            console.log('Making API call to create report with data using dedicated endpoint:', JSON.stringify(reportData, null, 2));
                             savedReport = await currentApiService.createNewReport(reportData);
-                            console.log('Report saved to API successfully:', savedReport);
                         } catch (apiError) {
-                            console.error('Error saving report to API:', apiError);
                             // Fall back to localStorage
                             saveReportData(reportData);
                             savedReport = reportData;
                         }
                     } else {
-                        console.error('API service or createReport function not available');
                         // Fall back to localStorage
                         saveReportData(reportData);
                         savedReport = reportData;
@@ -912,31 +873,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (freshBillingToggle) {
                         isBillingEnabled = freshBillingToggle.checked;
-                        console.log('Billing toggle checked property:', isBillingEnabled);
-                    } else {
-                        console.warn('Billing toggle element not found in the DOM');
                     }
                     
                     // Always ensure devicePrice is captured in amount field regardless of billing status
                     // This ensures that reports show the correct price even if billing is disabled
                     if (!reportData.amount && window.globalDeviceDetails?.devicePrice) {
                         reportData.amount = window.globalDeviceDetails.devicePrice;
-                        console.log('Setting report amount from globalDeviceDetails.devicePrice:', reportData.amount);
                     }
                     
                     // If amount is still not set, check for devicePrice directly
                     if (!reportData.amount && reportData.devicePrice) {
                         reportData.amount = reportData.devicePrice;
-                        console.log('Setting report amount from reportData.devicePrice:', reportData.amount);
                     }
                     
                     // Ensure savedReport also has the amount
                     if (savedReport && !savedReport.amount && (window.globalDeviceDetails?.devicePrice || reportData.amount)) {
                         savedReport.amount = window.globalDeviceDetails?.devicePrice || reportData.amount;
-                        console.log('Updating savedReport.amount:', savedReport.amount);
                     }
-                    
-                    console.log('Report created with billing_enabled:', isBillingEnabled);
                     
                     // Create invoice only if billing is enabled
                     if (isBillingEnabled && savedReport && savedReport.id && currentApiService && 
@@ -945,14 +898,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         try {
                             // First verify no invoice exists for this report
-                            console.log('Checking if invoice already exists for report:', savedReport.id);
                             const existingInvoices = await currentApiService.getInvoices();
                             const existingInvoice = existingInvoices.find(inv => 
                                 inv.report_id === savedReport.id);
                                 
                             if (existingInvoice) {
                                 // Already exists, just use it
-                                console.log('Found existing invoice for this report:', existingInvoice);
                                 invoice = existingInvoice;
                             } else {
                                 // Create a basic invoice for the report
@@ -981,12 +932,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 basicInvoiceData.tax = parseFloat(taxAmount.toFixed(2));
                                 basicInvoiceData.total = basicInvoiceData.subtotal + basicInvoiceData.tax - basicInvoiceData.discount;
                                 
-                                console.log('Creating basic invoice for report:', basicInvoiceData);
                                 invoice = await currentApiService.createInvoice(basicInvoiceData);
-                                console.log('Successfully created invoice:', invoice);
                             }
                         } catch (invoiceError) {
-                            console.warn('Error during invoice creation:', invoiceError);
                             // Continue with the report creation process even if invoice creation fails
                         }
                     }
@@ -1035,7 +983,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     showStep(currentStep);
                     updateProgressBar();
                 } catch (error) {
-                    console.error('Error creating report:', error);
                     alert('حدث خطأ أثناء إنشاء التقرير. الرجاء المحاولة مرة أخرى.');
                     
                     // Re-enable submit button
@@ -1046,7 +993,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } else {
-                console.error('collectReportData function not found. Make sure create-report.js is loaded before form-steps.js');
                 alert('خطأ في معالجة البيانات. الرجاء المحاولة مرة أخرى.');
             }
         }

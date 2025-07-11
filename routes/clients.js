@@ -36,21 +36,28 @@ router.get('/count', auth, async (req, res) => {
 });
 
 // @route   GET api/clients
-// @desc    Get all clients
+// @desc    Get all clients, with optional search
 // @access  Private (Admin only)
-router.get('/', adminAuth, (req, res) => {
+router.get('/', adminAuth, async (req, res) => {
     try {
-        // Find all clients
-        Client.findAll({
+        const { search } = req.query;
+        let whereClause = {};
+
+        if (search) {
+            whereClause = {
+                [Op.or]: [
+                    { name: { [Op.like]: `%${search}%` } },
+                    { phone: { [Op.like]: `%${search}%` } }
+                ]
+            };
+        }
+
+        const clients = await Client.findAll({
+            where: whereClause,
             order: [['createdAt', 'DESC']]
-        })
-        .then(clients => {
-            res.json({ clients });
-        })
-        .catch(err => {
-            console.error('Error fetching clients:', err);
-            res.status(500).json({ message: 'خطأ في الخادم' });
         });
+
+        res.json({ clients });
     } catch (err) {
         console.error('Error in GET /clients route:', err);
         res.status(500).json({ message: 'خطأ في الخادم' });
