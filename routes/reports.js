@@ -1,6 +1,6 @@
 const express = require('express');
 const { Sequelize, Op } = require('sequelize');
-const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport } = require('../models'); // Added InvoiceReport
+const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport, InvoiceItem } = require('../models'); // Added InvoiceReport and InvoiceItem
 const { auth, clientAuth, adminAuth } = require('../middleware/auth'); // Import all auth middlewares
 const { sequelize } = require('../config/db');
 
@@ -312,16 +312,75 @@ router.put('/:id', async (req, res) => {
 
 // DELETE /reports/:id - delete a report
 router.delete('/:id', async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
+    console.log('🔍 [DEBUG] Deleting report with ID:', req.params.id);
+    
+    // First, find any invoices linked to this report
+    console.log('🔍 [DEBUG] Checking for linked invoices...');
+    const linkedInvoices = await Invoice.findAll({
+      include: [{
+        model: Report,
+        as: 'reports',
+        where: { id: req.params.id }
+      }]
+    });
+    
+    console.log('🔍 [DEBUG] Found linked invoices:', linkedInvoices.length);
+    
+    // Delete each linked invoice if any exist
+    if (linkedInvoices.length > 0) {
+      console.log('🔍 [DEBUG] Deleting linked invoices...');
+      for (const invoice of linkedInvoices) {
+        console.log('🔍 [DEBUG] Deleting linked invoice:', invoice.id);
+        
+        // Delete invoice items first
+        await InvoiceItem.destroy({
+          where: { invoiceId: invoice.id },
+          transaction
+        });
+        
+        // Delete the invoice
+        await invoice.destroy({ transaction });
+        
+        console.log('🔍 [DEBUG] Successfully deleted invoice:', invoice.id);
+      }
+      console.log('🔍 [DEBUG] All linked invoices deleted successfully');
+    } else {
+      console.log('🔍 [DEBUG] No linked invoices found, proceeding with report deletion only');
+    }
+    
+    // Now delete the report
+    console.log('🔍 [DEBUG] Deleting report...');
     const deletedCount = await Report.destroy({
       where: { id: req.params.id },
+      transaction
     });
+    
     if (deletedCount === 0) {
+      await transaction.rollback();
+      console.log('❌ [DEBUG] Report not found, rolling back transaction');
       return res.status(404).json({ error: 'Report not found' });
     }
-    res.json({ message: 'Report deleted successfully' });
+    
+    await transaction.commit();
+    console.log('🔍 [DEBUG] Report deletion completed successfully');
+    
+    // Prepare response message based on whether invoices were deleted
+    const responseMessage = linkedInvoices.length > 0 
+      ? `Report and ${linkedInvoices.length} linked invoice(s) deleted successfully`
+      : 'Report deleted successfully';
+    
+    console.log('🔍 [DEBUG] Response message:', responseMessage);
+    
+    res.json({ 
+      message: responseMessage,
+      deletedInvoices: linkedInvoices.length
+    });
   } catch (error) {
-    console.error('Failed to delete report:', error);
+    await transaction.rollback();
+    console.error('❌ [DEBUG] Failed to delete report:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

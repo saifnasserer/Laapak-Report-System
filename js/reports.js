@@ -542,7 +542,7 @@ function shareReport(reportId) {
  * @param {string} reportId - ID of the report to delete
  */
 function deleteReport(reportId) {
-    if (confirm('هل أنت متأكد من رغبتك في حذف هذا التقرير؟ لا يمكن التراجع عن هذا الإجراء.')) {
+    if (confirm('هل أنت متأكد من رغبتك في حذف هذا التقرير؟ سيتم حذف الفواتير المرتبطة أيضاً. لا يمكن التراجع عن هذا الإجراء.')) {
         // Show loading indicator
         const loadingIndicator = document.getElementById('loadingIndicator');
         if (loadingIndicator) {
@@ -551,12 +551,30 @@ function deleteReport(reportId) {
         
         // Delete report via API
         apiService.deleteReport(reportId)
-            .then(() => {
+            .then((response) => {
+                console.log('🔍 [DEBUG] Report deletion response:', response);
+                
+                // Hide loading indicator
+                if (loadingIndicator) {
+                    loadingIndicator.classList.add('d-none');
+                }
+                
+                // Show success message based on whether invoices were deleted
+                let successMessage = 'تم حذف التقرير بنجاح';
+                if (response && response.deletedInvoices > 0) {
+                    successMessage += `\nتم حذف ${response.deletedInvoices} فاتورة مرتبطة`;
+                } else {
+                    successMessage += '\nلم تكن هناك فواتير مرتبطة';
+                }
+                
+                // Show success alert
+                alert(successMessage);
+                
                 // Refresh reports list
                 initReports();
             })
             .catch(error => {
-                console.error('Error deleting report:', error);
+                console.error('❌ [DEBUG] Error deleting report:', error);
                 
                 // Hide loading indicator
                 if (loadingIndicator) {

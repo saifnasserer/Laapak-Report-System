@@ -910,7 +910,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const basicInvoiceData = {
                                     id: `INV${Date.now()}`, // Generate a unique ID for the invoice
                                     client_id: Number(savedReport.client_id), // Convert to number to pass validation
-                                    report_id: savedReport.id,
+                                    report_ids: [savedReport.id], // Use report_ids array for proper linking
                                     date: new Date().toISOString(),
                                     // Use device price from report or global, or default to 0
                                     subtotal: savedReport.amount || window.globalDeviceDetails?.devicePrice || 0,

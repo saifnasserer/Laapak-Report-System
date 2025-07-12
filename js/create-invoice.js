@@ -598,7 +598,7 @@ function initiateDirectInvoiceCreation() {
     if(createInvoiceBtn) {
         createInvoiceBtn.dataset.originalText = createInvoiceBtn.innerHTML;
         createInvoiceBtn.disabled = true;
-        createInvoiceBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ إنشاء الفاتورة...';
+        createInvoiceBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ التحضير...';
     }
 
     // Check that we have all selected reports in reportsData
@@ -639,52 +639,47 @@ function initiateDirectInvoiceCreation() {
     }
     console.log('[initiateDirectInvoiceCreation] Using client_id:', clientId, 'from report object:', firstReportObject);
 
-    showToast('جاري إنشاء الفاتورة...', 'info');
+    showToast('جاري تحضير بيانات الفاتورة...', 'info');
 
-    // 1. Prepare Default Invoice Settings
+    // Prepare invoice data for edit-invoice.js
     const today = new Date();
-    const defaultInvoiceSettings = {
-        title: `فاتورة بتاريخ ${today.toLocaleDateString('ar-SA')}`,
-        date: today.toISOString().split('T')[0], // YYYY-MM-DD format
-        taxRate: parseFloat(localStorage.getItem('lpk_default_tax_rate')) || 14,
-        discountRate: parseFloat(localStorage.getItem('lpk_default_discount_rate')) || 0,
-        paymentMethod: localStorage.getItem('lpk_default_payment_method') || 'bank_transfer',
-        paymentStatus: localStorage.getItem('lpk_default_payment_status') || 'unpaid', // Added default payment status
-        notes: 'تم إنشاء هذه الفاتورة مباشرةً.',
-        client_id: parseInt(clientId, 10), // Set client_id
-        report_ids: selectedReports // selectedReports already contains just IDs
+    const invoiceData = {
+        mode: 'create', // Indicate this is a new invoice creation
+        client_id: parseInt(clientId, 10),
+        report_ids: selectedReports, // Array of report IDs
+        selectedReports: selectedReportObjects, // Full report objects for pre-population
+        date: today.toISOString().split('T')[0],
+        paymentStatus: 'unpaid',
+        paymentMethod: 'bank_transfer',
+        discount: 0,
+        taxRate: 14,
+        items: selectedReportObjects.map((report, index) => ({
+            description: `${report.device_model || report.deviceModel || 'جهاز'} (${report.id})`,
+            type: 'service',
+            quantity: 1,
+            amount: parseFloat(report.amount) || 0,
+            serialNumber: report.serial_number || report.serialNumber || ''
+        }))
     };
 
-    // 2. Prepare Invoice Items from Selected Reports
-    // 2. Prepare Invoice Items from Selected Reports
-    // Map over selectedReport IDs to get full report objects from reportsData
-    const defaultInvoiceItems = selectedReports.map((reportId, index) => {
-        const reportObject = reportsData.find(r => r.id === reportId);
-        if (!reportObject) {
-            console.warn(`[initiateDirectInvoiceCreation] Could not find report object for ID ${reportId} when creating items. Skipping.`);
-            return null; // Or handle error appropriately
-        }
-        const reportAmount = parseFloat(reportObject.amount) || 0;
-        return {
-            id: `item-${reportObject.id}-${index}-${Date.now()}`,
-            description: `${reportObject.device_model || 'جهاز غير محدد'} (${reportObject.id})`,
-            quantity: 1,
-            unitPrice: reportAmount,
-            total: reportAmount,
-            type: 'item',
-            report_id: reportObject.id
-        };
-    }).filter(item => item !== null); // Remove any nulls if reports weren't found
+    // Store invoice data in localStorage for edit-invoice.js to pick up
+    localStorage.setItem('lpk_new_invoice_data', JSON.stringify(invoiceData));
+    
+    // Clear any existing invoice settings to avoid conflicts
+    localStorage.removeItem('lpk_invoice_settings');
+    localStorage.removeItem('lpk_invoice_items');
 
-    // 3. Set localStorage for saveInvoice to pick up
-    localStorage.setItem('lpk_invoice_settings', JSON.stringify(defaultInvoiceSettings));
-    localStorage.setItem('lpk_invoice_items', JSON.stringify(defaultInvoiceItems));
-
-    // 4. Call the original saveInvoice function
-    saveInvoice();
+    // Redirect to edit-invoice.js
+    setTimeout(() => {
+        window.location.href = 'edit-invoice.html?mode=create';
+    }, 500);
 }
 
-// Helper function to get status text (assuming it exists or you'll add it)
+/**
+ * Helper function to get status text (assuming it exists or you'll add it)
+ * @param {string} status - Payment status code
+ * @returns {string} Payment status text
+ */
 function getReportStatusText(status) {
     // This could be more sophisticated, perhaps fetching from a localization object
     const statusTextMap = {

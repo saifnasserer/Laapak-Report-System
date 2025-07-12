@@ -1145,10 +1145,74 @@ async function handleSaveReport() {
         const urlParams = new URLSearchParams(window.location.search);
         const reportId = urlParams.get('id');
         
+        console.log('🔍 [DEBUG] Updating report with data:', formData);
         const updatedReport = await service.updateReport(reportId, formData);
+        console.log('🔍 [DEBUG] Report updated successfully:', updatedReport);
+        
+        // Check if there's a linked invoice and update it
+        try {
+            console.log('🔍 [DEBUG] Checking for linked invoice...');
+            const linkedInvoice = await service.getInvoiceByReportId(reportId);
+            
+            if (linkedInvoice) {
+                console.log('🔍 [DEBUG] Found linked invoice:', linkedInvoice);
+                
+                // First, update the client information if it changed
+                if (linkedInvoice.client_id) {
+                    console.log('🔍 [DEBUG] Updating client information...');
+                    const clientUpdateData = {
+                        name: formData.client_name,
+                        phone: formData.client_phone,
+                        email: formData.client_email,
+                        address: formData.client_address
+                    };
+                    
+                    try {
+                        await service.updateClient(linkedInvoice.client_id, clientUpdateData);
+                        console.log('🔍 [DEBUG] Client updated successfully');
+                    } catch (clientError) {
+                        console.error('❌ [DEBUG] Error updating client:', clientError);
+                        // Continue with invoice update even if client update fails
+                    }
+                }
+                
+                // Then update the invoice amount and items
+                console.log('🔍 [DEBUG] Updating invoice amount and items...');
+                const invoiceUpdateData = {
+                    // Update amount if it changed
+                    total: parseFloat(formData.amount || 0),
+                    subtotal: parseFloat(formData.amount || 0), // For simplicity, assuming no tax/discount in report
+                    
+                    // Update invoice items to reflect the new amount
+                    items: linkedInvoice.InvoiceItems ? linkedInvoice.InvoiceItems.map(item => ({
+                        id: item.id,
+                        description: item.description,
+                        type: item.type,
+                        amount: parseFloat(formData.amount || 0), // Update main service amount
+                        quantity: item.quantity,
+                        totalAmount: parseFloat(formData.amount || 0) * (item.quantity || 1),
+                        serialNumber: item.serialNumber
+                    })) : []
+                };
+                
+                console.log('🔍 [DEBUG] Updating invoice with data:', invoiceUpdateData);
+                
+                // Update the invoice
+                const updatedInvoice = await service.updateInvoice(linkedInvoice.id, invoiceUpdateData);
+                console.log('🔍 [DEBUG] Invoice updated successfully:', updatedInvoice);
+                
+                showAlert('success', 'تم تحديث التقرير والفاتورة المرتبطة بنجاح');
+            } else {
+                console.log('🔍 [DEBUG] No linked invoice found');
+                showAlert('success', 'تم تحديث التقرير بنجاح');
+            }
+        } catch (invoiceError) {
+            console.error('❌ [DEBUG] Error updating linked invoice:', invoiceError);
+            // Don't fail the report update if invoice update fails
+            showAlert('success', 'تم تحديث التقرير بنجاح (فشل في تحديث الفاتورة المرتبطة)');
+        }
         
         showLoading(false);
-        showAlert('success', 'تم تحديث التقرير بنجاح');
         
         // Redirect to report view after a short delay
         setTimeout(() => {

@@ -768,15 +768,30 @@ document.addEventListener('DOMContentLoaded', function() {
             showSuccessMessage(response);
             
             // --- NEW: If billing is enabled, create invoice and link to report ---
+            console.log('[DEBUG] Checking billing_enabled:', formData.billing_enabled);
+            console.log('[DEBUG] formData keys:', Object.keys(formData));
             if (formData.billing_enabled) {
                 try {
+                    // Debug: Check the response structure
+                    console.log('[DEBUG] Report creation response:', response);
+                    console.log('[DEBUG] Report ID from response:', response.id);
+                    console.log('[DEBUG] Response keys:', Object.keys(response));
+                    
+                    // Ensure we have a valid report ID
+                    const reportId = response.id || response.reportId || response.data?.id;
+                    console.log('[DEBUG] Final report ID to link:', reportId);
+                    
+                    if (!reportId) {
+                        throw new Error('No valid report ID found in response');
+                    }
+                    
                     // Prepare invoice payload
                     const invoicePayload = {
                         // Use the same ID generation logic as in create-invoice.js
                         id: 'INV' + Date.now().toString() + Math.floor(Math.random() * 1000),
                         client_id: formData.client_id,
                         date: new Date().toISOString().split('T')[0],
-                        report_ids: [response.id],
+                        report_ids: [reportId], // Use the correct report ID
                         items: [
                             {
                                 description: formData.device_model || 'خدمة صيانة',
@@ -796,6 +811,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         paymentMethod: null,
                         notes: formData.notes || ''
                     };
+                    
+                    console.log('[DEBUG] Invoice payload with report_ids:', JSON.stringify(invoicePayload, null, 2));
+                    
                     // Call the API to create the invoice
                     const invoiceResponse = await apiService.createInvoice(invoicePayload);
                     showToast('تم إنشاء الفاتورة وربطها بالتقرير بنجاح', 'success');
