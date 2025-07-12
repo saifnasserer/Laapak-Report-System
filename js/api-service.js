@@ -706,8 +706,8 @@ class ApiService {
             if (!invoiceData.date || isNaN(new Date(invoiceData.date).getTime())) {
                 throw new Error('Invoice date (invoiceData.date) is missing or invalid.');
             }
-             if (invoiceData.report_id && typeof invoiceData.report_id !== 'string') { // report_id is optional
-                throw new Error('Report ID (invoiceData.report_id) must be a string if provided.');
+            if (invoiceData.report_ids && !Array.isArray(invoiceData.report_ids)) { // report_ids is optional but must be array if provided
+                throw new Error('Report IDs (invoiceData.report_ids) must be an array if provided.');
             }
             if (!Array.isArray(invoiceData.items)) {
                 throw new Error('Invoice items (invoiceData.items) must be an array.');
@@ -718,7 +718,7 @@ class ApiService {
                 id: invoiceData.id || this._generateUniqueId('INV'),
                 client_id: Number(invoiceData.client_id),
                 date: invoiceData.date ? new Date(invoiceData.date).toISOString() : new Date().toISOString(),
-                report_id: invoiceData.report_id || null, // Keep report_id field
+                report_ids: invoiceData.report_ids || [], // Use report_ids array
                 subtotal: Number(invoiceData.subtotal || 0),
                 discount: Number(invoiceData.discount || 0),
                 taxRate: Number(invoiceData.taxRate || 0), // Ensure taxRate is present

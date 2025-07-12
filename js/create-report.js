@@ -767,6 +767,45 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show success message
             showSuccessMessage(response);
             
+            // --- NEW: If billing is enabled, create invoice and link to report ---
+            if (formData.billing_enabled) {
+                try {
+                    // Prepare invoice payload
+                    const invoicePayload = {
+                        // Use the same ID generation logic as in create-invoice.js
+                        id: 'INV' + Date.now().toString() + Math.floor(Math.random() * 1000),
+                        client_id: formData.client_id,
+                        date: new Date().toISOString().split('T')[0],
+                        report_ids: [response.id],
+                        items: [
+                            {
+                                description: formData.device_model || 'خدمة صيانة',
+                                quantity: 1,
+                                type: 'service',
+                                amount: formData.amount || 0,
+                                totalAmount: formData.amount || 0,
+                                serialNumber: formData.serial_number || null
+                            }
+                        ],
+                        subtotal: formData.amount || 0,
+                        discount: 0,
+                        taxRate: 0,
+                        tax: 0,
+                        total: formData.amount || 0,
+                        paymentStatus: 'unpaid',
+                        paymentMethod: null,
+                        notes: formData.notes || ''
+                    };
+                    // Call the API to create the invoice
+                    const invoiceResponse = await apiService.createInvoice(invoicePayload);
+                    showToast('تم إنشاء الفاتورة وربطها بالتقرير بنجاح', 'success');
+                    console.log('[DEBUG] Invoice created and linked:', invoiceResponse);
+                } catch (invoiceError) {
+                    showToast('تم إنشاء التقرير لكن فشل إنشاء الفاتورة أو ربطها', 'warning');
+                    console.error('[DEBUG] Error creating invoice after report:', invoiceError);
+                }
+            }
+            
             // Reset form
             resetForm();
             

@@ -15,6 +15,9 @@ const { testConnection } = require('./config/db');
 const { initDatabase } = require('./config/dbInit');
 const { ensureTables } = require('./scripts/ensure-db-tables');
 
+// Import model associations to ensure they are set up
+require('./models/login');
+
 // Import routes and middleware
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');

@@ -217,6 +217,12 @@ router.post('/', adminAuth, async (req, res) => {
             status 
         } = req.body;
         
+        // Debug logging for report_ids
+        console.log('🔍 [DEBUG] report_ids from request:', report_ids);
+        console.log('🔍 [DEBUG] report_ids type:', typeof report_ids);
+        console.log('🔍 [DEBUG] report_ids is array:', Array.isArray(report_ids));
+        console.log('🔍 [DEBUG] report_ids length:', report_ids ? report_ids.length : 'undefined');
+        
         // Validate required fields
         if (!client_id) {
             return res.status(400).json({
@@ -307,15 +313,17 @@ router.post('/', adminAuth, async (req, res) => {
         }
         
         // Link reports to the invoice using the InvoiceReport junction table
+        console.log('🔍 [DEBUG] About to check report_ids for linking. report_ids:', report_ids);
         if (report_ids && Array.isArray(report_ids) && report_ids.length > 0) {
-            console.log('Linking reports to invoice:', report_ids);
+            console.log('🔍 [DEBUG] Linking reports to invoice:', report_ids);
             try {
                 const invoiceReportEntries = report_ids.map(rId => ({
                     invoice_id: invoice.id,
                     report_id: rId
                 }));
+                console.log('🔍 [DEBUG] InvoiceReport entries to create:', JSON.stringify(invoiceReportEntries, null, 2));
                 await InvoiceReport.bulkCreate(invoiceReportEntries, { transaction });
-                console.log(`Created ${invoiceReportEntries.length} entries in InvoiceReport table.`);
+                console.log(`✅ [DEBUG] Created ${invoiceReportEntries.length} entries in InvoiceReport table.`);
 
                 // Update each report to mark it as having an invoice and update billing status
                 // Consider if 'amount' should be updated here or if it's report-specific
@@ -327,12 +335,14 @@ router.post('/', adminAuth, async (req, res) => {
                         returning: false // Not typically needed for MySQL/MariaDB for simple count
                     }
                 );
-                console.log(`Report.update for billingEnabled: Matched ${report_ids.length} report IDs, Affected rows: ${affectedRows}`);
+                console.log(`✅ [DEBUG] Report.update for billingEnabled: Matched ${report_ids.length} report IDs, Affected rows: ${affectedRows}`);
 
             } catch (linkError) {
-                console.error('Error linking reports or updating report status:', linkError);
+                console.error('❌ [DEBUG] Error linking reports or updating report status:', linkError);
                 throw linkError; // Re-throw to be caught by the outer transaction catch block
             }
+        } else {
+            console.log('⚠️ [DEBUG] No report_ids provided or invalid format. report_ids:', report_ids);
         }
         
         await transaction.commit();

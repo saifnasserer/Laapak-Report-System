@@ -1470,7 +1470,7 @@ async function saveInvoice() {
             id: invoiceId, // Include the invoice ID as required by the API
             date: currentInvoiceSettings.date, 
             client_id: client_id, // Correct client_id from currentInvoiceSettings
-            report_id: report_ids_to_invoice.length > 0 ? report_ids_to_invoice[0] : null, // Send first report ID (API expects single report_id)
+            report_ids: report_ids_to_invoice, // Send all report IDs as array (API expects report_ids)
             items: currentInvoiceItems.map(item => ({
                 description: item.description,
                 quantity: 1, // Always set to 1 since we're not using quantity anymore
