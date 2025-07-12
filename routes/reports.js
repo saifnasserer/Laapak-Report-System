@@ -209,6 +209,32 @@ router.get('/client/me', clientAuth, async (req, res) => {
   }
 });
 
+// GET /reports/client/:clientId - get reports for a specific client (admin only)
+router.get('/client/:clientId', adminAuth, async (req, res) => {
+  try {
+    const clientId = req.params.clientId;
+    
+    console.log(`Admin fetching reports for client ID: ${clientId}`);
+    const reports = await Report.findAll({
+      where: { client_id: clientId },
+      include: [
+        {
+          model: Client,
+          attributes: ['id', 'name', 'phone', 'email', 'address'],
+        },
+      ],
+      order: [['inspection_date', 'DESC']],
+    });
+
+    console.log(`Found ${reports ? reports.length : 0} reports for client ID ${clientId}`);
+    res.json({ success: true, data: reports || [] });
+
+  } catch (error) {
+    console.error('Failed to fetch reports for client:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
 // POST /reports - create a new report
 router.post('/', async (req, res) => {
   try {

@@ -214,6 +214,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     openEditClientModal(clientId);
                 }
                 
+                // Handle share button click
+                if (button.classList.contains('share-client-btn')) {
+                    shareClient(clientId);
+                }
+                
+                // Handle view button click
+                if (button.classList.contains('view-client-btn')) {
+                    viewClientProfile(clientId);
+                }
+                
                 // Handle delete button click
                 if (button.classList.contains('delete-client-btn')) {
                     if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
@@ -436,11 +446,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
                 <td class="py-3">${createdAt}</td>
                 <td class="py-3">
-                    <div class="d-flex">
-                        <button class="btn btn-sm btn-outline-primary me-2 edit-client-btn" data-client-id="${client.id}">
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-primary edit-client-btn" data-client-id="${client.id}" title="تعديل">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-danger delete-client-btn" data-client-id="${client.id}">
+                        <button class="btn btn-sm btn-outline-info share-client-btn" data-client-id="${client.id}" title="مشاركة">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success view-client-btn" data-client-id="${client.id}" title="عرض الملف الشخصي">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-client-btn" data-client-id="${client.id}" title="حذف">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
@@ -521,6 +537,88 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error deleting client:', error);
             alert(`خطأ: ${error.message}`);
         }
+    }
+    
+    /**
+     * Share client login information
+     * @param {string} clientId - ID of the client to share
+     */
+    function shareClient(clientId) {
+        // Find the client data to get login information
+        const client = clientsData.find(c => c.id == clientId);
+        
+        if (!client) {
+            alert('لم يتم العثور على بيانات العميل');
+            return;
+        }
+        
+        // Get client information
+        const clientPhone = client.phone || 'غير متوفر';
+        const orderNumber = client.orderCode || 'غير متوفر';
+        
+        // Create the client dashboard URL
+        const clientUrl = `${window.location.origin}/client-dashboard.html`;
+        
+        // Create the message to copy
+        const message = `السلام عليكم، يمكنك الوصول إلى ملفك الشخصي من خلال الرابط التالي:
+${clientUrl}
+
+رقم الهاتف: ${clientPhone}
+كود الطلب: ${orderNumber}`;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(message)
+            .then(() => {
+                // Show success message
+                alert('تم نسخ رابط الملف الشخصي وبيانات الدخول إلى الحافظة');
+            })
+            .catch(error => {
+                console.error('Error copying to clipboard:', error);
+                
+                // Fallback: show the message in a prompt
+                prompt('انسخ النص التالي:', message);
+            });
+    }
+    
+    /**
+     * View client profile as admin
+     * @param {string} clientId - ID of the client to view
+     */
+    function viewClientProfile(clientId) {
+        // Find the client data
+        const client = clientsData.find(c => c.id == clientId);
+        
+        if (!client) {
+            alert('لم يتم العثور على بيانات العميل');
+            return;
+        }
+        
+        // Store admin token for client access
+        const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        
+        if (!adminToken) {
+            alert('غير مصرح لك بعرض ملف العميل');
+            return;
+        }
+        
+        // Store client info for admin access
+        const clientInfo = {
+            id: client.id,
+            name: client.name,
+            phone: client.phone,
+            orderCode: client.orderCode,
+            email: client.email,
+            address: client.address,
+            isAdminView: true, // Flag to indicate this is admin viewing
+            adminToken: adminToken // Store admin token for API calls
+        };
+        
+        // Store in session storage for client dashboard access
+        sessionStorage.setItem('clientInfo', JSON.stringify(clientInfo));
+        sessionStorage.setItem('adminViewingClient', 'true');
+        
+        // Navigate to client dashboard
+        window.location.href = 'client-dashboard.html';
     }
     
     /**

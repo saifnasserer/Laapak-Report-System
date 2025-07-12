@@ -10,15 +10,31 @@ if (typeof apiService === 'undefined' && window.ApiService) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if client is logged in using auth-middleware
-    if (!authMiddleware.isClientLoggedIn()) {
+    // Check if admin is viewing client profile or if client is logged in
+    const isAdminViewing = sessionStorage.getItem('adminViewingClient') === 'true';
+    let clientInfo = JSON.parse(sessionStorage.getItem('clientInfo') || localStorage.getItem('clientInfo') || '{}');
+    
+    // If admin is viewing, we need to check if we have the required data
+    if (isAdminViewing) {
+        if (!clientInfo.id || !clientInfo.adminToken) {
+            console.log('Admin viewing but missing required data, redirecting to admin');
+            sessionStorage.removeItem('adminViewingClient');
+            sessionStorage.removeItem('clientInfo');
+            window.location.href = 'clients.html';
+            return;
+        }
+        console.log('Admin viewing client profile:', clientInfo.name);
+    } else if (!authMiddleware.isClientLoggedIn()) {
+        // Only redirect if not admin viewing and not client logged in
         console.log('Client not logged in, redirecting to login page');
         window.location.href = 'index.html';
         return;
     }
     
-    // Get client info from storage
-    const clientInfo = JSON.parse(localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo') || '{}');
+    // Get client info from storage (if not already loaded)
+    if (!clientInfo.id) {
+        clientInfo = JSON.parse(localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo') || '{}');
+    }
     
     // Display client information
     const clientNameEl = document.getElementById('clientName');
@@ -30,6 +46,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (welcomeClientNameEl && clientInfo.name) {
         welcomeClientNameEl.textContent = clientInfo.name;
+    }
+    
+    // Show admin back button if admin is viewing
+    if (isAdminViewing) {
+        const adminBackButton = document.getElementById('adminBackButton');
+        if (adminBackButton) {
+            adminBackButton.style.display = 'block';
+        }
     }
     
     // Note: Logout is now handled by the client-header-component.js
@@ -54,7 +78,23 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Using API service with base URL:', service.baseUrl);
             
             // Fetch reports from API
-            const apiResponse = await service.getClientReports();
+            let apiResponse;
+            if (isAdminViewing) {
+                // Use admin token to fetch client reports
+                const adminToken = clientInfo.adminToken;
+                
+                if (adminToken) {
+                    // Set admin token for this request
+                    service.setAuthToken(adminToken);
+                    // Fetch reports for specific client
+                    apiResponse = await service.request(`/api/reports/client/${clientInfo.id}`, 'GET');
+                } else {
+                    throw new Error('Admin token not available');
+                }
+            } else {
+                // Normal client access
+                apiResponse = await service.getClientReports();
+            }
             console.log('Reports data from API:', apiResponse);
             
             // Hide loading indicator
@@ -66,7 +106,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Fetch invoices from API for the client
                 let invoicesArray = [];
                 try {
-                    const invoiceApiResponse = await apiService.getClientInvoices(); // Fetch invoices for the authenticated client
+                    let invoiceApiResponse;
+                    if (isAdminViewing) {
+                        // Use admin token to fetch client invoices
+                        const adminToken = clientInfo.adminToken;
+                        
+                        if (adminToken) {
+                            // Set admin token for this request
+                            service.setAuthToken(adminToken);
+                            // Fetch invoices for specific client
+                            invoiceApiResponse = await service.request(`/api/invoices/client/${clientInfo.id}`, 'GET');
+                        } else {
+                            throw new Error('Admin token not available');
+                        }
+                    } else {
+                        // Normal client access
+                        invoiceApiResponse = await apiService.getClientInvoices(); // Fetch invoices for the authenticated client
+                    }
+                    
                     if (invoiceApiResponse && invoiceApiResponse.success && Array.isArray(invoiceApiResponse.data)) {
                         invoicesArray = invoiceApiResponse.data;
                         console.log('Invoices data from API:', invoicesArray);
@@ -606,3 +663,15 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         console.error('Main loadClientReports function not found!');
     }
 });
+
+/**
+ * Back to admin dashboard function
+ */
+function backToAdmin() {
+    // Clear admin viewing session
+    sessionStorage.removeItem('adminViewingClient');
+    sessionStorage.removeItem('clientInfo');
+    
+    // Navigate back to admin clients page
+    window.location.href = 'clients.html';
+}

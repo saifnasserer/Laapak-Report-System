@@ -125,6 +125,51 @@ router.get('/client', clientAuth, async (req, res) => {
     }
 });
 
+// Get client invoices by client ID (admin only)
+router.get('/client/:clientId', adminAuth, async (req, res) => {
+    try {
+        const clientId = req.params.clientId;
+        
+        console.log(`Admin fetching invoices for client ID: ${clientId}`);
+        const invoices = await Invoice.findAll({
+            where: { client_id: clientId },
+            include: [
+                { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] }
+            ],
+            order: [['created_at', 'DESC']]
+        });
+        
+        console.log(`Found ${invoices ? invoices.length : 0} invoices for client ID ${clientId}`);
+        res.json(invoices);
+    } catch (error) {
+        console.error('Error fetching client invoices:', error);
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        
+        // Check for specific error types
+        if (error.name === 'SequelizeEagerLoadingError') {
+            return res.status(500).json({
+                message: 'Failed to load associated data',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Failed to fetch client invoices', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
+    }
+});
+
 // Get single invoice
 router.get('/:id', auth, async (req, res) => {
     try {

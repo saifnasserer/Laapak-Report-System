@@ -36,28 +36,45 @@ router.get('/count', auth, async (req, res) => {
 });
 
 // @route   GET api/clients
-// @desc    Get all clients, with optional search
+// @desc    Get all clients, with simple search by name, phone, or order code
 // @access  Private (Admin only)
 router.get('/', adminAuth, async (req, res) => {
     try {
-        const { search } = req.query;
+        const { search, page = 1, limit = 20 } = req.query;
+        
         let whereClause = {};
 
+        // Search by name, phone, or order code
         if (search) {
             whereClause = {
                 [Op.or]: [
                     { name: { [Op.like]: `%${search}%` } },
-                    { phone: { [Op.like]: `%${search}%` } }
+                    { phone: { [Op.like]: `%${search}%` } },
+                    { orderCode: { [Op.like]: `%${search}%` } }
                 ]
             };
         }
 
-        const clients = await Client.findAll({
+        // Calculate pagination
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const { count, rows: clients } = await Client.findAndCountAll({
             where: whereClause,
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            limit: parseInt(limit),
+            offset: offset
         });
 
-        res.json({ clients });
+        res.json({ 
+            clients,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(count / parseInt(limit)),
+                totalClients: count,
+                hasNextPage: offset + clients.length < count,
+                hasPrevPage: parseInt(page) > 1
+            }
+        });
     } catch (err) {
         console.error('Error in GET /clients route:', err);
         res.status(500).json({ message: 'خطأ في الخادم' });

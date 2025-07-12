@@ -109,8 +109,17 @@
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
-                        <h5 class="mb-0">مرحباً <span id="welcomeClientName"></span>،</h5>
-                        <p class="text-muted mb-0">يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا.</p>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="mb-0">مرحباً <span id="welcomeClientName"></span>،</h5>
+                                <p class="text-muted mb-0">يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا.</p>
+                            </div>
+                            <div id="adminBackButton" style="display: none;">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="backToAdmin()">
+                                    <i class="fas fa-arrow-left me-2"></i> العودة للإدارة
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

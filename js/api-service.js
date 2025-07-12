@@ -166,11 +166,19 @@ class ApiService {
     // Client management methods
     async getClients(filters = {}) {
         let queryParams = '';
-        if (Object.keys(filters).length > 0) {
+        
+        // Handle both object filters and query string
+        if (typeof filters === 'string') {
+            // If filters is already a query string
+            queryParams = filters.startsWith('?') ? filters : `?${filters}`;
+        } else if (Object.keys(filters).length > 0) {
+            // If filters is an object, convert to query string
             queryParams = '?' + Object.entries(filters)
+                .filter(([_, value]) => value !== undefined && value !== null && value !== '')
                 .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
                 .join('&');
         }
+        
         return this.request(`/api/clients${queryParams}`);
     }
     
