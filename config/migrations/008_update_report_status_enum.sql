@@ -19,15 +19,34 @@ MODIFY COLUMN status ENUM('completed', 'active', 'cancelled', 'مكتمل', 'ف�
 DEFAULT 'active' 
 COMMENT 'Report status: completed/مكتمل (completed), active/في المخزن (in storage), cancelled/ملغي (cancelled)';
 
--- Create index for better performance on status queries
--- Note: MySQL doesn't support IF NOT EXISTS for CREATE INDEX, so we'll create it directly
--- If the index already exists, this will fail silently or show a warning
-CREATE INDEX idx_reports_status ON reports(status);
+-- Create indexes only if they don't exist (using stored procedures to handle gracefully)
+-- Note: The indexes may already exist, so we'll use a more robust approach
 
--- Create index for invoice payment status queries
--- Note: MySQL doesn't support IF NOT EXISTS for CREATE INDEX, so we'll create it directly
--- If the index already exists, this will fail silently or show a warning
-CREATE INDEX idx_invoices_payment_status ON invoices(paymentStatus);
+-- Check if reports status index exists and create if not
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+       AND TABLE_NAME = 'reports' 
+       AND INDEX_NAME = 'idx_reports_status') = 0,
+    'CREATE INDEX idx_reports_status ON reports(status)',
+    'SELECT "Index idx_reports_status already exists" AS message'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Check if invoices payment status index exists and create if not
+SET @sql = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE TABLE_SCHEMA = DATABASE() 
+       AND TABLE_NAME = 'invoices' 
+       AND INDEX_NAME = 'idx_invoices_payment_status') = 0,
+    'CREATE INDEX idx_invoices_payment_status ON invoices(paymentStatus)',
+    'SELECT "Index idx_invoices_payment_status already exists" AS message'
+));
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Add comment to document the migration
 -- Migration completed: Updated report status enum to include Arabic status values 
