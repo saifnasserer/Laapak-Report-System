@@ -27,7 +27,7 @@ CREATE INDEX idx_reports_status ON reports(status);
 -- Create index for invoice payment status queries
 -- Note: MySQL doesn't support IF NOT EXISTS for CREATE INDEX, so we'll create it directly
 -- If the index already exists, this will fail silently or show a warning
-CREATE INDEX idx_invoices_payment_status ON invoices(payment_status);
+CREATE INDEX idx_invoices_payment_status ON invoices(paymentStatus);
 
 -- Add comment to document the migration
 -- Migration completed: Updated report status enum to include Arabic status values 
