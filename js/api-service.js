@@ -596,24 +596,43 @@ class ApiService {
     }
     
     async getInvoiceByReportId(reportId) {
+        console.log('🔍 [DEBUG] getInvoiceByReportId called with reportId:', reportId);
+        
         try {
             // Use the new backend endpoint
-            return await this.request(`/api/invoices/report/${reportId}`, 'GET');
+            const endpoint = `/api/invoices/report/${reportId}`;
+            console.log('🔍 [DEBUG] Calling backend endpoint:', endpoint);
+            const result = await this.request(endpoint, 'GET');
+            console.log('🔍 [DEBUG] Backend response:', result);
+            return result;
         } catch (error) {
-            console.error('Error getting invoice by report ID:', error);
+            console.error('❌ [DEBUG] Error getting invoice by report ID from backend:', error);
+            console.error('❌ [DEBUG] Error details:', {
+                message: error.message,
+                status: error.status,
+                response: error.response
+            });
             
             // Fallback: Get all invoices and filter by report ID
+            console.log('🔍 [DEBUG] Trying fallback method...');
             try {
                 const invoices = await this.getInvoices();
+                console.log('🔍 [DEBUG] Got all invoices, count:', invoices.length);
+                
                 const linkedInvoice = invoices.find(invoice => {
                     // Check if invoice has reports array and if reportId is in it
-                    return invoice.reports && Array.isArray(invoice.reports) && 
-                           invoice.reports.some(report => report.id === reportId);
+                    const hasReports = invoice.reports && Array.isArray(invoice.reports);
+                    const hasMatchingReport = hasReports && invoice.reports.some(report => report.id === reportId);
+                    
+                    console.log('🔍 [DEBUG] Checking invoice:', invoice.id, 'hasReports:', hasReports, 'hasMatchingReport:', hasMatchingReport);
+                    
+                    return hasMatchingReport;
                 });
                 
+                console.log('🔍 [DEBUG] Found linked invoice via fallback:', linkedInvoice);
                 return linkedInvoice || null;
             } catch (fallbackError) {
-                console.error('Fallback method also failed:', fallbackError);
+                console.error('❌ [DEBUG] Fallback method also failed:', fallbackError);
                 return null;
             }
         }

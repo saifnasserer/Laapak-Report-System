@@ -614,9 +614,10 @@ router.delete('/:id', adminAuth, async (req, res) => {
 router.get('/report/:reportId', adminAuth, async (req, res) => {
     try {
         const { reportId } = req.params;
+        console.log('🔍 [DEBUG] Looking for invoice for report ID:', reportId);
         
-        // Find invoice that contains this report
-        const invoice = await Invoice.findOne({
+        // First try to find invoice through junction table (many-to-many relationship)
+        let invoice = await Invoice.findOne({
             include: [
                 { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
                 { 
@@ -629,13 +630,36 @@ router.get('/report/:reportId', adminAuth, async (req, res) => {
             ]
         });
         
+        console.log('🔍 [DEBUG] Invoice found through junction table:', invoice ? invoice.id : 'none');
+        
+        // If not found through junction table, try direct relationship
         if (!invoice) {
+            console.log('🔍 [DEBUG] Trying direct relationship lookup...');
+            invoice = await Invoice.findOne({
+                where: {
+                    [Op.or]: [
+                        { reportId: reportId },
+                        { report_id: reportId }
+                    ]
+                },
+                include: [
+                    { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
+                    { model: InvoiceItem, as: 'InvoiceItems' }
+                ]
+            });
+            
+            console.log('🔍 [DEBUG] Invoice found through direct relationship:', invoice ? invoice.id : 'none');
+        }
+        
+        if (!invoice) {
+            console.log('🔍 [DEBUG] No invoice found for report ID:', reportId);
             return res.status(404).json({ 
                 message: 'لم يتم العثور على فاتورة مرتبطة بهذا التقرير',
                 error: 'No invoice found for this report' 
             });
         }
         
+        console.log('🔍 [DEBUG] Returning invoice:', invoice.id);
         res.json(invoice);
     } catch (error) {
         console.error('Error fetching invoice by report ID:', error);

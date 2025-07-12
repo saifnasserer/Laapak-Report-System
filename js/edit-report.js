@@ -562,6 +562,8 @@ function initEditForm() {
  * Load report data from API
  */
 async function loadReportData(reportId) {
+    console.log('🔍 [DEBUG] loadReportData called with reportId:', reportId);
+    
     try {
         showLoading(true);
         
@@ -573,8 +575,11 @@ async function loadReportData(reportId) {
             throw new Error('API service not available');
         }
         
+        console.log('🔍 [DEBUG] API service found, fetching report data...');
+        
         // Fetch report data
         const reportData = await service.getReport(reportId);
+        console.log('🔍 [DEBUG] Report data fetched:', reportData);
         
         if (!reportData || !reportData.report) {
             throw new Error('Report data not found');
@@ -582,17 +587,22 @@ async function loadReportData(reportId) {
         
         // Store original report data for preservation
         window.originalReportData = reportData.report;
+        console.log('🔍 [DEBUG] Stored original report data:', window.originalReportData);
         
         // Populate form with report data
+        console.log('🔍 [DEBUG] Populating form...');
         populateForm(reportData.report);
         
         // Update status field with automatic status
-        updateStatusField();
+        console.log('🔍 [DEBUG] Calling updateStatusField...');
+        await updateStatusField();
+        console.log('🔍 [DEBUG] updateStatusField completed');
         
         showLoading(false);
+        console.log('🔍 [DEBUG] loadReportData completed successfully');
         
     } catch (error) {
-        console.error('Error loading report data:', error);
+        console.error('❌ [DEBUG] Error loading report data:', error);
         showLoading(false);
         showAlert('error', `فشل في تحميل بيانات التقرير: ${error.message}`);
     }
@@ -1320,32 +1330,59 @@ function showAlert(type, message) {
  * @returns {string} The appropriate status
  */
 async function determineReportStatus(reportData) {
+    console.log('🔍 [DEBUG] determineReportStatus called with reportData:', reportData);
+    
     try {
-        // Check if report has a linked invoice
+        // Check if API service is available
+        console.log('🔍 [DEBUG] Checking if apiService is available...');
+        console.log('🔍 [DEBUG] typeof apiService:', typeof apiService);
+        console.log('🔍 [DEBUG] apiService.getInvoiceByReportId exists:', typeof apiService?.getInvoiceByReportId);
+        
         if (typeof apiService !== 'undefined' && typeof apiService.getInvoiceByReportId === 'function') {
+            console.log('🔍 [DEBUG] Calling apiService.getInvoiceByReportId with reportId:', reportData.id);
+            
             const invoice = await apiService.getInvoiceByReportId(reportData.id);
+            console.log('🔍 [DEBUG] Invoice response:', invoice);
             
             if (invoice && invoice.paymentStatus) {
+                console.log('🔍 [DEBUG] Found invoice with paymentStatus:', invoice.paymentStatus);
+                
+                let status;
                 switch (invoice.paymentStatus) {
                     case 'paid':
-                        return 'مكتمل'; // Completed
+                        status = 'مكتمل'; // Completed
+                        break;
                     case 'partial':
                     case 'unpaid':
-                        return 'في المخزن'; // In storage
+                        status = 'في المخزن'; // In storage
+                        break;
                     default:
-                        return 'في المخزن'; // Default to in storage
+                        status = 'في المخزن'; // Default to in storage
+                        break;
                 }
+                
+                console.log('🔍 [DEBUG] Determined status based on invoice payment:', status);
+                return status;
+            } else {
+                console.log('🔍 [DEBUG] No invoice found or no paymentStatus');
             }
+        } else {
+            console.log('🔍 [DEBUG] API service not available or getInvoiceByReportId method not found');
         }
         
         // If no invoice or API not available, check if billing is enabled
+        console.log('🔍 [DEBUG] Checking billing_enabled:', reportData.billing_enabled);
+        
         if (reportData.billing_enabled) {
+            console.log('🔍 [DEBUG] Billing is enabled, returning "في المخزن"');
             return 'في المخزن'; // Has billing but no invoice found
         }
         
+        console.log('🔍 [DEBUG] No billing enabled, returning "مكتمل"');
         return 'مكتمل'; // No billing, consider completed
     } catch (error) {
-        console.warn('Error determining report status:', error);
+        console.error('❌ [DEBUG] Error determining report status:', error);
+        console.log('🔍 [DEBUG] Returning default status "في المخزن" due to error');
         return 'في المخزن'; // Default to in storage on error
     }
 }
@@ -1354,26 +1391,44 @@ async function determineReportStatus(reportData) {
  * Update status field with automatic status and show current invoice info
  */
 async function updateStatusField() {
+    console.log('🔍 [DEBUG] updateStatusField called');
+    
     const statusSelect = document.getElementById('reportStatus');
-    if (!statusSelect) return;
+    if (!statusSelect) {
+        console.error('❌ [DEBUG] Status select element not found');
+        return;
+    }
+    
+    console.log('🔍 [DEBUG] Found status select element:', statusSelect);
     
     try {
         // Get current report data
         const reportData = window.originalReportData;
-        if (!reportData) return;
+        if (!reportData) {
+            console.error('❌ [DEBUG] No original report data found');
+            return;
+        }
+        
+        console.log('🔍 [DEBUG] Original report data:', reportData);
         
         // Determine automatic status
+        console.log('🔍 [DEBUG] Calling determineReportStatus...');
         const automaticStatus = await determineReportStatus(reportData);
+        console.log('🔍 [DEBUG] Automatic status determined:', automaticStatus);
         
         // Update status select with automatic status
+        console.log('🔍 [DEBUG] Setting status select value to:', automaticStatus);
         statusSelect.value = automaticStatus;
         
         // Add visual indicator that this is an automatic status
         const statusContainer = statusSelect.parentElement;
         if (statusContainer) {
+            console.log('🔍 [DEBUG] Found status container, adding indicator');
+            
             // Remove any existing indicator
             const existingIndicator = statusContainer.querySelector('.auto-status-indicator');
             if (existingIndicator) {
+                console.log('🔍 [DEBUG] Removing existing indicator');
                 existingIndicator.remove();
             }
             
@@ -1382,13 +1437,22 @@ async function updateStatusField() {
             indicator.className = 'text-muted auto-status-indicator';
             indicator.innerHTML = `<i class="fas fa-robot me-1"></i>تم تحديد الحالة تلقائياً بناءً على حالة الدفع`;
             statusContainer.appendChild(indicator);
+            console.log('🔍 [DEBUG] Added automatic status indicator');
+        } else {
+            console.warn('⚠️ [DEBUG] Status container not found');
         }
         
         // Try to get invoice information for display
+        console.log('🔍 [DEBUG] Checking if we can fetch invoice information...');
         if (typeof apiService !== 'undefined' && typeof apiService.getInvoiceByReportId === 'function') {
             try {
+                console.log('🔍 [DEBUG] Fetching invoice information...');
                 const invoice = await apiService.getInvoiceByReportId(reportData.id);
+                console.log('🔍 [DEBUG] Invoice information response:', invoice);
+                
                 if (invoice) {
+                    console.log('🔍 [DEBUG] Found invoice, updating display');
+                    
                     // Add invoice info display
                     const invoiceInfoContainer = document.getElementById('invoiceInfoContainer');
                     if (invoiceInfoContainer) {
@@ -1411,14 +1475,23 @@ async function updateStatusField() {
                             </div>
                         `;
                         invoiceInfoContainer.style.display = 'block';
+                        console.log('🔍 [DEBUG] Updated invoice info display');
+                    } else {
+                        console.warn('⚠️ [DEBUG] Invoice info container not found');
                     }
+                } else {
+                    console.log('🔍 [DEBUG] No invoice found for display');
                 }
             } catch (invoiceError) {
-                console.warn('Could not fetch invoice information:', invoiceError);
+                console.error('❌ [DEBUG] Could not fetch invoice information:', invoiceError);
             }
+        } else {
+            console.log('🔍 [DEBUG] API service not available for invoice display');
         }
         
+        console.log('🔍 [DEBUG] updateStatusField completed successfully');
+        
     } catch (error) {
-        console.error('Error updating status field:', error);
+        console.error('❌ [DEBUG] Error updating status field:', error);
     }
 } 
