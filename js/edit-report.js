@@ -1183,6 +1183,10 @@ async function handleSaveReport() {
                     total: parseFloat(formData.amount || 0),
                     subtotal: parseFloat(formData.amount || 0), // For simplicity, assuming no tax/discount in report
                     
+                    // Preserve existing payment status
+                    paymentStatus: linkedInvoice.paymentStatus,
+                    paymentMethod: linkedInvoice.paymentMethod,
+                    
                     // Update invoice items to reflect the new amount
                     items: linkedInvoice.InvoiceItems ? linkedInvoice.InvoiceItems.map(item => ({
                         id: item.id,

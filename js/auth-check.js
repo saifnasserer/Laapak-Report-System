@@ -56,11 +56,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (isClientPage) {
-        // Check if client is logged in
-        if (!authMiddleware.isClientLoggedIn()) {
-            console.log('Client not authenticated, redirecting to login page');
+        // Check if admin is viewing client profile or if client is logged in
+        const isAdminViewing = sessionStorage.getItem('adminViewingClient') === 'true';
+        
+        if (!authMiddleware.isClientLoggedIn() && !isAdminViewing) {
+            console.log('Client not authenticated and not admin viewing, redirecting to login page');
             window.location.href = 'index.html';
             return;
+        } else if (isAdminViewing) {
+            console.log('Admin viewing client profile, access granted');
         } else {
             console.log('Client authenticated, access granted');
         }

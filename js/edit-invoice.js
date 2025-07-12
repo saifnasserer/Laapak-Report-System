@@ -361,13 +361,13 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 // Update existing invoice
                 response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceData.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-auth-token': token
-                    },
-                    body: JSON.stringify(invoiceData)
-                });
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify(invoiceData)
+            });
             }
 
             if (!response.ok) {
@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (isCreateMode) {
             loadCreateModeData();
         } else {
-            fetchInvoiceDetails();
+        fetchInvoiceDetails();
         }
     });
 

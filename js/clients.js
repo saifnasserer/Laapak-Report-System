@@ -1,486 +1,475 @@
 /**
- * Laapak Report System - Clients Management JavaScript
- * Handles client management functionality and initializes the header component
+ * Clients Management JavaScript
+ * Handles client listing, search, and management
  */
 
-// API URLs
-const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api';
-const CLIENTS_API_URL = `${API_BASE_URL}/clients`;
-
-// Store clients data globally to make it accessible across functions
-let clientsData = [];
-
-// Pagination settings
-const CLIENTS_PER_PAGE = 20;
+// Global variables
+let allClients = [];
+let filteredClients = [];
 let currentPage = 1;
-let totalClients = 0;
+const clientsPerPage = 50; // Show 50 clients per page to show all clients
 
+// Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if admin is logged in
-    if (!authMiddleware.isAdminLoggedIn()) {
-        console.log('Admin not logged in, redirecting to login page');
-        window.location.href = 'index.html';
-        return;
-    }
-
-    // Initialize the header component
-    const header = new LpkHeader('header-container', {
-        showLogo: true,
-        logoPath: 'img/logo.png',
-        logoWidth: '100px',
-        showNavigation: true,
-        navigationItems: [
-            { text: 'الرئيسية', url: 'admin.html', icon: 'fas fa-tachometer-alt' },
-            { text: 'التقارير', url: 'reports.html', icon: 'fas fa-file-alt' },
-            { text: 'العملاء', url: 'clients.html', icon: 'fas fa-users', active: true },
-            { text: 'تقرير جديد', url: 'create-report.html', icon: 'fas fa-plus-circle' }
-        ],
-        showUserMenu: true,
-        userMenuItems: [
-            { text: 'الإعدادات', url: 'settings.html', icon: 'fas fa-cog' },
-            { text: 'تسجيل الخروج', url: '#', icon: 'fas fa-sign-out-alt', onClick: function() {
-                console.log('Logout clicked');
-                authMiddleware.logout();
-                // No need to redirect as auth-middleware.logout() handles it
-            }}
-        ]
-    });
-
-    // Load clients from the backend
+    console.log('🔍 [DEBUG] Clients page initialized');
+    
+    // Initialize components
+    initSearch();
+    initEventListeners();
+    
+    // Load clients
     loadClients();
-    
-    // Set up event delegation for client table actions
-    setupEventDelegation();
-    
-    // Initialize pagination
-    initPagination();
+});
 
-    // Form submission for client search
-    const searchForm = document.getElementById('searchForm');
-    if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const searchName = document.getElementById('searchName').value;
-            const searchStatus = document.getElementById('searchStatus').value;
-            const searchDate = document.getElementById('searchDate').value;
-            
-            // Search clients with filters
-            loadClients({
-                name: searchName,
-                status: searchStatus,
-                date: searchDate
-            });
+/**
+ * Initialize search functionality
+ */
+function initSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toLowerCase();
+            filterClients(searchTerm);
         });
     }
+    
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (searchInput) {
+                searchInput.value = '';
+                filterClients('');
+            }
+        });
+    }
+}
 
-    // Form submission for adding a new client
+/**
+ * Initialize event listeners
+ */
+function initEventListeners() {
+    // Add client button
+    const addClientBtn = document.querySelector('[data-bs-target="#addClientModal"]');
+    if (addClientBtn) {
+        addClientBtn.addEventListener('click', function() {
+            // Reset form
+                document.getElementById('addClientForm').reset();
+        });
+    }
+    
+    // Save client button
     const saveClientBtn = document.getElementById('saveClientBtn');
     if (saveClientBtn) {
-        saveClientBtn.addEventListener('click', async function() {
-            const clientName = document.getElementById('clientName').value;
-            const clientPhone = document.getElementById('clientPhone').value;
-            const clientEmail = document.getElementById('clientEmail').value;
-            const clientAddress = document.getElementById('clientAddress').value;
-            const clientOrderCode = document.getElementById('clientOrderCode').value;
-            const clientStatus = document.querySelector('input[name="clientStatus"]:checked').value;
-            
-            if (!clientName || !clientPhone || !clientOrderCode) {
-                alert('الرجاء ملء جميع الحقول المطلوبة');
-                return;
-            }
-            
-            try {
-                if (!authMiddleware.isAdminLoggedIn()) {
-                    throw new Error('غير مصرح لك بإضافة عملاء');
-                }
-                
-                // Use ApiService's createClient method
-                const newClient = await apiService.createClient({
-                    name: clientName,
-                    phone: clientPhone,
-                    email: clientEmail,
-                    address: clientAddress,
-                    orderCode: clientOrderCode,
-                    status: clientStatus
-                });
-                
-                // Show success message and close modal
-                alert('تم إضافة العميل بنجاح');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addClientModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                document.getElementById('addClientForm').reset();
-                
-                // Always reload all clients from the API to ensure we have the latest data
-                try {
-                    // Force a complete reload of clients from API
-                    await loadClients();
-                    console.log('Successfully refreshed client data after adding new client');
-                } catch (refreshError) {
-                    console.warn('Error refreshing client data, using local update:', refreshError);
-                    // Fall back to local update if API refresh fails
-                    if (newClient && Array.isArray(clientsData)) {
-                        clientsData.push(newClient);
-                        displayClients(clientsData);
-                    }
-                }
-            } catch (error) {
-                console.error('Error adding client:', error);
-                alert(`خطأ: ${error.message}`);
-            }
-        });
+        saveClientBtn.addEventListener('click', saveClient);
     }
     
-    // Handle edit client
+    // Update client button
     const updateClientBtn = document.getElementById('updateClientBtn');
     if (updateClientBtn) {
-        updateClientBtn.addEventListener('click', async function() {
-            const clientId = document.getElementById('editClientId').value;
-            const clientName = document.getElementById('editClientName').value;
-            const clientPhone = document.getElementById('editClientPhone').value;
-            const clientEmail = document.getElementById('editClientEmail').value;
-            const clientAddress = document.getElementById('editClientAddress').value;
-            const clientStatus = document.querySelector('input[name="editClientStatus"]:checked').value;
-            
-            if (!clientId || !clientName || !clientPhone) {
-                alert('الرجاء ملء جميع الحقول المطلوبة');
+        updateClientBtn.addEventListener('click', updateClient);
+    }
+}
+
+/**
+ * Load clients from API
+ */
+async function loadClients() {
+    try {
+        showLoading(true);
+        
+        // Get API service
+        const service = typeof apiService !== 'undefined' ? apiService : 
+                      (window && window.apiService) ? window.apiService : null;
+        
+        if (!service) {
+            throw new Error('API service not available');
+        }
+        
+        console.log('🔍 [DEBUG] Loading clients...');
+        
+        // Fetch clients
+        const clients = await service.getClients();
+        console.log('🔍 [DEBUG] Clients loaded:', clients);
+        console.log('🔍 [DEBUG] Clients type:', typeof clients);
+        console.log('🔍 [DEBUG] Clients is array:', Array.isArray(clients));
+        if (clients && typeof clients === 'object') {
+            console.log('🔍 [DEBUG] Clients keys:', Object.keys(clients));
+        }
+        
+        // Store all clients - handle different response formats
+        if (Array.isArray(clients)) {
+            allClients = clients;
+        } else if (clients && clients.clients && Array.isArray(clients.clients)) {
+            allClients = clients.clients;
+        } else if (clients && clients.data && Array.isArray(clients.data)) {
+            allClients = clients.data;
+        } else {
+            console.warn('🔍 [DEBUG] Unexpected clients response format:', clients);
+            allClients = [];
+        }
+        filteredClients = [...allClients];
+        
+        console.log('🔍 [DEBUG] Final allClients array length:', allClients.length);
+        
+        // Cache clients in localStorage for offline use
+        try {
+            localStorage.setItem('lpk_clients', JSON.stringify(allClients));
+            localStorage.setItem('lpk_clients_timestamp', Date.now().toString());
+        } catch (cacheError) {
+            console.warn('❌ [DEBUG] Failed to cache clients:', cacheError);
+        }
+        
+        // Display clients
+        displayClients();
+        
+        showLoading(false);
+        
+            } catch (error) {
+        console.error('❌ [DEBUG] Error loading clients:', error);
+        showLoading(false);
+        
+        // Try to load from localStorage as fallback
+        try {
+            const storedClients = localStorage.getItem('lpk_clients');
+            if (storedClients) {
+                allClients = JSON.parse(storedClients);
+                filteredClients = [...allClients];
+                displayClients();
+                showAlert('warning', 'تم تحميل العملاء من الذاكرة المحلية (لا يوجد اتصال بالخادم)');
                 return;
             }
+        } catch (localStorageError) {
+            console.error('❌ [DEBUG] Error loading from localStorage:', localStorageError);
+        }
+        
+        showAlert('error', `فشل في تحميل العملاء: ${error.message}`);
+    }
+}
+
+
+
+/**
+ * Filter clients based on search term
+ */
+function filterClients(searchTerm) {
+    if (!searchTerm) {
+        filteredClients = [...allClients];
+    } else {
+        filteredClients = allClients.filter(client => {
+            const name = (client.name || '').toLowerCase();
+            const phone = (client.phone || '').toLowerCase();
+            const orderNumber = (client.order_number || '').toLowerCase();
             
-            try {
-                if (!authMiddleware.isAdminLoggedIn()) {
-                    throw new Error('غير مصرح لك بتعديل بيانات العملاء');
-                }
-                
-                // Use ApiService's updateClient method
-                const updatedClient = await apiService.updateClient(clientId, {
-                    name: clientName,
-                    phone: clientPhone,
-                    email: clientEmail,
-                    address: clientAddress,
-                    status: clientStatus
-                });
-                
-                // Show success message and close modal
-                alert('تم تحديث بيانات العميل بنجاح');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editClientModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                
-                // Always reload all clients from the API to ensure we have the latest data
-                try {
-                    // Force a complete reload of clients from API
-                    await loadClients();
-                    console.log('Successfully refreshed client data after updating client');
-                } catch (refreshError) {
-                    console.warn('Error refreshing client data, using local update:', refreshError);
-                    // Fall back to local update if API refresh fails
-                    if (updatedClient) {
-                        const index = clientsData.findIndex(c => c.id == clientId);
-                        if (index !== -1) {
-                            clientsData[index] = updatedClient;
-                            displayClients(clientsData);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error updating client:', error);
-                alert(`خطأ: ${error.message}`);
-            }
+            return name.includes(searchTerm) || 
+                   phone.includes(searchTerm) || 
+                   orderNumber.includes(searchTerm);
         });
     }
+    
+    currentPage = 1; // Reset to first page
+    displayClients();
+}
 
-    /**
-     * Setup event delegation for the client table
-     * This allows us to handle events for dynamically added elements
-     */
-    function setupEventDelegation() {
-        // Use event delegation for edit and delete buttons
-        const clientsTableBody = document.getElementById('clientsTableBody');
-        if (clientsTableBody) {
-            clientsTableBody.addEventListener('click', function(event) {
-                // Find the closest button to the clicked element
-                const button = event.target.closest('button');
-                if (!button) return; // Not a button click
-                
-                // Get client ID from the button's data attribute
-                const clientId = button.getAttribute('data-client-id');
-                if (!clientId) return; // No client ID found
-                
-                // Handle edit button click
-                if (button.classList.contains('edit-client-btn')) {
-                    openEditClientModal(clientId);
-                }
-                
-                // Handle share button click
-                if (button.classList.contains('share-client-btn')) {
-                    shareClient(clientId);
-                }
-                
-                // Handle view button click
-                if (button.classList.contains('view-client-btn')) {
-                    viewClientProfile(clientId);
-                }
-                
-                // Handle delete button click
-                if (button.classList.contains('delete-client-btn')) {
-                    if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
-                        deleteClient(clientId);
-                    }
+/**
+ * Display clients in card grid
+ */
+function displayClients() {
+    const clientsGrid = document.getElementById('clientsGrid');
+    const emptyState = document.getElementById('emptyState');
+    const loadingState = document.getElementById('loadingState');
+    
+    if (!clientsGrid) return;
+    
+    // Hide loading state
+    if (loadingState) {
+        loadingState.style.display = 'none';
+    }
+    
+    // Check if no clients
+    if (filteredClients.length === 0) {
+        clientsGrid.innerHTML = '';
+        if (emptyState) {
+            emptyState.classList.remove('d-none');
+        }
+        return;
+    }
+    
+
+    
+    // Hide empty state
+    if (emptyState) {
+        emptyState.classList.add('d-none');
+    }
+    
+    // Calculate pagination
+    const startIndex = (currentPage - 1) * clientsPerPage;
+    const endIndex = startIndex + clientsPerPage;
+    const clientsToShow = filteredClients.slice(startIndex, endIndex);
+    
+    // Generate client cards
+    const cardsHTML = clientsToShow.map((client, index) => {
+        const actualIndex = startIndex + index;
+        return createClientCard(client, actualIndex);
+    }).join('');
+    
+    console.log('🔍 [DEBUG] Generated cards HTML length:', cardsHTML.length);
+    console.log('🔍 [DEBUG] Number of clients to show:', clientsToShow.length);
+    
+    clientsGrid.innerHTML = cardsHTML;
+    
+    // Force the grid to display as flex
+    clientsGrid.style.display = 'flex';
+    clientsGrid.style.flexWrap = 'wrap';
+    
+    console.log('🔍 [DEBUG] Grid container:', clientsGrid);
+    console.log('🔍 [DEBUG] Grid container classes:', clientsGrid.className);
+    console.log('🔍 [DEBUG] Grid container style:', clientsGrid.style.display);
+    
+    // Update pagination
+    updatePagination();
+    
+    // Add event listeners to action buttons
+    addCardEventListeners();
+}
+
+/**
+ * Create a client card HTML
+ */
+function createClientCard(client, index) {
+    const clientName = client.name || 'غير محدد';
+    const clientPhone = client.phone || 'غير محدد';
+    
+    // Get first letter for avatar
+    const firstLetter = clientName.charAt(0).toUpperCase();
+    
+    return `
+        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-4">
+            <div class="card client-card h-100" data-client-id="${client.id}">
+                <div class="card-body">
+                    <div class="client-info">
+                        <div class="client-avatar">
+                            ${firstLetter}
+                        </div>
+                        <div class="client-details">
+                            <h6 class="mb-1">${clientName}</h6>
+                            <p class="mb-0"><i class="fas fa-phone me-1"></i>${clientPhone}</p>
+                        </div>
+                        <div class="client-actions">
+                            <button class="btn btn-outline-secondary btn-sm rounded-circle toggle-actions" 
+                                    type="button" style="width: 32px; height: 32px; padding: 0;">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <div class="action-buttons d-none">
+                                <button class="btn btn-outline-secondary btn-sm rounded-circle" title="مشاركة" onclick="shareClient('${client.id}')">
+                                    <i class="fas fa-share-alt"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm rounded-circle" title="عرض" onclick="viewClient('${client.id}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm rounded-circle" title="تعديل" onclick="editClient('${client.id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm rounded-circle" title="حذف" onclick="deleteClient('${client.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Add event listeners to card action buttons
+ */
+function addCardEventListeners() {
+    // Add event listeners for toggle buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.toggle-actions')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const card = e.target.closest('.client-card');
+            const actionButtons = card.querySelector('.action-buttons');
+            const toggleButton = card.querySelector('.toggle-actions');
+            
+            // Close all other open action buttons
+            document.querySelectorAll('.action-buttons').forEach(btn => {
+                if (btn !== actionButtons) {
+                    btn.classList.add('d-none');
                 }
             });
-        }
-    }
-
-    /**
-     * Load clients from the backend API
-     * @param {Object} filters - Optional filters for searching clients
-     */
-    async function loadClients(filters = {}) {
-        try {
-            if (!authMiddleware.isAdminLoggedIn()) {
-                throw new Error('غير مصرح لك بعرض بيانات العملاء');
-            }
             
-            // Show loading indicator
-            const tableBody = document.getElementById('clientsTableBody');
-            if (tableBody) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2 mb-0">جاري تحميل البيانات...</p>
-                        </td>
-                    </tr>
-                `;
-            }
+            // Toggle current action buttons
+            actionButtons.classList.toggle('d-none');
             
-            // Build query string for filters
-            let queryParams = '';
-            if (Object.keys(filters).length > 0) {
-                queryParams = '?' + Object.entries(filters)
-                    .filter(([_, value]) => value) // Only include non-empty values
-                    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-                    .join('&');
-            }
-            
-            // Use ApiService's getClients method
-            console.log('Fetching clients with filters:', filters);
-            let data;
-            try {
-                // First try to get apiService from window global if it's not directly available
-                const service = typeof apiService !== 'undefined' ? apiService : 
-                              (window && window.apiService) ? window.apiService : null;
-                
-                if (service && typeof service.getClients === 'function') {
-                    data = await service.getClients();
-                } else {
-                    // Wait a moment in case apiService is being initialized asynchronously
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    // Try one more time
-                    const retryService = typeof apiService !== 'undefined' ? apiService : 
-                                      (window && window.apiService) ? window.apiService : null;
-                                      
-                    if (retryService && typeof retryService.getClients === 'function') {
-                        data = await retryService.getClients();
-                    } else {
-                        throw new Error('API service not available or not initialized yet');
-                    }
-                }
-                console.log('Clients data received:', data);
-            } catch (apiError) {
-                console.error('Error calling API service:', apiError);
-                throw apiError; // Re-throw to be caught by the outer try-catch
-            }
-            
-            // Check if data has clients property or if the response is an array
-            if (Array.isArray(data)) {
-                clientsData = data;
-            } else if (data && data.clients && Array.isArray(data.clients)) {
-                clientsData = data.clients;
+            // Change toggle button icon
+            const icon = toggleButton.querySelector('i');
+            if (actionButtons.classList.contains('d-none')) {
+                icon.className = 'fas fa-ellipsis-v';
             } else {
-                console.warn('Unexpected clients data format:', data);
-                clientsData = [];
+                icon.className = 'fas fa-times';
             }
-            
-            displayClients(clientsData);
-        } catch (error) {
-            console.error('Error loading clients:', error);
-            // If API fails, try to load from mock data
-            clientsData = getMockClients();
-            displayClients(clientsData);
         }
+        
+        // Close action buttons when clicking outside
+        if (!e.target.closest('.client-actions')) {
+            document.querySelectorAll('.action-buttons').forEach(btn => {
+                btn.classList.add('d-none');
+            });
+            document.querySelectorAll('.toggle-actions i').forEach(icon => {
+                icon.className = 'fas fa-ellipsis-v';
+            });
+        }
+    });
+}
+
+/**
+ * Update pagination
+ */
+function updatePagination() {
+    const paginationContainer = document.getElementById('paginationContainer');
+    const pagination = document.getElementById('clientsPagination');
+    
+    if (!pagination) return;
+    
+    const totalPages = Math.ceil(filteredClients.length / clientsPerPage);
+    
+    if (totalPages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
     }
     
-    /**
-     * Get mock clients data for fallback
-     * @returns {Array} Array of mock client objects
-     */
-    function getMockClients() {
-        return [
-            {
-                id: 1,
-                name: 'أحمد محمد',
-                phone: '0501234567',
-                email: 'ahmed@example.com',
-                address: 'الرياض، السعودية',
-                status: 'active',
-                createdAt: new Date().toISOString()
-            },
-            {
-                id: 2,
-                name: 'سارة علي',
-                phone: '0509876543',
-                email: 'sara@example.com',
-                address: 'جدة، السعودية',
-                status: 'active',
-                createdAt: new Date().toISOString()
-            },
-            {
-                id: 3,
-                name: 'محمود خالد',
-                phone: '0553219876',
-                email: 'mahmoud@example.com',
-                address: 'الدمام، السعودية',
-                status: 'inactive',
-                createdAt: new Date().toISOString()
-            }
-        ];
+    paginationContainer.style.display = 'block';
+    
+    let paginationHTML = '';
+    
+    // Previous button
+    paginationHTML += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">السابق</a>
+        </li>
+    `;
+    
+    // Page numbers
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
     
-    /**
-     * Display clients in the table
-     * @param {Array} clients - Array of client objects
-     * @param {boolean} updatePagination - Whether to update pagination controls
-     */
-    function displayClients(clients, updatePagination = true) {
-        const tableBody = document.getElementById('clientsTableBody');
-        if (!tableBody) return;
-        
-        // Sort clients by creation date (newest first)
-        const sortedClients = [...clients].sort((a, b) => {
-            const dateA = new Date(a.createdAt || 0);
-            const dateB = new Date(b.createdAt || 0);
-            return dateB - dateA; // Descending order (newest first)
-        });
-        
-        // Store all clients for pagination
-        if (updatePagination) {
-            clientsData = sortedClients;
-            totalClients = sortedClients.length;
-            // Reset to first page when new data is loaded
-            currentPage = 1;
-        }
-        
-        // Clear existing rows
-        tableBody.innerHTML = '';
-        
-        if (sortedClients.length === 0) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center py-5">
-                        <i class="fas fa-users fa-3x mb-3 text-muted"></i>
-                        <p class="mb-0">لا يوجد عملاء للعرض</p>
-                    </td>
-                </tr>
-            `;
-            
-            // Hide pagination if no clients
-            const paginationContainer = document.getElementById('clientsPagination');
-            if (paginationContainer) {
-                paginationContainer.parentElement.classList.add('d-none');
-            }
-            return;
-        }
-        
-        // Show pagination if we have clients
-        const paginationContainer = document.getElementById('clientsPagination');
-        if (paginationContainer) {
-            paginationContainer.parentElement.classList.remove('d-none');
-        }
-        
-        // Calculate pagination
-        const startIndex = (currentPage - 1) * CLIENTS_PER_PAGE;
-        const endIndex = Math.min(startIndex + CLIENTS_PER_PAGE, sortedClients.length);
-        const paginatedClients = sortedClients.slice(startIndex, endIndex);
-        
-        // Update pagination controls if needed
-        if (updatePagination) {
-            updatePaginationControls();
-        }
-        
-        // Add client rows for current page only
-        paginatedClients.forEach((client, index) => {
-            const row = document.createElement('tr');
-            
-            // Format date
-            let createdAt = 'غير محدد';
-            if (client.createdAt) {
-                const date = new Date(client.createdAt);
-                const year = date.getFullYear();
-                const month = ('0' + (date.getMonth() + 1)).slice(-2); // getMonth() is 0-indexed
-                const day = ('0' + date.getDate()).slice(-2);
-                createdAt = `${year}-${month}-${day}`;
-            }
-            
-            // Status badge class
-            const statusClass = client.status === 'active' ? 'bg-success' : 'bg-secondary';
-            const statusText = client.status === 'active' ? 'نشط' : 'غير نشط';
-            
-            // Calculate the correct row number based on pagination
-            const rowNumber = (currentPage - 1) * CLIENTS_PER_PAGE + index + 1;
-            
-            row.innerHTML = `
-                <td class="py-3">${rowNumber}</td>
-                <td class="py-3">${client.name || 'غير محدد'}</td>
-                <td class="py-3">${client.phone || 'غير محدد'}</td>
-                <td class="py-3">${client.email || 'غير محدد'}</td>
-                <td class="py-3">${client.address || 'غير محدد'}</td>
-                <td class="py-3">
-                    <span class="badge ${statusClass}">${statusText}</span>
-                </td>
-                <td class="py-3">${createdAt}</td>
-                <td class="py-3">
-                    <div class="d-flex gap-1">
-                        <button class="btn btn-sm btn-outline-primary edit-client-btn" data-client-id="${client.id}" title="تعديل">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-info share-client-btn" data-client-id="${client.id}" title="مشاركة">
-                            <i class="fas fa-share-alt"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-success view-client-btn" data-client-id="${client.id}" title="عرض الملف الشخصي">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger delete-client-btn" data-client-id="${client.id}" title="حذف">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-            
-            tableBody.appendChild(row);
-        });
-        
-        // We no longer add event listeners here since we're using event delegation
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+            </li>
+        `;
     }
     
-    /**
-     * Open the edit client modal and populate with client data
-     * @param {string} clientId - ID of the client to edit
-     */
-    function openEditClientModal(clientId) {
-        const client = clientsData.find(c => c.id == clientId);
+    // Next button
+    paginationHTML += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">التالي</a>
+        </li>
+    `;
+    
+    pagination.innerHTML = paginationHTML;
+}
+
+/**
+ * Change page
+ */
+function changePage(page) {
+    const totalPages = Math.ceil(filteredClients.length / clientsPerPage);
+    
+    if (page < 1 || page > totalPages) {
+        return;
+    }
+    
+    currentPage = page;
+    displayClients();
+    
+    // Scroll to top of grid
+    const clientsGrid = document.getElementById('clientsGrid');
+    if (clientsGrid) {
+        clientsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+/**
+ * Share client login information
+ */
+async function shareClient(clientId) {
+    try {
+        const client = allClients.find(c => c.id === clientId);
         if (!client) {
-            console.error('Client not found with ID:', clientId);
+            showAlert('error', 'العميل غير موجود');
             return;
         }
         
-        // Set form values
+        // Create share text
+        const shareText = `معلومات الدخول للعميل ${client.name}:
+        
+اسم العميل: ${client.name}
+رقم الهاتف: ${client.phone}
+كود الطلب: ${client.order_number || 'غير محدد'}
+
+رابط الدخول: ${window.location.origin}/client-login.html
+
+ملاحظة: سيحتاج العميل إلى كود الطلب للدخول إلى حسابه.`;
+        
+        // Try to use native sharing if available
+        if (navigator.share) {
+            await navigator.share({
+                title: `معلومات العميل - ${client.name}`,
+                text: shareText
+            });
+        } else {
+            // Fallback to clipboard
+            await navigator.clipboard.writeText(shareText);
+            showAlert('success', 'تم نسخ معلومات العميل إلى الحافظة');
+        }
+        
+    } catch (error) {
+        console.error('Error sharing client:', error);
+        showAlert('error', 'فشل في مشاركة معلومات العميل');
+    }
+}
+
+/**
+ * View client profile (admin access)
+ */
+async function viewClient(clientId) {
+    try {
+        // Set admin viewing flag
+        sessionStorage.setItem('adminViewingClient', 'true');
+        
+        // Navigate to client dashboard
+        window.location.href = `client-dashboard.html?client_id=${clientId}`;
+        
+    } catch (error) {
+        console.error('Error viewing client:', error);
+        showAlert('error', 'فشل في فتح ملف العميل');
+    }
+}
+
+/**
+ * Edit client
+ */
+async function editClient(clientId) {
+    try {
+        const client = allClients.find(c => c.id === clientId);
+        if (!client) {
+            showAlert('error', 'العميل غير موجود');
+            return;
+        }
+        
+        // Populate edit form
         document.getElementById('editClientId').value = client.id;
         document.getElementById('editClientName').value = client.name || '';
         document.getElementById('editClientPhone').value = client.phone || '';
@@ -488,296 +477,230 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('editClientAddress').value = client.address || '';
         
         // Set status radio button
-        if (client.status === 'active') {
-            document.getElementById('editStatusActive').checked = true;
-        } else {
-            document.getElementById('editStatusInactive').checked = true;
-        }
+        const statusRadios = document.querySelectorAll('input[name="editClientStatus"]');
+        statusRadios.forEach(radio => {
+            radio.checked = radio.value === (client.status || 'active');
+        });
         
-        // Open modal
+        // Show modal
         const modal = new bootstrap.Modal(document.getElementById('editClientModal'));
         modal.show();
+        
+    } catch (error) {
+        console.error('Error editing client:', error);
+        showAlert('error', 'فشل في تحميل بيانات العميل');
+    }
     }
     
     /**
-     * Delete a client
-     * @param {string} clientId - ID of the client to delete
+ * Delete client
      */
     async function deleteClient(clientId) {
         try {
-            if (!authMiddleware.isAdminLoggedIn()) {
-                throw new Error('غير مصرح لك بحذف العملاء');
-            }
-            
-            // Use ApiService's deleteClient method
-            if (typeof apiService !== 'undefined' && typeof apiService.deleteClient === 'function') {
-                await apiService.deleteClient(clientId);
-            } else {
+        const client = allClients.find(c => c.id === clientId);
+        if (!client) {
+            showAlert('error', 'العميل غير موجود');
+            return;
+        }
+        
+        // Confirm deletion
+        if (!confirm(`هل أنت متأكد من حذف العميل "${client.name}"؟\n\nهذا الإجراء لا يمكن التراجع عنه.`)) {
+            return;
+        }
+        
+        // Get API service
+        const service = typeof apiService !== 'undefined' ? apiService : 
+                      (window && window.apiService) ? window.apiService : null;
+        
+        if (!service) {
                 throw new Error('API service not available');
             }
             
-            // Show success message
-            alert('تم حذف العميل بنجاح');
+        // Delete client
+        await service.deleteClient(clientId);
             
-            // Always reload all clients from the API to ensure we have the latest data
-            try {
-                // Force a complete reload of clients from API
+        // Reload clients
                 await loadClients();
-                console.log('Successfully refreshed client data after deleting client');
-            } catch (refreshError) {
-                console.warn('Error refreshing client data, using local update:', refreshError);
-                // Fall back to local update if API refresh fails
-                const index = clientsData.findIndex(c => c.id == clientId);
-                if (index !== -1) {
-                    clientsData.splice(index, 1);
-                    displayClients(clientsData);
-                }
-            }
+        
+        showAlert('success', 'تم حذف العميل بنجاح');
+        
         } catch (error) {
             console.error('Error deleting client:', error);
-            alert(`خطأ: ${error.message}`);
+        showAlert('error', `فشل في حذف العميل: ${error.message}`);
         }
     }
     
     /**
-     * Share client login information
-     * @param {string} clientId - ID of the client to share
-     */
-    function shareClient(clientId) {
-        // Find the client data to get login information
-        const client = clientsData.find(c => c.id == clientId);
+ * Save new client
+ */
+async function saveClient() {
+    try {
+        const form = document.getElementById('addClientForm');
+        const formData = new FormData(form);
         
-        if (!client) {
-            alert('لم يتم العثور على بيانات العميل');
+        // Validate form
+        const clientName = formData.get('clientName') || document.getElementById('clientName').value;
+        const clientPhone = formData.get('clientPhone') || document.getElementById('clientPhone').value;
+        const clientEmail = formData.get('clientEmail') || document.getElementById('clientEmail').value;
+        const clientAddress = formData.get('clientAddress') || document.getElementById('clientAddress').value;
+        const clientOrderCode = formData.get('clientOrderCode') || document.getElementById('clientOrderCode').value;
+        const clientStatus = formData.get('clientStatus') || document.querySelector('input[name="clientStatus"]:checked')?.value || 'active';
+        
+        if (!clientName || !clientPhone || !clientOrderCode) {
+            showAlert('error', 'يرجى ملء جميع الحقول المطلوبة');
             return;
         }
         
-        // Get client information
-        const clientPhone = client.phone || 'غير متوفر';
-        const orderNumber = client.orderCode || 'غير متوفر';
+        // Get API service
+        const service = typeof apiService !== 'undefined' ? apiService : 
+                      (window && window.apiService) ? window.apiService : null;
         
-        // Create the client dashboard URL
-        const clientUrl = `${window.location.origin}/client-dashboard.html`;
-        
-        // Create the message to copy
-        const message = `السلام عليكم، يمكنك الوصول إلى ملفك الشخصي من خلال الرابط التالي:
-${clientUrl}
-
-رقم الهاتف: ${clientPhone}
-كود الطلب: ${orderNumber}`;
-        
-        // Copy to clipboard
-        navigator.clipboard.writeText(message)
-            .then(() => {
-                // Show success message
-                alert('تم نسخ رابط الملف الشخصي وبيانات الدخول إلى الحافظة');
-            })
-            .catch(error => {
-                console.error('Error copying to clipboard:', error);
-                
-                // Fallback: show the message in a prompt
-                prompt('انسخ النص التالي:', message);
-            });
-    }
-    
-    /**
-     * View client profile as admin
-     * @param {string} clientId - ID of the client to view
-     */
-    function viewClientProfile(clientId) {
-        // Find the client data
-        const client = clientsData.find(c => c.id == clientId);
-        
-        if (!client) {
-            alert('لم يتم العثور على بيانات العميل');
-            return;
+        if (!service) {
+            throw new Error('API service not available');
         }
         
-        // Store admin token for client access
-        const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
-        
-        if (!adminToken) {
-            alert('غير مصرح لك بعرض ملف العميل');
-            return;
-        }
-        
-        // Store client info for admin access
-        const clientInfo = {
-            id: client.id,
-            name: client.name,
-            phone: client.phone,
-            orderCode: client.orderCode,
-            email: client.email,
-            address: client.address,
-            isAdminView: true, // Flag to indicate this is admin viewing
-            adminToken: adminToken // Store admin token for API calls
+        // Prepare client data
+        const clientData = {
+            name: clientName,
+            phone: clientPhone,
+            email: clientEmail,
+            address: clientAddress,
+            order_number: clientOrderCode,
+            status: clientStatus
         };
         
-        // Store in session storage for client dashboard access
-        sessionStorage.setItem('clientInfo', JSON.stringify(clientInfo));
-        sessionStorage.setItem('adminViewingClient', 'true');
+        console.log('🔍 [DEBUG] Creating client with data:', clientData);
         
-        // Navigate to client dashboard
-        window.location.href = 'client-dashboard.html';
-    }
-    
-    /**
-     * Get mock clients for testing
-     * @returns {Array} Array of mock client objects
-     */
-    function getMockClients() {
-        return [
-            {
-                id: 1,
-                name: 'أحمد محمد السيد',
-                phone: '+966 50 123 4567',
-                email: 'ahmed@example.com',
-                address: 'الرياض، المملكة العربية السعودية',
-                status: 'active',
-                createdAt: new Date().toISOString()
-            },
-            {
-                id: 2,
-                name: 'سارة علي عبدالله',
-                phone: '+966 54 987 6543',
-                email: 'sara@example.com',
-                address: 'جدة، المملكة العربية السعودية',
-                status: 'active',
-                createdAt: new Date().toISOString()
-            },
-            {
-                id: 3,
-                name: 'محمود خالد سعيد',
-                phone: '+966 55 321 9876',
-                email: 'mahmoud@example.com',
-                address: 'الدمام، المملكة العربية السعودية',
-                status: 'inactive',
-                createdAt: new Date().toISOString()
-            }
-        ];
-    }
-    
-    // Check for offline status
-    function updateOfflineStatus() {
-        const offlineAlert = document.getElementById('offlineAlert');
-        if (offlineAlert) {
-            if (navigator.onLine) {
-                offlineAlert.style.display = 'none';
-            } else {
-                offlineAlert.style.display = 'block';
-            }
-        }
-    }
-
-    // Initial check
-    updateOfflineStatus();
-
-    // Listen for online/offline events
-    window.addEventListener('online', updateOfflineStatus);
-    window.addEventListener('offline', updateOfflineStatus);
-    
-    /**
-     * Initialize pagination functionality
-     */
-    function initPagination() {
-        // Get pagination elements
-        const prevPageBtn = document.querySelector('#clientsPagination .page-item:first-child .page-link');
-        const nextPageBtn = document.querySelector('#clientsPagination .page-item:last-child .page-link');
+        // Create client
+        const newClient = await service.createClient(clientData);
+        console.log('🔍 [DEBUG] Client created:', newClient);
         
-        // Add event listeners for pagination controls
-        if (prevPageBtn) {
-            prevPageBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (currentPage > 1) {
-                    currentPage--;
-                    displayClients(clientsData, false);
-                    updatePaginationControls();
-                }
-            });
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addClientModal'));
+        if (modal) {
+            modal.hide();
         }
         
-        if (nextPageBtn) {
-            nextPageBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const totalPages = Math.ceil(totalClients / CLIENTS_PER_PAGE);
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    displayClients(clientsData, false);
-                    updatePaginationControls();
-                }
-            });
+        // Reload clients
+        await loadClients();
+        
+        showAlert('success', 'تم إضافة العميل بنجاح');
+        
+    } catch (error) {
+        console.error('Error saving client:', error);
+        showAlert('error', `فشل في إضافة العميل: ${error.message}`);
         }
     }
 
     /**
-     * Update pagination controls based on current page and total clients
-     */
-    function updatePaginationControls() {
-        const paginationContainer = document.getElementById('clientsPagination');
-        if (!paginationContainer) return;
+ * Update existing client
+ */
+async function updateClient() {
+    try {
+        const form = document.getElementById('editClientForm');
+        const formData = new FormData(form);
         
-        // Calculate total pages
-        const totalPages = Math.ceil(totalClients / CLIENTS_PER_PAGE);
-        
-        // Clear existing page number buttons (keep prev/next buttons)
-        const pageItems = paginationContainer.querySelectorAll('.page-item');
-        for (let i = 1; i < pageItems.length - 1; i++) {
-            pageItems[i].remove();
+        // Get client ID
+        const clientId = document.getElementById('editClientId').value;
+        if (!clientId) {
+            showAlert('error', 'معرف العميل غير موجود');
+            return;
         }
         
-        // Get prev/next buttons
-        const prevPageItem = paginationContainer.querySelector('.page-item:first-child');
-        const nextPageItem = paginationContainer.querySelector('.page-item:last-child');
+        // Validate form
+        const clientName = formData.get('editClientName') || document.getElementById('editClientName').value;
+        const clientPhone = formData.get('editClientPhone') || document.getElementById('editClientPhone').value;
+        const clientEmail = formData.get('editClientEmail') || document.getElementById('editClientEmail').value;
+        const clientAddress = formData.get('editClientAddress') || document.getElementById('editClientAddress').value;
+        const clientStatus = formData.get('editClientStatus') || document.querySelector('input[name="editClientStatus"]:checked')?.value || 'active';
         
-        // Create page number buttons
-        const maxVisiblePages = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-        
-        // Adjust if we're near the end
-        if (endPage - startPage + 1 < maxVisiblePages && startPage > 1) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        if (!clientName || !clientPhone) {
+            showAlert('error', 'يرجى ملء جميع الحقول المطلوبة');
+            return;
         }
         
-        // Create page number elements
-        for (let i = startPage; i <= endPage; i++) {
-            const pageItem = document.createElement('li');
-            pageItem.className = `page-item${i === currentPage ? ' active' : ''}`;
-            
-            const pageLink = document.createElement('a');
-            pageLink.className = 'page-link';
-            pageLink.href = '#';
-            pageLink.textContent = i;
-            
-            // Add click event
-            pageLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                currentPage = i;
-                displayClients(clientsData, false);
-                updatePaginationControls();
-            });
-            
-            pageItem.appendChild(pageLink);
-            
-            // Insert before the next button
-            paginationContainer.insertBefore(pageItem, nextPageItem);
+        // Get API service
+        const service = typeof apiService !== 'undefined' ? apiService : 
+                      (window && window.apiService) ? window.apiService : null;
+        
+        if (!service) {
+            throw new Error('API service not available');
         }
         
-        // Update prev/next button states
-        if (prevPageItem) {
-            if (currentPage <= 1) {
-                prevPageItem.classList.add('disabled');
-            } else {
-                prevPageItem.classList.remove('disabled');
-            }
+        // Prepare client data
+        const clientData = {
+            name: clientName,
+            phone: clientPhone,
+            email: clientEmail,
+            address: clientAddress,
+            status: clientStatus
+        };
+        
+        console.log('🔍 [DEBUG] Updating client with data:', clientData);
+        
+        // Update client
+        const updatedClient = await service.updateClient(clientId, clientData);
+        console.log('🔍 [DEBUG] Client updated:', updatedClient);
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editClientModal'));
+        if (modal) {
+            modal.hide();
         }
         
-        if (nextPageItem) {
-            if (currentPage >= totalPages) {
-                nextPageItem.classList.add('disabled');
-            } else {
-                nextPageItem.classList.remove('disabled');
-            }
-        }
+        // Reload clients
+        await loadClients();
+        
+        showAlert('success', 'تم تحديث العميل بنجاح');
+        
+    } catch (error) {
+        console.error('Error updating client:', error);
+        showAlert('error', `فشل في تحديث العميل: ${error.message}`);
     }
-});
+}
+
+/**
+ * Show loading state
+ */
+function showLoading(show) {
+    const loadingState = document.getElementById('loadingState');
+    const clientsGrid = document.getElementById('clientsGrid');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (loadingState) {
+        loadingState.style.display = show ? 'block' : 'none';
+    }
+    
+    if (clientsGrid) {
+        clientsGrid.style.display = show ? 'none' : 'block';
+    }
+    
+    if (emptyState) {
+        emptyState.style.display = show ? 'none' : 'none'; // Keep hidden during loading
+    }
+}
+
+/**
+ * Show alert message
+ */
+function showAlert(type, message) {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Add to page
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
