@@ -66,7 +66,7 @@ function getGoogleDriveFileId(url) {
 function isValidImageUrl(url) {
     // Basic URL validation
     if (!url || !url.match(/^https?:\/\/.+/i)) {
-        return false;
+        return false ;
     }
 
     // Check for Google Drive link

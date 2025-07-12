@@ -174,11 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function translateStatus(status) {
         const statuses = {
-            'pending': 'قيد الانتظار',
-            'in-progress': 'قيد المعالجة',
             'completed': 'مكتمل',
-            'cancelled': 'ملغى',
-            'active': 'نشط'
+            'active': 'في المخزن',
+            'cancelled': 'ملغى'
         };
         return statuses[status.toLowerCase()] || status;
     }
@@ -186,10 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function getStatusBadgeClass(status) {
         const lowerStatus = status.toLowerCase();
         if (lowerStatus === 'completed') return 'bg-success';
-        if (lowerStatus === 'in-progress') return 'bg-info text-dark';
-        if (lowerStatus === 'pending') return 'bg-warning text-dark';
-        if (lowerStatus === 'cancelled') return 'bg-danger';
         if (lowerStatus === 'active') return 'bg-primary';
+        if (lowerStatus === 'cancelled') return 'bg-danger';
         return 'bg-secondary';
     }
 

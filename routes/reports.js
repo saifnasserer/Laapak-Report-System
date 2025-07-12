@@ -275,24 +275,38 @@ router.post('/', async (req, res) => {
 
 // PUT /reports/:id - update a report
 router.put('/:id', async (req, res) => {
-  const { clientId, title, description, data } = req.body;
-
   try {
+    console.log('Updating report with ID:', req.params.id);
+    console.log('Update data:', JSON.stringify(req.body, null, 2));
+    
     const report = await Report.findByPk(req.params.id);
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
 
-    if (clientId !== undefined) report.clientId = clientId;
-    if (title !== undefined) report.title = title;
-    if (description !== undefined) report.description = description;
-    if (data !== undefined) report.data = data;
+    // Update report fields based on the new schema
+    const updateFields = [
+      'client_name', 'client_phone', 'client_email', 'client_address',
+      'order_number', 'device_model', 'serial_number', 'inspection_date',
+      'hardware_status', 'external_images', 'notes', 'status', 'amount'
+    ];
+
+    updateFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        report[field] = req.body[field];
+      }
+    });
+
+    // Update timestamps
+    report.updated_at = new Date();
 
     await report.save();
-    res.json(report);
+    
+    console.log('Report updated successfully:', report.id);
+    res.json({ success: true, report: report });
   } catch (error) {
     console.error('Failed to update report:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعديل التقرير | Laapak</title>
+    <link rel="icon" type="image/png" href="img/cropped-Logo-mark.png.png">
+    <link rel="shortcut icon" type="image/png" href="img/cropped-Logo-mark.png.png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/form-steps.css">
+    <link rel="stylesheet" href="css/custom-admin.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="img/cropped-Logo-mark.png.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+    
+    <style>
+        :root {
+            --primary-color: #007553;
+            --primary-hover: #005a40;
+            --secondary-color: #2a3f54;
+            --accent-color: #0eaf54;
+            --light-bg: #f8f9fa;
+            --border-radius: 12px;
+            --card-radius: 16px;
+            --btn-radius: 10px;
+            --input-radius: 10px;
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            background-color: #f5f7f9;
+            color: #333;
+        }
+        
+        /* Card Styling */
+        .card {
+            border-radius: var(--card-radius) !important;
+            border: none !important;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05) !important;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        .card-header {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+            background: white !important;
+            padding: 1rem 1.5rem !important;
+        }
+        
+        .card-header.bg-light,
+        .card-header.bg-success {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+            color: white !important;
+        }
+        
+        .card-header.bg-light h5,
+        .card-header.bg-success h5 {
+            color: white !important;
+        }
+        
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        /* Form Controls */
+        .form-control, .form-select {
+            border-radius: var(--input-radius) !important;
+            padding: 0.6rem 1rem !important;
+            border-color: #e0e0e0 !important;
+            box-shadow: none !important;
+            transition: var(--transition);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 0.25rem rgba(14, 175, 84, 0.15) !important;
+        }
+        
+        /* Buttons */
+        .btn {
+            border-radius: var(--btn-radius) !important;
+            padding: 0.5rem 1.25rem !important;
+            font-weight: 500 !important;
+            transition: var(--transition);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+            border: none !important;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-hover) 100%) !important;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #0eaf54 0%, #088f44 100%) !important;
+            border: none !important;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #088f44 0%, #077539 100%) !important;
+            transform: translateY(-2px);
+        }
+        
+        /* Loading States */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        /* Alert Styling */
+        .alert {
+            border-radius: var(--border-radius) !important;
+            border: none !important;
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%) !important;
+            color: #155724 !important;
+        }
+        
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%) !important;
+            color: #721c24 !important;
+        }
+        
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%) !important;
+            color: #856404 !important;
+        }
+        
+        /* Image Upload Styling */
+        .image-upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            text-align: center;
+            transition: var(--transition);
+            background: #f8f9fa;
+        }
+        
+        .image-upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(14, 175, 84, 0.05);
+        }
+        
+        .image-upload-area.dragover {
+            border-color: var(--primary-color);
+            background: rgba(14, 175, 84, 0.1);
+        }
+        
+        /* Hardware Status Table */
+        .hardware-status-table {
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        .hardware-status-table th {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 1rem !important;
+            }
+            
+            .btn {
+                padding: 0.4rem 1rem !important;
+                font-size: 0.9rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+            <p class="mt-3 text-muted">جاري تحميل بيانات التقرير...</p>
+        </div>
+    </div>
+
+    <div class="container-fluid p-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-1">
+                            <i class="fas fa-edit text-primary me-2"></i>
+                            تعديل التقرير
+                        </h1>
+                        <p class="text-muted mb-0">تعديل تفاصيل التقرير رقم: <span id="reportIdDisplay">-</span></p>
+                    </div>
+                    <div>
+                        <a href="reports.html" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-right me-1"></i>
+                            العودة للتقارير
+                        </a>
+                        <button type="button" class="btn btn-primary" id="saveReportBtn">
+                            <i class="fas fa-save me-1"></i>
+                            حفظ التغييرات
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Edit Form -->
+        <form id="editReportForm">
+            <div class="row">
+                <!-- Client Information -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user me-2"></i>
+                                معلومات العميل
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="clientName" class="form-label">اسم العميل *</label>
+                                    <input type="text" class="form-control" id="clientName" name="client_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="clientPhone" class="form-label">رقم الهاتف *</label>
+                                    <input type="tel" class="form-control" id="clientPhone" name="client_phone" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="clientEmail" class="form-label">البريد الإلكتروني</label>
+                                    <input type="email" class="form-control" id="clientEmail" name="client_email">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="clientAddress" class="form-label">العنوان</label>
+                                    <input type="text" class="form-control" id="clientAddress" name="client_address">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Information -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-laptop me-2"></i>
+                                معلومات الجهاز
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="orderNumber" class="form-label">رقم الطلب *</label>
+                                    <input type="text" class="form-control" id="orderNumber" name="order_number" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="deviceModel" class="form-label">طراز الجهاز *</label>
+                                    <input type="text" class="form-control" id="deviceModel" name="device_model" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="serialNumber" class="form-label">الرقم التسلسلي</label>
+                                    <input type="text" class="form-control" id="serialNumber" name="serial_number">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="inspectionDate" class="form-label">تاريخ الفحص *</label>
+                                    <input type="date" class="form-control" id="inspectionDate" name="inspection_date" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="reportStatus" class="form-label">حالة التقرير</label>
+                                    <select class="form-select" id="reportStatus" name="status">
+                                        <option value="completed">مكتمل</option>
+                                        <option value="active">في المخزن</option>
+                                        <option value="cancelled">ملغي</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="devicePrice" class="form-label">سعر الجهاز</label>
+                                    <input type="number" class="form-control" id="devicePrice" name="amount" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hardware Status -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-microchip me-2"></i>
+                                حالة المكونات
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover hardware-status-table" id="hardwareStatusTable">
+                                    <thead>
+                                        <tr>
+                                            <th>المكون</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hardwareStatusTableBody">
+                                        <!-- Hardware components will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Video -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-video me-2"></i>
+                                فيديو الجهاز
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="deviceVideoContainer">
+                                <!-- Video will be displayed here -->
+                                <div class="text-center py-4">
+                                    <i class="fas fa-video fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">فيديو الجهاز سيظهر هنا</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- External Images -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-images me-2"></i>
+                                الصور الخارجية
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="externalImagesContainer">
+                                <!-- Images will be populated here -->
+                            </div>
+                            <div class="image-upload-area mt-3" id="imageUploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h5>إضافة صور جديدة</h5>
+                                <p class="text-muted">اسحب الصور هنا أو اضغط لاختيار الملفات</p>
+                                <input type="file" id="imageFileInput" multiple accept="image/*" style="display: none;">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('imageFileInput').click()">
+                                    <i class="fas fa-upload me-1"></i>
+                                    اختيار الصور
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- External Images -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-images me-2"></i>
+                                الصور الخارجية
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="externalImagesContainer">
+                                <!-- Images will be populated here -->
+                            </div>
+                            <div class="image-upload-area mt-3" id="imageUploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h5>إضافة صور جديدة</h5>
+                                <p class="text-muted">اسحب الصور هنا أو اضغط لاختيار الملفات</p>
+                                <input type="file" id="imageFileInput" multiple accept="image/*" style="display: none;">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('imageFileInput').click()">
+                                    <i class="fas fa-upload me-1"></i>
+                                    اختيار الصور
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-sticky-note me-2"></i>
+                                ملاحظات الفني
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control" id="technicianNotes" name="notes" rows="5" placeholder="أضف ملاحظات الفني هنا..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- API Configuration and Services -->
+    <script src="js/config.js"></script>
+    <script src="js/api-service.js"></script>
+    <script src="js/auth-middleware.js"></script>
+    
+    <!-- Edit Report JavaScript -->
+    <script src="js/edit-report.js"></script>
+</body>
+</html> 
