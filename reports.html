@@ -103,40 +103,77 @@
                             <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
                         </a>
                     </div>
-<!--                     
-                    Search & Filter
+                    
+                    <!-- Search and Filters -->
                     <div class="card mb-4 shadow">
                         <div class="card-body">
-                            <h5 class="card-title mb-3">بحث وتصفية</h5>
-                            <form id="searchForm">
-                                <div class="row g-3">
-                                    <div class="col-md-3">
-                                        <input type="text" class="form-control" placeholder="اسم العميل أو رقم الطلب">
+                            <!-- Search Row -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="searchReport" class="form-label">البحث في التقارير</label>
+                                    <input type="text" class="form-control" id="searchReport" placeholder="ابحث برقم الطلب أو اسم العميل أو نوع الجهاز...">
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-secondary me-2" onclick="resetReportFilters()">
+                                        <i class="fas fa-refresh me-2"></i>إعادة تعيين
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" onclick="toggleAdvancedFilters()">
+                                        <i class="fas fa-filter me-2"></i>فلاتر متقدمة
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Advanced Filters (Collapsible) -->
+                            <div id="advancedFilters" class="d-none">
+                                <hr>
+                                <div class="row">
+                                    <!-- Date Range Filter -->
+                                    <div class="col-md-3 mb-3">
+                                        <label for="dateFrom" class="form-label">من تاريخ</label>
+                                        <input type="date" class="form-control" id="dateFrom">
                                     </div>
-                                    <div class="col-md-3">
-                                        <select class="form-select">
-                                            <option selected>الموديل</option>
-                                            <option>Dell XPS</option>
-                                            <option>HP Spectre</option>
-                                            <option>MacBook Pro</option>
-                                            <option>Lenovo ThinkPad</option>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="dateTo" class="form-label">إلى تاريخ</label>
+                                        <input type="date" class="form-control" id="dateTo">
+                                    </div>
+                                    
+                                    <!-- Client Filter -->
+                                    <div class="col-md-3 mb-3">
+                                        <label for="clientFilter" class="form-label">العميل</label>
+                                        <select class="form-select" id="clientFilter">
+                                            <option value="">جميع العملاء</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-2">
-                                        <input type="date" class="form-control" placeholder="من تاريخ">
+                                    
+                                    <!-- Device Type Filter -->
+                                    <div class="col-md-3 mb-3">
+                                        <label for="deviceTypeFilter" class="form-label">نوع الجهاز</label>
+                                        <select class="form-select" id="deviceTypeFilter">
+                                            <option value="">جميع الأجهزة</option>
+                                        </select>
                                     </div>
-                                    <div class="col-md-2">
-                                        <input type="date" class="form-control" placeholder="إلى تاريخ">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="submit" class="btn btn-primary w-100">
-                                            <i class="fas fa-search me-2"></i> بحث
-                                        </button>
+                                    
+                                    <!-- Status Filter -->
+                                    <div class="col-md-3 mb-3">
+                                        <label for="statusFilter" class="form-label">حالة التقرير</label>
+                                        <select class="form-select" id="statusFilter">
+                                            <option value="">جميع الحالات</option>
+                                        </select>
                                     </div>
                                 </div>
-                            </form>
+                                
+                                <!-- Filter Status -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            الفلاتر تُطبق تلقائياً عند تغيير القيم
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div> -->
+                    </div>
                     
                     <!-- Reports Table -->
                     <div class="card mb-4 shadow">
@@ -163,6 +200,7 @@
                                             <th>اسم العميل</th>
                                             <th>نوع الجهاز</th>
                                             <th>تاريخ الفحص</th>
+                                            <th>الحالة</th>
                                             <th class="text-center">الإجراءات</th>
                                         </tr>
                                     </thead>

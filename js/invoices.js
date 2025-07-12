@@ -37,8 +37,8 @@ function initializeDataTable() {
     
     try {
         // Check that the table has the correct number of columns
-        if (table.find('thead th').length !== 7) {
-            console.error('DataTable columns mismatch: Expected 7 columns in HTML markup');
+        if (table.find('thead th').length !== 8) {
+            console.error('DataTable columns mismatch: Expected 8 columns in HTML markup (including hidden date sort column)');
             return;
         }
         
@@ -65,9 +65,11 @@ function initializeDataTable() {
                 { data: 'total', title: 'المبلغ' },
                 { data: 'paymentStatus', title: 'حالة الدفع' },
                 { data: 'paymentMethod', title: 'طريقة الدفع' },
-                { data: 'actions', title: 'إجراءات', orderable: false }
+                { data: 'actions', title: 'إجراءات', orderable: false },
+                // Hidden column for proper date sorting
+                { data: 'date_sort', title: 'Date Sort', visible: false }
             ],
-            order: [[2, 'desc']], // Order by date, newest first
+            order: [[7, 'desc']], // Order by hidden date column, newest first
             // Empty data array to start - will be populated by AJAX
             data: [],
             // Disable built-in DataTables pagination to prevent duplication
@@ -164,6 +166,15 @@ async function loadInvoicesData(filters = {}) {
         // Format the invoices for display
         const formattedInvoices = invoices.map(invoice => formatInvoiceForTable(invoice));
         
+        // Debug: Log the first few invoices to check sorting
+        if (formattedInvoices.length > 0) {
+            console.log('First 3 invoices after formatting:', formattedInvoices.slice(0, 3).map(inv => ({
+                id: inv.id,
+                date: inv.date,
+                date_sort: inv.date_sort
+            })));
+        }
+        
         // Update the DataTable with the formatted data
         if (invoicesTable) {
             invoicesTable.clear().rows.add(formattedInvoices).draw();
@@ -223,8 +234,15 @@ function formatInvoiceForTable(invoice) {
         
         // Format date - handle both string and Date objects
         let formattedDate = '-';
+        let dateSort = null; // For sorting
         if (invoice.date) {
             formattedDate = moment(invoice.date).format('DD/MM/YYYY');
+            // Store the raw date for sorting (timestamp)
+            dateSort = moment(invoice.date).valueOf();
+        } else if (invoice.created_at) {
+            // Fallback to created_at if date is not available
+            formattedDate = moment(invoice.created_at).format('DD/MM/YYYY');
+            dateSort = moment(invoice.created_at).valueOf();
         }
         
         // Format payment status with appropriate badge
@@ -300,6 +318,7 @@ function formatInvoiceForTable(invoice) {
             paymentStatus: statusBadge,
             paymentMethod: paymentMethodText,
             actions: actionsHtml,
+            date_sort: dateSort, // Hidden column for sorting
             // Store raw data for later use
             raw: invoice
         };
@@ -1507,11 +1526,18 @@ function applyFilters() {
 
 // Reset filters
 function resetFilters() {
-    document.getElementById('clientFilter').value = '';
-    document.getElementById('paymentStatusFilter').value = '';
-    document.getElementById('dateFromFilter').value = '';
-    document.getElementById('dateToFilter').value = '';
+    // Clear search box
+    const searchBox = document.getElementById('searchInvoice');
+    if (searchBox) {
+        searchBox.value = '';
+    }
     
+    // Clear DataTable search
+    if (invoicesTable) {
+        invoicesTable.search('').draw();
+    }
+    
+    // Reload invoices data
     loadInvoicesData();
 }
 

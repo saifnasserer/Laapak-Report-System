@@ -78,6 +78,23 @@
             
         </div>
         
+        <!-- Search and Filters -->
+        <div class="card mb-4 shadow">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="searchInvoice" class="form-label">البحث في الفواتير</label>
+                        <input type="text" class="form-control" id="searchInvoice" placeholder="ابحث برقم الفاتورة أو اسم العميل...">
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-secondary me-2" onclick="resetFilters()">
+                            <i class="fas fa-refresh me-2"></i>إعادة تعيين
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Invoices Table -->
         <div class="card mb-4 shadow">
             <div class="card-header" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white;">
@@ -106,6 +123,7 @@
                                 <th>حالة الدفع</th>
                                 <th>طريقة الدفع</th>
                                 <th class="text-center">إجراءات</th>
+                                <th style="display: none;">Date Sort</th>
                             </tr>
                         </thead>
                         <tbody id="invoicesTableBody">
