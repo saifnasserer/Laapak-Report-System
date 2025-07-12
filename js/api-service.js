@@ -595,6 +595,30 @@ class ApiService {
         }
     }
     
+    async getInvoiceByReportId(reportId) {
+        try {
+            // Use the new backend endpoint
+            return await this.request(`/api/invoices/report/${reportId}`, 'GET');
+        } catch (error) {
+            console.error('Error getting invoice by report ID:', error);
+            
+            // Fallback: Get all invoices and filter by report ID
+            try {
+                const invoices = await this.getInvoices();
+                const linkedInvoice = invoices.find(invoice => {
+                    // Check if invoice has reports array and if reportId is in it
+                    return invoice.reports && Array.isArray(invoice.reports) && 
+                           invoice.reports.some(report => report.id === reportId);
+                });
+                
+                return linkedInvoice || null;
+            } catch (fallbackError) {
+                console.error('Fallback method also failed:', fallbackError);
+                return null;
+            }
+        }
+    }
+    
     async updateInvoice(id, invoiceData) {
         try {
             // Format data for API

@@ -610,4 +610,40 @@ router.delete('/:id', adminAuth, async (req, res) => {
     }
 });
 
+// Get invoice by report ID
+router.get('/report/:reportId', adminAuth, async (req, res) => {
+    try {
+        const { reportId } = req.params;
+        
+        // Find invoice that contains this report
+        const invoice = await Invoice.findOne({
+            include: [
+                { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
+                { 
+                    model: Report, 
+                    as: 'reports',
+                    where: { id: reportId },
+                    attributes: ['id', 'device_model', 'serial_number'] 
+                },
+                { model: InvoiceItem, as: 'InvoiceItems' }
+            ]
+        });
+        
+        if (!invoice) {
+            return res.status(404).json({ 
+                message: 'لم يتم العثور على فاتورة مرتبطة بهذا التقرير',
+                error: 'No invoice found for this report' 
+            });
+        }
+        
+        res.json(invoice);
+    } catch (error) {
+        console.error('Error fetching invoice by report ID:', error);
+        res.status(500).json({ 
+            message: 'خطأ في الخادم',
+            error: error.message 
+        });
+    }
+});
+
 module.exports = router;

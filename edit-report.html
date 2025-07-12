@@ -316,10 +316,15 @@
                                 <div class="col-md-6 mb-3">
                                     <label for="reportStatus" class="form-label">حالة التقرير</label>
                                     <select class="form-select" id="reportStatus" name="status">
-                                        <option value="completed">مكتمل</option>
-                                        <option value="active">في المخزن</option>
-                                        <option value="cancelled">ملغي</option>
+                                        <option value="مكتمل">مكتمل</option>
+                                        <option value="في المخزن">في المخزن</option>
+                                        <option value="ملغي">ملغي</option>
                                     </select>
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <div id="invoiceInfoContainer" style="display: none;">
+                                        <!-- Invoice information will be displayed here -->
+                                    </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="devicePrice" class="form-label">سعر الجهاز</label>
@@ -367,11 +372,178 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div id="deviceVideoContainer">
-                                <!-- Video will be displayed here -->
-                                <div class="text-center py-4">
-                                    <i class="fas fa-video fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted">فيديو الجهاز سيظهر هنا</p>
+                            <!-- Video URL Input -->
+                            <div class="mb-3">
+                                <label for="videoUrlInput" class="form-label">إضافة رابط فيديو جديد</label>
+                                <div class="input-group">
+                                    <input type="url" class="form-control" id="videoUrlInput" placeholder="أدخل رابط الفيديو هنا (YouTube, Vimeo, أو رابط مباشر)...">
+                                    <button class="btn btn-outline-primary" type="button" id="addVideoUrlBtn">
+                                        <i class="fas fa-plus me-1"></i>
+                                        إضافة
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Video URL Badges -->
+                            <div id="videoUrlBadges" class="mb-3">
+                                <!-- Video URL badges will be populated here -->
+                            </div>
+                            
+                            <!-- Video Previews -->
+                            <div id="videoPreviewContainer">
+                                <!-- Video previews will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Screenshots -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-desktop me-2"></i>
+                                لقطات شاشة الاختبارات
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Info Test -->
+                            <div class="card component-test-card mb-4" data-component="info">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> معلومات النظام</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="infoScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                        <div class="input-group mb-2">
+                                            <input type="url" class="form-control test-screenshot-url" id="infoScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="info">
+                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="infoScreenshotUrl" data-component="info">
+                                                <i class="fas fa-plus me-1"></i> إضافة
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                        <div class="mt-2 screenshot-preview" id="infoScreenshotPreview"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CPU Test -->
+                            <div class="card component-test-card mb-4" data-component="cpu">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-microchip me-2"></i> اختبار البروسيسور</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="cpuScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                        <div class="input-group mb-2">
+                                            <input type="url" class="form-control test-screenshot-url" id="cpuScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="cpu">
+                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="cpuScreenshotUrl" data-component="cpu">
+                                                <i class="fas fa-plus me-1"></i> إضافة
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                        <div class="mt-2 screenshot-preview" id="cpuScreenshotPreview"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- GPU Test -->
+                            <div class="card component-test-card mb-4" data-component="gpu">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-tv me-2"></i> اختبار كارت الشاشة</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="gpuScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                        <div class="input-group mb-2">
+                                            <input type="url" class="form-control test-screenshot-url" id="gpuScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="gpu">
+                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="gpuScreenshotUrl" data-component="gpu">
+                                                <i class="fas fa-plus me-1"></i> إضافة
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                        <div class="mt-2 screenshot-preview" id="gpuScreenshotPreview"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Hard Drive Test -->
+                            <div class="card component-test-card mb-4" data-component="hdd">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-hdd me-2"></i> اختبار القرص الصلب</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="hddScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                        <div class="input-group mb-2">
+                                            <input type="url" class="form-control test-screenshot-url" id="hddScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="hdd">
+                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="hddScreenshotUrl" data-component="hdd">
+                                                <i class="fas fa-plus me-1"></i> إضافة
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                        <div class="mt-2 screenshot-preview" id="hddScreenshotPreview"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Keyboard Test -->
+                            <div class="card component-test-card mb-4" data-component="keyboard">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i> اختبار لوحة المفاتيح</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="keyboardScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                        <div class="input-group mb-2">
+                                            <input type="url" class="form-control test-screenshot-url" id="keyboardScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="keyboard">
+                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="keyboardScreenshotUrl" data-component="keyboard">
+                                                <i class="fas fa-plus me-1"></i> إضافة
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                        <div class="mt-2 screenshot-preview" id="keyboardScreenshotPreview"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Battery Test -->
+                            <div class="card component-test-card mb-4" data-component="battery">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-battery-three-quarters me-2"></i> اختبار البطارية</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="batteryScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                        <div class="input-group mb-2">
+                                            <input type="url" class="form-control test-screenshot-url" id="batteryScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="battery">
+                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="batteryScreenshotUrl" data-component="battery">
+                                                <i class="fas fa-plus me-1"></i> إضافة
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                        <div class="mt-2 screenshot-preview" id="batteryScreenshotPreview"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- DxDiag Test -->
+                            <div class="card component-test-card mb-4" data-component="dxdiag">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-laptop me-2"></i> اختبار معلومات النظام (DxDiag)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="dxdiagScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                        <div class="input-group mb-2">
+                                            <input type="url" class="form-control test-screenshot-url" id="dxdiagScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="dxdiag">
+                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="dxdiagScreenshotUrl" data-component="dxdiag">
+                                                <i class="fas fa-plus me-1"></i> إضافة
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                        <div class="mt-2 screenshot-preview" id="dxdiagScreenshotPreview"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -388,45 +560,26 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div id="externalImagesContainer">
-                                <!-- Images will be populated here -->
+                            <!-- Image URL Input -->
+                            <div class="mb-3">
+                                <label for="imageUrlInput" class="form-label">إضافة رابط صورة جديدة</label>
+                                <div class="input-group">
+                                    <input type="url" class="form-control" id="imageUrlInput" placeholder="أدخل رابط الصورة هنا...">
+                                    <button class="btn btn-outline-primary" type="button" id="addImageUrlBtn">
+                                        <i class="fas fa-plus me-1"></i>
+                                        إضافة
+                                    </button>
+                                </div>
                             </div>
-                            <div class="image-upload-area mt-3" id="imageUploadArea">
-                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
-                                <h5>إضافة صور جديدة</h5>
-                                <p class="text-muted">اسحب الصور هنا أو اضغط لاختيار الملفات</p>
-                                <input type="file" id="imageFileInput" multiple accept="image/*" style="display: none;">
-                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('imageFileInput').click()">
-                                    <i class="fas fa-upload me-1"></i>
-                                    اختيار الصور
-                                </button>
+                            
+                            <!-- Image URL Badges -->
+                            <div id="imageUrlBadges" class="mb-3">
+                                <!-- Image URL badges will be populated here -->
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- External Images -->
-                <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">
-                                <i class="fas fa-images me-2"></i>
-                                الصور الخارجية
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div id="externalImagesContainer">
-                                <!-- Images will be populated here -->
-                            </div>
-                            <div class="image-upload-area mt-3" id="imageUploadArea">
-                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
-                                <h5>إضافة صور جديدة</h5>
-                                <p class="text-muted">اسحب الصور هنا أو اضغط لاختيار الملفات</p>
-                                <input type="file" id="imageFileInput" multiple accept="image/*" style="display: none;">
-                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('imageFileInput').click()">
-                                    <i class="fas fa-upload me-1"></i>
-                                    اختيار الصور
-                                </button>
+                            
+                            <!-- Image Previews -->
+                            <div id="externalImagesPreview" class="row g-3">
+                                <!-- Image previews will be populated here -->
                             </div>
                         </div>
                     </div>
