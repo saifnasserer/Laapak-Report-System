@@ -112,6 +112,13 @@ async function loadClients() {
         
         console.log('🔍 [DEBUG] Final allClients array length:', allClients.length);
         
+        // Debug: Log first few clients to see their structure
+        if (allClients.length > 0) {
+            console.log('🔍 [DEBUG] First client structure:', allClients[0]);
+            console.log('🔍 [DEBUG] First client ID type:', typeof allClients[0].id);
+            console.log('🔍 [DEBUG] First client ID value:', allClients[0].id);
+        }
+        
         // Cache clients in localStorage for offline use
         try {
             localStorage.setItem('lpk_clients', JSON.stringify(allClients));
@@ -406,11 +413,45 @@ function changePage(page) {
  */
 async function shareClient(clientId) {
     try {
-        const client = allClients.find(c => c.id === clientId);
+        console.log('🔍 [DEBUG] shareClient called with clientId:', clientId);
+        console.log('🔍 [DEBUG] clientId type:', typeof clientId);
+        console.log('🔍 [DEBUG] allClients length:', allClients.length);
+        
+        // Check if clients are loaded
+        if (!allClients || allClients.length === 0) {
+            console.log('🔍 [DEBUG] No clients loaded, attempting to reload...');
+            await loadClients();
+            
+            // Check again after reload
+            if (!allClients || allClients.length === 0) {
+                showAlert('error', 'فشل في تحميل بيانات العملاء. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+                return;
+            }
+        }
+        
+        // Try to find client with different ID formats
+        let client = allClients.find(c => c.id == clientId); // Use == for type coercion
+        
+        // If not found, try with string conversion
         if (!client) {
-            showAlert('error', 'العميل غير موجود');
+            client = allClients.find(c => String(c.id) === String(clientId));
+        }
+        
+        // If still not found, try with number conversion
+        if (!client) {
+            client = allClients.find(c => Number(c.id) === Number(clientId));
+        }
+        
+        if (!client) {
+            console.error('❌ [DEBUG] Client not found for sharing. Available clients:');
+            allClients.forEach((c, index) => {
+                console.log(`  ${index}: id=${c.id} (${typeof c.id}), name=${c.name}`);
+            });
+            showAlert('error', `العميل غير موجود (ID: ${clientId}). يرجى تحديث الصفحة والمحاولة مرة أخرى.`);
             return;
         }
+        
+        console.log('✅ [DEBUG] Found client for sharing:', client);
         
         // Create share text
         const shareText = `معلومات الدخول للعميل ${client.name}:
@@ -446,11 +487,46 @@ async function shareClient(clientId) {
  */
 async function viewClient(clientId) {
     try {
-        const client = allClients.find(c => c.id === clientId);
+        console.log('🔍 [DEBUG] viewClient called with clientId:', clientId);
+        console.log('🔍 [DEBUG] clientId type:', typeof clientId);
+        console.log('🔍 [DEBUG] allClients length:', allClients.length);
+        console.log('🔍 [DEBUG] allClients:', allClients);
+        
+        // Check if clients are loaded
+        if (!allClients || allClients.length === 0) {
+            console.log('🔍 [DEBUG] No clients loaded, attempting to reload...');
+            await loadClients();
+            
+            // Check again after reload
+            if (!allClients || allClients.length === 0) {
+                showAlert('error', 'فشل في تحميل بيانات العملاء. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+                return;
+            }
+        }
+        
+        // Try to find client with different ID formats
+        let client = allClients.find(c => c.id == clientId); // Use == for type coercion
+        
+        // If not found, try with string conversion
         if (!client) {
-            showAlert('error', 'العميل غير موجود');
+            client = allClients.find(c => String(c.id) === String(clientId));
+        }
+        
+        // If still not found, try with number conversion
+        if (!client) {
+            client = allClients.find(c => Number(c.id) === Number(clientId));
+        }
+        
+        if (!client) {
+            console.error('❌ [DEBUG] Client not found. Available clients:');
+            allClients.forEach((c, index) => {
+                console.log(`  ${index}: id=${c.id} (${typeof c.id}), name=${c.name}`);
+            });
+            showAlert('error', `العميل غير موجود (ID: ${clientId}). يرجى تحديث الصفحة والمحاولة مرة أخرى.`);
             return;
         }
+        
+        console.log('✅ [DEBUG] Found client:', client);
         
         // Get admin token
         const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
@@ -474,6 +550,8 @@ async function viewClient(clientId) {
             adminToken: adminToken // Include admin token for API calls
         };
         
+        console.log('🔍 [DEBUG] Setting clientInfo:', clientInfo);
+        
         // Store client info in sessionStorage for admin viewing
         sessionStorage.setItem('clientInfo', JSON.stringify(clientInfo));
         
@@ -491,11 +569,45 @@ async function viewClient(clientId) {
  */
 async function editClient(clientId) {
     try {
-        const client = allClients.find(c => c.id === clientId);
+        console.log('🔍 [DEBUG] editClient called with clientId:', clientId);
+        console.log('🔍 [DEBUG] clientId type:', typeof clientId);
+        console.log('🔍 [DEBUG] allClients length:', allClients.length);
+        
+        // Check if clients are loaded
+        if (!allClients || allClients.length === 0) {
+            console.log('🔍 [DEBUG] No clients loaded, attempting to reload...');
+            await loadClients();
+            
+            // Check again after reload
+            if (!allClients || allClients.length === 0) {
+                showAlert('error', 'فشل في تحميل بيانات العملاء. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+                return;
+            }
+        }
+        
+        // Try to find client with different ID formats
+        let client = allClients.find(c => c.id == clientId); // Use == for type coercion
+        
+        // If not found, try with string conversion
         if (!client) {
-            showAlert('error', 'العميل غير موجود');
+            client = allClients.find(c => String(c.id) === String(clientId));
+        }
+        
+        // If still not found, try with number conversion
+        if (!client) {
+            client = allClients.find(c => Number(c.id) === Number(clientId));
+        }
+        
+        if (!client) {
+            console.error('❌ [DEBUG] Client not found for editing. Available clients:');
+            allClients.forEach((c, index) => {
+                console.log(`  ${index}: id=${c.id} (${typeof c.id}), name=${c.name}`);
+            });
+            showAlert('error', `العميل غير موجود (ID: ${clientId}). يرجى تحديث الصفحة والمحاولة مرة أخرى.`);
             return;
         }
+        
+        console.log('✅ [DEBUG] Found client for editing:', client);
         
         // Populate edit form
         document.getElementById('editClientId').value = client.id;
@@ -518,43 +630,77 @@ async function editClient(clientId) {
         console.error('Error editing client:', error);
         showAlert('error', 'فشل في تحميل بيانات العميل');
     }
-    }
+}
     
     /**
  * Delete client
      */
     async function deleteClient(clientId) {
         try {
-        const client = allClients.find(c => c.id === clientId);
-        if (!client) {
-            showAlert('error', 'العميل غير موجود');
-            return;
-        }
-        
-        // Confirm deletion
-        if (!confirm(`هل أنت متأكد من حذف العميل "${client.name}"؟\n\nهذا الإجراء لا يمكن التراجع عنه.`)) {
-            return;
-        }
-        
-        // Get API service
-        const service = typeof apiService !== 'undefined' ? apiService : 
-                      (window && window.apiService) ? window.apiService : null;
-        
-        if (!service) {
+            console.log('🔍 [DEBUG] deleteClient called with clientId:', clientId);
+            console.log('🔍 [DEBUG] clientId type:', typeof clientId);
+            console.log('🔍 [DEBUG] allClients length:', allClients.length);
+            
+            // Check if clients are loaded
+            if (!allClients || allClients.length === 0) {
+                console.log('�� [DEBUG] No clients loaded, attempting to reload...');
+                await loadClients();
+                
+                // Check again after reload
+                if (!allClients || allClients.length === 0) {
+                    showAlert('error', 'فشل في تحميل بيانات العملاء. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+                    return;
+                }
+            }
+            
+            // Try to find client with different ID formats
+            let client = allClients.find(c => c.id == clientId); // Use == for type coercion
+            
+            // If not found, try with string conversion
+            if (!client) {
+                client = allClients.find(c => String(c.id) === String(clientId));
+            }
+            
+            // If still not found, try with number conversion
+            if (!client) {
+                client = allClients.find(c => Number(c.id) === Number(clientId));
+            }
+            
+            if (!client) {
+                console.error('❌ [DEBUG] Client not found for deletion. Available clients:');
+                allClients.forEach((c, index) => {
+                    console.log(`  ${index}: id=${c.id} (${typeof c.id}), name=${c.name}`);
+                });
+                showAlert('error', `العميل غير موجود (ID: ${clientId}). يرجى تحديث الصفحة والمحاولة مرة أخرى.`);
+                return;
+            }
+            
+            console.log('✅ [DEBUG] Found client for deletion:', client);
+            
+            // Confirm deletion
+            if (!confirm(`هل أنت متأكد من حذف العميل "${client.name}"؟\n\nهذا الإجراء لا يمكن التراجع عنه.`)) {
+                return;
+            }
+            
+            // Get API service
+            const service = typeof apiService !== 'undefined' ? apiService : 
+                          (window && window.apiService) ? window.apiService : null;
+            
+            if (!service) {
                 throw new Error('API service not available');
             }
             
-        // Delete client
-        await service.deleteClient(clientId);
+            // Delete client
+            await service.deleteClient(clientId);
             
-        // Reload clients
-                await loadClients();
-        
-        showAlert('success', 'تم حذف العميل بنجاح');
-        
+            // Reload clients
+            await loadClients();
+            
+            showAlert('success', 'تم حذف العميل بنجاح');
+            
         } catch (error) {
             console.error('Error deleting client:', error);
-        showAlert('error', `فشل في حذف العميل: ${error.message}`);
+            showAlert('error', `فشل في حذف العميل: ${error.message}`);
         }
     }
     
@@ -732,3 +878,28 @@ function showAlert(type, message) {
         }
     }, 5000);
 }
+
+/**
+ * Test function to debug client viewing
+ */
+function testClientViewing() {
+    console.log('🧪 [TEST] Testing client viewing functionality');
+    console.log('🧪 [TEST] allClients:', allClients);
+    console.log('🧪 [TEST] allClients length:', allClients.length);
+    
+    if (allClients.length > 0) {
+        const firstClient = allClients[0];
+        console.log('🧪 [TEST] First client:', firstClient);
+        console.log('🧪 [TEST] First client ID:', firstClient.id);
+        console.log('🧪 [TEST] First client ID type:', typeof firstClient.id);
+        
+        // Test the viewClient function with the first client
+        console.log('🧪 [TEST] Testing viewClient with first client ID:', firstClient.id);
+        viewClient(firstClient.id);
+    } else {
+        console.log('🧪 [TEST] No clients available for testing');
+    }
+}
+
+// Make test function globally available
+window.testClientViewing = testClientViewing;
