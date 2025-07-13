@@ -14,21 +14,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const isAdminViewing = sessionStorage.getItem('adminViewingClient') === 'true';
     let clientInfo = JSON.parse(sessionStorage.getItem('clientInfo') || localStorage.getItem('clientInfo') || '{}');
     
+    console.log('🔍 [DEBUG] Client dashboard initialization');
+    console.log('🔍 [DEBUG] isAdminViewing:', isAdminViewing);
+    console.log('🔍 [DEBUG] clientInfo:', clientInfo);
+    
     // If admin is viewing, we need to check if we have the required data
     if (isAdminViewing) {
         if (!clientInfo.id || !clientInfo.adminToken) {
-            console.log('Admin viewing but missing required data, redirecting to admin');
+            console.log('❌ [DEBUG] Admin viewing but missing required data, redirecting to admin');
             sessionStorage.removeItem('adminViewingClient');
             sessionStorage.removeItem('clientInfo');
+            showAlert('error', 'بيانات العميل غير مكتملة. يرجى المحاولة مرة أخرى.');
             window.location.href = 'clients.html';
             return;
         }
-        console.log('Admin viewing client profile:', clientInfo.name);
-    } else if (!authMiddleware.isClientLoggedIn()) {
-        // Only redirect if not admin viewing and not client logged in
-        console.log('Client not logged in, redirecting to login page');
-        window.location.href = 'index.html';
-        return;
+        console.log('✅ [DEBUG] Admin viewing client profile:', clientInfo.name);
+    } else {
+        // Check if client is logged in (normal client access)
+        if (!authMiddleware.isClientLoggedIn()) {
+            console.log('❌ [DEBUG] Client not logged in, redirecting to login page');
+            window.location.href = 'index.html';
+            return;
+        }
+        console.log('✅ [DEBUG] Client logged in normally');
     }
     
     // Get client info from storage (if not already loaded)
@@ -674,4 +682,29 @@ function backToAdmin() {
     
     // Navigate back to admin clients page
     window.location.href = 'clients.html';
+}
+
+/**
+ * Show alert message
+ */
+function showAlert(type, message) {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Add to page
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
 }

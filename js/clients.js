@@ -446,8 +446,36 @@ async function shareClient(clientId) {
  */
 async function viewClient(clientId) {
     try {
+        const client = allClients.find(c => c.id === clientId);
+        if (!client) {
+            showAlert('error', 'العميل غير موجود');
+            return;
+        }
+        
+        // Get admin token
+        const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        if (!adminToken) {
+            showAlert('error', 'جلسة الإدارة منتهية الصلاحية. يرجى تسجيل الدخول مرة أخرى.');
+            window.location.href = 'admin-login.html';
+            return;
+        }
+        
         // Set admin viewing flag
         sessionStorage.setItem('adminViewingClient', 'true');
+        
+        // Set client info for admin viewing
+        const clientInfo = {
+            id: client.id,
+            name: client.name,
+            phone: client.phone,
+            email: client.email,
+            address: client.address,
+            order_number: client.order_number,
+            adminToken: adminToken // Include admin token for API calls
+        };
+        
+        // Store client info in sessionStorage for admin viewing
+        sessionStorage.setItem('clientInfo', JSON.stringify(clientInfo));
         
         // Navigate to client dashboard
         window.location.href = `client-dashboard.html?client_id=${clientId}`;
