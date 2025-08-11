@@ -281,6 +281,8 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 
         if (!type || type === 'invoices') {
             try {
+                console.log('Fetching invoices with whereClause:', whereClause);
+                
                 // Get completed invoices with profit calculations
                 const invoices = await Invoice.findAll({
                     where: {
@@ -293,7 +295,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                             attributes: ['id', 'description', 'amount', 'quantity', 'cost_price', 'profit_amount', 'profit_margin', 'serialNumber', 'type']
                         },
                         {
-                            model: require('../models').Client,
+                            model: Client,
                             attributes: ['name']
                         }
                     ],
@@ -302,7 +304,10 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     offset: offset
                 });
 
+                console.log(`Found ${invoices.length} invoices`);
+                
                 for (const invoice of invoices) {
+                    console.log(`Invoice ${invoice.id} has ${invoice.InvoiceItems.length} items`);
                     for (const item of invoice.InvoiceItems) {
                         results.push({
                             id: `invoice-${invoice.id}-${item.id}`,
@@ -322,6 +327,8 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                         });
                     }
                 }
+                
+                console.log(`Total results from invoices: ${results.length}`);
             } catch (invoiceError) {
                 console.error('Error fetching invoices:', invoiceError);
             }
@@ -366,6 +373,9 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 
         // Sort combined results by date
         results.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        console.log(`Sending ${results.length} total results`);
+        console.log('Sample result:', results[0]);
 
         res.json({
             success: true,

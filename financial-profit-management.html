@@ -511,6 +511,11 @@
                                     حساب الأرباح
                                 </button>
                             </div>
+                            <div class="col-lg-1 col-md-6 mb-3">
+                                <button class="btn btn-info w-100" onclick="loadProfitData()" title="إعادة تحميل البيانات">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -611,6 +616,9 @@
                 // API base URL
                 const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                 
+                console.log('Loading profit data from:', `${baseUrl}/api/financial/profit-management`);
+                console.log('Token:', token ? 'Present' : 'Missing');
+                
                 const response = await fetch(`${baseUrl}/api/financial/profit-management`, {
                     headers: {
                         'x-auth-token': token,
@@ -618,12 +626,21 @@
                     }
                 });
 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
                     throw new Error('Failed to load profit data');
                 }
 
                 const result = await response.json();
-                allData = result.data.items;
+                console.log('API Response:', result);
+                
+                allData = result.data.items || [];
+                console.log('Data items count:', allData.length);
+                console.log('Sample data:', allData.slice(0, 3));
+                
                 renderTable(allData);
                 updateTableStats(allData);
 
@@ -956,6 +973,7 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, starting data load...');
             loadProfitData();
 
             // Set default date range (current month)
