@@ -587,8 +587,8 @@
             const costPrice = parseFloat(modalCostPrice.value) || 0;
             const quantity = parseInt(modalQuantity.textContent) || 1;
             
-            const profit = (salePrice - costPrice) * quantity;
-            const margin = salePrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
+            const profit = costPrice > 0 ? (salePrice - costPrice) * quantity : 0;
+            const margin = salePrice > 0 && costPrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
             
             modalExpectedProfit.textContent = formatCurrency(profit);
             modalExpectedMargin.textContent = formatPercentage(margin);

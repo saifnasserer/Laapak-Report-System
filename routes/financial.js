@@ -296,7 +296,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                         c.id as client_id,
                         COUNT(ii.id) as items_count,
                         COALESCE(SUM(ii.cost_price * ii.quantity), 0) as total_cost,
-                        COALESCE(SUM((ii.amount - COALESCE(ii.cost_price, 0)) * ii.quantity), 0) as total_profit
+                        COALESCE(SUM(CASE WHEN ii.cost_price IS NOT NULL THEN (ii.amount - ii.cost_price) * ii.quantity ELSE 0 END), 0) as total_profit
                     FROM invoices i
                     LEFT JOIN clients c ON i.client_id = c.id
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
