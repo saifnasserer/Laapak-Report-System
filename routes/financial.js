@@ -39,28 +39,49 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         });
 
         if (!summary) {
-            summary = await FinancialSummary.calculateForMonth(monthYear);
+            try {
+                summary = await FinancialSummary.calculateForMonth(monthYear);
+            } catch (calcError) {
+                console.error('Error calculating financial summary:', calcError);
+                // Create a default summary if calculation fails
+                summary = await FinancialSummary.create({
+                    month_year: monthYear,
+                    total_revenue: 0,
+                    total_cost: 0,
+                    total_expenses: 0,
+                    gross_profit: 0,
+                    net_profit: 0,
+                    profit_margin: 0,
+                    invoice_count: 0,
+                    expense_count: 0
+                });
+            }
         }
 
         // Get alerts
         const alerts = [];
 
         // Check for products without cost prices
-        const itemsWithoutCost = await InvoiceItem.count({
-            where: {
-                cost_price: null,
-                '$Invoice.paymentStatus$': 'paid'
-            },
-            include: [{
-                model: Invoice,
+        let itemsWithoutCost = 0;
+        try {
+            itemsWithoutCost = await InvoiceItem.count({
                 where: {
-                    date: {
-                        [Op.gte]: `${monthYear}-01`,
-                        [Op.lte]: `${monthYear}-31`
+                    cost_price: null,
+                    '$Invoice.paymentStatus$': 'paid'
+                },
+                include: [{
+                    model: Invoice,
+                    where: {
+                        date: {
+                            [Op.gte]: `${monthYear}-01`,
+                            [Op.lte]: `${monthYear}-31`
+                        }
                     }
-                }
-            }]
-        });
+                }]
+            });
+        } catch (error) {
+            console.error('Error checking items without cost:', error);
+        }
 
         if (itemsWithoutCost > 0) {
             alerts.push({
@@ -72,14 +93,19 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         }
 
         // Check for upcoming fixed expenses
-        const upcomingExpenses = await Expense.findAll({
-            where: {
-                type: 'fixed',
-                repeat_monthly: true,
-                status: 'approved'
-            },
-            include: [{ model: ExpenseCategory, as: 'category' }]
-        });
+        let upcomingExpenses = [];
+        try {
+            upcomingExpenses = await Expense.findAll({
+                where: {
+                    type: 'fixed',
+                    repeat_monthly: true,
+                    status: 'approved'
+                },
+                include: [{ model: ExpenseCategory, as: 'category' }]
+            });
+        } catch (error) {
+            console.error('Error fetching upcoming expenses:', error);
+        }
 
         const nextMonthDate = new Date(targetYear, targetMonth, 5);
         for (const expense of upcomingExpenses) {
@@ -93,44 +119,53 @@ router.get('/dashboard', adminAuth, async (req, res) => {
 
         // Get 6-month trend data for charts
         const trendData = [];
-        for (let i = 5; i >= 0; i--) {
-            const date = new Date(targetYear, targetMonth - 1 - i, 1);
-            const trendMonthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            
-            const trendSummary = await FinancialSummary.findOne({
-                where: { month_year: trendMonthYear }
-            });
+        try {
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(targetYear, targetMonth - 1 - i, 1);
+                const trendMonthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                const trendSummary = await FinancialSummary.findOne({
+                    where: { month_year: trendMonthYear }
+                });
 
-            trendData.push({
-                month: trendMonthYear,
-                revenue: trendSummary ? parseFloat(trendSummary.total_revenue) : 0,
-                expenses: trendSummary ? parseFloat(trendSummary.total_expenses) : 0,
-                profit: trendSummary ? parseFloat(trendSummary.net_profit) : 0
-            });
+                trendData.push({
+                    month: trendMonthYear,
+                    revenue: trendSummary ? parseFloat(trendSummary.total_revenue) : 0,
+                    expenses: trendSummary ? parseFloat(trendSummary.total_expenses) : 0,
+                    profit: trendSummary ? parseFloat(trendSummary.net_profit) : 0
+                });
+            }
+        } catch (error) {
+            console.error('Error calculating trend data:', error);
         }
 
         // Get expense breakdown by category
-        const expenseBreakdown = await Expense.findAll({
-            attributes: [
-                [ExpenseCategory.sequelize.col('category.name_ar'), 'category_name'],
-                [ExpenseCategory.sequelize.col('category.color'), 'color'],
-                [ExpenseCategory.sequelize.fn('SUM', ExpenseCategory.sequelize.col('Expense.amount')), 'total']
-            ],
-            where: {
-                date: {
-                    [Op.gte]: `${monthYear}-01`,
-                    [Op.lte]: `${monthYear}-31`
+        let expenseBreakdown = [];
+        try {
+            expenseBreakdown = await Expense.findAll({
+                attributes: [
+                    [ExpenseCategory.sequelize.col('category.name_ar'), 'category_name'],
+                    [ExpenseCategory.sequelize.col('category.color'), 'color'],
+                    [ExpenseCategory.sequelize.fn('SUM', ExpenseCategory.sequelize.col('Expense.amount')), 'total']
+                ],
+                where: {
+                    date: {
+                        [Op.gte]: `${monthYear}-01`,
+                        [Op.lte]: `${monthYear}-31`
+                    },
+                    status: ['approved', 'paid']
                 },
-                status: ['approved', 'paid']
-            },
-            include: [{
-                model: ExpenseCategory,
-                as: 'category',
-                attributes: []
-            }],
-            group: ['category.id'],
-            raw: true
-        });
+                include: [{
+                    model: ExpenseCategory,
+                    as: 'category',
+                    attributes: []
+                }],
+                group: ['category.id'],
+                raw: true
+            });
+        } catch (error) {
+            console.error('Error fetching expense breakdown:', error);
+        }
 
         res.json({
             success: true,
@@ -158,6 +193,51 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             success: false, 
             message: 'Error loading dashboard data',
             error: error.message 
+        });
+    }
+});
+
+/**
+ * GET /api/financial/dashboard-simple
+ * Simple dashboard endpoint for testing
+ */
+router.get('/dashboard-simple', adminAuth, async (req, res) => {
+    try {
+        // Simple test - just return basic data
+        const basicData = {
+            totalProfit: 0,
+            totalExpenses: 0,
+            netProfit: 0,
+            alerts: [],
+            trendData: [],
+            expenseBreakdown: []
+        };
+
+        // Try to get some basic counts
+        try {
+            const expenseCount = await Expense.count();
+            const categoryCount = await ExpenseCategory.count();
+            
+            basicData.expenseCount = expenseCount;
+            basicData.categoryCount = categoryCount;
+        } catch (dbError) {
+            console.error('Database error in simple dashboard:', dbError);
+            basicData.dbError = dbError.message;
+        }
+
+        res.json({
+            success: true,
+            message: 'Simple dashboard data',
+            data: basicData
+        });
+
+    } catch (error) {
+        console.error('Simple dashboard error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Simple dashboard failed',
+            error: error.message,
+            stack: error.stack
         });
     }
 });
