@@ -21,96 +21,73 @@
     <link rel="stylesheet" href="css/styles.css">
     
     <style>
+        :root {
+            --primary-color: #007553;
+            --secondary-color: #0c6c41;
+            --accent-color: #00d4aa;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --dark-color: #343a40;
+            --light-color: #f8f9fa;
+            --border-radius: 16px;
+            --box-shadow: 0 12px 40px rgba(0, 117, 83, 0.15);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
         body {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
-            background-attachment: fixed;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
             font-family: 'Tajawal', sans-serif;
-            position: relative;
+            color: #ffffff;
+            min-height: 100vh;
             overflow-x: hidden;
         }
 
-        /* Subtle animated background - MY SIGNATURE TOUCH ✨ */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(circle at 20% 50%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, rgba(0, 117, 83, 0.02) 0%, transparent 50%);
-            z-index: -1;
-            animation: subtleFloat 20s ease-in-out infinite;
-        }
-
-        @keyframes subtleFloat {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-10px) scale(1.02); }
-        }
-
-        /* Enhanced Header Banner - STUNNING VERSION 🚀 */
+        /* Futuristic Header - COMPACT & STUNNING 🚀 */
         .financial-banner {
-            background: linear-gradient(135deg, #007553 0%, #004d35 50%, #007553 100%);
-            border-radius: 15px;
+            background: linear-gradient(135deg, rgba(0, 117, 83, 0.9) 0%, rgba(12, 108, 65, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
             color: white;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
+            padding: 1rem 1.5rem;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0, 117, 83, 0.15);
         }
 
         .financial-banner::before {
             content: '';
             position: absolute;
             top: 0;
-            left: -50%;
-            width: 200%;
+            left: -100%;
+            width: 100%;
             height: 100%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
             animation: shimmer 3s infinite;
         }
 
         @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
 
-        /* Navigation Pills */
-        .nav-pills .nav-link {
-            border-radius: 25px;
-            padding: 12px 24px;
-            margin: 0 5px;
-            transition: all 0.3s ease;
-            color: #6c757d;
-            border: 2px solid transparent;
-        }
-
-        .nav-pills .nav-link.active {
-            background: linear-gradient(135deg, #007553 0%, #004d35 100%);
-            border-color: #007553;
-            color: white;
-        }
-
-        .nav-pills .nav-link:hover {
-            background-color: rgba(0, 117, 83, 0.1);
-            color: #007553;
-        }
-
-        /* STUNNING Controls Card 🎨 */
+        /* Compact Search & Filter - ICON-BASED 🎯 */
         .controls-card {
-            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-            border-radius: 16px;
-            border: none;
-            box-shadow: 
-                0 4px 20px rgba(0, 0, 0, 0.08),
-                0 1px 3px rgba(0, 0, 0, 0.04);
-            margin-bottom: 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
             position: relative;
             overflow: hidden;
-            transition: all 0.3s ease;
         }
 
         .controls-card::before {
@@ -119,35 +96,108 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #007553, #00a67a, #007553);
-            background-size: 200% 100%;
-            animation: gradientShift 3s ease-in-out infinite;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color), var(--accent-color));
+            animation: borderGlow 2s ease-in-out infinite alternate;
         }
 
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+        @keyframes borderGlow {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
 
-        .controls-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 
-                0 8px 30px rgba(0, 117, 83, 0.12),
-                0 3px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        /* GORGEOUS Data Table 📊 */
-        .table-card {
-            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-            border-radius: 16px;
-            border: none;
-            box-shadow: 
-                0 6px 25px rgba(0, 0, 0, 0.08),
-                0 2px 6px rgba(0, 0, 0, 0.04);
-            overflow: hidden;
+        .search-box {
             position: relative;
-            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 0.5rem 1rem 0.5rem 3rem;
+            color: white;
+            backdrop-filter: blur(10px);
+            width: 100%;
+        }
+
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .filter-btn:hover {
+            background: rgba(0, 117, 83, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.3);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.4);
+        }
+
+        /* Navigation Pills */
+        .nav-pills .nav-link {
+            border-radius: 25px;
+            padding: 8px 16px;
+            margin: 0 3px;
+            transition: var(--transition);
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 16px rgba(0, 117, 83, 0.3);
+        }
+
+        .nav-pills .nav-link:hover {
+            background: rgba(0, 117, 83, 0.2);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Futuristic Table - MIND-BLOWING DESIGN 🎨 */
+        .table-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            position: relative;
         }
 
         .table-card::before {
@@ -157,139 +207,160 @@
             left: 0;
             right: 0;
             height: 2px;
-            background: linear-gradient(90deg, #007553, #00a67a, #007553);
-            background-size: 200% 100%;
-            animation: gradientShift 4s ease-in-out infinite;
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color), var(--accent-color));
+            animation: borderGlow 2s ease-in-out infinite alternate;
+        }
+
+        .table {
+            margin: 0;
+            background: transparent;
         }
 
         .table thead th {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, rgba(0, 117, 83, 0.9) 0%, rgba(12, 108, 65, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            color: white;
             border: none;
+            padding: 1.2rem 1rem;
             font-weight: 600;
-            padding: 1rem;
-            font-size: 0.9rem;
-            color: #495057;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
         }
 
-        .table tbody td {
-            padding: 1rem;
-            border-top: 1px solid #dee2e6;
-            vertical-align: middle;
+        .table thead th::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+        }
+
+        .table tbody tr {
+            background: rgba(255, 255, 255, 0.02);
+            transition: var(--transition);
+            border: none;
         }
 
         .table tbody tr:hover {
-            background-color: rgba(0, 117, 83, 0.05);
+            background: rgba(0, 117, 83, 0.1);
+            transform: scale(1.01);
+            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.2);
         }
 
-        /* Row Type Indicators */
-        .row-invoice {
-            border-right: 4px solid #198754;
+        .table tbody td {
+            padding: 1.2rem 1rem;
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.9);
         }
 
-        .row-expense {
-            border-right: 4px solid #dc3545;
+        /* Futuristic Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            transition: var(--transition);
+            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.3);
+            position: relative;
+            overflow: hidden;
         }
 
-        /* Editable Fields */
-        .editable-field {
-            cursor: pointer;
-            padding: 8px 12px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-        }
-
-        .editable-field:hover {
-            background-color: rgba(0, 117, 83, 0.1);
-        }
-
-        .editable-field.empty {
-            background-color: rgba(255, 193, 7, 0.1);
-            border: 2px dashed #ffc107;
-            color: #ff8800;
-            font-style: italic;
-        }
-
-        .editable-field.empty::after {
-            content: ' (انقر لإضافة)';
-            font-size: 0.8rem;
-            opacity: 0.7;
-        }
-
-        .editable-input {
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
             width: 100%;
-            padding: 8px 12px;
-            border: 2px solid #007553;
-            border-radius: 6px;
-            background: white;
-            font-family: inherit;
-            font-size: inherit;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
         }
 
-        .editable-input:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 117, 83, 0.1);
+        .btn-primary:hover::before {
+            left: 100%;
         }
 
-        /* Badges */
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 36px rgba(0, 117, 83, 0.4);
+        }
+
+        .btn-outline-primary {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            border-radius: 25px;
+            color: var(--primary-color);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.3);
+        }
+
+        /* Futuristic Badges */
+        .badge {
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
         .badge-invoice {
-            background-color: rgba(25, 135, 84, 0.1);
-            color: #198754;
-            border: 1px solid rgba(25, 135, 84, 0.2);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(0, 117, 83, 0.3);
         }
 
         .badge-expense {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-            border: 1px solid rgba(220, 53, 69, 0.2);
+            background: linear-gradient(135deg, var(--warning-color) 0%, #e0a800 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(255, 193, 7, 0.3);
         }
 
+        /* Profit Indicators - GLOWING EFFECTS ✨ */
         .profit-positive {
-            color: #198754;
-            font-weight: 600;
+            color: #00ff88;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
         }
 
         .profit-negative {
-            color: #dc3545;
-            font-weight: 600;
+            color: #ff4757;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
         }
 
         .profit-margin-high {
-            background-color: rgba(25, 135, 84, 0.1);
-            color: #198754;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-weight: 600;
+            color: #00ff88;
+            font-weight: 700;
         }
 
         .profit-margin-low {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-weight: 600;
-        }
-
-
-
-        .bulk-count {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px 12px;
-            border-radius: 15px;
+            color: #ffa502;
             font-weight: 700;
-            margin-right: 0.5rem;
         }
 
-        /* Loading States */
+        /* Loading Animation */
         .loading-spinner {
-            width: 2rem;
-            height: 2rem;
-            border: 3px solid rgba(0, 117, 83, 0.1);
-            border-top: 3px solid #007553;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--accent-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
         }
 
         @keyframes spin {
@@ -297,90 +368,82 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Success Animation */
-        .success-animation {
-            animation: successPulse 0.6s ease;
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            color: white;
+            font-weight: 500;
+            transform: translateX(100%);
+            transition: var(--transition);
+            box-shadow: var(--box-shadow);
         }
 
-                 @keyframes successPulse {
-             0% { transform: scale(1); }
-             50% { transform: scale(1.05); background-color: rgba(25, 135, 84, 0.1); }
-             100% { transform: scale(1); }
-         }
+        .notification.show {
+            transform: translateX(0);
+        }
 
-         /* Floating Elements - SIGNATURE TOUCH ✨ */
-         .floating-elements {
-             position: fixed;
-             top: 0;
-             left: 0;
-             width: 100%;
-             height: 100%;
-             pointer-events: none;
-             z-index: 1;
-         }
+        .notification.success {
+            border-left: 4px solid var(--success-color);
+        }
 
-         .floating-element {
-             position: absolute;
-             background: rgba(0, 117, 83, 0.1);
-             border-radius: 50%;
-             animation: float 8s ease-in-out infinite;
-         }
+        .notification.error {
+            border-left: 4px solid var(--danger-color);
+        }
 
-         .floating-element:nth-child(1) {
-             width: 6px;
-             height: 6px;
-             top: 25%;
-             left: 15%;
-             animation-delay: 0s;
-         }
+        .notification.warning {
+            border-left: 4px solid var(--warning-color);
+        }
 
-         .floating-element:nth-child(2) {
-             width: 4px;
-             height: 4px;
-             top: 70%;
-             left: 85%;
-             animation-delay: 3s;
-         }
+        /* Row Styling */
+        .row-invoice {
+            background: linear-gradient(90deg, rgba(0, 117, 83, 0.05) 0%, rgba(0, 117, 83, 0.1) 100%);
+        }
 
-         .floating-element:nth-child(3) {
-             width: 8px;
-             height: 8px;
-             top: 50%;
-             left: 5%;
-             animation-delay: 6s;
-         }
-
-         @keyframes float {
-             0%, 100% { 
-                 transform: translateY(0px) rotate(0deg);
-                 opacity: 0.2;
-             }
-             50% { 
-                 transform: translateY(-15px) rotate(180deg);
-                 opacity: 0.5;
-             }
-         }
+        .row-expense {
+            background: linear-gradient(90deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 193, 7, 0.1) 100%);
+        }
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .nav-pills {
-                flex-wrap: wrap;
+            .controls-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-buttons {
                 justify-content: center;
             }
             
-            .nav-pills .nav-link {
-                margin: 5px;
-                padding: 8px 16px;
+            .table-responsive {
+                border-radius: var(--border-radius);
             }
-            
-            .table {
-                font-size: 0.8rem;
-            }
-            
-            .table thead th,
-            .table tbody td {
-                padding: 0.5rem;
-            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
         }
     </style>
 </head>
@@ -395,23 +458,21 @@
     <!-- Header Container -->
     <div id="header-container"></div>
 
-    <div class="container-fluid py-4 px-4 mt-2">
-        <!-- Welcome Banner -->
-        <div class="row mb-4">
+    <div class="container-fluid py-3 px-4">
+        <!-- Compact Header -->
+        <div class="row mb-3">
             <div class="col-12">
-                <div class="card border-0 financial-banner">
-                    <div class="card-body p-4 p-md-5">
-                        <div class="row align-items-center">
-                            <div class="col-lg-8">
-                                <h2 class="fw-bold mb-3">
-                                    <i class="fas fa-coins me-3"></i>
-                                    إدارة الأرباح والتكاليف
-                                </h2>
-                                <p class="mb-4 opacity-75">عرض وتحرير أسعار التكلفة وحساب الأرباح بطريقة ذكية</p>
-                            </div>
-                            <div class="col-lg-4 d-none d-lg-block text-center">
-                                <i class="fas fa-calculator" style="font-size: 4rem; opacity: 0.3;"></i>
-                            </div>
+                <div class="financial-banner">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h3 class="fw-bold mb-1">
+                                <i class="fas fa-coins me-2"></i>
+                                إدارة الأرباح والتكاليف
+                            </h3>
+                            <p class="mb-0 opacity-75">عرض وتحرير أسعار التكلفة وحساب الأرباح</p>
+                        </div>
+                        <div class="d-none d-lg-block">
+                            <i class="fas fa-calculator" style="font-size: 2.5rem; opacity: 0.3;"></i>
                         </div>
                     </div>
                 </div>
@@ -444,55 +505,36 @@
             </div>
         </div>
 
-        <!-- Controls Section -->
-        <div class="row mb-4">
+        <!-- Compact Controls -->
+        <div class="row mb-3">
             <div class="col-12">
-                <div class="card controls-card">
-                    <div class="card-body">
-                        <div class="row align-items-end">
-                            <div class="col-lg-2 col-md-6 mb-3">
-                                <label class="form-label fw-bold">من تاريخ</label>
-                                <input type="date" class="form-control" id="startDate">
-                            </div>
-                            <div class="col-lg-2 col-md-6 mb-3">
-                                <label class="form-label fw-bold">إلى تاريخ</label>
-                                <input type="date" class="form-control" id="endDate">
-                            </div>
-                            <div class="col-lg-2 col-md-6 mb-3">
-                                <label class="form-label fw-bold">نوع البيانات</label>
-                                <select class="form-select" id="dataType">
-                                    <option value="">جميع البيانات</option>
-                                    <option value="invoices">الفواتير فقط</option>
-                                    <option value="expenses">المصروفات فقط</option>
-                                </select>
-                            </div>
-                            <div class="col-lg-3 col-md-6 mb-3">
-                                <label class="form-label fw-bold">البحث</label>
-                                <input type="text" class="form-control" id="searchInput" placeholder="ابحث في الوصف أو العميل...">
-                            </div>
-                            <div class="col-lg-1 col-md-6 mb-3">
-                                <button class="btn btn-primary w-100" onclick="applyFilters()">
-                                    <i class="fas fa-filter"></i>
-                                </button>
-                            </div>
-                            <div class="col-lg-2 col-md-6 mb-3">
-                                <button class="btn btn-success w-100" onclick="exportData()">
-                                    <i class="fas fa-download me-2"></i>
-                                    تصدير Excel
-                                </button>
-                            </div>
-                            <div class="col-lg-2 col-md-6 mb-3">
-                                <button class="btn btn-warning w-100" onclick="calculateProfits()">
-                                    <i class="fas fa-calculator me-2"></i>
-                                    حساب الأرباح
-                                </button>
-                            </div>
-                            <div class="col-lg-1 col-md-6 mb-3">
-                                <button class="btn btn-info w-100" onclick="loadProfitData()" title="إعادة تحميل البيانات">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
-                            </div>
-                        </div>
+                <div class="controls-card">
+                    <!-- Search Box -->
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="البحث في الفواتير والمصروفات...">
+                    </div>
+                    
+                    <!-- Filter Buttons -->
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" id="allFilter" title="جميع الأنواع">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button class="filter-btn" id="invoicesFilter" title="الفواتير فقط">
+                            <i class="fas fa-file-invoice"></i>
+                        </button>
+                        <button class="filter-btn" id="expensesFilter" title="المصروفات فقط">
+                            <i class="fas fa-receipt"></i>
+                        </button>
+                        <button class="filter-btn" id="refreshBtn" title="تحديث البيانات">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="filter-btn" id="exportBtn" title="تصدير Excel">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="filter-btn" id="calculateBtn" title="حساب الأرباح">
+                            <i class="fas fa-calculator"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -502,10 +544,10 @@
         <div class="row">
             <div class="col-12">
                 <div class="card table-card">
-                    <div class="card-header bg-white border-0">
+                    <div class="card-header" style="background: linear-gradient(135deg, rgba(0, 117, 83, 0.9) 0%, rgba(12, 108, 65, 0.9) 100%); backdrop-filter: blur(20px); border: none;">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-table me-2 text-primary"></i>
+                            <h5 class="card-title mb-0 text-white">
+                                <i class="fas fa-table me-2"></i>
                                 بيانات الأرباح والمصروفات
                             </h5>
                             <div class="d-flex gap-2" id="tableStats">
@@ -1161,8 +1203,16 @@
                         // Update the table row
                         updateTableRowCostPrice(rowId, costPrice);
                         
-                        // Close modal
-                        bootstrap.Modal.getInstance(document.getElementById('costPriceModal')).hide();
+                        // Close modal safely
+                        try {
+                            const modalElement = document.getElementById('costPriceModal');
+                            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                            if (modalInstance) {
+                                modalInstance.hide();
+                            }
+                        } catch (modalError) {
+                            console.warn('Error closing modal:', modalError);
+                        }
                         
                         showNotification('تم حفظ التكلفة بنجاح!', 'success');
                     } else {
@@ -1178,6 +1228,43 @@
                     saveBtn.innerHTML = originalText;
                 }
             });
+
+            // Filter button event listeners
+            document.getElementById('allFilter').addEventListener('click', function() {
+                setActiveFilter('allFilter');
+                loadProfitData();
+            });
+
+            document.getElementById('invoicesFilter').addEventListener('click', function() {
+                setActiveFilter('invoicesFilter');
+                loadProfitData('invoices');
+            });
+
+            document.getElementById('expensesFilter').addEventListener('click', function() {
+                setActiveFilter('expensesFilter');
+                loadProfitData('expenses');
+            });
+
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                loadProfitData();
+            });
+
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                exportData();
+            });
+
+            document.getElementById('calculateBtn').addEventListener('click', function() {
+                calculateProfits();
+            });
+
+            function setActiveFilter(activeId) {
+                // Remove active class from all filter buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                // Add active class to clicked button
+                document.getElementById(activeId).classList.add('active');
+            }
         });
     </script>
     
