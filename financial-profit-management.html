@@ -505,6 +505,12 @@
                                     تصدير Excel
                                 </button>
                             </div>
+                            <div class="col-lg-2 col-md-6 mb-3">
+                                <button class="btn btn-warning w-100" onclick="calculateProfits()">
+                                    <i class="fas fa-calculator me-2"></i>
+                                    حساب الأرباح
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -873,6 +879,44 @@
         // Export data
         function exportData() {
             showNotification('جاري تصدير البيانات...', 'info');
+        }
+
+        // Calculate profits for all items with cost prices
+        async function calculateProfits() {
+            try {
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+
+                showNotification('جاري حساب الأرباح...', 'info');
+
+                const response = await fetch(`${baseUrl}/api/financial/calculate-profits`, {
+                    method: 'POST',
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to calculate profits');
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    // Reload data to show updated profits
+                    setTimeout(() => loadProfitData(), 1000);
+                } else {
+                    throw new Error(result.message);
+                }
+
+            } catch (error) {
+                console.error('Calculate profits error:', error);
+                showNotification('خطأ في حساب الأرباح', 'error');
+            }
         }
 
         // Show notification

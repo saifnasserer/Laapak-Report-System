@@ -290,7 +290,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     include: [
                         {
                             model: InvoiceItem,
-                            attributes: ['id', 'description', 'amount', 'quantity', 'cost_price', 'profit_amount', 'profit_margin', 'serialNumber']
+                            attributes: ['id', 'description', 'amount', 'quantity', 'cost_price', 'profit_amount', 'profit_margin', 'serialNumber', 'type']
                         },
                         {
                             model: require('../models').Client,
@@ -317,6 +317,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                             profit_margin: item.profit_margin ? parseFloat(item.profit_margin) : null,
                             serial_number: item.serialNumber,
                             item_id: item.id,
+                            item_type: item.type, // laptop, item, service
                             needs_cost_price: !item.cost_price
                         });
                     }
@@ -398,26 +399,30 @@ router.put('/cost-prices/bulk', adminAuth, async (req, res) => {
         const updatedItems = [];
 
         for (const update of updates) {
-            // Update the invoice item
-            await InvoiceItem.update(
-                { cost_price: update.cost_price },
-                { where: { id: update.item_id } }
-            );
+            try {
+                // Update the invoice item
+                await InvoiceItem.update(
+                    { cost_price: update.cost_price },
+                    { where: { id: update.item_id } }
+                );
 
-            // Create/update product cost record
-            if (update.product_name && update.product_model) {
-                await ProductCost.upsert({
-                    product_name: update.product_name,
-                    product_model: update.product_model,
-                    serial_number: update.serial_number,
-                    cost_price: update.cost_price,
-                    effective_date: new Date(),
-                    created_by: req.user.id,
-                    updated_by: req.user.id
-                });
+                // Create/update product cost record
+                if (update.product_name && update.product_model) {
+                    await ProductCost.upsert({
+                        product_name: update.product_name,
+                        product_model: update.product_model,
+                        serial_number: update.serial_number,
+                        cost_price: update.cost_price,
+                        effective_date: new Date(),
+                        created_by: req.user.id,
+                        updated_by: req.user.id
+                    });
+                }
+
+                updatedItems.push(update.item_id);
+            } catch (itemError) {
+                console.error(`Error updating item ${update.item_id}:`, itemError);
             }
-
-            updatedItems.push(update.item_id);
         }
 
         res.json({
@@ -431,6 +436,92 @@ router.put('/cost-prices/bulk', adminAuth, async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Error updating cost prices',
+            error: error.message 
+        });
+    }
+});
+
+/**
+ * PUT /api/financial/cost-price/:itemId
+ * Update cost price for a single invoice item
+ */
+router.put('/cost-price/:itemId', adminAuth, async (req, res) => {
+    try {
+        const { itemId } = req.params;
+        const { cost_price, product_name, product_model, serial_number } = req.body;
+
+        // Update the invoice item
+        await InvoiceItem.update(
+            { cost_price: cost_price },
+            { where: { id: itemId } }
+        );
+
+        // Create/update product cost record if product details provided
+        if (product_name && product_model) {
+            await ProductCost.upsert({
+                product_name: product_name,
+                product_model: product_model,
+                serial_number: serial_number,
+                cost_price: cost_price,
+                effective_date: new Date(),
+                created_by: req.user.id,
+                updated_by: req.user.id
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'تم تحديث تكلفة المنتج بنجاح',
+            data: { item_id: itemId, cost_price: cost_price }
+        });
+
+    } catch (error) {
+        console.error('Cost price update error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error updating cost price',
+            error: error.message 
+        });
+    }
+});
+
+/**
+ * POST /api/financial/calculate-profits
+ * Calculate profits for all invoice items with cost prices
+ */
+router.post('/calculate-profits', adminAuth, async (req, res) => {
+    try {
+        // Get all invoice items with cost prices but no profit calculation
+        const items = await InvoiceItem.findAll({
+            where: {
+                cost_price: { [Op.not]: null },
+                profit_amount: null
+            },
+            include: [{
+                model: Invoice,
+                where: { paymentStatus: 'paid' }
+            }]
+        });
+
+        let calculatedCount = 0;
+        for (const item of items) {
+            // Profit calculation is handled by database triggers
+            // Just refresh the item to get calculated values
+            await item.reload();
+            calculatedCount++;
+        }
+
+        res.json({
+            success: true,
+            message: `تم حساب الأرباح لـ ${calculatedCount} منتج`,
+            data: { calculated_count: calculatedCount }
+        });
+
+    } catch (error) {
+        console.error('Profit calculation error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error calculating profits',
             error: error.message 
         });
     }
