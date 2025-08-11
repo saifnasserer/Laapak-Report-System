@@ -51,32 +51,34 @@
             66% { transform: translateY(-12px) scale(1.02) rotate(-0.5deg); }
         }
 
-        /* Enhanced Header Banner - STUNNING VERSION 🚀 */
-        .financial-banner {
-            background: linear-gradient(135deg, #007553 0%, #004d35 50%, #007553 100%);
-            border-radius: 15px;
-            color: white;
+        /* STUNNING Navigation Bar - Enhanced! 🌟 */
+        .nav-bar {
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            padding: 1.5rem;
             margin-bottom: 2rem;
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.04);
             position: relative;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0, 117, 83, 0.15);
         }
 
-        .financial-banner::before {
+        .nav-bar::before {
             content: '';
             position: absolute;
             top: 0;
-            left: -50%;
-            width: 200%;
-            height: 100%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transform: translateX(-100%);
-            animation: shimmer 3s infinite;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #007553, #00a67a, #007553);
+            background-size: 200% 100%;
+            animation: gradientShift 3s ease-in-out infinite;
         }
 
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         /* Navigation Pills */
@@ -432,55 +434,28 @@
         <div class="floating-element"></div>
     </div>
 
-    <!-- Header Container -->
-    <div id="header-container"></div>
-
-    <div class="container-fluid py-4 px-4 mt-2">
-        <!-- Welcome Banner -->
+    <div class="container-fluid py-4 px-4">
+        <!-- Navigation Bar -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="card border-0 financial-banner">
-                    <div class="card-body p-4 p-md-5">
-                        <div class="row align-items-center">
-                            <div class="col-lg-8">
-                                <h2 class="fw-bold mb-3">
-                                    <i class="fas fa-plus-circle me-3"></i>
-                                    إضافة مصروف جديد
-                                </h2>
-                                <p class="mb-4 opacity-75">إدارة ذكية للمصروفات مع تصنيف تلقائي وتذكيرات شهرية</p>
-                            </div>
-                            <div class="col-lg-4 d-none d-lg-block text-center">
-                                <i class="fas fa-receipt" style="font-size: 4rem; opacity: 0.3;"></i>
-                            </div>
+                <div class="nav-bar">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0 text-dark">
+                            <i class="fas fa-plus-circle me-2 text-primary"></i>
+                            إضافة مصروف جديد
+                        </h4>
+                        <div class="d-flex gap-2">
+                            <a href="financial-dashboard.html" class="btn btn-outline-primary">
+                                <i class="fas fa-chart-line me-2"></i>
+                                لوحة التحكم
+                            </a>
+                            <a href="financial-profit-management.html" class="btn btn-outline-success">
+                                <i class="fas fa-coins me-2"></i>
+                                إدارة الأرباح
+                            </a>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Navigation Pills -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <ul class="nav nav-pills justify-content-center">
-                    <li class="nav-item">
-                        <a class="nav-link" href="financial-dashboard.html">
-                            <i class="fas fa-chart-line me-2"></i>
-                            لوحة القيادة
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="financial-profit-management.html">
-                            <i class="fas fa-coins me-2"></i>
-                            إدارة الأرباح والتكاليف
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#" data-page="expense">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            إضافة مصروف
-                        </a>
-                    </li>
-                </ul>
             </div>
         </div>
 
