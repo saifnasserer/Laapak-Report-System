@@ -21,346 +21,86 @@
     <link rel="stylesheet" href="css/styles.css">
     
     <style>
-        :root {
-            --primary-color: #007553;
-            --secondary-color: #0c6c41;
-            --accent-color: #00d4aa;
-            --success-color: #28a745;
-            --warning-color: #ffc107;
-            --danger-color: #dc3545;
-            --dark-color: #343a40;
-            --light-color: #f8f9fa;
-            --border-radius: 16px;
-            --box-shadow: 0 12px 40px rgba(0, 117, 83, 0.15);
-            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-        }
-
         body {
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            background: #f8f9fa;
             font-family: 'Tajawal', sans-serif;
-            color: #ffffff;
-            min-height: 100vh;
-            overflow-x: hidden;
         }
 
-        /* Futuristic Header - COMPACT & STUNNING 🚀 */
-        .financial-banner {
-            background: linear-gradient(135deg, rgba(0, 117, 83, 0.9) 0%, rgba(12, 108, 65, 0.9) 100%);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            color: white;
-            margin-bottom: 1rem;
-            padding: 1rem 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .financial-banner::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            animation: shimmer 3s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        /* Compact Search & Filter - ICON-BASED 🎯 */
-        .controls-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .controls-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent-color), var(--primary-color), var(--accent-color));
-            animation: borderGlow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes borderGlow {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .search-box {
-            position: relative;
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .search-box input {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            border-radius: 25px;
-            padding: 0.5rem 1rem 0.5rem 3rem;
-            color: white;
-            backdrop-filter: blur(10px);
-            width: 100%;
-        }
-
-        .search-box input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .search-box i {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .filter-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .filter-btn {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            transition: var(--transition);
-            backdrop-filter: blur(10px);
-        }
-
-        .filter-btn:hover {
-            background: rgba(0, 117, 83, 0.3);
-            transform: scale(1.1);
-            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.3);
-        }
-
-        .filter-btn.active {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.4);
-        }
-
-        /* Navigation Pills */
-        .nav-pills .nav-link {
-            border-radius: 25px;
-            padding: 8px 16px;
-            margin: 0 3px;
-            transition: var(--transition);
-            color: rgba(255, 255, 255, 0.7);
-            border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-pills .nav-link.active {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-color: var(--primary-color);
-            color: white;
-            box-shadow: 0 4px 16px rgba(0, 117, 83, 0.3);
-        }
-
-        .nav-pills .nav-link:hover {
-            background: rgba(0, 117, 83, 0.2);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        /* Futuristic Table - MIND-BLOWING DESIGN 🎨 */
-        .table-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            box-shadow: var(--box-shadow);
-            position: relative;
-        }
-
-        .table-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent-color), var(--primary-color), var(--accent-color));
-            animation: borderGlow 2s ease-in-out infinite alternate;
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
         .table {
             margin: 0;
-            background: transparent;
         }
 
         .table thead th {
-            background: linear-gradient(135deg, rgba(0, 117, 83, 0.9) 0%, rgba(12, 108, 65, 0.9) 100%);
-            backdrop-filter: blur(20px);
+            background: #007553;
             color: white;
             border: none;
-            padding: 1.2rem 1rem;
+            padding: 1rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-        }
-
-        .table thead th::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
         }
 
         .table tbody tr {
-            background: rgba(255, 255, 255, 0.02);
-            transition: var(--transition);
-            border: none;
+            transition: all 0.3s ease;
         }
 
         .table tbody tr:hover {
-            background: rgba(0, 117, 83, 0.1);
+            background-color: rgba(0, 117, 83, 0.05);
             transform: scale(1.01);
-            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.2);
         }
 
         .table tbody td {
-            padding: 1.2rem 1rem;
-            border: none;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            border-top: 1px solid #dee2e6;
+            vertical-align: middle;
         }
 
-        /* Futuristic Buttons */
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: #007553;
             border: none;
-            border-radius: 25px;
-            padding: 0.75rem 1.5rem;
-            transition: var(--transition);
-            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn-primary:hover::before {
-            left: 100%;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
         }
 
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 36px rgba(0, 117, 83, 0.4);
+            background: #005a3f;
+            transform: translateY(-2px);
         }
 
         .btn-outline-primary {
-            background: transparent;
-            border: 2px solid var(--primary-color);
-            border-radius: 25px;
-            color: var(--primary-color);
-            transition: var(--transition);
-            position: relative;
-            overflow: hidden;
+            border: 2px solid #007553;
+            color: #007553;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
 
         .btn-outline-primary:hover {
-            background: var(--primary-color);
+            background: #007553;
             color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 117, 83, 0.3);
         }
 
-        /* Futuristic Badges */
-        .badge {
-            border-radius: 20px;
-            padding: 0.5rem 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .badge-invoice {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            box-shadow: 0 4px 16px rgba(0, 117, 83, 0.3);
-        }
-
-        .badge-expense {
-            background: linear-gradient(135deg, var(--warning-color) 0%, #e0a800 100%);
-            color: white;
-            box-shadow: 0 4px 16px rgba(255, 193, 7, 0.3);
-        }
-
-        /* Profit Indicators - GLOWING EFFECTS ✨ */
         .profit-positive {
-            color: #00ff88;
-            font-weight: 700;
-            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            color: #28a745;
+            font-weight: 600;
         }
 
         .profit-negative {
-            color: #ff4757;
-            font-weight: 700;
-            text-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+            color: #dc3545;
+            font-weight: 600;
         }
 
-        .profit-margin-high {
-            color: #00ff88;
-            font-weight: 700;
-        }
-
-        .profit-margin-low {
-            color: #ffa502;
-            font-weight: 700;
-        }
-
-        /* Loading Animation */
         .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid var(--accent-color);
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007553;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
         }
 
         @keyframes spin {
@@ -368,22 +108,20 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Notification System */
         .notification {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 9999;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
             padding: 1rem 1.5rem;
-            color: white;
+            color: #333;
             font-weight: 500;
             transform: translateX(100%);
-            transition: var(--transition);
-            box-shadow: var(--box-shadow);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .notification.show {
@@ -391,151 +129,36 @@
         }
 
         .notification.success {
-            border-left: 4px solid var(--success-color);
+            border-left: 4px solid #28a745;
         }
 
         .notification.error {
-            border-left: 4px solid var(--danger-color);
+            border-left: 4px solid #dc3545;
         }
 
         .notification.warning {
-            border-left: 4px solid var(--warning-color);
+            border-left: 4px solid #ffc107;
         }
+    </style>
 
-        /* Row Styling */
-        .row-invoice {
-            background: linear-gradient(90deg, rgba(0, 117, 83, 0.05) 0%, rgba(0, 117, 83, 0.1) 100%);
-        }
 
-        .row-expense {
-            background: linear-gradient(90deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 193, 7, 0.1) 100%);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .controls-card {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .filter-buttons {
-                justify-content: center;
-            }
-            
-            .table-responsive {
-                border-radius: var(--border-radius);
-            }
-        }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
-        }
     </style>
 </head>
 <body>
-    <!-- Floating Elements - MY SIGNATURE MAGIC ✨ -->
-    <div class="floating-elements">
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-    </div>
 
-    <!-- Header Container -->
-    <div id="header-container"></div>
 
     <div class="container-fluid py-3 px-4">
-        <!-- Compact Header -->
+
+
+
+        <!-- Simple Search -->
         <div class="row mb-3">
             <div class="col-12">
-                <div class="financial-banner">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <h3 class="fw-bold mb-1">
-                                <i class="fas fa-coins me-2"></i>
-                                إدارة الأرباح والتكاليف
-                            </h3>
-                            <p class="mb-0 opacity-75">عرض وتحرير أسعار التكلفة وحساب الأرباح</p>
-                        </div>
-                        <div class="d-none d-lg-block">
-                            <i class="fas fa-calculator" style="font-size: 2.5rem; opacity: 0.3;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Navigation Pills -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <ul class="nav nav-pills justify-content-center">
-                    <li class="nav-item">
-                        <a class="nav-link" href="financial-dashboard.html">
-                            <i class="fas fa-chart-line me-2"></i>
-                            لوحة القيادة
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#" data-page="profit">
-                            <i class="fas fa-coins me-2"></i>
-                            إدارة الأرباح والتكاليف
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="financial-add-expense.html">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            إضافة مصروف
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Compact Controls -->
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="controls-card">
-                    <!-- Search Box -->
-                    <div class="search-box">
+                <div class="input-group">
+                    <span class="input-group-text">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchInput" placeholder="البحث في الفواتير والمصروفات...">
-                    </div>
-                    
-                    <!-- Filter Buttons -->
-                    <div class="filter-buttons">
-                        <button class="filter-btn active" id="allFilter" title="جميع الأنواع">
-                            <i class="fas fa-list"></i>
-                        </button>
-                        <button class="filter-btn" id="invoicesFilter" title="الفواتير فقط">
-                            <i class="fas fa-file-invoice"></i>
-                        </button>
-                        <button class="filter-btn" id="expensesFilter" title="المصروفات فقط">
-                            <i class="fas fa-receipt"></i>
-                        </button>
-                        <button class="filter-btn" id="refreshBtn" title="تحديث البيانات">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                        <button class="filter-btn" id="exportBtn" title="تصدير Excel">
-                            <i class="fas fa-download"></i>
-                        </button>
-                        <button class="filter-btn" id="calculateBtn" title="حساب الأرباح">
-                            <i class="fas fa-calculator"></i>
-                        </button>
-                    </div>
+                    </span>
+                    <input type="text" class="form-control" id="searchInput" placeholder="البحث في اسم العميل...">
                 </div>
             </div>
         </div>
@@ -544,17 +167,11 @@
         <div class="row">
             <div class="col-12">
                 <div class="card table-card">
-                    <div class="card-header" style="background: linear-gradient(135deg, rgba(0, 117, 83, 0.9) 0%, rgba(12, 108, 65, 0.9) 100%); backdrop-filter: blur(20px); border: none;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0 text-white">
-                                <i class="fas fa-table me-2"></i>
-                                بيانات الأرباح والمصروفات
-                            </h5>
-                            <div class="d-flex gap-2" id="tableStats">
-                                <span class="badge badge-invoice">فواتير: 0</span>
-                                <span class="badge badge-expense">مصروفات: 0</span>
-                            </div>
-                        </div>
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-table me-2"></i>
+                            إدارة الأرباح والتكاليف
+                        </h5>
                     </div>
                     
                     <div class="card-body p-0">
@@ -562,11 +179,11 @@
                             <table class="table table-hover mb-0">
                                 <thead class="sticky-top">
                                     <tr>
-                                        <th>التاريخ</th>
-                                        <th>العميل</th>
-                                        <th>إجمالي الفاتورة</th>
+                                        <th>اسم العميل</th>
                                         <th>عدد المنتجات</th>
-                                        <th>المنتجات التي تحتاج تكلفة</th>
+                                        <th>الإجمالي</th>
+                                        <th>التكلفة</th>
+                                        <th>الربح</th>
                                         <th>الإجراءات</th>
                                     </tr>
                                 </thead>
@@ -774,23 +391,19 @@
                 const typeBadge = item.type === 'invoice' ? 'badge-invoice' : 'badge-expense';
                 
                 if (item.type === 'invoice') {
+                    const profitClass = item.total_profit >= 0 ? 'profit-positive' : 'profit-negative';
+                    const profitText = item.total_profit >= 0 ? `+${formatCurrency(item.total_profit)}` : formatCurrency(item.total_profit);
+                    
                     return `
                         <tr class="${rowClass}" data-id="${item.id}">
-                            <td>${new Date(item.date).toLocaleDateString('ar-EG')}</td>
                             <td>
                                 <div class="fw-bold">${item.client_name}</div>
                                 <small class="text-muted">#${item.invoice_id}</small>
                             </td>
-                            <td>
-                                <div class="fw-bold">${formatCurrency(item.total)}</div>
-                                <small class="text-muted">${item.items_count} منتج</small>
-                            </td>
                             <td>${item.items_count}</td>
-                            <td>
-                                <span class="badge ${item.has_items_needing_cost ? 'bg-warning' : 'bg-success'}">
-                                    ${item.items_needing_cost} منتج
-                                </span>
-                            </td>
+                            <td>${formatCurrency(item.total)}</td>
+                            <td>${formatCurrency(item.total_cost)}</td>
+                            <td class="${profitClass}">${profitText}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" 
                                         onclick="openInvoiceItemsModal('${item.invoice_id}', '${item.client_name}', ${item.total})">
@@ -800,19 +413,20 @@
                         </tr>
                     `;
                 } else {
-                    // Handle expenses (keep existing logic)
+                    // Handle expenses
                     return `
                         <tr class="${rowClass}" data-id="${item.id}">
                             <td>
-                                <span class="badge ${typeBadge} px-3 py-2">${typeLabel}</span>
-                            </td>
-                            <td>${new Date(item.date).toLocaleDateString('ar-EG')}</td>
-                            <td>
                                 <div class="fw-bold">${item.description}</div>
+                                <small class="text-muted">${item.category}</small>
                             </td>
-                            <td>${item.category || '-'}</td>
-                            <td>${formatCurrency(item.amount)}</td>
                             <td>-</td>
+                            <td class="text-danger">-${formatCurrency(item.amount)}</td>
+                            <td>-</td>
+                            <td class="text-danger">-${formatCurrency(item.amount)}</td>
+                            <td>
+                                <span class="badge badge-expense">مصروف</span>
+                            </td>
                         </tr>
                     `;
                 }
@@ -1229,42 +843,7 @@
                 }
             });
 
-            // Filter button event listeners
-            document.getElementById('allFilter').addEventListener('click', function() {
-                setActiveFilter('allFilter');
-                loadProfitData();
-            });
 
-            document.getElementById('invoicesFilter').addEventListener('click', function() {
-                setActiveFilter('invoicesFilter');
-                loadProfitData('invoices');
-            });
-
-            document.getElementById('expensesFilter').addEventListener('click', function() {
-                setActiveFilter('expensesFilter');
-                loadProfitData('expenses');
-            });
-
-            document.getElementById('refreshBtn').addEventListener('click', function() {
-                loadProfitData();
-            });
-
-            document.getElementById('exportBtn').addEventListener('click', function() {
-                exportData();
-            });
-
-            document.getElementById('calculateBtn').addEventListener('click', function() {
-                calculateProfits();
-            });
-
-            function setActiveFilter(activeId) {
-                // Remove active class from all filter buttons
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                // Add active class to clicked button
-                document.getElementById(activeId).classList.add('active');
-            }
         });
     </script>
     

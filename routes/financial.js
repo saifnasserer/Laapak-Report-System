@@ -292,20 +292,16 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                         i.id as invoice_id,
                         i.date as invoice_date,
                         i.total as invoice_total,
-                        i.subtotal,
-                        i.discount,
-                        i.tax,
-                        i.paymentStatus,
-                        i.paymentMethod,
                         c.name as client_name,
                         c.id as client_id,
                         COUNT(ii.id) as items_count,
-                        SUM(CASE WHEN ii.cost_price IS NULL THEN 1 ELSE 0 END) as items_needing_cost
+                        COALESCE(SUM(ii.cost_price * ii.quantity), 0) as total_cost,
+                        COALESCE(SUM(ii.profit_amount), 0) as total_profit
                     FROM invoices i
                     LEFT JOIN clients c ON i.client_id = c.id
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
                     WHERE i.paymentStatus = 'paid'
-                    GROUP BY i.id, i.date, i.total, i.subtotal, i.discount, i.tax, i.paymentStatus, i.paymentMethod, c.name, c.id
+                    GROUP BY i.id, i.date, i.total, c.name, c.id
                     ORDER BY i.date DESC
                     LIMIT ${parseInt(limit)}
                     OFFSET ${offset}
@@ -323,14 +319,9 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                         client_name: row.client_name,
                         client_id: row.client_id,
                         total: parseFloat(row.invoice_total),
-                        subtotal: parseFloat(row.subtotal),
-                        discount: parseFloat(row.discount || 0),
-                        tax: parseFloat(row.tax),
-                        payment_status: row.paymentStatus,
-                        payment_method: row.paymentMethod,
                         items_count: parseInt(row.items_count),
-                        items_needing_cost: parseInt(row.items_needing_cost || 0),
-                        has_items_needing_cost: parseInt(row.items_needing_cost || 0) > 0
+                        total_cost: parseFloat(row.total_cost),
+                        total_profit: parseFloat(row.total_profit)
                     });
                 }
                 
