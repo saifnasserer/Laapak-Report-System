@@ -479,6 +479,10 @@ router.put('/cost-prices/bulk', adminAuth, async (req, res) => {
  * Update cost price for a single invoice item
  */
 router.put('/cost-price/:itemId', adminAuth, async (req, res) => {
+    console.log('=== COST PRICE UPDATE ROUTE HIT ===');
+    console.log('Params:', req.params);
+    console.log('Body:', req.body);
+    
     try {
         const { itemId } = req.params;
         const { cost_price, product_name, product_model, serial_number } = req.body;
