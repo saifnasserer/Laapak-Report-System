@@ -413,10 +413,15 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 router.put('/cost-prices/bulk', adminAuth, async (req, res) => {
     try {
         const { updates } = req.body; // Array of { item_id, cost_price, product_name, product_model, serial_number }
+        console.log('Received bulk update request:', updates);
+        console.log('Updates count:', updates ? updates.length : 0);
+        
         const updatedItems = [];
 
         for (const update of updates) {
             try {
+                console.log('Processing update:', update);
+                
                 // Update the invoice item
                 await InvoiceItem.update(
                     { cost_price: update.cost_price },
@@ -442,6 +447,8 @@ router.put('/cost-prices/bulk', adminAuth, async (req, res) => {
             }
         }
 
+        console.log(`Successfully updated ${updatedItems.length} items:`, updatedItems);
+        
         res.json({
             success: true,
             message: `تم تحديث ${updatedItems.length} عنصر بنجاح`,

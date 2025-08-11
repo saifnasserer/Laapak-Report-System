@@ -718,7 +718,10 @@
         // Edit cost price inline
         function editCostPrice(id, currentPrice, description, serialNumber) {
             const field = document.querySelector(`[data-id="${id}"] .editable-field`);
+            if (!field) return;
+            
             const itemId = field.dataset.itemId;
+            let isEditing = true;
             
             const input = document.createElement('input');
             input.type = 'number';
@@ -733,6 +736,9 @@
             input.select();
 
             const saveEdit = () => {
+                if (!isEditing) return;
+                isEditing = false;
+                
                 const newValue = parseFloat(input.value) || 0;
                 
                 // Add to pending changes
@@ -744,10 +750,12 @@
                     serial_number: serialNumber
                 });
 
-                // Update display
-                field.innerHTML = formatCurrency(newValue);
-                field.classList.remove('empty');
-                field.classList.add('success-animation');
+                // Update display safely
+                if (field && field.parentNode) {
+                    field.innerHTML = formatCurrency(newValue);
+                    field.classList.remove('empty');
+                    field.classList.add('success-animation');
+                }
 
                 // Update bulk save button
                 updateBulkSaveButton();
@@ -757,14 +765,25 @@
             };
 
             const cancelEdit = () => {
-                field.innerHTML = currentPrice ? formatCurrency(currentPrice) : 'لم يتم تحديده';
-                if (!currentPrice) field.classList.add('empty');
+                if (!isEditing) return;
+                isEditing = false;
+                
+                if (field && field.parentNode) {
+                    field.innerHTML = currentPrice ? formatCurrency(currentPrice) : 'لم يتم تحديده';
+                    if (!currentPrice) field.classList.add('empty');
+                }
             };
 
             input.addEventListener('blur', saveEdit);
             input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') saveEdit();
-                if (e.key === 'Escape') cancelEdit();
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit();
+                }
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEdit();
+                }
             });
         }
 
@@ -808,12 +827,19 @@
             const changeCount = document.getElementById('changeCount');
             
             const count = pendingChanges.size;
-            changeCount.textContent = count;
-
-            if (count > 0) {
-                bulkSave.classList.add('show');
-            } else {
-                bulkSave.classList.remove('show');
+            
+            // Safely update change count
+            if (changeCount) {
+                changeCount.textContent = count;
+            }
+            
+            // Safely update bulk save button
+            if (bulkSave) {
+                if (count > 0) {
+                    bulkSave.classList.add('show');
+                } else {
+                    bulkSave.classList.remove('show');
+                }
             }
         }
 
@@ -822,6 +848,8 @@
             if (pendingChanges.size === 0) return;
 
             const bulkSave = document.getElementById('bulkSave');
+            if (!bulkSave) return;
+            
             const originalText = bulkSave.innerHTML;
             
             bulkSave.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
@@ -837,6 +865,9 @@
                 const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                 
                 const updates = Array.from(pendingChanges.values());
+                
+                console.log('Sending updates to API:', updates);
+                console.log('Updates count:', updates.length);
 
                 const response = await fetch(`${baseUrl}/api/financial/cost-prices/bulk`, {
                     method: 'PUT',
@@ -866,12 +897,16 @@
 
             } catch (error) {
                 console.error('Bulk save error:', error);
-                bulkSave.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> خطأ في الحفظ';
-                
-                setTimeout(() => {
-                    bulkSave.innerHTML = originalText;
-                    bulkSave.disabled = false;
-                }, 3000);
+                if (bulkSave) {
+                    bulkSave.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> خطأ في الحفظ';
+                    
+                    setTimeout(() => {
+                        if (bulkSave) {
+                            bulkSave.innerHTML = originalText;
+                            bulkSave.disabled = false;
+                        }
+                    }, 3000);
+                }
 
                 showNotification('خطأ في حفظ التغييرات', 'error');
             }
