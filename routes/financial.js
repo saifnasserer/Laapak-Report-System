@@ -284,55 +284,53 @@ router.get('/profit-management', adminAuth, async (req, res) => {
             try {
                 console.log('Fetching invoices with whereClause:', whereClause);
                 
-                // First, let's check if we can find any paid invoices at all
-                const totalPaidInvoices = await Invoice.count({
-                    where: { paymentStatus: 'paid' }
-                });
-                console.log(`Total paid invoices in database: ${totalPaidInvoices}`);
+                // Use direct SQL query to bypass association issues
+                const { sequelize } = require('../models');
                 
-                // Get completed invoices with profit calculations
-                const invoices = await Invoice.findAll({
-                    where: {
-                        ...whereClause,
-                        paymentStatus: 'paid'
-                    },
-                    include: [
-                        {
-                            model: InvoiceItem,
-                            attributes: ['id', 'description', 'amount', 'quantity', 'cost_price', 'profit_amount', 'profit_margin', 'serialNumber', 'type']
-                        },
-                        {
-                            model: Client,
-                            attributes: ['name']
-                        }
-                    ],
-                    order: [['date', 'DESC']],
-                    limit: parseInt(limit),
-                    offset: offset
-                });
-
-                console.log(`Found ${invoices.length} invoices with items`);
+                const query = `
+                    SELECT 
+                        i.id as invoice_id,
+                        i.date as invoice_date,
+                        i.total as invoice_total,
+                        ii.id as item_id,
+                        ii.description as item_description,
+                        ii.amount as sale_price,
+                        ii.quantity,
+                        ii.cost_price,
+                        ii.profit_amount,
+                        ii.profit_margin,
+                        ii.serialNumber,
+                        ii.type as item_type,
+                        c.name as client_name
+                    FROM invoices i
+                    LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
+                    LEFT JOIN clients c ON i.client_id = c.id
+                    WHERE i.paymentStatus = 'paid'
+                    ORDER BY i.date DESC
+                    LIMIT ${parseInt(limit)}
+                    OFFSET ${offset}
+                `;
                 
-                for (const invoice of invoices) {
-                    console.log(`Invoice ${invoice.id} has ${invoice.InvoiceItems.length} items`);
-                    for (const item of invoice.InvoiceItems) {
-                        results.push({
-                            id: `invoice-${invoice.id}-${item.id}`,
-                            type: 'invoice',
-                            date: invoice.date,
-                            description: item.description,
-                            client_name: invoice.Client?.name,
-                            sale_price: parseFloat(item.amount),
-                            cost_price: item.cost_price ? parseFloat(item.cost_price) : null,
-                            quantity: item.quantity,
-                            profit_amount: item.profit_amount ? parseFloat(item.profit_amount) : null,
-                            profit_margin: item.profit_margin ? parseFloat(item.profit_margin) : null,
-                            serial_number: item.serialNumber,
-                            item_id: item.id,
-                            item_type: item.type, // laptop, item, service
-                            needs_cost_price: !item.cost_price
-                        });
-                    }
+                const [rawResults] = await sequelize.query(query);
+                console.log(`Raw SQL query returned ${rawResults.length} items`);
+                
+                for (const row of rawResults) {
+                    results.push({
+                        id: `invoice-${row.invoice_id}-${row.item_id}`,
+                        type: 'invoice',
+                        date: row.invoice_date,
+                        description: row.item_description,
+                        client_name: row.client_name,
+                        sale_price: parseFloat(row.sale_price),
+                        cost_price: row.cost_price ? parseFloat(row.cost_price) : null,
+                        quantity: row.quantity,
+                        profit_amount: row.profit_amount ? parseFloat(row.profit_amount) : null,
+                        profit_margin: row.profit_margin ? parseFloat(row.profit_margin) : null,
+                        serial_number: row.serialNumber,
+                        item_id: row.item_id,
+                        item_type: row.item_type,
+                        needs_cost_price: !row.cost_price
+                    });
                 }
                 
                 console.log(`Total results from invoices: ${results.length}`);
