@@ -459,6 +459,8 @@
                 const result = await response.json();
                 const items = result.data;
                 
+                console.log('Invoice items loaded:', items);
+                
                 // Render invoice items table
                 const tbody = document.getElementById('invoiceItemsTableBody');
                 tbody.innerHTML = items.map(item => `
@@ -474,7 +476,7 @@
                                     ${item.cost_price ? formatCurrency(item.cost_price) : 'لم يتم تحديده'}
                                 </span>
                                 <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || null}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price}, '${clientName}', ${item.item_id})">
+                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || 0}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price}, '${clientName}', ${item.item_id})">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </div>
@@ -510,6 +512,8 @@
 
         // Open cost price edit modal
         function openCostPriceModal(id, currentPrice, description, serialNumber, salePrice, clientName, itemId) {
+            console.log('Opening modal with:', { id, currentPrice, description, serialNumber, salePrice, clientName, itemId });
+            
             // Get modal elements
             const modalProductName = document.getElementById('modalProductName');
             const modalSalePrice = document.getElementById('modalSalePrice');
@@ -529,11 +533,14 @@
             modalProductName.textContent = description;
             modalSalePrice.textContent = formatCurrency(salePrice);
             
-            // Set current cost if it exists and is not 0
+            // Set current cost if it exists and is greater than 0
+            console.log('Setting cost price:', currentPrice, 'Type:', typeof currentPrice);
             if (currentPrice && currentPrice > 0) {
                 modalCostPrice.value = currentPrice;
+                console.log('Set cost price to:', currentPrice);
             } else {
                 modalCostPrice.value = '';
+                console.log('Cleared cost price');
             }
             
             // Calculate expected profit and margin
@@ -824,10 +831,7 @@
                     console.log('Response result:', result);
                     
                     if (result.success) {
-                        // Reload the entire table to show updated data
-                        loadProfitData();
-                        
-                        // Close modal safely
+                        // Close modal safely first
                         try {
                             const modalElement = document.getElementById('costPriceModal');
                             const modalInstance = bootstrap.Modal.getInstance(modalElement);
@@ -839,6 +843,11 @@
                         }
                         
                         showNotification('تم حفظ التكلفة بنجاح!', 'success');
+                        
+                        // Reload the entire table to show updated data
+                        setTimeout(() => {
+                            loadProfitData();
+                        }, 500);
                     } else {
                         throw new Error(result.message || 'فشل في حفظ التكلفة');
                     }
