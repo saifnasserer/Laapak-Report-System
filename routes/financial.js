@@ -499,15 +499,14 @@ router.put('/cost-price/:itemId', adminAuth, async (req, res) => {
         console.log(`Existing item found:`, existingItem ? 'Yes' : 'No');
         
         if (existingItem) {
-            // Use direct SQL query instead of Sequelize ORM
-            const updateQuery = `UPDATE invoice_items SET cost_price = ? WHERE id = ?`;
-            const [updateResult] = await sequelize.query(updateQuery, {
-                replacements: [cost_price, parseInt(itemId)],
-                type: sequelize.QueryTypes.UPDATE
-            });
-            console.log(`Direct SQL update result:`, updateResult);
+            // Use Sequelize ORM approach like the working routes
+            const updateResult = await InvoiceItem.update(
+                { cost_price: cost_price },
+                { where: { id: parseInt(itemId) } }
+            );
+            console.log(`InvoiceItem update result:`, updateResult);
             
-            if (updateResult.affectedRows > 0) {
+            if (updateResult[0] > 0) {
                 console.log(`Successfully updated item ${itemId} with cost price ${cost_price}`);
             } else {
                 console.log(`No rows were updated for item ${itemId}`);
