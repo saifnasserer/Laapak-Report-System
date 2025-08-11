@@ -553,6 +553,9 @@ router.get('/invoice/:invoiceId/items', adminAuth, async (req, res) => {
     try {
         const { invoiceId } = req.params;
         
+        // Import sequelize
+        const { sequelize } = require('../models');
+        
         const query = `
             SELECT 
                 ii.id as item_id,
