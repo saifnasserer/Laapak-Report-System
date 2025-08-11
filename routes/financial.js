@@ -488,17 +488,26 @@ router.put('/cost-price/:itemId', adminAuth, async (req, res) => {
         // First check if the item exists
         const existingItem = await InvoiceItem.findByPk(parseInt(itemId));
         console.log(`Existing item found:`, existingItem ? 'Yes' : 'No');
+        console.log(`Item details:`, existingItem ? {
+            id: existingItem.id,
+            description: existingItem.description,
+            current_cost: existingItem.cost_price
+        } : 'Not found');
         
         if (existingItem) {
             // Use Sequelize ORM approach like the working routes
             const updateResult = await InvoiceItem.update(
-                { cost_price: cost_price },
+                { cost_price: parseFloat(cost_price) },
                 { where: { id: parseInt(itemId) } }
             );
             console.log(`InvoiceItem update result:`, updateResult);
             
             if (updateResult[0] > 0) {
                 console.log(`Successfully updated item ${itemId} with cost price ${cost_price}`);
+                
+                // Verify the update by fetching the item again
+                const updatedItem = await InvoiceItem.findByPk(parseInt(itemId));
+                console.log(`Updated item cost_price:`, updatedItem.cost_price);
             } else {
                 console.log(`No rows were updated for item ${itemId}`);
             }
