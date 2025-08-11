@@ -447,6 +447,9 @@
                 const modal = new bootstrap.Modal(document.getElementById('invoiceItemsModal'));
                 modal.show();
                 
+                // Store current invoice ID for refresh purposes
+                document.getElementById('invoiceItemsModal').setAttribute('data-current-invoice-id', invoiceId);
+                
                 // Update modal title
                 document.getElementById('modalInvoiceClient').textContent = clientName;
                 
@@ -858,6 +861,20 @@
                         // Reload the entire table to show updated data
                         setTimeout(() => {
                             loadProfitData();
+                            
+                            // Also refresh the invoice items modal if it's open
+                            const invoiceItemsModal = document.getElementById('invoiceItemsModal');
+                            if (invoiceItemsModal && bootstrap.Modal.getInstance(invoiceItemsModal)) {
+                                // Get the current invoice ID from the modal title
+                                const modalTitle = document.getElementById('modalInvoiceClient');
+                                if (modalTitle && modalTitle.textContent) {
+                                    // Extract invoice ID from the modal data or reload the current invoice
+                                    const currentInvoiceId = invoiceItemsModal.getAttribute('data-current-invoice-id');
+                                    if (currentInvoiceId) {
+                                        openInvoiceItemsModal(currentInvoiceId, modalTitle.textContent, 0);
+                                    }
+                                }
+                            }
                         }, 500);
                     } else {
                         throw new Error(result.message || 'فشل في حفظ التكلفة');

@@ -571,18 +571,28 @@ router.get('/invoice/:invoiceId/items', adminAuth, async (req, res) => {
         }
         
         // Transform the data to match the expected format
-        const items = invoice.InvoiceItems.map(item => ({
-            item_id: item.id,
-            item_description: item.description,
-            sale_price: parseFloat(item.amount),
-            quantity: parseInt(item.quantity || 1),
-            cost_price: item.cost_price ? parseFloat(item.cost_price) : null,
-            profit_amount: item.profit_amount ? parseFloat(item.profit_amount) : null,
-            profit_margin: item.profit_margin ? parseFloat(item.profit_margin) : null,
-            serialNumber: item.serialNumber,
-            item_type: item.type,
-            needs_cost_price: !item.cost_price
-        }));
+        const items = invoice.InvoiceItems.map(item => {
+            const salePrice = parseFloat(item.amount);
+            const costPrice = item.cost_price ? parseFloat(item.cost_price) : 0;
+            const quantity = parseInt(item.quantity || 1);
+            
+            // Calculate profit manually instead of relying on generated columns
+            const profitAmount = costPrice > 0 ? (salePrice - costPrice) * quantity : null;
+            const profitMargin = costPrice > 0 && salePrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : null;
+            
+            return {
+                item_id: item.id,
+                item_description: item.description,
+                sale_price: salePrice,
+                quantity: quantity,
+                cost_price: item.cost_price ? parseFloat(item.cost_price) : null,
+                profit_amount: profitAmount,
+                profit_margin: profitMargin,
+                serialNumber: item.serialNumber,
+                item_type: item.type,
+                needs_cost_price: !item.cost_price
+            };
+        });
         
         res.json({
             success: true,
