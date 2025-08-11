@@ -13,7 +13,8 @@ const {
     FinancialSummary,
     Invoice,
     InvoiceItem,
-    Admin
+    Admin,
+    Client
 } = require('../models');
 const { Op } = require('sequelize');
 
