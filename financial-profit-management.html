@@ -179,17 +179,18 @@
                             <table class="table table-hover mb-0">
                                 <thead class="sticky-top">
                                     <tr>
-                                        <th>اسم العميل</th>
-                                        <th>عدد المنتجات</th>
-                                        <th>الإجمالي</th>
-                                        <th>التكلفة</th>
-                                        <th>الربح</th>
-                                        <th>الإجراءات</th>
+                                                                <th>التاريخ</th>
+                        <th>اسم العميل</th>
+                        <th>عدد المنتجات</th>
+                        <th>الإجمالي</th>
+                        <th>التكلفة</th>
+                        <th>الربح</th>
+                        <th>الإجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="dataTableBody">
                                     <tr>
-                                        <td colspan="6" class="text-center py-5">
+                                        <td colspan="7" class="text-center py-5">
                                             <div class="loading-spinner mx-auto"></div>
                                             <p class="text-muted mt-3">جاري تحميل البيانات...</p>
                                         </td>
@@ -264,11 +265,15 @@
                     </div>
                     
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-bold text-dark">سعر البيع</label>
                             <div class="form-control-plaintext bg-light rounded p-2 text-success fw-bold" id="modalSalePrice"></div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-dark">الكمية</label>
+                            <div class="form-control-plaintext bg-light rounded p-2" id="modalQuantity"></div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-bold text-dark">سعر التكلفة <span class="text-danger">*</span></label>
                             <input type="number" class="form-control form-control-lg" id="modalCostPrice" step="0.01" min="0" required placeholder="أدخل سعر التكلفة">
                         </div>
@@ -376,7 +381,7 @@
             if (!data || data.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center py-5">
+                        <td colspan="7" class="text-center py-5">
                             <i class="fas fa-inbox text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
                             <p class="text-muted mt-3">لا توجد بيانات لعرضها</p>
                         </td>
@@ -396,6 +401,7 @@
                     
                     return `
                         <tr class="${rowClass}" data-id="${item.id}">
+                            <td>${new Date(item.date).toLocaleDateString('ar-EG')}</td>
                             <td>
                                 <div class="fw-bold">${item.client_name}</div>
                                 <small class="text-muted">#${item.invoice_id}</small>
@@ -416,6 +422,7 @@
                     // Handle expenses
                     return `
                         <tr class="${rowClass}" data-id="${item.id}">
+                            <td>${new Date(item.date).toLocaleDateString('ar-EG')}</td>
                             <td>
                                 <div class="fw-bold">${item.description}</div>
                                 <small class="text-muted">${item.category}</small>
@@ -476,7 +483,7 @@
                                     ${item.cost_price ? formatCurrency(item.cost_price) : 'لم يتم تحديده'}
                                 </span>
                                 <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || 0}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price}, '${clientName}', ${item.item_id})">
+                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || 0}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price}, '${clientName}', ${item.item_id}, ${item.quantity})">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </div>
@@ -511,19 +518,20 @@
         }
 
         // Open cost price edit modal
-        function openCostPriceModal(id, currentPrice, description, serialNumber, salePrice, clientName, itemId) {
+        function openCostPriceModal(id, currentPrice, description, serialNumber, salePrice, clientName, itemId, quantity) {
             console.log('Opening modal with:', { id, currentPrice, description, serialNumber, salePrice, clientName, itemId });
             
             // Get modal elements
             const modalProductName = document.getElementById('modalProductName');
             const modalSalePrice = document.getElementById('modalSalePrice');
+            const modalQuantity = document.getElementById('modalQuantity');
             const modalCostPrice = document.getElementById('modalCostPrice');
             const modalExpectedProfit = document.getElementById('modalExpectedProfit');
             const modalExpectedMargin = document.getElementById('modalExpectedMargin');
             const costPriceModal = document.getElementById('costPriceModal');
             
             // Check if all elements exist
-            if (!modalProductName || !modalSalePrice || !modalCostPrice || !modalExpectedProfit || !modalExpectedMargin || !costPriceModal) {
+            if (!modalProductName || !modalSalePrice || !modalQuantity || !modalCostPrice || !modalExpectedProfit || !modalExpectedMargin || !costPriceModal) {
                 console.error('Modal elements not found');
                 showNotification('خطأ في تحميل النافذة', 'error');
                 return;
@@ -532,6 +540,7 @@
             // Populate modal fields
             modalProductName.textContent = description;
             modalSalePrice.textContent = formatCurrency(salePrice);
+            modalQuantity.textContent = quantity || 1;
             
             // Set current cost if it exists and is greater than 0
             console.log('Setting cost price:', currentPrice, 'Type:', typeof currentPrice);
@@ -566,6 +575,7 @@
         function updateModalCalculations() {
             const modalSalePrice = document.getElementById('modalSalePrice');
             const modalCostPrice = document.getElementById('modalCostPrice');
+            const modalQuantity = document.getElementById('modalQuantity');
             const modalExpectedProfit = document.getElementById('modalExpectedProfit');
             const modalExpectedMargin = document.getElementById('modalExpectedMargin');
             
@@ -575,9 +585,10 @@
             
             const salePrice = parseFloat(modalSalePrice.textContent.replace(/[^\d.-]/g, '')) || 0;
             const costPrice = parseFloat(modalCostPrice.value) || 0;
+            const quantity = parseInt(modalQuantity.textContent) || 1;
             
-            const profit = salePrice - costPrice;
-            const margin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
+            const profit = (salePrice - costPrice) * quantity;
+            const margin = salePrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
             
             modalExpectedProfit.textContent = formatCurrency(profit);
             modalExpectedMargin.textContent = formatPercentage(margin);
