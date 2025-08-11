@@ -36,6 +36,23 @@ const InvoiceItem = sequelize.define('InvoiceItem', {
     serialNumber: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    product_cost_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: 'product_costs', key: 'id' }
+    },
+    cost_price: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    profit_amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    profit_margin: {
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: true
     }
 }, {
     tableName: 'invoice_items',
