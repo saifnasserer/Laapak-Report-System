@@ -27,7 +27,10 @@ document.addEventListener('DOMContentLoaded', function() {
         'invoices.html',
         'create-invoice.html',
         'edit-invoice.html',
-        'view-invoice.html'
+        'view-invoice.html',
+        'financial-dashboard.html',
+        'financial-profit-management.html',
+        'financial-add-expense.html'
     ];
     
     const clientPages = [

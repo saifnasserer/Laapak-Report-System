@@ -619,4 +619,77 @@ router.get('/analytics/monthly-summary/:monthYear', adminAuth, async (req, res) 
     }
 });
 
+// =============================================================================
+// TEST ROUTES
+// =============================================================================
+
+/**
+ * GET /api/financial/test
+ * Test endpoint to check if financial tables and models exist
+ */
+router.get('/test', adminAuth, async (req, res) => {
+    try {
+        // Test if models are loaded
+        const modelTests = {
+            ExpenseCategory: typeof ExpenseCategory !== 'undefined',
+            Expense: typeof Expense !== 'undefined',
+            ProductCost: typeof ProductCost !== 'undefined',
+            FinancialSummary: typeof FinancialSummary !== 'undefined'
+        };
+
+        // Test if tables exist by trying to count records
+        const tableTests = {};
+        
+        try {
+            await ExpenseCategory.count();
+            tableTests.ExpenseCategory = true;
+        } catch (error) {
+            tableTests.ExpenseCategory = false;
+            tableTests.ExpenseCategoryError = error.message;
+        }
+
+        try {
+            await Expense.count();
+            tableTests.Expense = true;
+        } catch (error) {
+            tableTests.Expense = false;
+            tableTests.ExpenseError = error.message;
+        }
+
+        try {
+            await ProductCost.count();
+            tableTests.ProductCost = true;
+        } catch (error) {
+            tableTests.ProductCost = false;
+            tableTests.ProductCostError = error.message;
+        }
+
+        try {
+            await FinancialSummary.count();
+            tableTests.FinancialSummary = true;
+        } catch (error) {
+            tableTests.FinancialSummary = false;
+            tableTests.FinancialSummaryError = error.message;
+        }
+
+        res.json({
+            success: true,
+            message: 'Financial module test results',
+            modelTests,
+            tableTests
+        });
+
+    } catch (error) {
+        console.error('Financial test error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Financial test failed',
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
+
+// =============================================================================
+
 module.exports = router; 

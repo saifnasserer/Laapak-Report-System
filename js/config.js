@@ -2,7 +2,7 @@
 var config = {
     // API configuration
     api: {
-        // Default to window.location.origin if no API_BASE_URL is set
+        // Use localhost for development (change to production URL when deploying)
         baseUrl: 'https://reports.laapak.com',
         version: 'v1'
     }
