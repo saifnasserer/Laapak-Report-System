@@ -206,7 +206,7 @@
 
 
     <!-- Invoice Items Modal -->
-    <div class="modal fade" id="invoiceItemsModal" tabindex="-1" aria-labelledby="invoiceItemsModalLabel" aria-hidden="true">
+    <div class="modal fade" id="invoiceItemsModal" tabindex="-1" aria-labelledby="invoiceItemsModalLabel">
         <div class="modal-dialog modal-xl">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header" style="background: linear-gradient(135deg, #007553 0%, #0c6c41 100%); border: none;">
@@ -247,7 +247,7 @@
     </div>
 
     <!-- Cost Price Edit Modal -->
-    <div class="modal fade" id="costPriceModal" tabindex="-1" aria-labelledby="costPriceModalLabel" aria-hidden="true">
+    <div class="modal fade" id="costPriceModal" tabindex="-1" aria-labelledby="costPriceModalLabel">
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header" style="background: linear-gradient(135deg, #007553 0%, #0c6c41 100%); border: none;">
@@ -474,7 +474,7 @@
                                     ${item.cost_price ? formatCurrency(item.cost_price) : 'لم يتم تحديده'}
                                 </span>
                                 <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || 0}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price}, '${clientName}', ${item.item_id})">
+                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || null}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price}, '${clientName}', ${item.item_id})">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </div>
@@ -528,7 +528,13 @@
             // Populate modal fields
             modalProductName.textContent = description;
             modalSalePrice.textContent = formatCurrency(salePrice);
-            modalCostPrice.value = currentPrice || '';
+            
+            // Set current cost if it exists and is not 0
+            if (currentPrice && currentPrice > 0) {
+                modalCostPrice.value = currentPrice;
+            } else {
+                modalCostPrice.value = '';
+            }
             
             // Calculate expected profit and margin
             updateModalCalculations();
@@ -818,8 +824,8 @@
                     console.log('Response result:', result);
                     
                     if (result.success) {
-                        // Update the table row
-                        updateTableRowCostPrice(rowId, costPrice);
+                        // Reload the entire table to show updated data
+                        loadProfitData();
                         
                         // Close modal safely
                         try {
