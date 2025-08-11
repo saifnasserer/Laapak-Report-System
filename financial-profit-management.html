@@ -272,31 +272,7 @@
             font-weight: 600;
         }
 
-        /* Bulk Save Button */
-        .bulk-save-btn {
-            position: fixed;
-            bottom: 2rem;
-            left: 2rem;
-            background: linear-gradient(135deg, #198754 0%, #0c6c41 100%);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 25px;
-            border: none;
-            box-shadow: 0 4px 15px rgba(25, 135, 84, 0.3);
-            transform: translateY(100px);
-            transition: all 0.3s ease;
-            z-index: 1000;
-            font-weight: 600;
-        }
 
-        .bulk-save-btn.show {
-            transform: translateY(0);
-        }
-
-        .bulk-save-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(25, 135, 84, 0.4);
-        }
 
         .bulk-count {
             background: rgba(255, 255, 255, 0.2);
@@ -572,80 +548,53 @@
         </div>
     </div>
 
-    <!-- Bulk Save Button -->
-    <button class="bulk-save-btn" id="bulkSave" onclick="saveBulkChanges()">
-        <span class="bulk-count" id="changeCount">0</span>
-        <i class="fas fa-save me-2"></i>
-        حفظ التغييرات
-    </button>
+
 
     <!-- Cost Price Edit Modal -->
     <div class="modal fade" id="costPriceModal" tabindex="-1" aria-labelledby="costPriceModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="costPriceModalLabel">
-                        <i class="fas fa-edit me-2"></i>
-                        تعديل تكلفة المنتج
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header" style="background: linear-gradient(135deg, #007553 0%, #0c6c41 100%); border: none;">
+                    <h5 class="modal-title text-white" id="costPriceModalLabel">
+                        <i class="fas fa-dollar-sign me-2"></i>
+                        إضافة تكلفة المنتج
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row">
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">المنتج</label>
+                        <div class="form-control-plaintext bg-light rounded p-2" id="modalProductName"></div>
+                    </div>
+                    
+                    <div class="row mb-4">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">المنتج</label>
-                                <input type="text" class="form-control" id="modalProductName" readonly>
-                            </div>
+                            <label class="form-label fw-bold text-dark">سعر البيع</label>
+                            <div class="form-control-plaintext bg-light rounded p-2 text-success fw-bold" id="modalSalePrice"></div>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">الرقم التسلسلي</label>
-                                <input type="text" class="form-control" id="modalSerialNumber" readonly>
-                            </div>
+                            <label class="form-label fw-bold text-dark">سعر التكلفة <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-lg" id="modalCostPrice" step="0.01" min="0" required placeholder="أدخل سعر التكلفة">
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">سعر البيع</label>
-                                <input type="text" class="form-control" id="modalSalePrice" readonly>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">سعر التكلفة <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="modalCostPrice" step="0.01" min="0" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">الربح المتوقع</label>
-                                <input type="text" class="form-control" id="modalExpectedProfit" readonly>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
+                    
+                    <div class="row mb-4">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">هامش الربح المتوقع</label>
-                                <input type="text" class="form-control" id="modalExpectedMargin" readonly>
-                            </div>
+                            <label class="form-label fw-bold text-dark">الربح المتوقع</label>
+                            <div class="form-control-plaintext bg-light rounded p-2 fw-bold" id="modalExpectedProfit"></div>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">العميل</label>
-                                <input type="text" class="form-control" id="modalClientName" readonly>
-                            </div>
+                            <label class="form-label fw-bold text-dark">هامش الربح</label>
+                            <div class="form-control-plaintext bg-light rounded p-2 fw-bold" id="modalExpectedMargin"></div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-2"></i>
                         إلغاء
                     </button>
-                    <button type="button" class="btn btn-primary" id="saveCostPriceBtn">
+                    <button type="button" class="btn btn-primary px-4" id="saveCostPriceBtn">
                         <i class="fas fa-save me-2"></i>
                         حفظ التكلفة
                     </button>
@@ -661,7 +610,6 @@
     <script src="js/header-component.js"></script>
 
     <script>
-        let pendingChanges = new Map();
         let allData = [];
 
         // Format currency
@@ -796,49 +744,68 @@
 
         // Open cost price edit modal
         function openCostPriceModal(id, currentPrice, description, serialNumber, salePrice, clientName, itemId) {
+            // Get modal elements
+            const modalProductName = document.getElementById('modalProductName');
+            const modalSalePrice = document.getElementById('modalSalePrice');
+            const modalCostPrice = document.getElementById('modalCostPrice');
+            const modalExpectedProfit = document.getElementById('modalExpectedProfit');
+            const modalExpectedMargin = document.getElementById('modalExpectedMargin');
+            const costPriceModal = document.getElementById('costPriceModal');
+            
+            // Check if all elements exist
+            if (!modalProductName || !modalSalePrice || !modalCostPrice || !modalExpectedProfit || !modalExpectedMargin || !costPriceModal) {
+                console.error('Modal elements not found');
+                showNotification('خطأ في تحميل النافذة', 'error');
+                return;
+            }
+            
             // Populate modal fields
-            document.getElementById('modalProductName').value = description;
-            document.getElementById('modalSerialNumber').value = serialNumber;
-            document.getElementById('modalSalePrice').value = formatCurrency(salePrice);
-            document.getElementById('modalCostPrice').value = currentPrice || '';
-            document.getElementById('modalClientName').value = clientName;
+            modalProductName.textContent = description;
+            modalSalePrice.textContent = formatCurrency(salePrice);
+            modalCostPrice.value = currentPrice || '';
             
             // Calculate expected profit and margin
             updateModalCalculations();
             
             // Store current item data
-            document.getElementById('costPriceModal').setAttribute('data-item-id', itemId);
-            document.getElementById('costPriceModal').setAttribute('data-row-id', id);
-            document.getElementById('costPriceModal').setAttribute('data-description', description);
-            document.getElementById('costPriceModal').setAttribute('data-serial-number', serialNumber);
+            costPriceModal.setAttribute('data-item-id', itemId);
+            costPriceModal.setAttribute('data-row-id', id);
+            costPriceModal.setAttribute('data-description', description);
+            costPriceModal.setAttribute('data-serial-number', serialNumber);
             
             // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('costPriceModal'));
+            const modal = new bootstrap.Modal(costPriceModal);
             modal.show();
             
             // Focus on cost price input
             setTimeout(() => {
-                document.getElementById('modalCostPrice').focus();
+                modalCostPrice.focus();
             }, 500);
         }
         
         // Update modal calculations
         function updateModalCalculations() {
-            const salePrice = parseFloat(document.getElementById('modalSalePrice').value.replace(/[^\d.-]/g, '')) || 0;
-            const costPrice = parseFloat(document.getElementById('modalCostPrice').value) || 0;
+            const modalSalePrice = document.getElementById('modalSalePrice');
+            const modalCostPrice = document.getElementById('modalCostPrice');
+            const modalExpectedProfit = document.getElementById('modalExpectedProfit');
+            const modalExpectedMargin = document.getElementById('modalExpectedMargin');
+            
+            if (!modalSalePrice || !modalCostPrice || !modalExpectedProfit || !modalExpectedMargin) {
+                return;
+            }
+            
+            const salePrice = parseFloat(modalSalePrice.textContent.replace(/[^\d.-]/g, '')) || 0;
+            const costPrice = parseFloat(modalCostPrice.value) || 0;
             
             const profit = salePrice - costPrice;
             const margin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
             
-            document.getElementById('modalExpectedProfit').value = formatCurrency(profit);
-            document.getElementById('modalExpectedMargin').value = formatPercentage(margin);
+            modalExpectedProfit.textContent = formatCurrency(profit);
+            modalExpectedMargin.textContent = formatPercentage(margin);
             
             // Color coding
-            const profitInput = document.getElementById('modalExpectedProfit');
-            const marginInput = document.getElementById('modalExpectedMargin');
-            
-            profitInput.className = `form-control ${profit >= 0 ? 'text-success' : 'text-danger'}`;
-            marginInput.className = `form-control ${margin >= 20 ? 'text-success' : 'text-warning'}`;
+            modalExpectedProfit.className = `form-control-plaintext bg-light rounded p-2 fw-bold ${profit >= 0 ? 'text-success' : 'text-danger'}`;
+            modalExpectedMargin.className = `form-control-plaintext bg-light rounded p-2 fw-bold ${margin >= 20 ? 'text-success' : 'text-warning'}`;
         }
 
         // Update table row cost price display
@@ -902,96 +869,7 @@
             }
         }
 
-        // Update bulk save button
-        function updateBulkSaveButton() {
-            const bulkSave = document.getElementById('bulkSave');
-            const changeCount = document.getElementById('changeCount');
-            
-            const count = pendingChanges.size;
-            
-            // Safely update change count
-            if (changeCount) {
-                changeCount.textContent = count;
-            }
-            
-            // Safely update bulk save button
-            if (bulkSave) {
-                if (count > 0) {
-                    bulkSave.classList.add('show');
-                } else {
-                    bulkSave.classList.remove('show');
-                }
-            }
-        }
 
-        // Save bulk changes
-        async function saveBulkChanges() {
-            if (pendingChanges.size === 0) return;
-
-            const bulkSave = document.getElementById('bulkSave');
-            if (!bulkSave) return;
-            
-            const originalText = bulkSave.innerHTML;
-            
-            bulkSave.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
-            bulkSave.disabled = true;
-
-            try {
-                // Get admin info from localStorage
-                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-                const authMiddleware = new AuthMiddleware();
-                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
-                
-                // API base URL
-                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-                
-                const updates = Array.from(pendingChanges.values());
-                
-                console.log('Sending updates to API:', updates);
-                console.log('Updates count:', updates.length);
-
-                const response = await fetch(`${baseUrl}/api/financial/cost-prices/bulk`, {
-                    method: 'PUT',
-                    headers: {
-                        'x-auth-token': token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ updates })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to save changes');
-                }
-
-                // Success
-                bulkSave.innerHTML = '<i class="fas fa-check me-2"></i> تم الحفظ بنجاح!';
-                
-                setTimeout(() => {
-                    pendingChanges.clear();
-                    updateBulkSaveButton();
-                    bulkSave.innerHTML = originalText;
-                    bulkSave.disabled = false;
-                }, 2000);
-
-                // Show success notification
-                showNotification('تم حفظ التغييرات بنجاح!', 'success');
-
-            } catch (error) {
-                console.error('Bulk save error:', error);
-                if (bulkSave) {
-                    bulkSave.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> خطأ في الحفظ';
-                    
-                    setTimeout(() => {
-                        if (bulkSave) {
-                            bulkSave.innerHTML = originalText;
-                            bulkSave.disabled = false;
-                        }
-                    }, 3000);
-                }
-
-                showNotification('خطأ في حفظ التغييرات', 'error');
-            }
-        }
 
         // Update table statistics
         function updateTableStats(data) {
@@ -1103,7 +981,9 @@
             // Modal event listeners
             document.getElementById('modalCostPrice').addEventListener('input', updateModalCalculations);
             
-            document.getElementById('saveCostPriceBtn').addEventListener('click', function() {
+            document.getElementById('saveCostPriceBtn').addEventListener('click', async function() {
+                console.log('Save button clicked');
+                
                 const modal = document.getElementById('costPriceModal');
                 const itemId = modal.getAttribute('data-item-id');
                 const rowId = modal.getAttribute('data-row-id');
@@ -1111,30 +991,82 @@
                 const serialNumber = modal.getAttribute('data-serial-number');
                 const costPrice = parseFloat(document.getElementById('modalCostPrice').value) || 0;
                 
+                console.log('Modal data:', { itemId, rowId, description, serialNumber, costPrice });
+                
                 if (costPrice <= 0) {
                     showNotification('يرجى إدخال سعر تكلفة صحيح', 'error');
                     return;
                 }
                 
-                // Add to pending changes
-                pendingChanges.set(itemId, {
-                    item_id: itemId,
-                    cost_price: costPrice,
-                    product_name: description,
-                    product_model: description.split(' ')[0] || description,
-                    serial_number: serialNumber
-                });
+                // Disable save button and show loading
+                const saveBtn = document.getElementById('saveCostPriceBtn');
+                const originalText = saveBtn.innerHTML;
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
                 
-                // Update the table row
-                updateTableRowCostPrice(rowId, costPrice);
-                
-                // Update bulk save button
-                updateBulkSaveButton();
-                
-                // Close modal
-                bootstrap.Modal.getInstance(document.getElementById('costPriceModal')).hide();
-                
-                showNotification('تم إضافة التكلفة للقائمة', 'success');
+                try {
+                    // Get admin info from localStorage
+                    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                    const authMiddleware = new AuthMiddleware();
+                    const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                    
+                    console.log('API call details:', {
+                        url: `${baseUrl}/api/financial/cost-price/${itemId}`,
+                        token: token ? 'Present' : 'Missing',
+                        baseUrl: baseUrl
+                    });
+                    
+                    const requestBody = {
+                        cost_price: costPrice,
+                        product_name: description,
+                        product_model: description.split(' ')[0] || description,
+                        serial_number: serialNumber
+                    };
+                    
+                    console.log('Request body:', requestBody);
+                    
+                    // Save directly to database
+                    const response = await fetch(`${baseUrl}/api/financial/cost-price/${itemId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'x-auth-token': token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+                    
+                    console.log('Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Response error:', errorText);
+                        throw new Error('Failed to save cost price');
+                    }
+                    
+                    const result = await response.json();
+                    console.log('Response result:', result);
+                    
+                    if (result.success) {
+                        // Update the table row
+                        updateTableRowCostPrice(rowId, costPrice);
+                        
+                        // Close modal
+                        bootstrap.Modal.getInstance(document.getElementById('costPriceModal')).hide();
+                        
+                        showNotification('تم حفظ التكلفة بنجاح!', 'success');
+                    } else {
+                        throw new Error(result.message || 'فشل في حفظ التكلفة');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error saving cost price:', error);
+                    showNotification('خطأ في حفظ التكلفة', 'error');
+                } finally {
+                    // Restore save button
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalText;
+                }
             });
         });
     </script>

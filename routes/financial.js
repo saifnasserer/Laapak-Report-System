@@ -491,11 +491,27 @@ router.put('/cost-price/:itemId', adminAuth, async (req, res) => {
         const { itemId } = req.params;
         const { cost_price, product_name, product_model, serial_number } = req.body;
 
-        // Update the invoice item
-        await InvoiceItem.update(
-            { cost_price: cost_price },
-            { where: { id: itemId } }
-        );
+        console.log(`Single cost price update - itemId: ${itemId}, cost_price: ${cost_price}`);
+
+        // First check if the item exists
+        const existingItem = await InvoiceItem.findByPk(parseInt(itemId));
+        console.log(`Existing item found:`, existingItem ? 'Yes' : 'No');
+        
+        if (existingItem) {
+            const updateResult = await InvoiceItem.update(
+                { cost_price: cost_price },
+                { where: { id: parseInt(itemId) } }
+            );
+            console.log(`InvoiceItem update result:`, updateResult);
+            
+            if (updateResult[0] > 0) {
+                console.log(`Successfully updated item ${itemId} with cost price ${cost_price}`);
+            } else {
+                console.log(`No rows were updated for item ${itemId}`);
+            }
+        } else {
+            console.log(`Item with id ${itemId} not found in database`);
+        }
 
         // Create/update product cost record if product details provided
         if (product_name && product_model) {
