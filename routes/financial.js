@@ -292,44 +292,45 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                         i.id as invoice_id,
                         i.date as invoice_date,
                         i.total as invoice_total,
-                        ii.id as item_id,
-                        ii.description as item_description,
-                        ii.amount as sale_price,
-                        ii.quantity,
-                        ii.cost_price,
-                        ii.profit_amount,
-                        ii.profit_margin,
-                        ii.serialNumber,
-                        ii.type as item_type,
-                        c.name as client_name
+                        i.subtotal,
+                        i.discount,
+                        i.tax,
+                        i.paymentStatus,
+                        i.paymentMethod,
+                        c.name as client_name,
+                        c.id as client_id,
+                        COUNT(ii.id) as items_count,
+                        SUM(CASE WHEN ii.cost_price IS NULL THEN 1 ELSE 0 END) as items_needing_cost
                     FROM invoices i
-                    LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
                     LEFT JOIN clients c ON i.client_id = c.id
+                    LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
                     WHERE i.paymentStatus = 'paid'
+                    GROUP BY i.id, i.date, i.total, i.subtotal, i.discount, i.tax, i.paymentStatus, i.paymentMethod, c.name, c.id
                     ORDER BY i.date DESC
                     LIMIT ${parseInt(limit)}
                     OFFSET ${offset}
                 `;
                 
                 const [rawResults] = await sequelize.query(query);
-                console.log(`Raw SQL query returned ${rawResults.length} items`);
+                console.log(`Raw SQL query returned ${rawResults.length} invoices`);
                 
                 for (const row of rawResults) {
                     results.push({
-                        id: `invoice-${row.invoice_id}-${row.item_id}`,
+                        id: `invoice-${row.invoice_id}`,
                         type: 'invoice',
                         date: row.invoice_date,
-                        description: row.item_description,
+                        invoice_id: row.invoice_id,
                         client_name: row.client_name,
-                        sale_price: parseFloat(row.sale_price),
-                        cost_price: row.cost_price ? parseFloat(row.cost_price) : null,
-                        quantity: row.quantity,
-                        profit_amount: row.profit_amount ? parseFloat(row.profit_amount) : null,
-                        profit_margin: row.profit_margin ? parseFloat(row.profit_margin) : null,
-                        serial_number: row.serialNumber,
-                        item_id: row.item_id,
-                        item_type: row.item_type,
-                        needs_cost_price: !row.cost_price
+                        client_id: row.client_id,
+                        total: parseFloat(row.invoice_total),
+                        subtotal: parseFloat(row.subtotal),
+                        discount: parseFloat(row.discount || 0),
+                        tax: parseFloat(row.tax),
+                        payment_status: row.paymentStatus,
+                        payment_method: row.paymentMethod,
+                        items_count: parseInt(row.items_count),
+                        items_needing_cost: parseInt(row.items_needing_cost || 0),
+                        has_items_needing_cost: parseInt(row.items_needing_cost || 0) > 0
                     });
                 }
                 
@@ -539,6 +540,58 @@ router.put('/cost-price/:itemId', adminAuth, async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Error updating cost price',
+            error: error.message 
+        });
+    }
+});
+
+/**
+ * GET /api/financial/invoice/:invoiceId/items
+ * Get invoice items for a specific invoice
+ */
+router.get('/invoice/:invoiceId/items', adminAuth, async (req, res) => {
+    try {
+        const { invoiceId } = req.params;
+        
+        const query = `
+            SELECT 
+                ii.id as item_id,
+                ii.description as item_description,
+                ii.amount as sale_price,
+                ii.quantity,
+                ii.cost_price,
+                ii.profit_amount,
+                ii.profit_margin,
+                ii.serialNumber,
+                ii.type as item_type
+            FROM invoice_items ii
+            WHERE ii.invoiceId = ?
+            ORDER BY ii.id
+        `;
+        
+        const [items] = await sequelize.query(query, {
+            replacements: [invoiceId],
+            type: sequelize.QueryTypes.SELECT
+        });
+        
+        res.json({
+            success: true,
+            data: items.map(item => ({
+                ...item,
+                sale_price: parseFloat(item.sale_price),
+                cost_price: item.cost_price ? parseFloat(item.cost_price) : null,
+                quantity: parseInt(item.quantity),
+                profit_amount: item.profit_amount ? parseFloat(item.profit_amount) : null,
+                profit_margin: item.profit_margin ? parseFloat(item.profit_margin) : null,
+                needs_cost_price: !item.cost_price
+            }))
+        });
+        
+    } catch (error) {
+        console.error('Error fetching invoice items:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching invoice items',
             error: error.message 
         });
     }

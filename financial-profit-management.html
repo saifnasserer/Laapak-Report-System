@@ -520,21 +520,17 @@
                             <table class="table table-hover mb-0">
                                 <thead class="sticky-top">
                                     <tr>
-                                        <th>النوع</th>
                                         <th>التاريخ</th>
-                                        <th>الوصف</th>
-                                        <th>العميل/الفئة</th>
-                                        <th>سعر البيع</th>
-                                        <th>سعر التكلفة</th>
-                                        <th>الكمية</th>
-                                        <th>الربح</th>
-                                        <th>هامش الربح</th>
-                                        <th>الرقم المسلسل</th>
+                                        <th>العميل</th>
+                                        <th>إجمالي الفاتورة</th>
+                                        <th>عدد المنتجات</th>
+                                        <th>المنتجات التي تحتاج تكلفة</th>
+                                        <th>الإجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="dataTableBody">
                                     <tr>
-                                        <td colspan="10" class="text-center py-5">
+                                        <td colspan="6" class="text-center py-5">
                                             <div class="loading-spinner mx-auto"></div>
                                             <p class="text-muted mt-3">جاري تحميل البيانات...</p>
                                         </td>
@@ -549,6 +545,47 @@
     </div>
 
 
+
+    <!-- Invoice Items Modal -->
+    <div class="modal fade" id="invoiceItemsModal" tabindex="-1" aria-labelledby="invoiceItemsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header" style="background: linear-gradient(135deg, #007553 0%, #0c6c41 100%); border: none;">
+                    <h5 class="modal-title text-white" id="invoiceItemsModalLabel">
+                        <i class="fas fa-list me-2"></i>
+                        منتجات الفاتورة - <span id="modalInvoiceClient"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>المنتج</th>
+                                    <th>سعر البيع</th>
+                                    <th>سعر التكلفة</th>
+                                    <th>الكمية</th>
+                                    <th>الربح</th>
+                                    <th>الهامش</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoiceItemsTableBody">
+                                <!-- Invoice items will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        إغلاق
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Cost Price Edit Modal -->
     <div class="modal fade" id="costPriceModal" tabindex="-1" aria-labelledby="costPriceModalLabel" aria-hidden="true">
@@ -680,7 +717,7 @@
             if (!data || data.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="10" class="text-center py-5">
+                        <td colspan="6" class="text-center py-5">
                             <i class="fas fa-inbox text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
                             <p class="text-muted mt-3">لا توجد بيانات لعرضها</p>
                         </td>
@@ -694,32 +731,97 @@
                 const typeLabel = item.type === 'invoice' ? 'فاتورة' : 'مصروف';
                 const typeBadge = item.type === 'invoice' ? 'badge-invoice' : 'badge-expense';
                 
-                return `
-                    <tr class="${rowClass}" data-id="${item.id}">
+                if (item.type === 'invoice') {
+                    return `
+                        <tr class="${rowClass}" data-id="${item.id}">
+                            <td>${new Date(item.date).toLocaleDateString('ar-EG')}</td>
+                            <td>
+                                <div class="fw-bold">${item.client_name}</div>
+                                <small class="text-muted">#${item.invoice_id}</small>
+                            </td>
+                            <td>
+                                <div class="fw-bold">${formatCurrency(item.total)}</div>
+                                <small class="text-muted">${item.items_count} منتج</small>
+                            </td>
+                            <td>${item.items_count}</td>
+                            <td>
+                                <span class="badge ${item.has_items_needing_cost ? 'bg-warning' : 'bg-success'}">
+                                    ${item.items_needing_cost} منتج
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="openInvoiceItemsModal('${item.invoice_id}', '${item.client_name}', ${item.total})">
+                                    <i class="fas fa-edit"></i> تعديل التكاليف
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    // Handle expenses (keep existing logic)
+                    return `
+                        <tr class="${rowClass}" data-id="${item.id}">
+                            <td>
+                                <span class="badge ${typeBadge} px-3 py-2">${typeLabel}</span>
+                            </td>
+                            <td>${new Date(item.date).toLocaleDateString('ar-EG')}</td>
+                            <td>
+                                <div class="fw-bold">${item.description}</div>
+                            </td>
+                            <td>${item.category || '-'}</td>
+                            <td>${formatCurrency(item.amount)}</td>
+                            <td>-</td>
+                        </tr>
+                    `;
+                }
+            }).join('');
+        }
+
+        // Open invoice items modal
+        async function openInvoiceItemsModal(invoiceId, clientName, total) {
+            try {
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('invoiceItemsModal'));
+                modal.show();
+                
+                // Update modal title
+                document.getElementById('modalInvoiceClient').textContent = clientName;
+                
+                // Load invoice items
+                const response = await fetch(`${window.config.baseUrl}/api/financial/invoice/${invoiceId}/items`, {
+                    headers: {
+                        'x-auth-token': AuthMiddleware.getToken()
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load invoice items');
+                }
+                
+                const result = await response.json();
+                const items = result.data;
+                
+                // Render invoice items table
+                const tbody = document.getElementById('invoiceItemsTableBody');
+                tbody.innerHTML = items.map(item => `
+                    <tr>
                         <td>
-                            <span class="badge ${typeBadge} px-3 py-2">${typeLabel}</span>
+                            <div class="fw-bold">${item.item_description}</div>
+                            <small class="text-muted">${item.serial_number || 'لا يوجد رقم تسلسلي'}</small>
                         </td>
-                        <td>${new Date(item.date).toLocaleDateString('ar-EG')}</td>
+                        <td>${formatCurrency(item.sale_price)}</td>
                         <td>
-                            <div class="fw-bold">${item.description}</div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="${!item.cost_price ? 'text-muted' : ''}">
+                                    ${item.cost_price ? formatCurrency(item.cost_price) : 'لم يتم تحديده'}
+                                </span>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || 0}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price}, '${clientName}', ${item.item_id})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
                         </td>
-                        <td>${item.client_name || item.category || '-'}</td>
-                        <td>${item.type === 'invoice' ? formatCurrency(item.sale_price) : '-'}</td>
-                        <td>
-                            ${item.type === 'invoice' ? 
-                                `<div class="d-flex align-items-center gap-2">
-                                    <span class="${!item.cost_price ? 'text-muted' : ''}">
-                                        ${item.cost_price ? formatCurrency(item.cost_price) : 'لم يتم تحديده'}
-                                    </span>
-                                    <button class="btn btn-sm btn-outline-primary" 
-                                            onclick="openCostPriceModal('${item.id}', ${item.cost_price || 0}, '${item.description}', '${item.serial_number || ''}', ${item.sale_price}, '${item.client_name || ''}', ${item.item_id})">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                </div>` 
-                                : formatCurrency(item.amount)
-                            }
-                        </td>
-                        <td>${item.quantity || '-'}</td>
+                        <td>${item.quantity}</td>
                         <td>
                             ${item.profit_amount !== null ? 
                                 `<span class="${item.profit_amount >= 0 ? 'profit-positive' : 'profit-negative'}">
@@ -736,10 +838,16 @@
                                 : '-'
                             }
                         </td>
-                        <td><small class="text-muted">${item.serial_number || '-'}</small></td>
+                        <td>
+                            <small class="text-muted">${item.item_type}</small>
+                        </td>
                     </tr>
-                `;
-            }).join('');
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading invoice items:', error);
+                showNotification('خطأ في تحميل منتجات الفاتورة', 'error');
+            }
         }
 
         // Open cost price edit modal
