@@ -642,10 +642,8 @@
             const invoiceCount = data.filter(item => item.type === 'invoice').length;
             const expenseCount = data.filter(item => item.type === 'expense').length;
             
-            document.getElementById('tableStats').innerHTML = `
-                <span class="badge badge-invoice">فواتير: ${invoiceCount}</span>
-                <span class="badge badge-expense">مصروفات: ${expenseCount}</span>
-            `;
+            // Log stats instead of updating DOM element that doesn't exist
+            console.log(`Table stats - Invoices: ${invoiceCount}, Expenses: ${expenseCount}`);
         }
 
         // Apply filters
@@ -741,13 +739,19 @@
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
             
-            document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
-            document.getElementById('endDate').value = lastDay.toISOString().split('T')[0];
+            // Set default date range (commented out since we removed the date inputs)
+            // document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+            // document.getElementById('endDate').value = lastDay.toISOString().split('T')[0];
             
-            // Modal event listeners
-            document.getElementById('modalCostPrice').addEventListener('input', updateModalCalculations);
+            // Modal event listeners (only if modal elements exist)
+            const modalCostPrice = document.getElementById('modalCostPrice');
+            if (modalCostPrice) {
+                modalCostPrice.addEventListener('input', updateModalCalculations);
+            }
             
-            document.getElementById('saveCostPriceBtn').addEventListener('click', async function() {
+            const saveCostPriceBtn = document.getElementById('saveCostPriceBtn');
+            if (saveCostPriceBtn) {
+                saveCostPriceBtn.addEventListener('click', async function() {
                 console.log('Save button clicked');
                 
                 const modal = document.getElementById('costPriceModal');
@@ -842,8 +846,7 @@
                     saveBtn.innerHTML = originalText;
                 }
             });
-
-
+            }
         });
     </script>
     
