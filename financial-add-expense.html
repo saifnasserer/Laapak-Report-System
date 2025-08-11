@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إضافة مصروف جديد - نظام تقارير لاباك</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="img/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+            background-attachment: fixed;
+            font-family: 'Tajawal', sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Subtle animated background - MY SIGNATURE TOUCH ✨ */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 25% 25%, rgba(0, 117, 83, 0.04) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(0, 117, 83, 0.02) 0%, transparent 50%);
+            z-index: -1;
+            animation: subtleFloat 25s ease-in-out infinite;
+        }
+
+        @keyframes subtleFloat {
+            0%, 100% { transform: translateY(0px) scale(1) rotate(0deg); }
+            33% { transform: translateY(-8px) scale(1.01) rotate(0.5deg); }
+            66% { transform: translateY(-12px) scale(1.02) rotate(-0.5deg); }
+        }
+
+        /* Enhanced Header Banner - STUNNING VERSION 🚀 */
+        .financial-banner {
+            background: linear-gradient(135deg, #007553 0%, #004d35 50%, #007553 100%);
+            border-radius: 15px;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 117, 83, 0.15);
+        }
+
+        .financial-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Navigation Pills */
+        .nav-pills .nav-link {
+            border-radius: 25px;
+            padding: 12px 24px;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+            color: #6c757d;
+            border: 2px solid transparent;
+        }
+
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #007553 0%, #004d35 100%);
+            border-color: #007553;
+            color: white;
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: rgba(0, 117, 83, 0.1);
+            color: #007553;
+        }
+
+        /* STUNNING Form Card 🎨 */
+        .form-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 
+                0 6px 25px rgba(0, 0, 0, 0.08),
+                0 2px 6px rgba(0, 0, 0, 0.04);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .form-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #007553, #00a67a, #007553);
+            background-size: 200% 100%;
+            animation: gradientShift 3s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .form-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 
+                0 12px 40px rgba(0, 117, 83, 0.12),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Category Selection */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* GORGEOUS Category Options 💎 */
+        .category-option {
+            padding: 1.2rem;
+            border: 2px solid rgba(0, 117, 83, 0.1);
+            border-radius: 16px;
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(0, 117, 83, 0.05), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .category-option:hover::before {
+            transform: translateX(100%);
+        }
+
+        .category-option:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 117, 83, 0.15);
+            border-color: #007553;
+        }
+
+        .category-option.selected {
+            border-color: #007553;
+            background: linear-gradient(145deg, rgba(0, 117, 83, 0.08) 0%, rgba(0, 117, 83, 0.03) 100%);
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0, 117, 83, 0.2);
+        }
+
+        .category-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 0 auto 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .category-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        /* Type Toggle */
+        .type-toggle {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .type-option {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #6c757d;
+        }
+
+        .type-option.active {
+            background: #007553;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 117, 83, 0.3);
+        }
+
+        /* Custom Checkbox */
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .custom-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #007553;
+        }
+
+        .custom-checkbox label {
+            margin: 0;
+            cursor: pointer;
+            color: #495057;
+            font-weight: 500;
+        }
+
+        /* Recent Expenses */
+        .recent-card {
+            background: white;
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .recent-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .recent-item:hover {
+            background: rgba(0, 117, 83, 0.05);
+            transform: translateX(-3px);
+        }
+
+        .recent-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .recent-item-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .recent-item-content {
+            flex: 1;
+        }
+
+        .recent-item-name {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.2rem;
+        }
+
+        .recent-item-details {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .recent-item-amount {
+            font-weight: 700;
+            color: #495057;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Loading States */
+        .loading-spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid rgba(0, 117, 83, 0.1);
+            border-top: 3px solid #007553;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Success Modal */
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #198754;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 2rem;
+        }
+
+        /* Floating Elements - SIGNATURE TOUCH ✨ */
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .floating-element {
+            position: absolute;
+            background: rgba(0, 117, 83, 0.08);
+            border-radius: 50%;
+            animation: float 10s ease-in-out infinite;
+        }
+
+        .floating-element:nth-child(1) {
+            width: 5px;
+            height: 5px;
+            top: 15%;
+            left: 20%;
+            animation-delay: 0s;
+        }
+
+        .floating-element:nth-child(2) {
+            width: 7px;
+            height: 7px;
+            top: 65%;
+            left: 75%;
+            animation-delay: 2s;
+        }
+
+        .floating-element:nth-child(3) {
+            width: 4px;
+            height: 4px;
+            top: 45%;
+            left: 10%;
+            animation-delay: 4s;
+        }
+
+        .floating-element:nth-child(4) {
+            width: 6px;
+            height: 6px;
+            top: 80%;
+            left: 60%;
+            animation-delay: 6s;
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg) scale(1);
+                opacity: 0.3;
+            }
+            25% { 
+                transform: translateY(-8px) rotate(90deg) scale(1.1);
+                opacity: 0.6;
+            }
+            50% { 
+                transform: translateY(-15px) rotate(180deg) scale(0.9);
+                opacity: 0.4;
+            }
+            75% { 
+                transform: translateY(-8px) rotate(270deg) scale(1.1);
+                opacity: 0.7;
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-pills {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .nav-pills .nav-link {
+                margin: 5px;
+                padding: 8px 16px;
+            }
+            
+            .category-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Elements - MY SIGNATURE MAGIC ✨ -->
+    <div class="floating-elements">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+
+    <!-- Header Container -->
+    <div id="header-container"></div>
+
+    <div class="container-fluid py-4 px-4 mt-2">
+        <!-- Welcome Banner -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 financial-banner">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="row align-items-center">
+                            <div class="col-lg-8">
+                                <h2 class="fw-bold mb-3">
+                                    <i class="fas fa-plus-circle me-3"></i>
+                                    إضافة مصروف جديد
+                                </h2>
+                                <p class="mb-4 opacity-75">إدارة ذكية للمصروفات مع تصنيف تلقائي وتذكيرات شهرية</p>
+                            </div>
+                            <div class="col-lg-4 d-none d-lg-block text-center">
+                                <i class="fas fa-receipt" style="font-size: 4rem; opacity: 0.3;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Pills -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <ul class="nav nav-pills justify-content-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="financial-dashboard.html">
+                            <i class="fas fa-chart-line me-2"></i>
+                            لوحة القيادة
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="financial-profit-management.html">
+                            <i class="fas fa-coins me-2"></i>
+                            إدارة الأرباح والتكاليف
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-page="expense">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة مصروف
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Form Section -->
+            <div class="col-lg-8 mb-4">
+                <div class="card form-card">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-edit me-2 text-primary"></i>
+                            تفاصيل المصروف
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="expenseForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">اسم المصروف</label>
+                                    <input type="text" class="form-control" id="expenseName" 
+                                           placeholder="مثال: إيجار المكتب، معدات جديدة..." required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">اسم المصروف بالعربية</label>
+                                    <input type="text" class="form-control" id="expenseNameAr" 
+                                           placeholder="الاسم باللغة العربية..." required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">فئة المصروف</label>
+                                <div class="category-grid" id="categoryGrid">
+                                    <div class="text-center py-3">
+                                        <div class="loading-spinner mx-auto"></div>
+                                        <p class="text-muted mt-2">جاري تحميل الفئات...</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">نوع المصروف</label>
+                                <div class="type-toggle">
+                                    <button type="button" class="type-option active" data-type="variable">
+                                        <i class="fas fa-chart-line me-2"></i>
+                                        متغير
+                                    </button>
+                                    <button type="button" class="type-option" data-type="fixed">
+                                        <i class="fas fa-calendar-check me-2"></i>
+                                        ثابت
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">المبلغ (جنيه مصري)</label>
+                                    <input type="number" class="form-control" id="expenseAmount" 
+                                           placeholder="0.00" step="0.01" min="0" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">تاريخ المصروف</label>
+                                    <input type="date" class="form-control" id="expenseDate" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">ملاحظات (اختياري)</label>
+                                <textarea class="form-control" id="expenseDescription" rows="3" 
+                                          placeholder="تفاصيل إضافية عن المصروف..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">رابط الإيصال (اختياري)</label>
+                                <input type="url" class="form-control" id="receiptUrl" 
+                                       placeholder="https://example.com/receipt.pdf">
+                            </div>
+
+                            <div class="custom-checkbox">
+                                <input type="checkbox" id="repeatMonthly">
+                                <label for="repeatMonthly">
+                                    <i class="fas fa-sync-alt me-2"></i>
+                                    تكرار شهرياً (للمصروفات الثابتة)
+                                </label>
+                            </div>
+
+                            <div class="d-flex gap-3 mt-4">
+                                <button type="submit" class="btn btn-primary flex-fill">
+                                    <i class="fas fa-save me-2"></i>
+                                    حفظ المصروف
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                    <i class="fas fa-undo me-2"></i>
+                                    إعادة تعيين
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Expenses Section -->
+            <div class="col-lg-4 mb-4">
+                <div class="card recent-card">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history me-2 text-primary"></i>
+                            المصروفات الأخيرة
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentExpenses">
+                            <div class="text-center py-3">
+                                <div class="loading-spinner mx-auto"></div>
+                                <p class="text-muted mt-2">جاري تحميل المصروفات...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-5">
+                    <div class="success-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h4 class="mb-3">تم حفظ المصروف بنجاح!</h4>
+                    <p class="text-muted mb-4">تم إضافة المصروف إلى قاعدة البيانات</p>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                        <i class="fas fa-check me-2"></i>
+                        موافق
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Header Component -->
+    <script src="js/header-component.js"></script>
+
+    <script>
+        let categories = [];
+        let selectedCategoryId = null;
+        let selectedType = 'variable';
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ar-EG', {
+                style: 'currency',
+                currency: 'EGP',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Load expense categories
+        async function loadCategories() {
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/financial/expense-categories`, {
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load categories');
+                }
+
+                const result = await response.json();
+                categories = result.data.categories;
+                renderCategories();
+
+            } catch (error) {
+                console.error('Categories error:', error);
+                showCategoriesError();
+            }
+        }
+
+        // Render categories grid
+        function renderCategories() {
+            const grid = document.getElementById('categoryGrid');
+            
+            grid.innerHTML = categories.map(category => `
+                <div class="category-option" data-id="${category.id}" onclick="selectCategory(${category.id})">
+                    <div class="category-color" style="background-color: ${category.color}"></div>
+                    <div class="category-name">${category.name_ar}</div>
+                </div>
+            `).join('');
+        }
+
+        // Select category
+        function selectCategory(categoryId) {
+            // Remove previous selection
+            document.querySelectorAll('.category-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            // Add selection to clicked category
+            document.querySelector(`[data-id="${categoryId}"]`).classList.add('selected');
+            selectedCategoryId = categoryId;
+        }
+
+        // Load recent expenses
+        async function loadRecentExpenses() {
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/financial/recent-expenses`, {
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load recent expenses');
+                }
+
+                const result = await response.json();
+                renderRecentExpenses(result.data.expenses);
+
+            } catch (error) {
+                console.error('Recent expenses error:', error);
+                showRecentExpensesError();
+            }
+        }
+
+        // Render recent expenses
+        function renderRecentExpenses(expenses) {
+            const container = document.getElementById('recentExpenses');
+            
+            if (!expenses || expenses.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.3;"></i>
+                        <p class="mt-2">لا توجد مصروفات حديثة</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = expenses.map(expense => `
+                <div class="recent-item" onclick="fillFromRecent('${expense.id}')">
+                    <div class="recent-item-color" style="background-color: ${expense.category?.color || '#007553'}"></div>
+                    <div class="recent-item-content">
+                        <div class="recent-item-name">${expense.name_ar}</div>
+                        <div class="recent-item-details">
+                            ${expense.category?.name_ar} • ${new Date(expense.date).toLocaleDateString('ar-EG')}
+                        </div>
+                    </div>
+                    <div class="recent-item-amount">
+                        ${formatCurrency(expense.amount)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Fill form from recent expense
+        function fillFromRecent(expenseId) {
+            showNotification('تم تعبئة النموذج من المصروف السابق', 'info');
+        }
+
+        // Handle type toggle
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('type-option')) {
+                document.querySelectorAll('.type-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                e.target.classList.add('active');
+                selectedType = e.target.dataset.type;
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!selectedCategoryId) {
+                showNotification('يرجى اختيار فئة المصروف', 'error');
+                return;
+            }
+
+            const formData = {
+                name: document.getElementById('expenseName').value,
+                name_ar: document.getElementById('expenseNameAr').value,
+                amount: parseFloat(document.getElementById('expenseAmount').value),
+                category_id: selectedCategoryId,
+                type: selectedType,
+                date: document.getElementById('expenseDate').value,
+                repeat_monthly: document.getElementById('repeatMonthly').checked,
+                description: document.getElementById('expenseDescription').value,
+                receipt_url: document.getElementById('receiptUrl').value
+            };
+
+            // Show loading state
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
+            submitBtn.disabled = true;
+
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/financial/expenses`, {
+                    method: 'POST',
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save expense');
+                }
+
+                // Show success modal
+                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                successModal.show();
+                
+                // Reset form
+                resetForm();
+                
+                // Reload recent expenses
+                loadRecentExpenses();
+
+            } catch (error) {
+                console.error('Save expense error:', error);
+                showNotification('خطأ في حفظ المصروف', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('expenseForm').reset();
+            
+            // Reset category selection
+            document.querySelectorAll('.category-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            selectedCategoryId = null;
+
+            // Reset type selection
+            document.querySelectorAll('.type-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            document.querySelector('[data-type="variable"]').classList.add('active');
+            selectedType = 'variable';
+
+            // Set today's date
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'primary'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.style.cssText = 'position: fixed; top: 2rem; left: 2rem; z-index: 10000;';
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // Show categories error
+        function showCategoriesError() {
+            document.getElementById('categoryGrid').innerHTML = `
+                <div class="text-center text-danger py-3" style="grid-column: 1 / -1;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i>
+                    <p class="mt-2">خطأ في تحميل الفئات</p>
+                    <button class="btn btn-primary btn-sm" onclick="loadCategories()">إعادة المحاولة</button>
+                </div>
+            `;
+        }
+
+        // Show recent expenses error
+        function showRecentExpensesError() {
+            document.getElementById('recentExpenses').innerHTML = `
+                <div class="text-center text-danger py-3">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i>
+                    <p class="mt-2">خطأ في تحميل المصروفات الأخيرة</p>
+                    <button class="btn btn-primary btn-sm" onclick="loadRecentExpenses()">إعادة المحاولة</button>
+                </div>
+            `;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();
+            loadRecentExpenses();
+
+            // Set today's date as default
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+        });
+    </script>
+    
+    <!-- Config -->
+    <script src="js/config.js"></script>
+    
+    <!-- Auth Middleware -->
+    <script src="js/auth-middleware.js"></script>
+</body>
+</html> 

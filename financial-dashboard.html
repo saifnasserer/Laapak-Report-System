@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإدارة المالية - نظام تقارير لاباك</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="img/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+            background-attachment: fixed;
+            font-family: 'Tajawal', sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Subtle animated background - MY SIGNATURE TOUCH ✨ */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(0, 117, 83, 0.02) 0%, transparent 50%);
+            z-index: -1;
+            animation: subtleFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes subtleFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-10px) scale(1.02); }
+        }
+
+        /* Enhanced Header Banner - STUNNING VERSION 🚀 */
+        .financial-banner {
+            background: linear-gradient(135deg, #007553 0%, #004d35 50%, #007553 100%);
+            border-radius: 15px;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 117, 83, 0.15);
+        }
+
+        .financial-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* STUNNING Navigation Pills - Enhanced! 🌟 */
+        .nav-pills .nav-link {
+            border-radius: 30px;
+            padding: 14px 28px;
+            margin: 0 8px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #6c757d;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+            font-weight: 500;
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+
+        .nav-pills .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 117, 83, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .nav-pills .nav-link:hover::before {
+            left: 100%;
+        }
+
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #007553 0%, #004d35 100%);
+            border-color: #007553;
+            color: white;
+            box-shadow: 0 4px 20px rgba(0, 117, 83, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-pills .nav-link:hover {
+            background: linear-gradient(145deg, rgba(0, 117, 83, 0.1) 0%, rgba(0, 117, 83, 0.05) 100%);
+            color: #007553;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 117, 83, 0.15);
+        }
+
+        /* STUNNING KPI Cards - My Enhanced Version 🎨 */
+        .stat-card {
+            border-radius: 16px;
+            border: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.04);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #007553, #00a67a, #007553);
+            background-size: 200% 100%;
+            animation: gradientShift 3s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 12px 40px rgba(0, 117, 83, 0.15),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card:hover::before {
+            height: 4px;
+            animation-duration: 1s;
+        }
+
+        /* GORGEOUS Icons with Animation 💎 */
+        .icon-container {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .icon-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            border-radius: inherit;
+            animation: iconPulse 2s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        /* STUNNING Chart Containers 📊 */
+        .chart-container {
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #007553, #00a67a, #007553);
+            background-size: 200% 100%;
+            animation: gradientShift 4s ease-in-out infinite;
+        }
+
+        .chart-container:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 
+                0 12px 40px rgba(0, 117, 83, 0.12),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-card {
+            background: white;
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .alert-item {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .alert-item:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-warning {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left-color: #ffc107;
+        }
+
+        .alert-info {
+            background-color: rgba(13, 202, 240, 0.1);
+            border-left-color: #0dcaf0;
+        }
+
+        .number-animate {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        /* Loading state */
+        .loading-spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid rgba(0, 117, 83, 0.1);
+            border-top: 3px solid #007553;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* MAGICAL FAB Button ✨ */
+        .fab-btn {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #007553 0%, #004d35 50%, #007553 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.4rem;
+            box-shadow: 
+                0 8px 25px rgba(0, 117, 83, 0.4),
+                0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fab-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: translateX(-100%) rotate(45deg);
+            transition: transform 0.6s ease;
+        }
+
+        .fab-btn:hover::before {
+            transform: translateX(100%) rotate(45deg);
+        }
+
+        .fab-btn:hover {
+            transform: scale(1.15) rotate(15deg);
+            box-shadow: 
+                0 12px 35px rgba(0, 117, 83, 0.5),
+                0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Floating Elements - SIGNATURE TOUCH ✨ */
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .floating-element {
+            position: absolute;
+            background: rgba(0, 117, 83, 0.1);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .floating-element:nth-child(1) {
+            width: 8px;
+            height: 8px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-element:nth-child(2) {
+            width: 6px;
+            height: 6px;
+            top: 60%;
+            left: 80%;
+            animation-delay: 2s;
+        }
+
+        .floating-element:nth-child(3) {
+            width: 10px;
+            height: 10px;
+            top: 80%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg);
+                opacity: 0.3;
+            }
+            50% { 
+                transform: translateY(-20px) rotate(180deg);
+                opacity: 0.6;
+            }
+        }
+
+        /* Chart styling */
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .nav-pills {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .nav-pills .nav-link {
+                margin: 5px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Elements - MY SIGNATURE MAGIC ✨ -->
+    <div class="floating-elements">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+
+    <!-- Header Container -->
+    <div id="header-container"></div>
+
+    <div class="container-fluid py-4 px-4 mt-2">
+        <!-- Welcome Banner -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 financial-banner">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="row align-items-center">
+                            <div class="col-lg-8">
+                                <h2 class="fw-bold mb-3">
+                                    <i class="fas fa-chart-line me-3"></i>
+                                    الإدارة المالية
+                                </h2>
+                                <p class="mb-4 opacity-75">تتبع شامل للأرباح والمصروفات مع تحليل مالي متقدم</p>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge bg-white text-success px-3 py-2 rounded-pill">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        <span id="current-date"></span>
+                                    </span>
+                                    <span class="badge bg-white text-success px-3 py-2 rounded-pill">
+                                        <i class="fas fa-clock me-2"></i>
+                                        آخر تحديث: الآن
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 d-none d-lg-block text-center">
+                                <i class="fas fa-coins" style="font-size: 4rem; opacity: 0.3;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Pills -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <ul class="nav nav-pills justify-content-center">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-page="dashboard">
+                            <i class="fas fa-chart-line me-2"></i>
+                            لوحة القيادة
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="financial-profit-management.html">
+                            <i class="fas fa-coins me-2"></i>
+                            إدارة الأرباح والتكاليف
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="financial-add-expense.html">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة مصروف
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="row mb-5 justify-content-center">
+            <!-- Total Revenue -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="card stat-card h-100">
+                    <div class="card-body p-4 d-flex align-items-center">
+                        <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(0, 117, 83, 0.1) 0%, rgba(0, 117, 83, 0.2) 100%);">
+                            <i class="fas fa-arrow-up" style="color: #007553; font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">إجمالي الإيرادات</h6>
+                            <h3 class="fw-bold mb-0 number-animate" id="totalRevenue">
+                                <div class="loading-spinner"></div>
+                            </h3>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up me-1"></i>
+                                <span id="revenueChange">+12.5%</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Expenses -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="card stat-card h-100">
+                    <div class="card-body p-4 d-flex align-items-center">
+                        <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.2) 100%);">
+                            <i class="fas fa-arrow-down" style="color: #dc3545; font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">إجمالي المصروفات</h6>
+                            <h3 class="fw-bold mb-0 number-animate" id="totalExpenses">
+                                <div class="loading-spinner"></div>
+                            </h3>
+                            <small class="text-warning">
+                                <i class="fas fa-arrow-up me-1"></i>
+                                <span id="expenseChange">+8.2%</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Net Profit -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="card stat-card h-100">
+                    <div class="card-body p-4 d-flex align-items-center">
+                        <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.1) 0%, rgba(25, 135, 84, 0.2) 100%);">
+                            <i class="fas fa-chart-line" style="color: #198754; font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">صافي الربح</h6>
+                            <h3 class="fw-bold mb-0 number-animate" id="netProfit">
+                                <div class="loading-spinner"></div>
+                            </h3>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up me-1"></i>
+                                <span id="profitChange">+15.3%</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profit Margin -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="card stat-card h-100">
+                    <div class="card-body p-4 d-flex align-items-center">
+                        <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.2) 100%);">
+                            <i class="fas fa-percentage" style="color: #ffc107; font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">هامش الربح</h6>
+                            <h3 class="fw-bold mb-0 number-animate" id="profitMargin">
+                                <div class="loading-spinner"></div>
+                            </h3>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up me-1"></i>
+                                <span id="marginChange">+2.1%</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="row mb-4">
+            <!-- Trend Chart -->
+            <div class="col-lg-8 mb-4">
+                <div class="card chart-container">
+                    <div class="card-header bg-white border-0 pb-0">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-area text-primary me-2"></i>
+                            تطور الأرباح والمصروفات (6 أشهر)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-wrapper">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expense Breakdown -->
+            <div class="col-lg-4 mb-4">
+                <div class="card chart-container">
+                    <div class="card-header bg-white border-0 pb-0">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-pie text-primary me-2"></i>
+                            توزيع المصروفات
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-wrapper">
+                            <canvas id="expenseChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card alert-card">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-bell text-warning me-2"></i>
+                            التنبيهات والإشعارات
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="alertsContainer">
+                            <div class="text-center">
+                                <div class="loading-spinner mx-auto"></div>
+                                <p class="text-muted mt-2">جاري تحميل التنبيهات...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh FAB -->
+    <button class="fab-btn" onclick="refreshDashboard()" title="تحديث البيانات">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Header Component -->
+    <script src="js/header-component.js"></script>
+
+    <script>
+        // Format currency for display
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ar-EG', {
+                style: 'currency',
+                currency: 'EGP',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Format percentage
+        function formatPercentage(percentage) {
+            return percentage.toFixed(1) + '%';
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/financial/dashboard`, {
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load dashboard data');
+                }
+
+                const result = await response.json();
+                const data = result.data;
+
+                // Update KPIs with animations
+                updateKPIs(data.kpis);
+                
+                // Create charts
+                createTrendChart(data.charts.trend);
+                createExpenseChart(data.charts.expenseBreakdown);
+                
+                // Display alerts
+                displayAlerts(data.alerts);
+
+            } catch (error) {
+                console.error('Dashboard error:', error);
+                showErrorState();
+            }
+        }
+
+        // Update KPI cards with animations
+        function updateKPIs(kpis) {
+            const animateValue = (element, start, end, duration = 2000) => {
+                const startTime = performance.now();
+                const range = end - start;
+
+                function updateValue(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeOut = 1 - Math.pow(1 - progress, 3);
+                    const current = start + (range * easeOut);
+                    
+                    if (element.id.includes('Margin')) {
+                        element.textContent = formatPercentage(current);
+                    } else {
+                        element.textContent = formatCurrency(current);
+                    }
+
+                    if (progress < 1) {
+                        requestAnimationFrame(updateValue);
+                    }
+                }
+
+                requestAnimationFrame(updateValue);
+            };
+
+            // Animate each KPI value
+            setTimeout(() => animateValue(document.getElementById('totalRevenue'), 0, kpis.totalRevenue), 200);
+            setTimeout(() => animateValue(document.getElementById('totalExpenses'), 0, kpis.totalExpenses), 400);
+            setTimeout(() => animateValue(document.getElementById('netProfit'), 0, kpis.netProfit), 600);
+            setTimeout(() => animateValue(document.getElementById('profitMargin'), 0, kpis.profitMargin), 800);
+        }
+
+        // Create trend chart
+        function createTrendChart(trendData) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: trendData.map(item => {
+                        const date = new Date(item.month + '-01');
+                        return date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+                    }),
+                    datasets: [
+                        {
+                            label: 'الإيرادات',
+                            data: trendData.map(item => item.revenue),
+                            borderColor: '#007553',
+                            backgroundColor: 'rgba(0, 117, 83, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'المصروفات',
+                            data: trendData.map(item => item.expenses),
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'صافي الربح',
+                            data: trendData.map(item => item.profit),
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { family: 'Tajawal', size: 12 },
+                                usePointStyle: true
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { family: 'Tajawal' },
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { family: 'Tajawal' }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create expense chart
+        function createExpenseChart(expenseData) {
+            if (!expenseData || expenseData.length === 0) return;
+
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: expenseData.map(item => item.category_name),
+                    datasets: [{
+                        data: expenseData.map(item => item.total),
+                        backgroundColor: [
+                            '#007553', '#dc3545', '#ffc107', '#0dcaf0', 
+                            '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Tajawal', size: 11 },
+                                padding: 15
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Display alerts
+        function displayAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            
+            if (!alerts || alerts.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-check-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <p class="mt-2">لا توجد تنبيهات حالياً</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = alerts.map(alert => `
+                <div class="alert-item alert-${alert.type}" onclick="navigateToAction('${alert.action}')">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas ${alert.type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}" 
+                               style="color: ${alert.type === 'warning' ? '#ffc107' : '#0dcaf0'}; font-size: 1.2rem;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-1 fw-bold">${alert.message}</p>
+                            <small class="text-muted">انقر للذهاب إلى ${alert.action === 'profit-management' ? 'إدارة الأرباح' : 'المصروفات'}</small>
+                        </div>
+                        <div>
+                            <i class="fas fa-chevron-left text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Navigate to action
+        function navigateToAction(action) {
+            if (action === 'profit-management') {
+                window.location.href = 'financial-profit-management.html';
+            } else if (action === 'expenses') {
+                window.location.href = 'financial-add-expense.html';
+            }
+        }
+
+        // Show error state
+        function showErrorState() {
+            ['totalRevenue', 'totalExpenses', 'netProfit', 'profitMargin'].forEach(id => {
+                document.getElementById(id).innerHTML = '<span class="text-danger">خطأ</span>';
+            });
+            
+            document.getElementById('alertsContainer').innerHTML = `
+                <div class="alert-item alert-warning">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle me-3" style="color: #ffc107;"></i>
+                        <div>
+                            <p class="mb-0 fw-bold">خطأ في تحميل البيانات</p>
+                            <small class="text-muted">يرجى إعادة المحاولة</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Refresh dashboard
+        function refreshDashboard() {
+            const fab = document.querySelector('.fab-btn');
+            fab.style.transform = 'scale(1.1) rotate(360deg)';
+            
+            setTimeout(() => {
+                fab.style.transform = 'scale(1) rotate(0deg)';
+                loadDashboardData();
+            }, 500);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current date
+            document.getElementById('current-date').textContent = 
+                new Date().toLocaleDateString('ar-EG');
+            
+            // Load data
+            loadDashboardData();
+            
+            // Auto-refresh every 5 minutes
+            setInterval(loadDashboardData, 300000);
+        });
+    </script>
+    
+    <!-- Config -->
+    <script src="js/config.js"></script>
+    
+    <!-- Auth Middleware -->
+    <script src="js/auth-middleware.js"></script>
+</body>
+</html> 
