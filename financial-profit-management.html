@@ -579,6 +579,81 @@
         حفظ التغييرات
     </button>
 
+    <!-- Cost Price Edit Modal -->
+    <div class="modal fade" id="costPriceModal" tabindex="-1" aria-labelledby="costPriceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="costPriceModalLabel">
+                        <i class="fas fa-edit me-2"></i>
+                        تعديل تكلفة المنتج
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">المنتج</label>
+                                <input type="text" class="form-control" id="modalProductName" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الرقم التسلسلي</label>
+                                <input type="text" class="form-control" id="modalSerialNumber" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">سعر البيع</label>
+                                <input type="text" class="form-control" id="modalSalePrice" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">سعر التكلفة <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="modalCostPrice" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الربح المتوقع</label>
+                                <input type="text" class="form-control" id="modalExpectedProfit" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">هامش الربح المتوقع</label>
+                                <input type="text" class="form-control" id="modalExpectedMargin" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">العميل</label>
+                                <input type="text" class="form-control" id="modalClientName" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        إلغاء
+                    </button>
+                    <button type="button" class="btn btn-primary" id="saveCostPriceBtn">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ التكلفة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -684,10 +759,14 @@
                         <td>${item.type === 'invoice' ? formatCurrency(item.sale_price) : '-'}</td>
                         <td>
                             ${item.type === 'invoice' ? 
-                                `<div class="editable-field ${!item.cost_price ? 'empty' : ''}" 
-                                     onclick="editCostPrice('${item.id}', ${item.cost_price || 0}, '${item.description}', '${item.serial_number || ''}')"
-                                     data-item-id="${item.item_id}">
-                                    ${item.cost_price ? formatCurrency(item.cost_price) : 'لم يتم تحديده'}
+                                `<div class="d-flex align-items-center gap-2">
+                                    <span class="${!item.cost_price ? 'text-muted' : ''}">
+                                        ${item.cost_price ? formatCurrency(item.cost_price) : 'لم يتم تحديده'}
+                                    </span>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="openCostPriceModal('${item.id}', ${item.cost_price || 0}, '${item.description}', '${item.serial_number || ''}', ${item.sale_price}, '${item.client_name || ''}', ${item.item_id})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
                                 </div>` 
                                 : formatCurrency(item.amount)
                             }
@@ -715,78 +794,81 @@
             }).join('');
         }
 
-        // Edit cost price inline
-        function editCostPrice(id, currentPrice, description, serialNumber) {
-            const field = document.querySelector(`[data-id="${id}"] .editable-field`);
-            if (!field) return;
+        // Open cost price edit modal
+        function openCostPriceModal(id, currentPrice, description, serialNumber, salePrice, clientName, itemId) {
+            // Populate modal fields
+            document.getElementById('modalProductName').value = description;
+            document.getElementById('modalSerialNumber').value = serialNumber;
+            document.getElementById('modalSalePrice').value = formatCurrency(salePrice);
+            document.getElementById('modalCostPrice').value = currentPrice || '';
+            document.getElementById('modalClientName').value = clientName;
             
-            const itemId = field.dataset.itemId;
-            let isEditing = true;
+            // Calculate expected profit and margin
+            updateModalCalculations();
             
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.step = '0.01';
-            input.className = 'editable-input';
-            input.value = currentPrice || '';
-            input.placeholder = 'أدخل سعر التكلفة';
-
-            field.innerHTML = '';
-            field.appendChild(input);
-            input.focus();
-            input.select();
-
-            const saveEdit = () => {
-                if (!isEditing) return;
-                isEditing = false;
-                
-                const newValue = parseFloat(input.value) || 0;
-                
-                // Add to pending changes
-                pendingChanges.set(itemId, {
-                    item_id: itemId,
-                    cost_price: newValue,
-                    product_name: description,
-                    product_model: description.split(' ')[0] || description,
-                    serial_number: serialNumber
-                });
-
-                // Update display safely
-                if (field && field.parentNode) {
-                    field.innerHTML = formatCurrency(newValue);
-                    field.classList.remove('empty');
-                    field.classList.add('success-animation');
-                }
-
-                // Update bulk save button
-                updateBulkSaveButton();
-
-                // Recalculate profit in the row
-                updateRowProfitCalculations(id, newValue);
-            };
-
-            const cancelEdit = () => {
-                if (!isEditing) return;
-                isEditing = false;
-                
-                if (field && field.parentNode) {
-                    field.innerHTML = currentPrice ? formatCurrency(currentPrice) : 'لم يتم تحديده';
-                    if (!currentPrice) field.classList.add('empty');
-                }
-            };
-
-            input.addEventListener('blur', saveEdit);
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    saveEdit();
-                }
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    cancelEdit();
-                }
-            });
+            // Store current item data
+            document.getElementById('costPriceModal').setAttribute('data-item-id', itemId);
+            document.getElementById('costPriceModal').setAttribute('data-row-id', id);
+            document.getElementById('costPriceModal').setAttribute('data-description', description);
+            document.getElementById('costPriceModal').setAttribute('data-serial-number', serialNumber);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('costPriceModal'));
+            modal.show();
+            
+            // Focus on cost price input
+            setTimeout(() => {
+                document.getElementById('modalCostPrice').focus();
+            }, 500);
+        }
+        
+        // Update modal calculations
+        function updateModalCalculations() {
+            const salePrice = parseFloat(document.getElementById('modalSalePrice').value.replace(/[^\d.-]/g, '')) || 0;
+            const costPrice = parseFloat(document.getElementById('modalCostPrice').value) || 0;
+            
+            const profit = salePrice - costPrice;
+            const margin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
+            
+            document.getElementById('modalExpectedProfit').value = formatCurrency(profit);
+            document.getElementById('modalExpectedMargin').value = formatPercentage(margin);
+            
+            // Color coding
+            const profitInput = document.getElementById('modalExpectedProfit');
+            const marginInput = document.getElementById('modalExpectedMargin');
+            
+            profitInput.className = `form-control ${profit >= 0 ? 'text-success' : 'text-danger'}`;
+            marginInput.className = `form-control ${margin >= 20 ? 'text-success' : 'text-warning'}`;
         }
 
+        // Update table row cost price display
+        function updateTableRowCostPrice(rowId, costPrice) {
+            const row = document.querySelector(`[data-id="${rowId}"]`);
+            const item = allData.find(item => item.id === rowId);
+            
+            if (row && item) {
+                // Update cost price display
+                const costCell = row.cells[5];
+                costCell.innerHTML = `
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-success fw-bold">
+                            ${formatCurrency(costPrice)}
+                        </span>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="openCostPriceModal('${rowId}', ${costPrice}, '${item.description}', '${item.serial_number || ''}', ${item.sale_price}, '${item.client_name || ''}', ${item.item_id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Update profit calculations
+                updateRowProfitCalculations(rowId, costPrice);
+                
+                // Update the data
+                item.cost_price = costPrice;
+            }
+        }
+        
         // Update row profit calculations
         function updateRowProfitCalculations(id, costPrice) {
             const row = document.querySelector(`[data-id="${id}"]`);
@@ -815,7 +897,6 @@
                 `;
 
                 // Update the data
-                item.cost_price = costPrice;
                 item.profit_amount = profit;
                 item.profit_margin = margin;
             }
@@ -1018,6 +1099,43 @@
             
             document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
             document.getElementById('endDate').value = lastDay.toISOString().split('T')[0];
+            
+            // Modal event listeners
+            document.getElementById('modalCostPrice').addEventListener('input', updateModalCalculations);
+            
+            document.getElementById('saveCostPriceBtn').addEventListener('click', function() {
+                const modal = document.getElementById('costPriceModal');
+                const itemId = modal.getAttribute('data-item-id');
+                const rowId = modal.getAttribute('data-row-id');
+                const description = modal.getAttribute('data-description');
+                const serialNumber = modal.getAttribute('data-serial-number');
+                const costPrice = parseFloat(document.getElementById('modalCostPrice').value) || 0;
+                
+                if (costPrice <= 0) {
+                    showNotification('يرجى إدخال سعر تكلفة صحيح', 'error');
+                    return;
+                }
+                
+                // Add to pending changes
+                pendingChanges.set(itemId, {
+                    item_id: itemId,
+                    cost_price: costPrice,
+                    product_name: description,
+                    product_model: description.split(' ')[0] || description,
+                    serial_number: serialNumber
+                });
+                
+                // Update the table row
+                updateTableRowCostPrice(rowId, costPrice);
+                
+                // Update bulk save button
+                updateBulkSaveButton();
+                
+                // Close modal
+                bootstrap.Modal.getInstance(document.getElementById('costPriceModal')).hide();
+                
+                showNotification('تم إضافة التكلفة للقائمة', 'success');
+            });
         });
     </script>
     
