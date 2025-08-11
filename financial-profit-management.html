@@ -788,9 +788,10 @@
                 document.getElementById('modalInvoiceClient').textContent = clientName;
                 
                 // Load invoice items
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
                 const response = await fetch(`${window.config.baseUrl}/api/financial/invoice/${invoiceId}/items`, {
                     headers: {
-                        'x-auth-token': AuthMiddleware.getToken()
+                        'x-auth-token': token
                     }
                 });
                 
