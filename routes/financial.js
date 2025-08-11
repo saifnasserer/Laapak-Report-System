@@ -284,6 +284,12 @@ router.get('/profit-management', adminAuth, async (req, res) => {
             try {
                 console.log('Fetching invoices with whereClause:', whereClause);
                 
+                // First, let's check if we can find any paid invoices at all
+                const totalPaidInvoices = await Invoice.count({
+                    where: { paymentStatus: 'paid' }
+                });
+                console.log(`Total paid invoices in database: ${totalPaidInvoices}`);
+                
                 // Get completed invoices with profit calculations
                 const invoices = await Invoice.findAll({
                     where: {
@@ -305,7 +311,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     offset: offset
                 });
 
-                console.log(`Found ${invoices.length} invoices`);
+                console.log(`Found ${invoices.length} invoices with items`);
                 
                 for (const invoice of invoices) {
                     console.log(`Invoice ${invoice.id} has ${invoice.InvoiceItems.length} items`);
@@ -332,6 +338,8 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 console.log(`Total results from invoices: ${results.length}`);
             } catch (invoiceError) {
                 console.error('Error fetching invoices:', invoiceError);
+                console.error('Error details:', invoiceError.message);
+                console.error('Error stack:', invoiceError.stack);
             }
         }
 
@@ -824,7 +832,10 @@ router.get('/test', adminAuth, async (req, res) => {
             ExpenseCategory: typeof ExpenseCategory !== 'undefined',
             Expense: typeof Expense !== 'undefined',
             ProductCost: typeof ProductCost !== 'undefined',
-            FinancialSummary: typeof FinancialSummary !== 'undefined'
+            FinancialSummary: typeof FinancialSummary !== 'undefined',
+            Invoice: typeof Invoice !== 'undefined',
+            InvoiceItem: typeof InvoiceItem !== 'undefined',
+            Client: typeof Client !== 'undefined'
         };
 
         // Test if tables exist by trying to count records
@@ -860,6 +871,32 @@ router.get('/test', adminAuth, async (req, res) => {
         } catch (error) {
             tableTests.FinancialSummary = false;
             tableTests.FinancialSummaryError = error.message;
+        }
+
+        try {
+            const invoiceCount = await Invoice.count();
+            tableTests.Invoice = true;
+            tableTests.InvoiceCount = invoiceCount;
+        } catch (error) {
+            tableTests.Invoice = false;
+            tableTests.InvoiceError = error.message;
+        }
+
+        try {
+            const itemCount = await InvoiceItem.count();
+            tableTests.InvoiceItem = true;
+            tableTests.InvoiceItemCount = itemCount;
+        } catch (error) {
+            tableTests.InvoiceItem = false;
+            tableTests.InvoiceItemError = error.message;
+        }
+
+        try {
+            const paidInvoices = await Invoice.count({ where: { paymentStatus: 'paid' } });
+            tableTests.PaidInvoices = paidInvoices;
+        } catch (error) {
+            tableTests.PaidInvoices = false;
+            tableTests.PaidInvoicesError = error.message;
         }
 
         res.json({
