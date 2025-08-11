@@ -789,7 +789,8 @@
                 
                 // Load invoice items
                 const token = authMiddleware.getAdminToken() || adminInfo.token || '';
-                const response = await fetch(`${window.config.baseUrl}/api/financial/invoice/${invoiceId}/items`, {
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                const response = await fetch(`${baseUrl}/api/financial/invoice/${invoiceId}/items`, {
                     headers: {
                         'x-auth-token': token
                     }
