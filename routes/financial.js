@@ -553,49 +553,67 @@ router.get('/invoice/:invoiceId/items', adminAuth, async (req, res) => {
     try {
         const { invoiceId } = req.params;
         
-        // Import sequelize
-        const { sequelize } = require('../models');
-        
-        const query = `
-            SELECT 
-                ii.id as item_id,
-                ii.description as item_description,
-                ii.amount as sale_price,
-                ii.quantity,
-                ii.cost_price,
-                ii.profit_amount,
-                ii.profit_margin,
-                ii.serialNumber,
-                ii.type as item_type
-            FROM invoice_items ii
-            WHERE ii.invoiceId = ?
-            ORDER BY ii.id
-        `;
-        
-        const [items] = await sequelize.query(query, {
-            replacements: [invoiceId],
-            type: sequelize.QueryTypes.SELECT
+        // Use the same approach as the working invoices route
+        const invoice = await Invoice.findByPk(invoiceId, {
+            include: [
+                { model: InvoiceItem, as: 'InvoiceItems' }
+            ]
         });
+        
+        if (!invoice) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Invoice not found' 
+            });
+        }
+        
+        // Transform the data to match the expected format
+        const items = invoice.InvoiceItems.map(item => ({
+            item_id: item.id,
+            item_description: item.description,
+            sale_price: parseFloat(item.amount),
+            quantity: parseInt(item.quantity || 1),
+            cost_price: item.cost_price ? parseFloat(item.cost_price) : null,
+            profit_amount: item.profit_amount ? parseFloat(item.profit_amount) : null,
+            profit_margin: item.profit_margin ? parseFloat(item.profit_margin) : null,
+            serialNumber: item.serialNumber,
+            item_type: item.type,
+            needs_cost_price: !item.cost_price
+        }));
         
         res.json({
             success: true,
-            data: items.map(item => ({
-                ...item,
-                sale_price: parseFloat(item.sale_price),
-                cost_price: item.cost_price ? parseFloat(item.cost_price) : null,
-                quantity: parseInt(item.quantity),
-                profit_amount: item.profit_amount ? parseFloat(item.profit_amount) : null,
-                profit_margin: item.profit_margin ? parseFloat(item.profit_margin) : null,
-                needs_cost_price: !item.cost_price
-            }))
+            data: items
         });
         
     } catch (error) {
         console.error('Error fetching invoice items:', error);
+        
+        // Log detailed error information for debugging
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        
+        // Check for specific error types
+        if (error.name === 'SequelizeEagerLoadingError') {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to load associated data',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
+        if (error.name && error.name.includes('Sequelize')) {
+            return res.status(500).json({
+                success: false,
+                message: 'Database error occurred',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+        
         res.status(500).json({ 
             success: false, 
-            message: 'Error fetching invoice items',
-            error: error.message 
+            message: 'Failed to fetch invoice items',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
         });
     }
 });
