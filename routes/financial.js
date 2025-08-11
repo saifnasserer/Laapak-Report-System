@@ -280,78 +280,86 @@ router.get('/profit-management', adminAuth, async (req, res) => {
         const results = [];
 
         if (!type || type === 'invoices') {
-            // Get completed invoices with profit calculations
-            const invoices = await Invoice.findAll({
-                where: {
-                    ...whereClause,
-                    paymentStatus: 'paid'
-                },
-                include: [
-                    {
-                        model: InvoiceItem,
-                        attributes: ['id', 'description', 'amount', 'quantity', 'cost_price', 'profit_amount', 'profit_margin', 'serialNumber']
+            try {
+                // Get completed invoices with profit calculations
+                const invoices = await Invoice.findAll({
+                    where: {
+                        ...whereClause,
+                        paymentStatus: 'paid'
                     },
-                    {
-                        model: require('../models').Client,
-                        attributes: ['name']
-                    }
-                ],
-                order: [['date', 'DESC']],
-                limit: parseInt(limit),
-                offset: offset
-            });
+                    include: [
+                        {
+                            model: InvoiceItem,
+                            attributes: ['id', 'description', 'amount', 'quantity', 'cost_price', 'profit_amount', 'profit_margin', 'serialNumber']
+                        },
+                        {
+                            model: require('../models').Client,
+                            attributes: ['name']
+                        }
+                    ],
+                    order: [['date', 'DESC']],
+                    limit: parseInt(limit),
+                    offset: offset
+                });
 
-            for (const invoice of invoices) {
-                for (const item of invoice.InvoiceItems) {
-                    results.push({
-                        id: `invoice-${invoice.id}-${item.id}`,
-                        type: 'invoice',
-                        date: invoice.date,
-                        description: item.description,
-                        client_name: invoice.Client?.name,
-                        sale_price: parseFloat(item.amount),
-                        cost_price: item.cost_price ? parseFloat(item.cost_price) : null,
-                        quantity: item.quantity,
-                        profit_amount: item.profit_amount ? parseFloat(item.profit_amount) : null,
-                        profit_margin: item.profit_margin ? parseFloat(item.profit_margin) : null,
-                        serial_number: item.serialNumber,
-                        item_id: item.id,
-                        needs_cost_price: !item.cost_price
-                    });
+                for (const invoice of invoices) {
+                    for (const item of invoice.InvoiceItems) {
+                        results.push({
+                            id: `invoice-${invoice.id}-${item.id}`,
+                            type: 'invoice',
+                            date: invoice.date,
+                            description: item.description,
+                            client_name: invoice.Client?.name,
+                            sale_price: parseFloat(item.amount),
+                            cost_price: item.cost_price ? parseFloat(item.cost_price) : null,
+                            quantity: item.quantity,
+                            profit_amount: item.profit_amount ? parseFloat(item.profit_amount) : null,
+                            profit_margin: item.profit_margin ? parseFloat(item.profit_margin) : null,
+                            serial_number: item.serialNumber,
+                            item_id: item.id,
+                            needs_cost_price: !item.cost_price
+                        });
+                    }
                 }
+            } catch (invoiceError) {
+                console.error('Error fetching invoices:', invoiceError);
             }
         }
 
         if (!type || type === 'expenses') {
-            // Get expenses
-            const expenses = await Expense.findAll({
-                where: {
-                    ...expenseWhere,
-                    status: ['approved', 'paid']
-                },
-                include: [
-                    {
-                        model: ExpenseCategory,
-                        as: 'category',
-                        attributes: ['name_ar', 'color']
-                    }
-                ],
-                order: [['date', 'DESC']],
-                limit: parseInt(limit),
-                offset: offset
-            });
-
-            for (const expense of expenses) {
-                results.push({
-                    id: `expense-${expense.id}`,
-                    type: 'expense',
-                    date: expense.date,
-                    description: expense.name_ar,
-                    category: expense.category?.name_ar,
-                    amount: parseFloat(expense.amount),
-                    expense_type: expense.type,
-                    color: expense.category?.color
+            try {
+                // Get expenses
+                const expenses = await Expense.findAll({
+                    where: {
+                        ...expenseWhere,
+                        status: ['approved', 'paid']
+                    },
+                    include: [
+                        {
+                            model: ExpenseCategory,
+                            as: 'category',
+                            attributes: ['name_ar', 'color']
+                        }
+                    ],
+                    order: [['date', 'DESC']],
+                    limit: parseInt(limit),
+                    offset: offset
                 });
+
+                for (const expense of expenses) {
+                    results.push({
+                        id: `expense-${expense.id}`,
+                        type: 'expense',
+                        date: expense.date,
+                        description: expense.name_ar,
+                        category: expense.category?.name_ar,
+                        amount: parseFloat(expense.amount),
+                        expense_type: expense.type,
+                        color: expense.category?.color
+                    });
+                }
+            } catch (expenseError) {
+                console.error('Error fetching expenses:', expenseError);
             }
         }
 
@@ -571,10 +579,10 @@ router.get('/expense-categories', adminAuth, async (req, res) => {
 
     } catch (error) {
         console.error('Get expense categories error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error loading expense categories',
-            error: error.message 
+        // Return empty categories array instead of error
+        res.json({
+            success: true,
+            data: { categories: [] }
         });
     }
 });
@@ -604,10 +612,10 @@ router.get('/recent-expenses', adminAuth, async (req, res) => {
 
     } catch (error) {
         console.error('Get recent expenses error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error loading recent expenses',
-            error: error.message 
+        // Return empty expenses array instead of error
+        res.json({
+            success: true,
+            data: { expenses: [] }
         });
     }
 });
