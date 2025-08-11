@@ -423,10 +423,12 @@ router.put('/cost-prices/bulk', adminAuth, async (req, res) => {
                 console.log('Processing update:', update);
                 
                 // Update the invoice item
-                await InvoiceItem.update(
+                console.log(`Updating InvoiceItem with id: ${update.item_id} (type: ${typeof update.item_id})`);
+                const updateResult = await InvoiceItem.update(
                     { cost_price: update.cost_price },
-                    { where: { id: update.item_id } }
+                    { where: { id: parseInt(update.item_id) } }
                 );
+                console.log(`InvoiceItem update result:`, updateResult);
 
                 // Create/update product cost record
                 if (update.product_name && update.product_model) {
