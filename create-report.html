@@ -36,6 +36,43 @@
             font-size: 0.875rem;
         }
         
+        /* Client search styles */
+        .client-result-item {
+            transition: all 0.2s ease;
+        }
+        
+        .client-result-item:hover {
+            background-color: #f8f9fa !important;
+            transform: translateX(-2px);
+        }
+        
+        .client-result-item:last-child {
+            border-bottom: none !important;
+        }
+        
+        #clientSearchResults {
+            scrollbar-width: thin;
+            scrollbar-color: #007553 #f1f1f1;
+        }
+        
+        #clientSearchResults::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #clientSearchResults::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        #clientSearchResults::-webkit-scrollbar-thumb {
+            background: #007553;
+            border-radius: 3px;
+        }
+        
+        #clientSearchResults::-webkit-scrollbar-thumb:hover {
+            background: #005a40;
+        }
+        
         @media (max-width: 767.98px) {
             .fs-sm-6 {
                 font-size: 0.75rem;
@@ -391,21 +428,26 @@
                             <label class="form-label fw-bold" style="font-size: 1.1rem; color: var(--primary-color);">
                                 <i class="fas fa-user-check me-2"></i> اختر عميل
                             </label>
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="input-group" style="flex: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: var(--input-radius); overflow: hidden; border: 2px solid rgba(14, 175, 84, 0.2);">
+                            <div class="d-flex align-items-center mb-3" style="position: relative;">
+                                <div class="input-group" style="flex: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: var(--input-radius); overflow: hidden; border: 2px solid rgba(14, 175, 84, 0.2); position: relative;">
                                     <span class="input-group-text" style="background: linear-gradient(135deg, rgba(14, 175, 84, 0.1) 0%, rgba(14, 175, 84, 0.05) 100%); border: none;">
                                         <i class="fas fa-search" style="color: var(--primary-color); font-size: 1.1rem;"></i>
                                     </span>
-                                    <select class="form-select border-0 shadow-none" id="clientSelect" onchange="clientSelectionChanged(this)" style="height: 40px;padding: 0 1.25rem !important; font-size: 1.05rem; background-color: #fafffe;">
-                                        <option value="" selected>اختر عميل...</option>
-                                        <!-- Client options will be loaded dynamically -->
-                                    </select>
+                                    <input type="text" class="form-control border-0 shadow-none" id="clientSearchInput" placeholder="ابحث عن عميل بالاسم أو رقم الهاتف أو رقم الطلب..." style="height: 40px;padding: 0 1.25rem !important; font-size: 1.05rem; background-color: #fafffe;" autocomplete="off">
+                                    <span class="input-group-text" style="background: #fafffe; border: none;">
+                                        <i class="fas fa-chevron-down" id="clientSearchIcon" style="color: var(--primary-color); font-size: 1rem; cursor: pointer;"></i>
+                                    </span>
                                 </div>
                                 <button class="btn btn-success ms-2" type="button" data-bs-toggle="modal" data-bs-target="#addClientModal" style="box-shadow: 0 5px 15px rgba(14, 175, 84, 0.2); border-radius: var(--btn-radius); padding: 0.75rem 1.25rem; font-weight: 500;">
                                     <i class="fas fa-plus me-2"></i> عميل جديد
                                 </button>
                                 <div id="clientLoadingIndicator" class="spinner-border spinner-border-sm text-primary ms-2" role="status" style="display: none;">
                                     <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                                
+                                <!-- Client Search Results Dropdown -->
+                                <div id="clientSearchResults" class="position-absolute bg-white border rounded shadow-lg" style="display: none; max-height: 300px; overflow-y: auto; z-index: 1050; width: calc(100% - 120px); top: 100%; left: 0; margin-top: 5px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);">
+                                    <!-- Search results will be populated here -->
                                 </div>
                             </div>
                             
@@ -448,9 +490,9 @@
                                                 <div class="col-md-6">
                                                     <label for="orderNumber" class="form-label">رقم الطلب</label>
                                                     <div class="input-group">
-                                                        <input type="text" class="form-control" id="orderNumber" placeholder="LPK00000" value="LPK" required>
+                                                        <input type="text" class="form-control" id="orderNumber" placeholder="LPK00000" required>
                                                     </div>
-                                                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i> سيتم إضافة البادئة LPK تلقائيًا</small>
+                                                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i> البادئة LPK مطلوبة - أدخل الأرقام فقط</small>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label for="inspectionDate" class="form-label">تاريخ الفحص</label>

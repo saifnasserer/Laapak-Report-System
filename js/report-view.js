@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const billingAmount = document.getElementById('billingAmount');
     const billingSummaryContainer = document.getElementById('billingSummaryContainer');
     const noBillingInfo = document.getElementById('noBillingInfo');
+    const technicianNotes = document.getElementById('technicianNotes');
 
     if (!reportId) {
         document.body.innerHTML = '<div class="alert alert-danger m-5">لم يتم تحديد معرف التقرير. يرجى التأكد من صحة الرابط.</div>';
@@ -140,16 +141,92 @@ document.addEventListener('DOMContentLoaded', () => {
         populateHardwareComponentsTable(hardwareStatusData);
 
         // Step 4: Technician Notes
+        let hasNotes = false;
+        let notesContent = '';
+        
         // First check if there are notes in hardware_status with type 'note'
         const notesComponent = hardwareStatusData.find(item => item.type === 'note' && item.componentName === 'notes');
-        if (notesComponent && notesComponent.notes) {
-            technicianNotes.textContent = notesComponent.notes;
+        if (notesComponent && notesComponent.notes && notesComponent.notes.trim()) {
+            notesContent = notesComponent.notes;
+            hasNotes = true;
         } else {
             // Fallback to the regular notes field if no notes found in hardware_status
-            technicianNotes.textContent = get(report, 'notes');
+            const regularNotes = get(report, 'notes');
+            if (regularNotes && regularNotes.trim() && regularNotes !== '-') {
+                notesContent = regularNotes;
+                hasNotes = true;
+            }
+        }
+        
+        // Set notes content if available
+        if (technicianNotes) {
+            technicianNotes.textContent = notesContent;
+        }
+        
+        // Hide notes step if no content
+        if (!hasNotes) {
+            hideNotesStep();
         }
 
         // Step 5: Billing Summary (Now handled by static content in Step 6 in HTML)
+    }
+    
+    /**
+     * Hide the notes step if there's no content
+     */
+    function hideNotesStep() {
+        // Find the notes step element (assuming it's step 4)
+        const notesStep = document.querySelector('.form-step[data-step="4"], .step-4, #step4');
+        const notesStepItem = document.querySelector('.step-item[data-step="4"], .step-item:nth-child(4)');
+        
+        if (notesStep) {
+            notesStep.style.display = 'none';
+        }
+        
+        if (notesStepItem) {
+            notesStepItem.style.display = 'none';
+        }
+        
+        // Also hide the entire notes section container if it exists
+        const notesSection = document.getElementById('notesSection');
+        if (notesSection) {
+            notesSection.style.display = 'none';
+        }
+        
+        // Update step navigation to skip the hidden step
+        updateStepNavigation();
+    }
+    
+    /**
+     * Update step navigation to handle hidden steps
+     */
+    function updateStepNavigation() {
+        // Recalculate total steps after hiding notes step
+        const visibleSteps = document.querySelectorAll('.form-step:not([style*="display: none"])');
+        const visibleStepItems = document.querySelectorAll('.step-item:not([style*="display: none"])');
+        
+        // Update step navigation logic to account for hidden steps
+        if (visibleSteps.length !== steps.length) {
+            console.log(`Notes step hidden. Total steps: ${visibleSteps.length} (was ${steps.length})`);
+            
+            // If we're currently on a step that's now hidden, move to the next visible step
+            const currentStepElement = document.querySelector('.form-step.active');
+            if (currentStepElement && currentStepElement.style.display === 'none') {
+                const nextVisibleStep = Array.from(visibleSteps).find(step => 
+                    step.style.display !== 'none' && 
+                    Array.from(steps).indexOf(step) > Array.from(steps).indexOf(currentStepElement)
+                );
+                
+                if (nextVisibleStep) {
+                    currentStep = Array.from(visibleSteps).indexOf(nextVisibleStep) + 1;
+                } else {
+                    // If no next step, go to the last visible step
+                    currentStep = visibleSteps.length;
+                }
+                
+                updateSteps();
+            }
+        }
     }
 
     function safeJsonParse(jsonString, defaultValue = []) {
@@ -1377,6 +1454,12 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             top: 0,
             behavior: 'smooth'
         });
+        
+        // Get visible steps and step items (excluding hidden ones)
+        const visibleSteps = Array.from(steps).filter(step => step.style.display !== 'none');
+        const visibleStepItems = Array.from(stepItems).filter(item => item.style.display !== 'none');
+        
+        // Update step visibility
         steps.forEach((step, index) => {
             if (index + 1 === currentStep) {
                 step.classList.add('active');
@@ -1385,17 +1468,28 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             }
         });
 
+        // Update step items with proper indexing for visible items
         stepItems.forEach((item, index) => {
             const button = item.querySelector('.step-button');
-            if (index + 1 === currentStep) {
+            if (!button) return;
+            
+            // Skip hidden items
+            if (item.style.display === 'none') {
+                return;
+            }
+            
+            // Calculate the visible step number for this item
+            const visibleStepNumber = visibleStepItems.indexOf(item) + 1;
+            
+            if (visibleStepNumber === currentStep) {
                 item.classList.add('active');
                 button.classList.remove('btn-outline-primary');
                 button.classList.add('btn-primary');
-            } else if (index + 1 < currentStep) {
-                item.classList.add('completed'); // Optional: Mark past steps as completed
+            } else if (visibleStepNumber < currentStep) {
+                item.classList.add('completed');
                 item.classList.remove('active');
                 button.classList.remove('btn-primary');
-                button.classList.add('btn-success'); // Mark completed steps with success color
+                button.classList.add('btn-success');
             } else {
                 item.classList.remove('active', 'completed');
                 button.classList.remove('btn-primary', 'btn-success');
@@ -1403,16 +1497,18 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             }
         });
 
+        // Update navigation buttons
         prevBtn.disabled = currentStep === 1;
-        nextBtn.disabled = currentStep === steps.length;
+        nextBtn.disabled = currentStep === visibleSteps.length;
         
-        // Update progress bar
-        const progressPercentage = ((currentStep -1) / (steps.length -1)) * 100;
+        // Update progress bar based on visible steps
+        const progressPercentage = ((currentStep - 1) / (visibleSteps.length - 1)) * 100;
         progressBar.style.width = `${progressPercentage}%`;
     }
 
     nextBtn.addEventListener('click', () => {
-        if (currentStep < steps.length) {
+        const visibleSteps = Array.from(steps).filter(step => step.style.display !== 'none');
+        if (currentStep < visibleSteps.length) {
             // Scroll to top of the page with a smooth animation
             window.scrollTo({
                 top: 0,
@@ -1433,6 +1529,11 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
 
     stepItems.forEach(item => {
         item.addEventListener('click', (e) => {
+            // Skip hidden items
+            if (item.style.display === 'none') {
+                return;
+            }
+            
             // Allow navigation by clicking step items if needed and if step is not disabled
             const stepNumber = parseInt(item.dataset.step);
             if (stepNumber) {

@@ -135,10 +135,19 @@ router.get('/', async (req, res) => {
 
       const reports = await Report.findAll({
         where: whereClause,
-        include: {
-          model: Client,
-          attributes: ['id', 'name', 'phone', 'email'],
-        },
+        include: [
+          {
+            model: Client,
+            attributes: ['id', 'name', 'phone', 'email'],
+          },
+          {
+            model: Invoice,
+            as: 'invoices',
+            through: { attributes: [] }, // Don't include junction table attributes
+            attributes: ['id', 'invoice_number', 'total_amount', 'status'],
+            required: false // Left join to include reports without invoices
+          }
+        ],
         order: [['created_at', 'DESC']],
       });
       console.log(`Found ${reports.length} reports`);

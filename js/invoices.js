@@ -59,10 +59,40 @@ function initializeDataTable() {
             // Define data columns that match your MySQL database structure
             columns: [
                 // Define explicit mapping between data and columns
-                { data: 'id', title: 'رقم الفاتورة' },
+                { 
+                    data: 'id', 
+                    title: 'رقم الفاتورة',
+                    type: 'num', // Specify numeric type for proper sorting
+                    render: function(data, type, row) {
+                        if (type === 'display') {
+                            return data; // Return formatted ID for display
+                        }
+                        return row.idSort; // Return numeric value for sorting
+                    }
+                },
                 { data: 'client_name', title: 'العميل' },
-                { data: 'date', title: 'التاريخ' },
-                { data: 'total', title: 'المبلغ' },
+                { 
+                    data: 'date', 
+                    title: 'التاريخ',
+                    type: 'num', // Specify numeric type for proper sorting
+                    render: function(data, type, row) {
+                        if (type === 'display') {
+                            return data; // Return formatted date for display
+                        }
+                        return row.dateSort; // Return sort data for sorting
+                    }
+                },
+                { 
+                    data: 'total', 
+                    title: 'المبلغ',
+                    type: 'num', // Specify numeric type for proper sorting
+                    render: function(data, type, row) {
+                        if (type === 'display') {
+                            return data; // Return formatted amount for display
+                        }
+                        return row.totalSort; // Return numeric value for sorting
+                    }
+                },
                 { data: 'paymentStatus', title: 'حالة الدفع' },
                 { data: 'paymentMethod', title: 'طريقة الدفع' },
                 { data: 'actions', title: 'إجراءات', orderable: false }
@@ -223,8 +253,23 @@ function formatInvoiceForTable(invoice) {
         
         // Format date - handle both string and Date objects
         let formattedDate = '-';
+        let dateSort = null;
         if (invoice.date) {
-            formattedDate = moment(invoice.date).format('DD/MM/YYYY');
+            try {
+                const dateObj = moment(invoice.date);
+                if (dateObj.isValid()) {
+                    formattedDate = dateObj.format('DD/MM/YYYY');
+                    dateSort = dateObj.valueOf(); // Unix timestamp for proper sorting
+                } else {
+                    console.warn('Invalid date format:', invoice.date);
+                    formattedDate = '-';
+                    dateSort = 0;
+                }
+            } catch (error) {
+                console.error('Error formatting date:', error, invoice.date);
+                formattedDate = '-';
+                dateSort = 0;
+            }
         }
         
         // Format payment status with appropriate badge
@@ -267,15 +312,18 @@ function formatInvoiceForTable(invoice) {
         
         // Format total amount
         let formattedTotal = '0.00 ج.م.';
+        let totalSort = 0;
         if (invoice.total !== undefined) {
             const totalValue = parseFloat(invoice.total);
             if (!isNaN(totalValue)) {
                 formattedTotal = `${totalValue.toFixed(2)} ج.م.`;
+                totalSort = totalValue; // Numeric value for sorting
             }
         }
         
         // Create action buttons
         const invoiceId = invoice.id || 'unknown';
+        const idSort = typeof invoice.id === 'number' ? invoice.id : parseInt(invoice.id) || 0;
         let actionsHtml = `
             <div class="dropdown text-center">
                 <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
@@ -294,9 +342,12 @@ function formatInvoiceForTable(invoice) {
         // Return formatted invoice data for DataTable in the exact format it expects
         return {
             id: invoiceId,
+            idSort: idSort, // Add sort data for proper ID sorting
             client_name: clientName,
             date: formattedDate,
+            dateSort: dateSort, // Add sort data for proper date sorting
             total: formattedTotal,
+            totalSort: totalSort, // Add sort data for proper amount sorting
             paymentStatus: statusBadge,
             paymentMethod: paymentMethodText,
             actions: actionsHtml,

@@ -29,6 +29,119 @@ window.globalClientDetails = window.globalClientDetails || {
 let globalDeviceDetails = window.globalDeviceDetails;
 let clientsData = window.clientsData;
 
+    /**
+     * Set up order number field with LPK prefix and number-only input
+     */
+    function setupOrderNumberField() {
+        const orderNumberInput = document.getElementById('orderNumber');
+        if (!orderNumberInput) return;
+        
+        // Set initial value with LPK prefix
+        if (!orderNumberInput.value || orderNumberInput.value === 'LPK') {
+            orderNumberInput.value = 'LPK';
+        }
+        
+        // Add event listeners for input handling
+        orderNumberInput.addEventListener('input', function(e) {
+            let value = this.value;
+            
+            // Ensure LPK prefix is always present
+            if (!value.startsWith('LPK')) {
+                value = 'LPK' + value.replace(/^LPK/, '');
+            }
+            
+            // Remove any non-numeric characters after LPK
+            const prefix = 'LPK';
+            const numericPart = value.substring(prefix.length).replace(/[^0-9]/g, '');
+            
+            // Limit to reasonable length (e.g., 6 digits)
+            const limitedNumericPart = numericPart.substring(0, 6);
+            
+            // Combine prefix with numeric part
+            const finalValue = prefix + limitedNumericPart;
+            
+            // Update input value
+            this.value = finalValue;
+            
+            // Update global device details
+            updateGlobalDeviceDetails();
+        });
+        
+        // Handle paste events
+        orderNumberInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            
+            // Get pasted text
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            
+            // Process the pasted text
+            let value = pastedText;
+            
+            // Remove LPK if it's in the pasted text
+            value = value.replace(/^LPK/i, '');
+            
+            // Keep only numbers
+            value = value.replace(/[^0-9]/g, '');
+            
+            // Limit length
+            value = value.substring(0, 6);
+            
+            // Set the value with LPK prefix
+            this.value = 'LPK' + value;
+            
+            // Update global device details
+            updateGlobalDeviceDetails();
+        });
+        
+        // Handle keydown for special keys
+        orderNumberInput.addEventListener('keydown', function(e) {
+            // Allow: backspace, delete, tab, escape, enter, and navigation keys
+            if ([8, 9, 27, 13, 46, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true)) {
+                return;
+            }
+            
+            // Allow numbers only
+            if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105)) {
+                return;
+            }
+            
+            // Prevent all other keys
+            e.preventDefault();
+        });
+        
+        // Handle focus to select numeric part only
+        orderNumberInput.addEventListener('focus', function() {
+            // Select only the numeric part (after LPK)
+            const value = this.value;
+            const prefixLength = 'LPK'.length;
+            
+            if (value.length > prefixLength) {
+                this.setSelectionRange(prefixLength, value.length);
+            } else {
+                this.setSelectionRange(prefixLength, prefixLength);
+            }
+        });
+        
+        // Handle click to position cursor correctly
+        orderNumberInput.addEventListener('click', function() {
+            const value = this.value;
+            const prefixLength = 'LPK'.length;
+            const cursorPosition = this.selectionStart;
+            
+            // If cursor is in the prefix area, move it to the end
+            if (cursorPosition < prefixLength) {
+                this.setSelectionRange(prefixLength, prefixLength);
+            }
+        });
+        
+        console.log('Order number field setup completed');
+    }
+    
 /**
  * Update global device details from form inputs
  */
@@ -429,6 +542,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Set up order number field with LPK prefix and number-only input
+    setupOrderNumberField();
+    
     // Initial update of global device details
     updateGlobalDeviceDetails();
 
@@ -436,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const reportForm = document.getElementById('reportForm');
     if (!reportForm) return;
     
-    // Load clients for the dropdown
+    // Load clients for the search
     loadClients();
     
     // Set up event listener for adding a new client
@@ -762,11 +878,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // Submit to API
             const response = await apiService.createReport(formData);
             
+            // If billing is enabled, create invoice automatically
+            if (formData.billing_enabled && formData.amount > 0) {
+                try {
+                    await createInvoiceForReport(response, formData);
+                } catch (invoiceError) {
+                    console.error('Error creating invoice for report:', invoiceError);
+                    // Show warning but don't fail the report creation
+                    showToast('تم إنشاء التقرير بنجاح، لكن حدث خطأ في إنشاء الفاتورة', 'warning');
+                }
+            }
+            
             // Hide loading indicator
             showLoading(false);
             
             // Show success message
-            showSuccessMessage(response);
+            showSuccessMessage(response, formData.billing_enabled);
             
             // Reset form
             resetForm();
@@ -840,19 +967,25 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             console.log('Using globally stored client details:', window.globalClientDetails);
         } else {
-            // Fallback to getting client ID from the select element
-            const clientSelect = document.getElementById('clientSelect');
-            client_id = clientSelect?.value || null;
+            // Fallback to getting client ID from the search input
+            const clientSearchInput = document.getElementById('clientSearchInput');
+            const searchValue = clientSearchInput?.value || '';
             
             // Log client selection for debugging
-            console.log('Selected client ID from form element:', client_id);
-            console.log('Client select element:', clientSelect);
+            console.log('Search input value:', searchValue);
+            console.log('Client search input element:', clientSearchInput);
             
-            // Find selected client details from global clientsData
-            if (client_id && Array.isArray(window.clientsData)) {
-                const selectedClient = window.clientsData.find(client => client.id == client_id);
+            // Find selected client details from global clientsData by name
+            if (searchValue && Array.isArray(window.clientsData)) {
+                const selectedClient = window.clientsData.find(client => 
+                    client.name === searchValue || 
+                    client.phone === searchValue ||
+                    client.email === searchValue ||
+                    client.orderCode === searchValue
+                );
                 console.log('Found client details:', selectedClient);
                 if (selectedClient) {
+                    client_id = selectedClient.id;
                     clientDetails = {
                         clientName: selectedClient.name,
                         clientPhone: selectedClient.phone,
@@ -860,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         clientAddress: selectedClient.address || ''
                     };
                 } else {
-                    console.warn('Client ID found but no matching client in clientsData');
+                    console.warn('Client name found but no matching client in clientsData');
                 }
             } else {
                 console.warn('clientsData is not an array or is undefined');
@@ -892,13 +1025,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const billingEnabled = billingToggle?.checked || false;
         
         if (billingEnabled) {
-            const taxRate = parseFloat(document.getElementById('taxRate')?.value || 15);
+            const taxRate = parseFloat(document.getElementById('taxRate')?.value || 0);
             const discount = parseFloat(document.getElementById('discount')?.value || 0);
             const paymentStatus = document.getElementById('paymentStatus')?.value || 'unpaid';
             const paymentMethod = document.getElementById('paymentMethod')?.value || '';
             
-            // Calculate total amount
-            const subtotal = 250; // This should be calculated based on actual services and parts
+            // Get amount from form or use default
+            const amountInput = document.getElementById('devicePrice');
+            const subtotal = amountInput ? parseFloat(amountInput.value) || 250 : 250;
             const taxAmount = (subtotal * taxRate) / 100;
             const totalAmount = subtotal + taxAmount - discount;
             
@@ -1075,17 +1209,85 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     /**
+     * Create invoice for a report automatically
+     * @param {Object} reportResponse - The created report response
+     * @param {Object} reportData - The original report data
+     * @returns {Promise<Object>} The created invoice
+     */
+    async function createInvoiceForReport(reportResponse, reportData) {
+        try {
+            // Generate unique invoice ID
+            const invoiceId = 'INV' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000);
+            
+            // Get billing data from form
+            const taxRate = parseFloat(document.getElementById('taxRate')?.value || 0);
+            const discount = parseFloat(document.getElementById('discount')?.value || 0);
+            const paymentStatus = document.getElementById('paymentStatus')?.value || 'unpaid';
+            const paymentMethod = document.getElementById('paymentMethod')?.value || '';
+            
+            // Calculate amounts
+            const subtotal = reportData.amount;
+            const taxAmount = (subtotal * taxRate) / 100;
+            const totalAmount = subtotal + taxAmount - discount;
+            
+            // Prepare invoice data
+            const invoiceData = {
+                id: invoiceId,
+                client_id: reportData.client_id,
+                report_ids: [reportResponse.id], // Link to the created report
+                date: new Date().toISOString(),
+                subtotal: subtotal,
+                taxRate: taxRate,
+                tax: taxAmount,
+                discount: discount,
+                total: totalAmount,
+                paymentStatus: paymentStatus,
+                paymentMethod: paymentMethod,
+                notes: `فاتورة تلقائية للتقرير ${reportData.order_number}`,
+                status: 'draft',
+                items: [
+                    {
+                        description: `فحص وإصلاح ${reportData.device_model}`,
+                        quantity: 1,
+                        unitPrice: subtotal,
+                        totalPrice: subtotal,
+                        type: 'service'
+                    }
+                ]
+            };
+            
+            console.log('Creating invoice for report:', invoiceData);
+            
+            // Create invoice via API
+            if (typeof apiService !== 'undefined' && typeof apiService.createInvoice === 'function') {
+                const invoiceResponse = await apiService.createInvoice(invoiceData);
+                console.log('Invoice created successfully:', invoiceResponse);
+                
+                // Show success message for invoice creation
+                showToast('تم إنشاء الفاتورة تلقائياً للتقرير', 'success');
+                
+                return invoiceResponse;
+            } else {
+                throw new Error('API service not available for invoice creation');
+            }
+        } catch (error) {
+            console.error('Error creating invoice for report:', error);
+            throw error;
+        }
+    }
+    
+    /**
      * Load clients from API or localStorage with enhanced error handling
      * @returns {Promise<Array>} Array of client objects
      */
     async function loadClients() {
-        // Show loading state in the dropdown
-        const clientSelect = document.getElementById('clientSelect');
-        if (!clientSelect) return [];
+        // Show loading state in the search input
+        const clientSearchInput = document.getElementById('clientSearchInput');
+        if (!clientSearchInput) return [];
         
         // Set loading state
-        clientSelect.innerHTML = '<option value="" selected>جاري تحميل العملاء...</option>';
-        clientSelect.disabled = true;
+        clientSearchInput.placeholder = 'جاري تحميل العملاء...';
+        clientSearchInput.disabled = true;
         
         // Show loading indicator if exists
         const loadingIndicator = document.getElementById('clientLoadingIndicator');
@@ -1196,16 +1398,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Store clients data globally
             clientsData = clients;
             
-            // Reset dropdown
-            clientSelect.innerHTML = '<option value="" selected>اختر عميل...</option>';
-            
-            // Add clients to dropdown
-            clients.forEach(client => {
-                const option = document.createElement('option');
-                option.value = client.id;
-                option.textContent = `${client.name} - ${client.phone}`;
-                clientSelect.appendChild(option);
-            });
+            // Reset search input
+            clientSearchInput.placeholder = 'ابحث عن عميل بالاسم أو رقم الهاتف أو رقم الطلب...';
+            clientSearchInput.disabled = false;
             
             // Add a data source indicator to the UI if in development mode
             // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -1222,14 +1417,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Fatal error loading clients:', error);
-            // Show error in dropdown
-            clientSelect.innerHTML = '<option value="" selected>خطأ في تحميل العملاء</option>';
+            // Show error in search input
+            clientSearchInput.placeholder = 'خطأ في تحميل العملاء';
             
             // Show error message to user
             const errorAlert = document.createElement('div');
             errorAlert.className = 'alert alert-danger mt-2';
             errorAlert.innerHTML = `<i class="fas fa-exclamation-triangle"></i> حدث خطأ أثناء تحميل بيانات العملاء: ${error.message}`;
-            clientSelect.parentNode.appendChild(errorAlert);
+            clientSearchInput.parentNode.parentNode.appendChild(errorAlert);
             
             // Auto-remove error after 5 seconds
             setTimeout(() => {
@@ -1238,8 +1433,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return [];
         } finally {
-            // Re-enable select
-            clientSelect.disabled = false;
+            // Re-enable search input
+            clientSearchInput.disabled = false;
             
             // Hide loading indicator
             if (loadingIndicator) loadingIndicator.style.display = 'none';
@@ -1505,106 +1700,428 @@ document.addEventListener('DOMContentLoaded', function() {
      * Set up client search functionality
      */
     function setupClientSearch() {
-        const searchInput = document.getElementById('clientSearchFilter');
-        const clearButton = document.getElementById('clearClientSearch');
-        const clientSelect = document.getElementById('clientSelect');
+        const searchInput = document.getElementById('clientSearchInput');
+        const searchResults = document.getElementById('clientSearchResults');
+        const searchIcon = document.getElementById('clientSearchIcon');
         
-        if (!searchInput || !clientSelect) return;
+        if (!searchInput || !searchResults) return;
         
-        // Store original options for reset
-        let originalOptions = [];
-        
-        // Wait for clients to load before capturing original options
-        setTimeout(() => {
-            Array.from(clientSelect.options).forEach(option => {
-                if (option.value) { // Skip the placeholder option
-                    originalOptions.push({
-                        value: option.value,
-                        text: option.text
-                    });
-                }
-            });
-        }, 1000);
+        let searchTimeout;
+        let selectedIndex = -1;
         
         // Handle search input
         searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
+            const searchTerm = this.value.trim();
             
-            // If search is empty, restore all options
+            // Clear previous timeout
+            clearTimeout(searchTimeout);
+            
+            // Hide results if search is empty
             if (!searchTerm) {
-                resetClientOptions();
+                hideSearchResults();
                 return;
             }
             
-            // Filter client options based on search term
-            filterClientOptions(searchTerm);
+            // Debounce search to avoid too many searches
+            searchTimeout = setTimeout(() => {
+                performSearch(searchTerm);
+            }, 300);
         });
         
-        // Clear search button
-        if (clearButton) {
-            clearButton.addEventListener('click', function() {
-                searchInput.value = '';
-                resetClientOptions();
-                searchInput.focus();
+        // Handle keyboard navigation
+        searchInput.addEventListener('keydown', function(e) {
+            const results = searchResults.querySelectorAll('.client-result-item');
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, results.length - 1);
+                    updateSelection(results);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(results);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && results[selectedIndex]) {
+                        selectClient(results[selectedIndex]);
+                    }
+                    break;
+                case 'Escape':
+                    hideSearchResults();
+                    break;
+            }
+        });
+        
+        // Handle search icon click
+        if (searchIcon) {
+            searchIcon.addEventListener('click', function() {
+                if (searchResults.style.display === 'none') {
+                    performSearch(searchInput.value.trim());
+                } else {
+                    hideSearchResults();
+                }
             });
         }
         
-        // Filter client options based on search term
-        function filterClientOptions(searchTerm) {
-            // First, ensure we have the original options
-            if (originalOptions.length === 0) {
-                Array.from(clientSelect.options).forEach(option => {
-                    if (option.value) { // Skip the placeholder option
-                        originalOptions.push({
-                            value: option.value,
-                            text: option.text
-                        });
-                    }
+        // Handle click outside to close results
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                hideSearchResults();
+            }
+        });
+        
+        // Perform search and show results
+        function performSearch(searchTerm) {
+            if (!searchTerm || !Array.isArray(clientsData)) {
+                hideSearchResults();
+                return;
+            }
+            
+            const filteredClients = clientsData.filter(client => {
+                const name = (client.name || '').toLowerCase();
+                const phone = (client.phone || '').toLowerCase();
+                const email = (client.email || '').toLowerCase();
+                const orderCode = (client.orderCode || '').toLowerCase();
+                const searchLower = searchTerm.toLowerCase();
+                
+                return name.includes(searchLower) || 
+                       phone.includes(searchLower) || 
+                       email.includes(searchLower) ||
+                       orderCode.includes(searchLower);
+            });
+            
+            displaySearchResults(filteredClients);
+        }
+        
+        // Display search results
+        function displaySearchResults(clients) {
+            searchResults.innerHTML = '';
+            
+            if (clients.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="p-3 text-center text-muted">
+                        <i class="fas fa-search me-2"></i>
+                        لا توجد نتائج لـ "${searchInput.value}"
+                    </div>
+                `;
+            } else {
+                clients.forEach((client, index) => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'client-result-item p-3 border-bottom cursor-pointer';
+                    resultItem.style.cursor = 'pointer';
+                    resultItem.setAttribute('data-client-id', client.id);
+                    
+                    resultItem.innerHTML = `
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="client-avatar d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="fw-bold">${client.name}</div>
+                                <div class="text-muted small">
+                                    <i class="fas fa-phone me-1"></i>${client.phone}
+                                    ${client.email ? `<br><i class="fas fa-envelope me-1"></i>${client.email}` : ''}
+                                    ${client.orderCode ? `<br><i class="fas fa-hashtag me-1"></i>${client.orderCode}` : ''}
+                                </div>
+                            </div>
+                            <div class="ms-auto">
+                                <span class="badge bg-info text-white">${client.orderCode || 'N/A'}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add hover effect
+                    resultItem.addEventListener('mouseenter', function() {
+                        this.style.backgroundColor = '#f8f9fa';
+                    });
+                    
+                    resultItem.addEventListener('mouseleave', function() {
+                        this.style.backgroundColor = '';
+                    });
+                    
+                    // Add click handler
+                    resultItem.addEventListener('click', function() {
+                        selectClient(this);
+                    });
+                    
+                    searchResults.appendChild(resultItem);
                 });
             }
             
-            // Clear all options except the placeholder
-            while (clientSelect.options.length > 1) {
-                clientSelect.remove(1);
-            }
-            
-            // Add filtered options
-            let matchCount = 0;
-            originalOptions.forEach(option => {
-                if (option.text.toLowerCase().includes(searchTerm)) {
-                    const newOption = document.createElement('option');
-                    newOption.value = option.value;
-                    newOption.text = option.text;
-                    clientSelect.add(newOption);
-                    matchCount++;
+            searchResults.style.display = 'block';
+            selectedIndex = -1;
+        }
+        
+        // Update selection in results
+        function updateSelection(results) {
+            results.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.style.backgroundColor = '#e3f2fd';
+                    item.style.borderLeft = '3px solid var(--primary-color)';
+                } else {
+                    item.style.backgroundColor = '';
+                    item.style.borderLeft = '';
                 }
             });
+        }
+        
+        // Select a client from search results
+        function selectClient(resultItem) {
+            const clientId = resultItem.getAttribute('data-client-id');
+            const selectedClient = clientsData.find(client => client.id == clientId);
             
-            // Update placeholder text based on results
-            if (matchCount === 0) {
-                clientSelect.options[0].text = `لا توجد نتائج لـ "${searchTerm}"`;
-            } else {
-                clientSelect.options[0].text = `تم العثور على ${matchCount} عميل`;
+            if (selectedClient) {
+                // Update global client details
+                window.globalClientDetails = {
+                    client_id: selectedClient.id,
+                    clientName: selectedClient.name || '',
+                    clientPhone: selectedClient.phone || '',
+                    clientEmail: selectedClient.email || '',
+                    clientAddress: selectedClient.address || ''
+                };
+                
+                // Update search input
+                searchInput.value = selectedClient.name;
+                
+                // Hide search results
+                hideSearchResults();
+                
+                // Update client info display
+                updateClientInfoDisplay(selectedClient);
+                
+                // Show success message
+                showToast(`تم اختيار العميل: ${selectedClient.name}`, 'success');
             }
         }
         
-        // Reset client options to original state
-        function resetClientOptions() {
-            // Clear all options except the placeholder
-            while (clientSelect.options.length > 1) {
-                clientSelect.remove(1);
+        // Hide search results
+        function hideSearchResults() {
+            searchResults.style.display = 'none';
+            selectedIndex = -1;
+        }
+        
+        // Update client info display
+        function updateClientInfoDisplay(client) {
+            const selectedClientInfo = document.getElementById('selectedClientInfo');
+            const clientQuickActions = document.getElementById('clientQuickActions');
+            
+            if (!selectedClientInfo) return;
+            
+            // Update the client info card
+            document.getElementById('selectedClientName').textContent = client.name;
+            document.getElementById('selectedClientPhone').innerHTML = 
+                `<i class="fas fa-phone me-1"></i> ${client.phone || 'غير متوفر'}`;
+            document.getElementById('selectedClientEmail').innerHTML = 
+                `<i class="fas fa-envelope me-1"></i> ${client.email || 'غير متوفر'}`;
+            
+            // Update additional client details if the elements exist
+            if (document.getElementById('selectedClientOrderCode')) {
+                document.getElementById('selectedClientOrderCode').textContent = client.orderCode || 'غير متوفر';
             }
             
-            // Reset placeholder text
-            clientSelect.options[0].text = 'اختر عميل...';
+            if (document.getElementById('selectedClientStatus')) {
+                const statusElement = document.getElementById('selectedClientStatus');
+                statusElement.textContent = getStatusText(client.status);
+                
+                // Update status badge color based on status
+                statusElement.className = 'badge ms-1 text-white';
+                switch(client.status) {
+                    case 'active':
+                        statusElement.classList.add('bg-success');
+                        break;
+                    case 'inactive':
+                        statusElement.classList.add('bg-secondary');
+                        break;
+                    case 'pending':
+                        statusElement.classList.add('bg-warning');
+                        break;
+                    default:
+                        statusElement.classList.add('bg-secondary');
+                }
+            }
             
-            // Add all original options
-            originalOptions.forEach(option => {
-                const newOption = document.createElement('option');
-                newOption.value = option.value;
-                newOption.text = option.text;
-                clientSelect.add(newOption);
-            });
+            if (document.getElementById('selectedClientAddress')) {
+                document.getElementById('selectedClientAddress').textContent = 
+                    client.address || 'غير متوفر';
+            }
+            
+            // Try to get last report date if available
+            if (document.getElementById('selectedClientLastReport')) {
+                const lastReportElement = document.getElementById('selectedClientLastReport');
+                
+                if (client.lastReportDate) {
+                    const date = new Date(client.lastReportDate);
+                    lastReportElement.textContent = date.toLocaleDateString('ar-SA');
+            } else {
+                    lastReportElement.textContent = 'لا يوجد تقارير سابقة';
+                }
+            }
+            
+            // Setup edit button if it exists
+            const editButton = document.getElementById('editSelectedClient');
+            if (editButton) {
+                editButton.onclick = function() {
+                    openEditClientModal(client);
+                };
+            }
+            
+            // Show the client info card with a subtle animation
+            selectedClientInfo.style.opacity = '0';
+            selectedClientInfo.style.display = 'block';
+            setTimeout(() => {
+                selectedClientInfo.style.transition = 'opacity 0.3s ease-in-out';
+                selectedClientInfo.style.opacity = '1';
+            }, 10);
+            
+            // Show quick actions if they exist
+            if (clientQuickActions) {
+                clientQuickActions.style.display = 'flex';
+                
+                // Setup view history button if it exists
+                const historyButton = document.getElementById('viewClientHistory');
+                if (historyButton) {
+                    historyButton.onclick = function() {
+                        viewClientHistory(client.id);
+                    };
+                }
+                
+                // Setup view reports button if it exists
+                const reportsButton = document.getElementById('viewClientReports');
+                if (reportsButton) {
+                    reportsButton.onclick = function() {
+                        viewClientReports(client.id);
+                    };
+                }
+            }
+            
+            // If we have an order code from the client, auto-fill the order number field
+            if (client.orderCode && document.getElementById('orderNumber')) {
+                const orderNumberInput = document.getElementById('orderNumber');
+                // Ensure the order code has LPK prefix
+                let orderCode = client.orderCode;
+                if (!orderCode.startsWith('LPK')) {
+                    orderCode = 'LPK' + orderCode.replace(/^LPK/i, '');
+                }
+                orderNumberInput.value = orderCode;
+                // Update global device details
+                updateGlobalDeviceDetails();
+            }
+        }
+    }
+    
+    /**
+     * Update client info display (used by search functionality)
+     * @param {Object} client - The client object to display
+     */
+    function updateClientInfoDisplay(client) {
+        const selectedClientInfo = document.getElementById('selectedClientInfo');
+        const clientQuickActions = document.getElementById('clientQuickActions');
+        
+        if (!selectedClientInfo || !client) return;
+        
+        // Update the client info card
+        document.getElementById('selectedClientName').textContent = client.name;
+        document.getElementById('selectedClientPhone').innerHTML = 
+            `<i class="fas fa-phone me-1"></i> ${client.phone || 'غير متوفر'}`;
+        document.getElementById('selectedClientEmail').innerHTML = 
+            `<i class="fas fa-envelope me-1"></i> ${client.email || 'غير متوفر'}`;
+        
+        // Update additional client details if the elements exist
+        if (document.getElementById('selectedClientOrderCode')) {
+            document.getElementById('selectedClientOrderCode').textContent = client.orderCode || 'غير متوفر';
+        }
+        
+        if (document.getElementById('selectedClientStatus')) {
+            const statusElement = document.getElementById('selectedClientStatus');
+            statusElement.textContent = getStatusText(client.status);
+            
+            // Update status badge color based on status
+            statusElement.className = 'badge ms-1 text-white';
+            switch(client.status) {
+                case 'active':
+                    statusElement.classList.add('bg-success');
+                    break;
+                case 'inactive':
+                    statusElement.classList.add('bg-secondary');
+                    break;
+                case 'pending':
+                    statusElement.classList.add('bg-warning');
+                    break;
+                default:
+                    statusElement.classList.add('bg-secondary');
+            }
+        }
+        
+        if (document.getElementById('selectedClientAddress')) {
+            document.getElementById('selectedClientAddress').textContent = 
+                client.address || 'غير متوفر';
+        }
+        
+        // Try to get last report date if available
+        if (document.getElementById('selectedClientLastReport')) {
+            const lastReportElement = document.getElementById('selectedClientLastReport');
+            
+            if (client.lastReportDate) {
+                const date = new Date(client.lastReportDate);
+                lastReportElement.textContent = date.toLocaleDateString('ar-SA');
+            } else {
+                lastReportElement.textContent = 'لا يوجد تقارير سابقة';
+            }
+        }
+        
+        // Setup edit button if it exists
+        const editButton = document.getElementById('editSelectedClient');
+        if (editButton) {
+            editButton.onclick = function() {
+                openEditClientModal(client);
+            };
+        }
+        
+        // Show the client info card with a subtle animation
+        selectedClientInfo.style.opacity = '0';
+        selectedClientInfo.style.display = 'block';
+        setTimeout(() => {
+            selectedClientInfo.style.transition = 'opacity 0.3s ease-in-out';
+            selectedClientInfo.style.opacity = '1';
+        }, 10);
+        
+        // Show quick actions if they exist
+        if (clientQuickActions) {
+            clientQuickActions.style.display = 'flex';
+            
+            // Setup view history button if it exists
+            const historyButton = document.getElementById('viewClientHistory');
+            if (historyButton) {
+                historyButton.onclick = function() {
+                    viewClientHistory(client.id);
+                };
+            }
+            
+            // Setup view reports button if it exists
+            const reportsButton = document.getElementById('viewClientReports');
+            if (reportsButton) {
+                reportsButton.onclick = function() {
+                    viewClientReports(client.id);
+                };
+            }
+        }
+        
+        // If we have an order code from the client, auto-fill the order number field
+        if (client.orderCode && document.getElementById('orderNumber')) {
+            const orderNumberInput = document.getElementById('orderNumber');
+            // Ensure the order code has LPK prefix
+            let orderCode = client.orderCode;
+            if (!orderCode.startsWith('LPK')) {
+                orderCode = 'LPK' + orderCode.replace(/^LPK/i, '');
+            }
+            orderNumberInput.value = orderCode;
+            // Update global device details
+            updateGlobalDeviceDetails();
         }
     }
     
@@ -1668,9 +2185,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const editSelectedClientBtn = document.getElementById('editSelectedClient');
         if (editSelectedClientBtn) {
             editSelectedClientBtn.addEventListener('click', function() {
-                const client_id = document.getElementById('clientSelect')?.value;
-                if (client_id) {
-                    const selectedClient = clientsData.find(client => client.id == client_id);
+                // Get client from global client details
+                if (window.globalClientDetails && window.globalClientDetails.client_id) {
+                    const selectedClient = clientsData.find(client => client.id == window.globalClientDetails.client_id);
                     if (selectedClient) {
                         openEditClientModal(selectedClient);
                     }
@@ -1897,6 +2414,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     clientOrderCodeInput.focus();
                     focusSet = true;
                 }
+            } else if (!clientOrderCode.startsWith('LPK')) {
+                markInvalid(clientOrderCodeInput, 'يجب أن يبدأ رقم الطلب بـ LPK');
+                isValid = false;
+                if (!focusSet) {
+                    clientOrderCodeInput.focus();
+                    focusSet = true;
+                }
+            } else if (clientOrderCode.length < 4) { // LPK + at least 1 digit
+                markInvalid(clientOrderCodeInput, 'يجب أن يحتوي رقم الطلب على أرقام بعد LPK');
+                isValid = false;
+                if (!focusSet) {
+                    clientOrderCodeInput.focus();
+                    focusSet = true;
+                }
             }
             
             if (!isValid) {
@@ -2025,26 +2556,29 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('lpk_clients', JSON.stringify(clientsData));
             localStorage.setItem('lpk_clients_timestamp', Date.now().toString());
             
-            // Update the dropdown
-            const clientSelect = document.getElementById('clientSelect');
-            if (clientSelect) {
-                // Clear and rebuild options
-                clientSelect.innerHTML = '<option value="" selected>اختر عميل...</option>';
-                
-                // Add all clients to dropdown
-                clientsData.forEach(client => {
-                    const option = document.createElement('option');
-                    option.value = client.id;
-                    option.textContent = `${client.name} - ${client.phone}`;
-                    clientSelect.appendChild(option);
-                });
-                
+            // Update the search input and select the new/updated client
+            const clientSearchInput = document.getElementById('clientSearchInput');
+            if (clientSearchInput) {
                 // Select the new/updated client
                 const client_id = existingClient ? existingClient.id : response.id;
-                clientSelect.value = client_id;
+                const selectedClient = clientsData.find(client => client.id == client_id);
                 
-                // Trigger the change event to update the UI
-                clientSelectionChanged(clientSelect);
+                if (selectedClient) {
+                    // Update search input with client name
+                    clientSearchInput.value = selectedClient.name;
+                    
+                    // Update global client details
+                    window.globalClientDetails = {
+                        client_id: selectedClient.id,
+                        clientName: selectedClient.name || '',
+                        clientPhone: selectedClient.phone || '',
+                        clientEmail: selectedClient.email || '',
+                        clientAddress: selectedClient.address || ''
+                    };
+                    
+                    // Update client info display
+                    updateClientInfoDisplay(selectedClient);
+                }
             }
             
             // Hide the modal
@@ -2200,8 +2734,9 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Show success message and handle post-submission actions
      * @param {Object} response - API response with created report
+     * @param {boolean} billingEnabled - Whether billing was enabled for this report
      */
-    function showSuccessMessage(response) {
+    function showSuccessMessage(response, billingEnabled = false) {
         // Hide any existing error messages
         const errorAlert = document.getElementById('reportFormAlert');
         if (errorAlert) {
@@ -2232,6 +2767,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const reportLink = document.getElementById('reportLink');
             if (reportLink) {
                 reportLink.value = reportUrl;
+            }
+            
+            // Update modal title to include billing information
+            const modalTitle = successModal.querySelector('.modal-title');
+            if (modalTitle && billingEnabled) {
+                modalTitle.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i>تم إنشاء التقرير والفاتورة بنجاح!';
             }
             
             // Setup WhatsApp share button

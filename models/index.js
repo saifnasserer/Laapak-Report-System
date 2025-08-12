@@ -38,6 +38,27 @@ ProductCost.belongsTo(Admin, { foreignKey: 'updated_by', as: 'updater' });
 ProductCost.hasMany(InvoiceItem, { foreignKey: 'product_cost_id', as: 'invoiceItems' });
 InvoiceItem.belongsTo(ProductCost, { foreignKey: 'product_cost_id', as: 'productCost' });
 
+// Report and Invoice associations through InvoiceReport junction table
+Report.belongsToMany(Invoice, { 
+    through: InvoiceReport, 
+    foreignKey: 'report_id', 
+    otherKey: 'invoice_id',
+    as: 'invoices' 
+});
+Invoice.belongsToMany(Report, { 
+    through: InvoiceReport, 
+    foreignKey: 'invoice_id', 
+    otherKey: 'report_id',
+    as: 'reports' 
+});
+
+// Client associations
+Client.hasMany(Report, { foreignKey: 'client_id', as: 'reports' });
+Report.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
+
+Client.hasMany(Invoice, { foreignKey: 'client_id', as: 'invoices' });
+Invoice.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
+
 module.exports = {
   Admin,
   Client,

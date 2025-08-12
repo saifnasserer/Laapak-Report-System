@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const invoiceId = getInvoiceIdFromUrl();
+    const urlParams = new URLSearchParams(window.location.search);
+    const isNewInvoice = urlParams.get('new') === 'true';
+    const invoiceId = isNewInvoice ? null : getInvoiceIdFromUrl();
     const invoiceIdDisplay = document.getElementById('invoiceIdDisplay');
     const editInvoiceForm = document.getElementById('editInvoiceForm');
     const clientIdSelect = document.getElementById('clientId');
@@ -22,7 +24,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let clients = []; // To store clients for the dropdown
 
-    if (invoiceIdDisplay && invoiceId) {
+    // Update page title and button text for new invoices
+    if (isNewInvoice) {
+        document.title = 'إنشاء فاتورة جديدة - Laapak Report System';
+        if (invoiceIdDisplay) {
+            invoiceIdDisplay.textContent = 'فاتورة جديدة';
+        }
+        if (updateInvoiceBtn) {
+            updateInvoiceBtn.innerHTML = '<i class="fas fa-save me-2"></i> إنشاء الفاتورة';
+        }
+    } else if (invoiceIdDisplay && invoiceId) {
         invoiceIdDisplay.textContent = `#${invoiceId}`;
     }
 
@@ -126,7 +137,14 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             document.getElementById('invoiceId').value = invoice.id;
             clientIdSelect.value = invoice.client_id;
-            reportIdInput.value = invoice.report_id || 'N/A';
+            
+            // Handle report_id for new invoices (multiple reports)
+            if (invoice.report_ids && Array.isArray(invoice.report_ids)) {
+                reportIdInput.value = invoice.report_ids.join(', ');
+            } else {
+                reportIdInput.value = invoice.report_id || 'N/A';
+            }
+            
             invoiceDateInput.value = invoice.date ? invoice.date.split('T')[0] : '';
             paymentStatusSelect.value = invoice.paymentStatus;
             paymentMethodSelect.value = invoice.paymentMethod || '';
@@ -260,6 +278,12 @@ document.addEventListener('DOMContentLoaded', function () {
             items: []
         };
 
+        // Handle report_ids for new invoices
+        if (isNewInvoice && reportIdInput.value !== 'N/A') {
+            const reportIds = reportIdInput.value.split(',').map(id => id.trim()).filter(id => id);
+            invoiceData.report_ids = reportIds;
+        }
+
         const itemRows = invoiceItemsContainer.querySelectorAll('.invoice-item');
         itemRows.forEach(row => {
             invoiceData.items.push({
@@ -295,8 +319,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceData.id}`, {
-                method: 'PUT',
+            const url = isNewInvoice ? 
+                'https://reports.laapak.com/api/invoices' : 
+                `https://reports.laapak.com/api/invoices/${invoiceData.id}`;
+            
+            const method = isNewInvoice ? 'POST' : 'PUT';
+            
+            const response = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
@@ -306,12 +336,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'فشل في تحديث الفاتورة.');
+                throw new Error(errorData.message || (isNewInvoice ? 'فشل في إنشاء الفاتورة.' : 'فشل في تحديث الفاتورة.'));
             }
 
-            toastr.success('تم تحديث الفاتورة بنجاح!');
+            const result = await response.json();
+            const successMessage = isNewInvoice ? 'تم إنشاء الفاتورة بنجاح!' : 'تم تحديث الفاتورة بنجاح!';
+            toastr.success(successMessage);
+            
             setTimeout(() => {
-                 window.location.href = `view-invoice.html?id=${invoiceData.id}`; // Redirect to view invoice page
+                const invoiceId = result.id || invoiceData.id;
+                window.location.href = `view-invoice.html?id=${invoiceId}`; // Redirect to view invoice page
             }, 1000);
 
         } catch (error) {
@@ -319,12 +353,40 @@ document.addEventListener('DOMContentLoaded', function () {
             toastr.error(error.message || 'حدث خطأ أثناء تحديث الفاتورة.');
         } finally {
             updateInvoiceBtn.disabled = false;
-            updateInvoiceBtn.innerHTML = '<i class="fas fa-save me-2"></i> تحديث الفاتورة';
+            const buttonText = isNewInvoice ? 'إنشاء الفاتورة' : 'تحديث الفاتورة';
+            updateInvoiceBtn.innerHTML = `<i class="fas fa-save me-2"></i> ${buttonText}`;
         }
     });
 
     // Initial setup
     fetchClients().then(() => { // Ensure clients are loaded before fetching invoice details
-        fetchInvoiceDetails();
+        if (isNewInvoice) {
+            loadNewInvoiceData();
+        } else {
+            fetchInvoiceDetails();
+        }
     });
+
+    function loadNewInvoiceData() {
+        try {
+            const newInvoiceData = localStorage.getItem('lpk_new_invoice_data');
+            if (!newInvoiceData) {
+                toastr.error('لم يتم العثور على بيانات الفاتورة الجديدة.');
+                loadingIndicator.innerHTML = '<p class="text-danger">لم يتم العثور على بيانات الفاتورة الجديدة.</p>';
+                return;
+            }
+
+            const invoice = JSON.parse(newInvoiceData);
+            populateForm(invoice);
+            loadingIndicator.classList.add('d-none');
+            formContent.classList.remove('d-none');
+            
+            // Clear the localStorage data after loading
+            localStorage.removeItem('lpk_new_invoice_data');
+        } catch (error) {
+            console.error('Error loading new invoice data:', error);
+            toastr.error('فشل في تحميل بيانات الفاتورة الجديدة.');
+            loadingIndicator.innerHTML = '<p class="text-danger">حدث خطأ أثناء تحميل بيانات الفاتورة الجديدة.</p>';
+        }
+    }
 });

@@ -35,6 +35,123 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Format report status with appropriate badge
+ * @param {string} status - The status string
+ * @returns {string} HTML string with formatted status badge
+ */
+function formatReportStatus(status) {
+    if (!status) return '<span class="badge bg-secondary">غير محدد</span>';
+    
+    const statusLower = status.toLowerCase();
+    let badgeClass = 'bg-secondary';
+    let statusText = status;
+    
+    switch (statusLower) {
+        case 'completed':
+        case 'مكتمل':
+            badgeClass = 'bg-success';
+            statusText = 'مكتمل';
+            break;
+        case 'pending':
+        case 'قيد الانتظار':
+            badgeClass = 'bg-warning text-dark';
+            statusText = 'قيد الانتظار';
+            break;
+        case 'in-progress':
+        case 'قيد المعالجة':
+            badgeClass = 'bg-info text-dark';
+            statusText = 'قيد المعالجة';
+            break;
+        case 'cancelled':
+        case 'ملغى':
+            badgeClass = 'bg-danger';
+            statusText = 'ملغى';
+            break;
+        case 'active':
+        case 'نشط':
+            badgeClass = 'bg-primary';
+            statusText = 'قيد الانتظار';
+            break;
+        default:
+            badgeClass = 'bg-secondary';
+            statusText = status;
+    }
+    
+    return `<span class="badge ${badgeClass}">${statusText}</span>`;
+}
+
+/**
+ * Get invoice link for a report
+ * @param {Object} report - The report object
+ * @returns {string} HTML string with invoice link or status
+ */
+function getInvoiceLink(report) {
+    // Check if report has billing enabled
+    if (report.billing_enabled && report.amount > 0) {
+        // Try to find associated invoice
+        if (report.invoice_id) {
+            const statusBadge = getInvoiceStatusBadge(report.invoice_status);
+            return `<div class="d-flex flex-column gap-1">
+                <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+                </a>
+                <small class="text-muted">${report.invoice_number || 'رقم الفاتورة غير محدد'}</small>
+                ${statusBadge}
+            </div>`;
+        } else {
+            return `<span class="badge bg-warning text-dark">
+                <i class="fas fa-file-invoice me-1"></i>فاتورة مطلوبة
+            </span>`;
+        }
+    } else {
+        return `<span class="badge bg-secondary">
+            <i class="fas fa-times me-1"></i>لا توجد فاتورة
+        </span>`;
+    }
+}
+
+/**
+ * Get invoice status badge
+ * @param {string} status - The invoice status
+ * @returns {string} HTML string with status badge
+ */
+function getInvoiceStatusBadge(status) {
+    if (!status) return '';
+    
+    const statusLower = status.toLowerCase();
+    let badgeClass = 'bg-secondary';
+    let statusText = status;
+    
+    switch (statusLower) {
+        case 'paid':
+            badgeClass = 'bg-success';
+            statusText = 'مدفوع';
+            break;
+        case 'unpaid':
+            badgeClass = 'bg-danger';
+            statusText = 'غير مدفوع';
+            break;
+        case 'partial':
+            badgeClass = 'bg-warning text-dark';
+            statusText = 'مدفوع جزئياً';
+            break;
+        case 'overdue':
+            badgeClass = 'bg-danger';
+            statusText = 'متأخر';
+            break;
+        case 'draft':
+            badgeClass = 'bg-secondary';
+            statusText = 'مسودة';
+            break;
+        default:
+            badgeClass = 'bg-secondary';
+            statusText = status;
+    }
+    
+    return `<span class="badge ${badgeClass} small">${statusText}</span>`;
+}
+
+/**
  * Initialize reports listing functionality
  */
 function initReports() {
@@ -201,7 +318,7 @@ function populateReportsTable(reports, updatePagination = true) {
     if (!reports || reports.length === 0) {
         const noDataRow = document.createElement('tr');
         noDataRow.innerHTML = `
-            <td colspan="5" class="text-center py-5">
+            <td colspan="7" class="text-center py-5">
                 <div class="empty-state">
                     <i class="fas fa-file-alt fa-3x mb-3 text-muted"></i>
                     <h5>لا توجد تقارير</h5>
@@ -249,8 +366,21 @@ function populateReportsTable(reports, updatePagination = true) {
             clientName: report.client_name || report.clientName,
             deviceModel: report.device_model || report.deviceModel,
             inspectionDate: report.inspection_date || report.inspectionDate,
-            serialNumber: report.serial_number || report.serialNumber
+            serialNumber: report.serial_number || report.serialNumber,
+            status: report.status,
+            billing_enabled: report.billing_enabled || false,
+            amount: report.amount || 0,
+            invoice_id: null // Will be set below if invoice exists
         };
+        
+        // Check if report has associated invoices
+        if (report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0) {
+            // Get the first invoice (assuming one invoice per report for now)
+            const firstInvoice = report.invoices[0];
+            mappedReport.invoice_id = firstInvoice.id;
+            mappedReport.invoice_number = firstInvoice.invoice_number;
+            mappedReport.invoice_status = firstInvoice.status;
+        }
         
         // Format date if available
         let formattedDate = 'غير محدد';
@@ -267,6 +397,8 @@ function populateReportsTable(reports, updatePagination = true) {
             <td>${mappedReport.clientName || 'غير محدد'}</td>
             <td>${mappedReport.deviceModel || 'غير محدد'}</td>
             <td>${formattedDate}</td>
+            <td class="text-center">${formatReportStatus(mappedReport.status)}</td>
+            <td class="text-center">${getInvoiceLink(mappedReport)}</td>
             <td class="text-center">
                 <div class="dropdown">
                     <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">

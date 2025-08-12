@@ -273,10 +273,16 @@ async function loadReports() {
                          (window && window.apiService) ? window.apiService : null;
             
             if (service && typeof service.getReports === 'function') {
-                // Get reports with billing_enabled=0
+                // Get reports that don't have invoices (billing_enabled=0 and no invoice_id)
                 reports = await service.getReports({billing_enabled: false});
                 
-                console.log('Reports with billing_enabled=0 for create-invoice page:', reports);
+                // Filter out reports that already have invoices
+                reports = reports.filter(report => {
+                    // Check if report has no invoices array or empty invoices array
+                    return !report.invoices || report.invoices.length === 0;
+                });
+                
+                console.log('Reports without invoices for create-invoice page:', reports);
             } else {
                 // Wait a moment and try again - apiService might be initializing
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -287,6 +293,12 @@ async function loadReports() {
                 
                 if (retryService && typeof retryService.getReports === 'function') {
                     reports = await retryService.getReports({billing_enabled: false});
+                    
+                    // Filter out reports that already have invoices
+                    reports = reports.filter(report => {
+                        return !report.invoices || report.invoices.length === 0;
+                    });
+                    
                     console.log('Reports fetched on retry for create-invoice page:', reports);
                 } else {
                     throw new Error('API service not available or not initialized yet');
@@ -594,13 +606,6 @@ function initiateDirectInvoiceCreation() {
         return;
     }
 
-    const createInvoiceBtn = document.getElementById('createDirectInvoiceBtn');
-    if(createInvoiceBtn) {
-        createInvoiceBtn.dataset.originalText = createInvoiceBtn.innerHTML;
-        createInvoiceBtn.disabled = true;
-        createInvoiceBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ إنشاء الفاتورة...';
-    }
-
     // Check that we have all selected reports in reportsData
     const selectedReportObjects = [];
     let missingReportFound = false;
@@ -617,10 +622,6 @@ function initiateDirectInvoiceCreation() {
     
     if (missingReportFound) {
         showToast('خطأ: لم يتم العثور على بيانات بعض التقارير المحددة. الرجاء تحديث الصفحة وإعادة المحاولة.', 'error');
-        if(createInvoiceBtn) {
-            createInvoiceBtn.disabled = false;
-            createInvoiceBtn.innerHTML = createInvoiceBtn.dataset.originalText || 'إنشاء فاتورة مباشرة';
-        }
         return;
     }
 
@@ -631,57 +632,38 @@ function initiateDirectInvoiceCreation() {
     if (!clientId || clientId === 0 || clientId === '0') {
         console.error('[initiateDirectInvoiceCreation] Invalid or missing client_id from the first selected report object:', firstReportObject);
         showToast('خطأ: لم يتم العثور على معرف عميل صالح للتقرير المحدد. لا يمكن إنشاء الفاتورة.', 'error');
-        if(createInvoiceBtn) {
-            createInvoiceBtn.disabled = false;
-            createInvoiceBtn.innerHTML = createInvoiceBtn.dataset.originalText || 'إنشاء فاتورة مباشرة';
-        }
         return;
     }
     console.log('[initiateDirectInvoiceCreation] Using client_id:', clientId, 'from report object:', firstReportObject);
 
-    showToast('جاري إنشاء الفاتورة...', 'info');
-
-    // 1. Prepare Default Invoice Settings
+    // Prepare invoice data for edit-invoice.js
     const today = new Date();
-    const defaultInvoiceSettings = {
-        title: `فاتورة بتاريخ ${today.toLocaleDateString('ar-SA')}`,
-        date: today.toISOString().split('T')[0], // YYYY-MM-DD format
-        taxRate: parseFloat(localStorage.getItem('lpk_default_tax_rate')) || 14,
-        discountRate: parseFloat(localStorage.getItem('lpk_default_discount_rate')) || 0,
-        paymentMethod: localStorage.getItem('lpk_default_payment_method') || 'bank_transfer',
-        paymentStatus: localStorage.getItem('lpk_default_payment_status') || 'unpaid', // Added default payment status
-        notes: 'تم إنشاء هذه الفاتورة مباشرةً.',
-        client_id: parseInt(clientId, 10), // Set client_id
-        report_ids: selectedReports // selectedReports already contains just IDs
+    const invoiceData = {
+        // Generate a temporary ID for the new invoice
+        id: 'TEMP_' + Date.now(),
+        client_id: parseInt(clientId, 10),
+        report_ids: selectedReports,
+        date: today.toISOString().split('T')[0],
+        paymentStatus: 'unpaid',
+        paymentMethod: 'bank_transfer',
+        discount: 0,
+        taxRate: 14,
+        items: selectedReportObjects.map((report, index) => ({
+            description: `${report.device_model || report.deviceModel || 'جهاز غير محدد'} (${report.id})`,
+            type: 'service',
+            quantity: 1,
+            amount: parseFloat(report.amount) || 0,
+            serialNumber: report.serial_number || report.serialNumber || '',
+            report_id: report.id
+        })),
+        isNewInvoice: true // Flag to indicate this is a new invoice
     };
 
-    // 2. Prepare Invoice Items from Selected Reports
-    // 2. Prepare Invoice Items from Selected Reports
-    // Map over selectedReport IDs to get full report objects from reportsData
-    const defaultInvoiceItems = selectedReports.map((reportId, index) => {
-        const reportObject = reportsData.find(r => r.id === reportId);
-        if (!reportObject) {
-            console.warn(`[initiateDirectInvoiceCreation] Could not find report object for ID ${reportId} when creating items. Skipping.`);
-            return null; // Or handle error appropriately
-        }
-        const reportAmount = parseFloat(reportObject.amount) || 0;
-        return {
-            id: `item-${reportObject.id}-${index}-${Date.now()}`,
-            description: `${reportObject.device_model || 'جهاز غير محدد'} (${reportObject.id})`,
-            quantity: 1,
-            unitPrice: reportAmount,
-            total: reportAmount,
-            type: 'item',
-            report_id: reportObject.id
-        };
-    }).filter(item => item !== null); // Remove any nulls if reports weren't found
-
-    // 3. Set localStorage for saveInvoice to pick up
-    localStorage.setItem('lpk_invoice_settings', JSON.stringify(defaultInvoiceSettings));
-    localStorage.setItem('lpk_invoice_items', JSON.stringify(defaultInvoiceItems));
-
-    // 4. Call the original saveInvoice function
-    saveInvoice();
+    // Store the invoice data in localStorage for edit-invoice.js to pick up
+    localStorage.setItem('lpk_new_invoice_data', JSON.stringify(invoiceData));
+    
+    // Redirect to edit-invoice.js
+    window.location.href = 'edit-invoice.html?new=true';
 }
 
 // Helper function to get status text (assuming it exists or you'll add it)
@@ -769,13 +751,9 @@ function updateSelectedReportsSummary() {
         selectedReportsSection.style.display = selectedReports.length > 0 ? 'block' : 'none';
     }
 
-    // Regenerate invoice preview if reports are selected
-    if (selectedReports.length > 0) {
-        invoiceItems = []; // Clear previous items before generating new preview from reports
-        generateInvoicePreview();
-    } else {
-        // Optionally, clear the preview if no reports are selected
-        const previewContainer = document.getElementById('invoicePreviewContainer'); // Assuming this is your preview container ID
+    // Clear preview when no reports are selected
+    if (selectedReports.length === 0) {
+        const previewContainer = document.getElementById('invoicePreviewContainer');
         if (previewContainer) {
             previewContainer.innerHTML = '<p class="text-center text-muted">الرجاء تحديد تقرير واحد على الأقل لعرض معاينة الفاتورة.</p>';
         }
@@ -1409,285 +1387,11 @@ function getPaymentStatusText(status) {
 }
 
 /**
- * Save invoice to database
+ * Save invoice to database (Legacy function - now redirects to edit-invoice.js)
  */
 async function saveInvoice() {
-    // Load settings and items from localStorage, as they are prepared by initiateDirectInvoiceCreation
-    const storedSettings = localStorage.getItem('lpk_invoice_settings');
-    const storedItems = localStorage.getItem('lpk_invoice_items');
-
-    if (!storedSettings || !storedItems) {
-        showToast('بيانات الفاتورة غير مكتملة. الرجاء المحاولة مرة أخرى.', 'danger');
-        console.error('Invoice settings or items not found in localStorage.');
-        return;
-    }
-
-    const currentInvoiceSettings = JSON.parse(storedSettings);
-    const currentInvoiceItems = JSON.parse(storedItems);
-
-    try {
-        // Check if any reports are selected (global selectedReports should be up-to-date)
-        if (selectedReports.length === 0) {
-            showToast('الرجاء تحديد تقرير واحد على الأقل', 'warning');
-            return;
-        }
-        
-        // Use client_id from currentInvoiceSettings (loaded from localStorage)
-        const client_id = currentInvoiceSettings.client_id;
-        const report_ids_to_invoice = currentInvoiceSettings.report_ids || []; // Ensure it's an array
-
-        if (!client_id || client_id === 0) {
-            showToast('خطأ حرج: معرف العميل غير متوفر في إعدادات الفاتورة المحفوظة.', 'danger');
-            console.error('Critical: client_id is missing or invalid in currentInvoiceSettings. Client ID:', client_id, 'Settings:', currentInvoiceSettings);
-            // Disable save button or provide a clear way for the user to recover/restart
-            document.getElementById('saveInvoiceBtn').disabled = true; 
-            return; // Stop if client_id is not valid
-        }
-        console.log('[saveInvoice] Using client_id:', client_id, 'and report_ids:', report_ids_to_invoice, 'from currentInvoiceSettings.');
-
-        // Calculate totals from currentInvoiceItems
-        let subtotal = 0;
-        currentInvoiceItems.forEach(item => {
-            const itemTotal = parseFloat(item.total) || 0;
-            subtotal += itemTotal;
-        });
-        
-        const taxRate = parseFloat(currentInvoiceSettings.taxRate) || 0;
-        const discountRate = parseFloat(currentInvoiceSettings.discountRate) || 0;
-        
-        const taxAmount = (subtotal * taxRate) / 100;
-        const discountAmount = (subtotal * discountRate) / 100;
-        const total = subtotal + taxAmount - discountAmount;
-        
-        // Backend will generate the invoice ID (primary key)
-        // const invoiceNumber = generateInvoiceNumber(); // Keep for local use if needed, but not for API payload 'id'
-
-        // Generate invoice ID first - required by the API
-        const invoiceId = generateInvoiceNumber();
-
-        // Create invoice object for the API
-        const invoicePayload = {
-            id: invoiceId, // Include the invoice ID as required by the API
-            date: currentInvoiceSettings.date, 
-            client_id: client_id, // Correct client_id from currentInvoiceSettings
-            report_id: report_ids_to_invoice.length > 0 ? report_ids_to_invoice[0] : null, // Send first report ID (API expects single report_id)
-            items: currentInvoiceItems.map(item => ({
-                description: item.description,
-                quantity: 1, // Always set to 1 since we're not using quantity anymore
-                type: item.type || 'service', // Ensure 'type' is included as per invoice_items schema
-                amount: parseFloat(item.unitPrice) || 0, 
-                totalAmount: parseFloat(item.total) || 0, 
-                serialNumber: item.serialNumber || null 
-            })),
-            subtotal: parseFloat(subtotal.toFixed(2)),
-            taxRate: parseFloat(currentInvoiceSettings.taxRate) || 0, 
-            tax: parseFloat(taxAmount.toFixed(2)),
-            discount: parseFloat(discountAmount.toFixed(2)), 
-            total: parseFloat(total.toFixed(2)),
-            paymentMethod: currentInvoiceSettings.paymentMethod,
-            paymentStatus: currentInvoiceSettings.paymentStatus, // Added payment status
-            notes: currentInvoiceSettings.notes
-        };
-
-        // For local fallback (localStorage), we might still want to use a client-generated ID
-        const localInvoice = {
-            ...invoicePayload, 
-            id: generateInvoiceNumber(), 
-            reports: selectedReports.map(r => r.id), // Store only report IDs for local version for simplicity if needed
-            createdAt: new Date().toISOString() 
-        };
-        
-        // Try to save invoice to API
-        let savedInvoice = null;
-        try {
-            // Check if apiService is defined and has createInvoice method
-            if (typeof apiService !== 'undefined' && typeof apiService.createInvoice === 'function') {
-                // Use ApiService to create invoice with proper report_id handling
-                console.log('Calling createInvoice with payload:', invoicePayload);
-                savedInvoice = await apiService.createInvoice(invoicePayload);
-                
-                // The first selected report is linked to the invoice via 'invoicePayload.report_id'.
-                // The backend /api/reports/pending should filter out reports already linked to an invoice.
-                // If multiple selected reports need to be marked (e.g., status change), that logic will be handled separately.
-                if (savedInvoice && savedInvoice.id) {
-                        // Successfully saved to API and got an ID back.
-                    showToast('تم إنشاء الفاتورة بنجاح!', 'success');
-                    
-                    // Clear localStorage items since they've been processed
-                    localStorage.removeItem('lpk_invoice_settings');
-                    localStorage.removeItem('lpk_invoice_items');
-                    
-                    // Reset UI: Clear all checkboxes and the selected reports array
-                    document.querySelectorAll('.report-checkbox').forEach(checkbox => {
-                        checkbox.checked = false;
-                    });
-                    
-                    // Clear the selectedReports array
-                    selectedReports.length = 0;
-                    
-                    // Reset the selection counter
-                    const selectCounter = document.getElementById('selectedReportsCount');
-                    if (selectCounter) {
-                        selectCounter.textContent = '0';
-                    }
-                    
-                    // Update any UI that shows selected reports count
-                    // (No selection UI update function needed - we've already updated counters and checkboxes)
-                    
-                    // Re-enable the create invoice button
-                    const createInvoiceBtn = document.getElementById('createDirectInvoiceBtn');
-                    if(createInvoiceBtn) {
-                        createInvoiceBtn.disabled = false;
-                        createInvoiceBtn.innerHTML = createInvoiceBtn.dataset.originalText || 'إنشاء فاتورة مباشرة';
-                    }
-                    
-                    // Refresh reports after a short delay to allow backend to complete processing
-                    setTimeout(() => {
-                        loadReports();
-                    }, 1000);
-                } else if (typeof apiService !== 'undefined' && typeof apiService.saveInvoice === 'function') {
-                    // This 'else if' means it was an API call but failed to return savedInvoice.id
-                    console.warn('Invoice API call made, but no ID returned from backend. Cannot confirm report linkage via API for refresh.');
-                }
-                // If it fell back to localStorage, localInvoice.id is used, and loadReports() should also handle localStorage refresh.
-            } else {
-                throw new Error('API service not available');
-            }
-        } catch (apiError) {
-            console.warn('Error saving invoice to API, falling back to localStorage:', apiError);
-            // Fall back to localStorage if API fails
-            
-            // Get existing invoices
-            const storedInvoices = localStorage.getItem('lpk_invoices');
-            const invoices = storedInvoices ? JSON.parse(storedInvoices) : [];
-            
-            // Add new invoice (local version)
-            invoices.push(localInvoice);
-            
-            // Save invoices to localStorage
-            localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
-            
-            // Update reports with invoice ID
-            const storedReports = localStorage.getItem('lpk_reports');
-            let reports = storedReports ? JSON.parse(storedReports) : [];
-            
-            // Update reports with invoice ID
-            reports = reports.map(report => {
-                if (selectedReports.includes(report.id)) {
-                    return {
-                        ...report,
-                        invoice: {
-                            id: localInvoice.id
-                        }
-                    };
-                }
-                return report;
-            });
-            
-            // Save updated reports to localStorage
-            localStorage.setItem('lpk_reports', JSON.stringify(reports));
-            
-            // Create PDF
-            const invoicePreviewContainer = document.getElementById('invoicePreviewContainer');
-            if (invoicePreviewContainer) {
-                const element = invoicePreviewContainer.cloneNode(true);
-                
-                // Add some styles for PDF
-                const style = document.createElement('style');
-                style.innerHTML = `
-                    body {
-                        font-family: 'Arial', sans-serif;
-                        direction: rtl;
-                    }
-                    .invoice-container {
-                        padding: 20px;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                    }
-                    th, td {
-                        border: 1px solid #ddd;
-                        padding: 8px;
-                    }
-                    th {
-                        background-color: #f2f2f2;
-                    }
-                    .text-end {
-                        text-align: left;
-                    }
-                    .text-start {
-                        text-align: right;
-                    }
-                    .text-center {
-                        text-align: center;
-                    }
-                `;
-                element.prepend(style);
-                
-                // Generate PDF
-                html2pdf()
-                    .set({
-                        margin: [10, 10, 10, 10],
-                        filename: `invoice_${localInvoice.id}.pdf`,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true },
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    })
-                    .from(element)
-                    .save();
-            }
-            
-            savedInvoice = localInvoice; // Fallback uses the localInvoice structure
-        }
-        
-        // Show success message
-        showToast('تم حفظ الفاتورة بنجاح', 'success');
-        
-        // Disable save button
-        const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
-        if (saveInvoiceBtn) {
-            saveInvoiceBtn.disabled = true;
-            saveInvoiceBtn.innerHTML = '<i class="fas fa-check me-2"></i>تم الحفظ';
-        }
-        
-        // Enable export and share buttons
-        const exportPdfBtn = document.getElementById('exportPdfBtn');
-        if (exportPdfBtn) {
-            exportPdfBtn.disabled = false;
-        }
-        
-        const shareEmailBtn = document.getElementById('shareEmailBtn');
-        if (shareEmailBtn) {
-            shareEmailBtn.disabled = false;
-        }
-        
-        const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
-        if (shareWhatsAppBtn) {
-            shareWhatsAppBtn.disabled = false;
-        }
-        
-        const copyLinkBtn = document.getElementById('copyLinkBtn');
-        if (copyLinkBtn) {
-            copyLinkBtn.disabled = false;
-        }
-        
-        // Store invoice ID for sharing
-        // Use the ID from the saved invoice (API or local)
-        window.currentInvoiceId = savedInvoice ? savedInvoice.id : generateInvoiceNumber();
-        
-        // Reload reports after a short delay
-        setTimeout(() => {
-            loadReports();
-        }, 2000);
-        
-        return savedInvoice;
-        
-    } catch (error) {
-        console.error('Error saving invoice:', error);
-        showToast('حدث خطأ أثناء حفظ الفاتورة', 'error');
-        return null;
-    }
+    showToast('تم تحويلك إلى صفحة إنشاء الفاتورة', 'info');
+    // This function is kept for backward compatibility but the actual work is done in edit-invoice.js
 }
 
 /**
