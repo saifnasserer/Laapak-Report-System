@@ -29,7 +29,7 @@ window.globalClientDetails = window.globalClientDetails || {
 let globalDeviceDetails = window.globalDeviceDetails;
 let clientsData = window.clientsData;
 
-    /**
+/**
      * Set up order number field with LPK prefix and number-only input
      */
     function setupOrderNumberField() {
