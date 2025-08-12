@@ -5,7 +5,6 @@ const InvoiceItem = require('./InvoiceItem');
 const Report = require('./Report');
 const ReportTechnicalTest = require('./ReportTechnicalTest');
 const InvoiceReport = require('./invoicereport'); 
-const Login = require('./login');
 const Goal = require('./Goal');
 const Achievement = require('./Achievement');
 
@@ -56,7 +55,7 @@ Invoice.belongsToMany(Report, {
 Client.hasMany(Report, { foreignKey: 'client_id', as: 'reports' });
 Report.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
 
-Client.hasMany(Invoice, { foreignKey: 'client_id', as: 'invoices' });
+Client.hasMany(Invoice, { foreignKey: 'client_id', as: 'clientInvoices' });
 Invoice.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
 
 module.exports = {
@@ -67,7 +66,6 @@ module.exports = {
   Report,
   ReportTechnicalTest,
   InvoiceReport, 
-  Login,
   Goal,
   Achievement,
   // Financial Management Models
