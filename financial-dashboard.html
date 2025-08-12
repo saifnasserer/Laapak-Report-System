@@ -24,46 +24,40 @@
     <link rel="stylesheet" href="css/styles.css">
     
     <style>
+        :root {
+            --primary-color: #007553;
+            --primary-light: #00a67a;
+            --primary-dark: #004d35;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #0dcaf0;
+            --light-bg: #f8f9fa;
+            --white: #ffffff;
+            --text-dark: #212529;
+            --text-muted: #6c757d;
+            --border-radius: 12px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+        }
+
         body {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
             background-attachment: fixed;
             font-family: 'Tajawal', sans-serif;
-            position: relative;
-            overflow-x: hidden;
+            color: var(--text-dark);
+            line-height: 1.6;
         }
 
-        /* Subtle animated background - MY SIGNATURE TOUCH ✨ */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(circle at 20% 50%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, rgba(0, 117, 83, 0.02) 0%, transparent 50%);
-            z-index: -1;
-            animation: subtleFloat 20s ease-in-out infinite;
-        }
-
-        @keyframes subtleFloat {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-10px) scale(1.02); }
-        }
-
-        /* STUNNING Navigation Bar - Enhanced! 🌟 */
+        /* Modern Navigation Bar */
         .nav-bar {
-            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-            border-radius: 16px;
+            background: var(--white);
+            border-radius: var(--border-radius);
             padding: 1.5rem;
             margin-bottom: 2rem;
-            box-shadow: 
-                0 4px 20px rgba(0, 0, 0, 0.08),
-                0 1px 3px rgba(0, 0, 0, 0.04);
-            position: relative;
-            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .nav-bar::before {
@@ -73,70 +67,17 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, #007553, #00a67a, #007553);
-            background-size: 200% 100%;
-            animation: gradientShift 3s ease-in-out infinite;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-light), var(--primary-color));
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
         }
 
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-
-        /* STUNNING Navigation Pills - Enhanced! 🌟 */
-        .nav-pills .nav-link {
-            border-radius: 30px;
-            padding: 14px 28px;
-            margin: 0 8px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            color: #6c757d;
-            border: 2px solid transparent;
-            position: relative;
-            overflow: hidden;
-            font-weight: 500;
-            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-        }
-
-        .nav-pills .nav-link::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 117, 83, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .nav-pills .nav-link:hover::before {
-            left: 100%;
-        }
-
-        .nav-pills .nav-link.active {
-            background: linear-gradient(135deg, #007553 0%, #004d35 100%);
-            border-color: #007553;
-            color: white;
-            box-shadow: 0 4px 20px rgba(0, 117, 83, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .nav-pills .nav-link:hover {
-            background: linear-gradient(145deg, rgba(0, 117, 83, 0.1) 0%, rgba(0, 117, 83, 0.05) 100%);
-            color: #007553;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0, 117, 83, 0.15);
-        }
-
-        /* STUNNING KPI Cards - My Enhanced Version 🎨 */
+        /* Modern KPI Cards */
         .stat-card {
-            border-radius: 16px;
-            border: none;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-            box-shadow: 
-                0 4px 20px rgba(0, 0, 0, 0.08),
-                0 1px 3px rgba(0, 0, 0, 0.04);
+            background: var(--white);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
@@ -148,132 +89,201 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, #007553, #00a67a, #007553);
-            background-size: 200% 100%;
-            animation: gradientShift 3s ease-in-out infinite;
-        }
-
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
         }
 
         .stat-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 
-                0 12px 40px rgba(0, 117, 83, 0.15),
-                0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
         }
 
-        .stat-card:hover::before {
-            height: 4px;
-            animation-duration: 1s;
+        .stat-card .card-body {
+            padding: 1.5rem;
         }
 
-        /* GORGEOUS Icons with Animation 💎 */
         .icon-container {
-            width: 52px;
-            height: 52px;
-            border-radius: 16px;
+            width: 48px;
+            height: 48px;
+            border-radius: var(--border-radius);
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            overflow: hidden;
+            margin-left: 1rem;
         }
 
-        .icon-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: inherit;
-            border-radius: inherit;
-            animation: iconPulse 2s ease-in-out infinite;
-            z-index: -1;
+        .icon-container.revenue {
+            background: rgba(0, 117, 83, 0.1);
+            color: var(--primary-color);
         }
 
-        @keyframes iconPulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
+        .icon-container.expenses {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
         }
 
-        /* STUNNING Chart Containers 📊 */
+        .icon-container.profit {
+            background: rgba(25, 135, 84, 0.1);
+            color: var(--success-color);
+        }
+
+        .icon-container.margin {
+            background: rgba(255, 193, 7, 0.1);
+            color: var(--warning-color);
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .stat-change.positive {
+            color: var(--success-color);
+        }
+
+        .stat-change.negative {
+            color: var(--danger-color);
+        }
+
+        /* Modern Chart Containers */
         .chart-container {
-            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-            border-radius: 16px;
-            border: none;
-            box-shadow: 
-                0 4px 20px rgba(0, 0, 0, 0.08),
-                0 1px 3px rgba(0, 0, 0, 0.04);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .chart-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #007553, #00a67a, #007553);
-            background-size: 200% 100%;
-            animation: gradientShift 4s ease-in-out infinite;
+            background: var(--white);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
         }
 
         .chart-container:hover {
-            transform: translateY(-6px) scale(1.01);
-            box-shadow: 
-                0 12px 40px rgba(0, 117, 83, 0.12),
-                0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-md);
         }
 
+        .chart-container .card-header {
+            background: var(--white);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.25rem 1.5rem 0.75rem;
+        }
+
+        .chart-container .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .chart-container .card-body {
+            padding: 1.5rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Modern Alerts Section */
         .alert-card {
-            background: white;
-            border-radius: 12px;
-            border: none;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            background: var(--white);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-sm);
         }
 
         .alert-item {
             padding: 1rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             border-radius: 8px;
             border-left: 4px solid;
             transition: all 0.3s ease;
             cursor: pointer;
+            background: var(--light-bg);
         }
 
         .alert-item:hover {
-            transform: translateX(-5px);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transform: translateX(-4px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .alert-item:last-child {
+            margin-bottom: 0;
         }
 
         .alert-warning {
-            background-color: rgba(255, 193, 7, 0.1);
-            border-left-color: #ffc107;
+            border-left-color: var(--warning-color);
+            background: rgba(255, 193, 7, 0.05);
         }
 
         .alert-info {
-            background-color: rgba(13, 202, 240, 0.1);
-            border-left-color: #0dcaf0;
+            border-left-color: var(--info-color);
+            background: rgba(13, 202, 240, 0.05);
         }
 
-        .number-animate {
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
+        .alert-success {
+            border-left-color: var(--success-color);
+            background: rgba(25, 135, 84, 0.05);
         }
 
-        /* Loading state */
+        /* Modern Buttons */
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            padding: 0.5rem 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-outline-primary {
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            background: transparent;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: var(--white);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-success {
+            border: 2px solid var(--success-color);
+            color: var(--success-color);
+            background: transparent;
+        }
+
+        .btn-outline-success:hover {
+            background: var(--success-color);
+            color: var(--white);
+            transform: translateY(-1px);
+        }
+
+        /* Loading States */
         .loading-spinner {
             width: 2rem;
             height: 2rem;
             border: 3px solid rgba(0, 117, 83, 0.1);
-            border-top: 3px solid #007553;
+            border-top: 3px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -283,238 +293,180 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* MAGICAL FAB Button ✨ */
+        /* Modern FAB Button */
         .fab-btn {
             position: fixed;
             bottom: 2rem;
             left: 2rem;
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, #007553 0%, #004d35 50%, #007553 100%);
+            width: 56px;
+            height: 56px;
+            background: var(--primary-color);
             border: none;
             border-radius: 50%;
-            color: white;
-            font-size: 1.4rem;
-            box-shadow: 
-                0 8px 25px rgba(0, 117, 83, 0.4),
-                0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--white);
+            font-size: 1.25rem;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
             z-index: 1000;
             cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .fab-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transform: translateX(-100%) rotate(45deg);
-            transition: transform 0.6s ease;
-        }
-
-        .fab-btn:hover::before {
-            transform: translateX(100%) rotate(45deg);
         }
 
         .fab-btn:hover {
-            transform: scale(1.15) rotate(15deg);
-            box-shadow: 
-                0 12px 35px rgba(0, 117, 83, 0.5),
-                0 6px 20px rgba(0, 0, 0, 0.2);
+            background: var(--primary-dark);
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
         }
 
-        /* Floating Elements - SIGNATURE TOUCH ✨ */
-        .floating-elements {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .floating-element {
-            position: absolute;
-            background: rgba(0, 117, 83, 0.1);
-            border-radius: 50%;
-            animation: float 8s ease-in-out infinite;
-        }
-
-        .floating-element:nth-child(1) {
-            width: 8px;
-            height: 8px;
-            top: 20%;
-            left: 10%;
-            animation-delay: 0s;
-        }
-
-        .floating-element:nth-child(2) {
-            width: 6px;
-            height: 6px;
-            top: 60%;
-            left: 80%;
-            animation-delay: 2s;
-        }
-
-        .floating-element:nth-child(3) {
-            width: 10px;
-            height: 10px;
-            top: 80%;
-            left: 20%;
-            animation-delay: 4s;
-        }
-
-        @keyframes float {
-            0%, 100% { 
-                transform: translateY(0px) rotate(0deg);
-                opacity: 0.3;
-            }
-            50% { 
-                transform: translateY(-20px) rotate(180deg);
-                opacity: 0.6;
-            }
-        }
-
-        /* Chart styling */
-        .chart-wrapper {
-            position: relative;
-            height: 300px;
-        }
-
-        /* Responsive adjustments */
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .nav-pills {
-                flex-wrap: wrap;
-                justify-content: center;
+            .stat-card .card-body {
+                padding: 1rem;
             }
             
-            .nav-pills .nav-link {
-                margin: 5px;
-                padding: 8px 16px;
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .chart-wrapper {
+                height: 250px;
+            }
+            
+            .fab-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 1rem;
             }
         }
+
+        /* Utility Classes */
+        .text-primary { color: var(--primary-color) !important; }
+        .text-success { color: var(--success-color) !important; }
+        .text-warning { color: var(--warning-color) !important; }
+        .text-danger { color: var(--danger-color) !important; }
+        .text-info { color: var(--info-color) !important; }
     </style>
 </head>
 <body>
-    <!-- Floating Elements - MY SIGNATURE MAGIC ✨ -->
-    <div class="floating-elements">
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-    </div>
-
     <div class="container-fluid py-4 px-4">
         <!-- Navigation Bar -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="nav-bar">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0 text-dark">
-                            <i class="fas fa-chart-line me-2 text-primary"></i>
-                            لوحة التحكم المالية
-                        </h4>
-                        <div class="d-flex gap-2">
-                            <a href="financial-profit-management.html" class="btn btn-outline-primary">
-                                <i class="fas fa-coins me-2"></i>
-                                إدارة الأرباح
-                            </a>
-                            <a href="financial-add-expense.html" class="btn btn-outline-success">
-                                <i class="fas fa-plus me-2"></i>
-                                إضافة مصروف
-                            </a>
+                <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #0d964e 0%, #0a572b 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: var(--border-radius);">
+                    <div class="container py-2">
+                        <div class="d-flex justify-content-between align-items-center w-100">
+                            <!-- Logo on left -->
+                            <!-- Navigation items in center -->
+                            <ul class="navbar-nav d-flex flex-row align-items-center justify-content-center">
+                                <li class="nav-item mx-2">
+                                    <a href="financial-dashboard.html" class="nav-link active fw-bold rounded-circle d-flex align-items-center justify-content-center" 
+                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.3s ease;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="لوحة التحكم">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </a>
+                                </li>
+                                <li class="nav-item mx-2">
+                                    <a href="financial-profit-management.html" class="nav-link rounded-circle d-flex align-items-center justify-content-center" 
+                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="إدارة الأرباح">
+                                        <i class="fas fa-coins"></i>
+                                    </a>
+                                </li>
+                                <li class="nav-item mx-2">
+                                    <a href="financial-add-expense.html" class="nav-link rounded-circle d-flex align-items-center justify-content-center" 
+                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="إضافة مصروف">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                            
                         </div>
                     </div>
-                </div>
+                </nav>
             </div>
         </div>
 
         <!-- KPI Cards -->
-        <div class="row mb-5 justify-content-center">
+        <div class="row mb-5">
             <!-- Total Revenue -->
-            <div class="col-lg-3 col-sm-6 mb-4">
-                <div class="card stat-card h-100">
-                    <div class="card-body p-4 d-flex align-items-center">
-                        <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(0, 117, 83, 0.1) 0%, rgba(0, 117, 83, 0.2) 100%);">
-                            <i class="fas fa-arrow-up" style="color: #007553; font-size: 1.5rem;"></i>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="icon-container revenue">
+                            <i class="fas fa-arrow-up" style="font-size: 1.25rem;"></i>
                         </div>
-                        <div>
-                            <h6 class="text-muted mb-1">إجمالي الإيرادات</h6>
-                            <h3 class="fw-bold mb-0 number-animate" id="totalRevenue">
+                        <div class="flex-grow-1">
+                            <div class="stat-label">إجمالي الإيرادات</div>
+                            <div class="stat-value" id="totalRevenue">
                                 <div class="loading-spinner"></div>
-                            </h3>
-                            <small class="text-success">
+                            </div>
+                            <div class="stat-change positive">
                                 <i class="fas fa-arrow-up me-1"></i>
                                 <span id="revenueChange">+12.5%</span>
-                            </small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Total Expenses -->
-            <div class="col-lg-3 col-sm-6 mb-4">
-                <div class="card stat-card h-100">
-                    <div class="card-body p-4 d-flex align-items-center">
-                        <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.2) 100%);">
-                            <i class="fas fa-arrow-down" style="color: #dc3545; font-size: 1.5rem;"></i>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="icon-container expenses">
+                            <i class="fas fa-arrow-down" style="font-size: 1.25rem;"></i>
                         </div>
-                        <div>
-                            <h6 class="text-muted mb-1">إجمالي المصروفات</h6>
-                            <h3 class="fw-bold mb-0 number-animate" id="totalExpenses">
+                        <div class="flex-grow-1">
+                            <div class="stat-label">إجمالي المصروفات</div>
+                            <div class="stat-value" id="totalExpenses">
                                 <div class="loading-spinner"></div>
-                            </h3>
-                            <small class="text-warning">
+                            </div>
+                            <div class="stat-change negative">
                                 <i class="fas fa-arrow-up me-1"></i>
                                 <span id="expenseChange">+8.2%</span>
-                            </small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Net Profit -->
-            <div class="col-lg-3 col-sm-6 mb-4">
-                <div class="card stat-card h-100">
-                    <div class="card-body p-4 d-flex align-items-center">
-                        <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.1) 0%, rgba(25, 135, 84, 0.2) 100%);">
-                            <i class="fas fa-chart-line" style="color: #198754; font-size: 1.5rem;"></i>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="icon-container profit">
+                            <i class="fas fa-chart-line" style="font-size: 1.25rem;"></i>
                         </div>
-                        <div>
-                            <h6 class="text-muted mb-1">صافي الربح</h6>
-                            <h3 class="fw-bold mb-0 number-animate" id="netProfit">
+                        <div class="flex-grow-1">
+                            <div class="stat-label">صافي الربح</div>
+                            <div class="stat-value" id="netProfit">
                                 <div class="loading-spinner"></div>
-                            </h3>
-                            <small class="text-success">
+                            </div>
+                            <div class="stat-change positive">
                                 <i class="fas fa-arrow-up me-1"></i>
                                 <span id="profitChange">+15.3%</span>
-                            </small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Profit Margin -->
-            <div class="col-lg-3 col-sm-6 mb-4">
-                <div class="card stat-card h-100">
-                    <div class="card-body p-4 d-flex align-items-center">
-                        <div class="icon-container me-3" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.2) 100%);">
-                            <i class="fas fa-percentage" style="color: #ffc107; font-size: 1.5rem;"></i>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="icon-container margin">
+                            <i class="fas fa-percentage" style="font-size: 1.25rem;"></i>
                         </div>
-                        <div>
-                            <h6 class="text-muted mb-1">هامش الربح</h6>
-                            <h3 class="fw-bold mb-0 number-animate" id="profitMargin">
+                        <div class="flex-grow-1">
+                            <div class="stat-label">هامش الربح</div>
+                            <div class="stat-value" id="profitMargin">
                                 <div class="loading-spinner"></div>
-                            </h3>
-                            <small class="text-success">
+                            </div>
+                            <div class="stat-change positive">
                                 <i class="fas fa-arrow-up me-1"></i>
                                 <span id="marginChange">+2.1%</span>
-                            </small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -525,9 +477,9 @@
         <div class="row mb-4">
             <!-- Trend Chart -->
             <div class="col-lg-8 mb-4">
-                <div class="card chart-container">
-                    <div class="card-header bg-white border-0 pb-0">
-                        <h5 class="card-title mb-0">
+                <div class="chart-container">
+                    <div class="card-header">
+                        <h5 class="card-title">
                             <i class="fas fa-chart-area text-primary me-2"></i>
                             تطور الأرباح والمصروفات (6 أشهر)
                         </h5>
@@ -542,9 +494,9 @@
 
             <!-- Expense Breakdown -->
             <div class="col-lg-4 mb-4">
-                <div class="card chart-container">
-                    <div class="card-header bg-white border-0 pb-0">
-                        <h5 class="card-title mb-0">
+                <div class="chart-container">
+                    <div class="card-header">
+                        <h5 class="card-title">
                             <i class="fas fa-chart-pie text-primary me-2"></i>
                             توزيع المصروفات
                         </h5>
@@ -561,9 +513,9 @@
         <!-- Alerts Section -->
         <div class="row">
             <div class="col-12">
-                <div class="card alert-card">
-                    <div class="card-header bg-white border-0">
-                        <h5 class="card-title mb-0">
+                <div class="alert-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
                             <i class="fas fa-bell text-warning me-2"></i>
                             التنبيهات والإشعارات
                         </h5>
@@ -632,7 +584,7 @@
                 const result = await response.json();
                 const data = result.data;
 
-                // Update KPIs with animations
+                // Update KPIs with smooth animations
                 updateKPIs(data.kpis);
                 
                 // Create charts
@@ -648,16 +600,16 @@
             }
         }
 
-        // Update KPI cards with animations
+        // Update KPI cards with smooth animations
         function updateKPIs(kpis) {
-            const animateValue = (element, start, end, duration = 2000) => {
+            const animateValue = (element, start, end, duration = 1500) => {
                 const startTime = performance.now();
                 const range = end - start;
 
                 function updateValue(currentTime) {
                     const elapsed = currentTime - startTime;
                     const progress = Math.min(elapsed / duration, 1);
-                    const easeOut = 1 - Math.pow(1 - progress, 3);
+                    const easeOut = 1 - Math.pow(1 - progress, 2);
                     const current = start + (range * easeOut);
                     
                     if (element.id.includes('Margin')) {
@@ -674,7 +626,7 @@
                 requestAnimationFrame(updateValue);
             };
 
-            // Animate each KPI value
+            // Animate each KPI value with staggered timing
             setTimeout(() => animateValue(document.getElementById('totalRevenue'), 0, kpis.totalRevenue), 200);
             setTimeout(() => animateValue(document.getElementById('totalExpenses'), 0, kpis.totalExpenses), 400);
             setTimeout(() => animateValue(document.getElementById('netProfit'), 0, kpis.netProfit), 600);
@@ -730,7 +682,8 @@
                             position: 'top',
                             labels: {
                                 font: { family: 'Tajawal', size: 12 },
-                                usePointStyle: true
+                                usePointStyle: true,
+                                padding: 20
                             }
                         }
                     },
@@ -853,19 +806,24 @@
         // Refresh dashboard
         function refreshDashboard() {
             const fab = document.querySelector('.fab-btn');
-            fab.style.transform = 'scale(1.1) rotate(360deg)';
+            fab.style.transform = 'rotate(360deg)';
             
             setTimeout(() => {
-                fab.style.transform = 'scale(1) rotate(0deg)';
+                fab.style.transform = 'rotate(0deg)';
                 loadDashboardData();
             }, 500);
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Set current date
-            document.getElementById('current-date').textContent = 
-                new Date().toLocaleDateString('ar-EG');
+            // Initialize tooltips
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => {
+                new bootstrap.Tooltip(tooltip);
+            });
+            
+            // Setup navigation interactions
+            setupNavigationInteractions();
             
             // Load data
             loadDashboardData();
@@ -873,6 +831,46 @@
             // Auto-refresh every 5 minutes
             setInterval(loadDashboardData, 300000);
         });
+
+        // Setup navigation interactions
+        function setupNavigationInteractions() {
+            const navLinks = document.querySelectorAll('.navbar .nav-link');
+            
+            // Apply consistent inactive style to all links first
+            navLinks.forEach(link => {
+                link.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                link.style.boxShadow = '';
+                link.classList.remove('active', 'fw-bold');
+            });
+            
+            // Set active state for current page
+            const currentPage = window.location.pathname.split('/').pop();
+            if (currentPage === 'financial-dashboard.html') {
+                const dashboardLink = document.querySelector('a[href="financial-dashboard.html"]');
+                if (dashboardLink) {
+                    dashboardLink.classList.add('active', 'fw-bold');
+                    dashboardLink.style.backgroundColor = 'rgba(255,255,255,0.3)';
+                    dashboardLink.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                }
+            }
+            
+            // Add click event listeners
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    // Remove active class from all links
+                    navLinks.forEach(l => {
+                        l.classList.remove('active', 'fw-bold');
+                        l.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                        l.style.boxShadow = '';
+                    });
+                    
+                    // Add active class to clicked link
+                    link.classList.add('active', 'fw-bold');
+                    link.style.backgroundColor = 'rgba(255,255,255,0.3)';
+                    link.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                });
+            });
+        }
     </script>
     
     <!-- Config -->

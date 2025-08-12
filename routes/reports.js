@@ -138,6 +138,7 @@ router.get('/', async (req, res) => {
         include: [
           {
             model: Client,
+            as: 'client',
             attributes: ['id', 'name', 'phone', 'email'],
           },
           {
@@ -166,6 +167,7 @@ router.get('/:id', async (req, res) => {
     const report = await Report.findByPk(req.params.id, {
       include: {
         model: Client,
+        as: 'client',
         attributes: ['id', 'name', 'phone', 'email', 'address'],
       },
     });
@@ -196,6 +198,7 @@ router.get('/client/me', clientAuth, async (req, res) => {
       include: [
         {
           model: Client,
+          as: 'client',
           attributes: ['id', 'name', 'phone', 'email', 'address'],
         },
         // Optional: Include ReportTechnicalTest if needed for client dashboard preview
@@ -362,7 +365,7 @@ router.get('/insights/device-models', auth, async (req, res) => {
 
         const deviceModels = await Report.findAll({
             where: {
-                createdAt: {
+                created_at: {
                     [Op.between]: [startOfMonth, endOfMonth]
                 }
             },
@@ -394,6 +397,7 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
             include: [
                 {
                     model: Client,
+                    as: 'client',
                     attributes: ['id', 'name', 'phone', 'email']
                 }
             ],

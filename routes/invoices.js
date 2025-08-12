@@ -50,7 +50,7 @@ router.get('/', adminAuth, async (req, res) => {
     try {
         const invoices = await Invoice.findAll({
             include: [
-                { model: Client, attributes: ['id', 'name', 'phone'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone'] },
                 { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] }
             ],
             order: [['created_at', 'DESC']]
@@ -130,7 +130,7 @@ router.get('/:id', auth, async (req, res) => {
     try {
         const invoice = await Invoice.findByPk(req.params.id, {
             include: [
-                { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
                 { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] },
                 { model: InvoiceItem, as: 'InvoiceItems' }
             ]
@@ -340,7 +340,7 @@ router.post('/', adminAuth, async (req, res) => {
         // Fetch the complete invoice with all associations
         const completeInvoice = await Invoice.findByPk(invoice.id, {
             include: [
-                { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
                 { 
                     model: Report, 
                     as: 'reports', // Use the alias defined in Invoice.belongsToMany(Report)
@@ -489,7 +489,7 @@ router.put('/:id', adminAuth, async (req, res) => {
         // Fetch the updated invoice with all related data
         const updatedInvoice = await Invoice.findByPk(invoice.id, {
             include: [
-                { model: Client, attributes: ['id', 'name', 'phone', 'email'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
                 { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] },
                 { model: InvoiceItem, as: 'InvoiceItems' }
             ]

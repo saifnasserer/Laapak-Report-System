@@ -32,7 +32,7 @@ router.get('/current', adminAuth, async (req, res) => {
 
             const reportsCount = await Report.count({
                 where: {
-                    createdAt: {
+                    created_at: {
                         [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
                     }
                 }
@@ -40,7 +40,7 @@ router.get('/current', adminAuth, async (req, res) => {
 
             const clientsCount = await Client.count({
                 where: {
-                    createdAt: {
+                    created_at: {
                         [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
                     }
                 }
@@ -67,7 +67,7 @@ router.get('/current', adminAuth, async (req, res) => {
 
         const currentReports = await Report.count({
             where: {
-                createdAt: {
+                created_at: {
                     [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
                 }
             }
@@ -75,7 +75,7 @@ router.get('/current', adminAuth, async (req, res) => {
 
         const currentClients = await Client.count({
             where: {
-                createdAt: {
+                created_at: {
                     [require('sequelize').Op.between]: [startOfMonth, endOfMonth]
                 }
             }
