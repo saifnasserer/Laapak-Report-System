@@ -3,7 +3,7 @@
  * This script checks if a user is authenticated before allowing access to protected pages
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Check if auth-middleware.js is loaded
     if (typeof authMiddleware === 'undefined') {
         console.error('Auth middleware not loaded! Make sure auth-middleware.js is included before auth-check.js');
@@ -63,20 +63,82 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // For superadmin pages, check if user has superadmin role
             if (isSuperadminPage) {
-                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-                const userRole = adminInfo.role || 'admin';
+                console.log('🔍 Checking superadmin access...');
                 
-                console.log('User role:', userRole);
+                // Get user info from API instead of localStorage to ensure accuracy
+                let userRole = 'admin'; // default fallback
+                let adminInfo = {};
+                
+                try {
+                    const token = authMiddleware.getAdminToken();
+                    const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                    
+                    console.log('🔍 API call details:', {
+                        token: token ? token.substring(0, 20) + '...' : 'null',
+                        apiBaseUrl,
+                        endpoint: `${apiBaseUrl}/api/auth/me`
+                    });
+                    
+                    // Add a small delay to ensure the page is fully loaded
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-auth-token': token
+                        }
+                    });
+                    
+                    console.log('🔍 API response status:', response.status);
+                    
+                    if (response.ok) {
+                        const userData = await response.json();
+                        console.log('🔍 API response data:', userData);
+                        
+                        // Check if userData has a user property (wrapped) or is the user object directly
+                        if (userData && userData.user) {
+                            userRole = userData.user.role || 'admin';
+                            adminInfo = userData.user;
+                            console.log('✅ Got user info from API (wrapped):', userData.user);
+                        } else if (userData && userData.role) {
+                            // Direct user object response
+                            userRole = userData.role || 'admin';
+                            adminInfo = userData;
+                            console.log('✅ Got user info from API (direct):', userData);
+                        } else {
+                            throw new Error('Invalid user data structure');
+                        }
+                    } else {
+                        const errorText = await response.text();
+                        console.log('🔍 API error response:', errorText);
+                        throw new Error(`API response not ok: ${response.status} - ${errorText}`);
+                    }
+                } catch (error) {
+                    console.error('❌ Error getting user info from API:', error);
+                    // Fallback to localStorage
+                    adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                    userRole = adminInfo.role || 'admin';
+                    console.log('⚠️ Using localStorage fallback due to API error:', adminInfo);
+                }
+                
+                console.log('🔍 Superadmin page access check:', {
+                    filename,
+                    userRole,
+                    adminInfo: adminInfo,
+                    isSuperadmin: userRole === 'superadmin',
+                    shouldShowModal: userRole !== 'superadmin'
+                });
                 
                 if (userRole !== 'superadmin') {
-                    console.log('Access denied: Financial pages require superadmin role');
+                    console.log('❌ Access denied: Financial pages require superadmin role');
                     showAccessDeniedModal();
                     return;
                 } else {
-                    console.log('Superadmin access granted to financial page');
+                    console.log('✅ Superadmin access granted to financial page');
                 }
             } else {
-                console.log('Admin access granted');
+                console.log('✅ Admin access granted to regular admin page');
             }
         }
     }
@@ -138,6 +200,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Show access denied modal
 function showAccessDeniedModal() {
+    console.log('🚨 showAccessDeniedModal called - this should only happen for admin users');
+    
+    // Get current user info for debugging
+    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+    const userRole = adminInfo.role || 'admin';
+    console.log('🚨 Modal triggered for user role:', userRole);
+    
     // Create modal HTML
     const modalHTML = `
         <div class="modal fade" id="accessDeniedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -179,8 +248,6 @@ function showAccessDeniedModal() {
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
     // Show current user role
-    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-    const userRole = adminInfo.role || 'admin';
     const roleDisplay = userRole === 'superadmin' ? 'مدير النظام الأعلى' : 'مدير';
     document.getElementById('currentUserRole').textContent = roleDisplay;
     
