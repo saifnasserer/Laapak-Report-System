@@ -589,10 +589,14 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 
         // Check if there are more results available
         let hasMore = false;
+        console.log('Checking hasMore - results.length:', results.length, 'limit:', parseInt(limit));
+        
         if (results.length === parseInt(limit)) {
             // Make a test query to see if there are more results
             try {
                 const testOffset = offset + parseInt(limit);
+                console.log('Testing for more data at offset:', testOffset);
+                
                 const testQuery = `
                     SELECT COUNT(*) as count
                     FROM invoices i
@@ -606,12 +610,17 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     OFFSET ${testOffset}
                 `;
                 
+                console.log('hasMore test query:', testQuery);
                 const [testResults] = await sequelize.query(testQuery);
+                console.log('hasMore test results:', testResults);
                 hasMore = testResults.length > 0;
+                console.log('hasMore calculated as:', hasMore);
             } catch (testError) {
                 console.error('Error checking for more data:', testError);
                 hasMore = false;
             }
+        } else {
+            console.log('Not checking hasMore - results.length (', results.length, ') != limit (', parseInt(limit), ')');
         }
 
         console.log(`Sending ${results.length} total results, hasMore: ${hasMore}`);
