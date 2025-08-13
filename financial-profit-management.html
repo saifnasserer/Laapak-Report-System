@@ -313,6 +313,95 @@
         .table-responsive {
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-sm);
+            height: calc(100vh - 300px); /* Use full viewport height minus header/nav */
+            overflow-y: auto;
+        }
+
+        /* Full height container */
+        .full-height-container {
+            height: calc(100vh - 100px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .table-card .card-body {
+            flex: 1;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .table-card .table-responsive {
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Better table styling */
+        .table {
+            margin: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .table thead th {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border: none;
+            padding: 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        .table tbody td {
+            padding: 1rem;
+            border: none;
+            vertical-align: middle;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .table-responsive {
+                height: calc(100vh - 250px);
+            }
+            
+            .table thead th,
+            .table tbody td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.8rem;
+            }
+            
+            .btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .table-responsive {
+                height: calc(100vh - 200px);
+            }
+            
+            .table thead th,
+            .table tbody td {
+                padding: 0.5rem 0.25rem;
+                font-size: 0.75rem;
+            }
         }
 
         /* Badge Styles */
@@ -332,23 +421,6 @@
             color: var(--white);
         }
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .table-responsive {
-                font-size: 0.8rem;
-            }
-            
-            .table thead th,
-            .table tbody td {
-                padding: 0.75rem 0.5rem;
-            }
-            
-            .btn {
-                padding: 0.4rem 0.8rem;
-                font-size: 0.8rem;
-            }
-        }
-
         /* Utility Classes */
         .text-primary { color: var(--primary-color) !important; }
         .text-success { color: var(--success-color) !important; }
@@ -365,11 +437,6 @@
                 <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #0d964e 0%, #0a572b 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: var(--border-radius);">
                     <div class="container py-2">
                         <div class="d-flex justify-content-between align-items-center w-100">
-                            <!-- Logo on left -->
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-chart-line me-2 text-white" style="font-size: 1.5rem;"></i>
-                                <h4 class="mb-0 text-white fw-bold">إدارة الأرباح والتكاليف</h4>
-                            </div>
                             
                             <!-- Navigation items in center -->
                             <ul class="navbar-nav d-flex flex-row align-items-center justify-content-center">
@@ -396,22 +463,6 @@
                                 </li>
                             </ul>
                             
-                            <!-- Back to main dashboard -->
-                            <div class="dropdown">
-                                <a class="d-flex align-items-center justify-content-center text-decoration-none rounded-circle" 
-                                   href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
-                                   style="width: 40px; height: 40px; background-color: white; transition: all 0.3s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
-                                   title="العودة للوحة الرئيسية">
-                                    <i class="fas fa-home text-success" style="font-size: 1.2rem;"></i>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 200px; border-radius: 12px; margin-top: 10px;">
-                                    <li><a class="dropdown-item py-2 d-flex align-items-center" href="admin.html"><i class="fas fa-tachometer-alt text-primary"></i><span class="ms-3">الوحة الرئيسية</span></a></li>
-                                    <li><hr class="dropdown-divider my-1"></li>
-                                    <li><a class="dropdown-item py-2 d-flex align-items-center" href="reports.html"><i class="fas fa-file-alt text-primary"></i><span class="ms-3">التقارير</span></a></li>
-                                    <li><a class="dropdown-item py-2 d-flex align-items-center" href="invoices.html"><i class="fas fa-dollar-sign text-primary"></i><span class="ms-3">الفواتير</span></a></li>
-                                    <li><a class="dropdown-item py-2 d-flex align-items-center" href="clients.html"><i class="fas fa-users text-primary"></i><span class="ms-3">العملاء</span></a></li>
-                                </ul>
-                            </div>
                         </div>
                     </div>
                 </nav>
@@ -431,9 +482,9 @@
         </div>
 
         <!-- Data Table Section -->
-        <div class="row">
+        <div class="row full-height-container">
             <div class="col-12">
-                <div class="card">
+                <div class="card table-card">
                     <div class="card-header">
                         <h5 class="card-title">
                             <i class="fas fa-table me-2 text-primary"></i>
@@ -441,8 +492,8 @@
                         </h5>
                     </div>
                     
-                    <div class="card-body p-0">
-                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <div class="card-body">
+                        <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
@@ -597,6 +648,8 @@
         // Load profit management data
         async function loadProfitData() {
             try {
+                console.log('Starting to load profit data...');
+                
                 // Reset infinite scroll variables
                 currentPage = 1;
                 isLoading = false;
@@ -614,7 +667,10 @@
                 `;
 
                 // Load first page of data
+                console.log('Fetching first page of data...');
                 const firstPageData = await fetchProfitData(1, itemsPerPage);
+                
+                console.log('First page data received:', firstPageData);
                 
                 if (firstPageData && firstPageData.length > 0) {
                     allData = firstPageData;
@@ -627,13 +683,18 @@
                     // Check if there's more data
                     if (firstPageData.length < itemsPerPage) {
                         hasMoreData = false;
+                        console.log('No more data available');
                     }
                 } else {
+                    console.log('No data received from API');
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="7" class="text-center py-5">
                                 <i class="fas fa-inbox text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
                                 <p class="text-muted mt-3">لا توجد بيانات لعرضها</p>
+                                <button class="btn btn-primary mt-3" onclick="loadProfitData()">
+                                    <i class="fas fa-refresh me-2"></i>إعادة المحاولة
+                                </button>
                             </td>
                         </tr>
                     `;
@@ -641,7 +702,7 @@
 
             } catch (error) {
                 console.error('Profit data error:', error);
-                showErrorState();
+                showErrorState(error.message);
             }
         }
 
@@ -688,6 +749,9 @@
                         <td colspan="7" class="text-center py-5">
                             <i class="fas fa-inbox text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
                             <p class="text-muted mt-3">لا توجد بيانات لعرضها</p>
+                            <button class="btn btn-primary mt-3" onclick="loadProfitData()">
+                                <i class="fas fa-refresh me-2"></i>إعادة المحاولة
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -755,6 +819,20 @@
                     `;
                 }
             }).join('');
+            
+            // Add load more button if there's more data
+            if (hasMoreData && data.length > 0) {
+                const loadMoreRow = `
+                    <tr id="load-more-row">
+                        <td colspan="7" class="text-center py-3">
+                            <button class="btn btn-outline-primary" onclick="loadMoreData()" id="loadMoreBtn">
+                                <i class="fas fa-arrow-down me-2"></i>تحميل المزيد
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', loadMoreRow);
+            }
         }
 
         // Open invoice items modal
@@ -1079,13 +1157,13 @@
         }
 
         // Show error state
-        function showErrorState() {
+        function showErrorState(message) {
             const tbody = document.getElementById('dataTableBody');
             tbody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center py-5">
                         <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
-                        <p class="text-danger mt-3 fw-bold">خطأ في تحميل البيانات</p>
+                        <p class="text-danger mt-3 fw-bold">خطأ في تحميل البيانات: ${message || 'تعذر الاتصال بالخادم'}</p>
                         <button class="btn btn-primary" onclick="loadProfitData()">إعادة المحاولة</button>
                     </td>
                 </tr>
@@ -1102,14 +1180,29 @@
         function setupInfiniteScroll() {
             const tableContainer = document.querySelector('.table-responsive');
             if (tableContainer) {
+                console.log('Setting up infinite scroll for table container');
+                
                 tableContainer.addEventListener('scroll', function() {
                     const { scrollTop, scrollHeight, clientHeight } = this;
+                    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
                     
-                    // Load more data when user scrolls to bottom
-                    if (scrollTop + clientHeight >= scrollHeight - 100 && !isLoading && hasMoreData) {
+                    console.log('Scroll info:', {
+                        scrollTop,
+                        scrollHeight,
+                        clientHeight,
+                        scrollPercentage,
+                        isLoading,
+                        hasMoreData
+                    });
+                    
+                    // Load more data when user scrolls to 80% of the content
+                    if (scrollPercentage >= 0.8 && !isLoading && hasMoreData) {
+                        console.log('Triggering load more data');
                         loadMoreData();
                     }
                 });
+            } else {
+                console.warn('Table container not found for infinite scroll');
             }
         }
 
@@ -1119,6 +1212,15 @@
             
             isLoading = true;
             currentPage++;
+            
+            console.log(`Loading more data - page ${currentPage}`);
+            
+            // Update load more button to show loading state
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (loadMoreBtn) {
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحميل...';
+            }
             
             // Show loading indicator
             const tbody = document.getElementById('dataTableBody');
@@ -1130,10 +1232,18 @@
                     <p class="text-muted mt-2">جاري تحميل المزيد من البيانات...</p>
                 </td>
             `;
+            
+            // Remove existing load more row and add loading row
+            const existingLoadMoreRow = document.getElementById('load-more-row');
+            if (existingLoadMoreRow) {
+                existingLoadMoreRow.remove();
+            }
             tbody.appendChild(loadingRow);
             
             try {
                 const newData = await fetchProfitData(currentPage, itemsPerPage);
+                
+                console.log(`Page ${currentPage} data received:`, newData);
                 
                 if (newData && newData.length > 0) {
                     // Remove loading row
@@ -1142,10 +1252,32 @@
                     
                     // Append new data to existing data
                     allData = allData.concat(newData);
+                    console.log(`Total data items: ${allData.length}`);
                     
                     // Render new rows
                     const newRows = newData.map(item => renderTableRow(item)).join('');
                     tbody.insertAdjacentHTML('beforeend', newRows);
+                    
+                    // Update stats with all data
+                    updateTableStats(allData);
+                    
+                    // Check if there's more data
+                    if (newData.length < itemsPerPage) {
+                        hasMoreData = false;
+                        console.log('No more data available');
+                    } else {
+                        // Add load more button again if there's more data
+                        const loadMoreRow = `
+                            <tr id="load-more-row">
+                                <td colspan="7" class="text-center py-3">
+                                    <button class="btn btn-outline-primary" onclick="loadMoreData()" id="loadMoreBtn">
+                                        <i class="fas fa-arrow-down me-2"></i>تحميل المزيد
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.insertAdjacentHTML('beforeend', loadMoreRow);
+                    }
                 } else {
                     hasMoreData = false;
                     const loadingRow = document.getElementById('loading-row');
@@ -1157,6 +1289,7 @@
                             </td>
                         `;
                     }
+                    console.log('No more data available');
                 }
             } catch (error) {
                 console.error('Error loading more data:', error);
@@ -1166,6 +1299,10 @@
                         <td colspan="7" class="text-center py-3 text-danger">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             خطأ في تحميل البيانات
+                            <br>
+                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadMoreData()">
+                                <i class="fas fa-refresh me-1"></i>إعادة المحاولة
+                            </button>
                         </td>
                     `;
                 }
@@ -1182,18 +1319,96 @@
                 const token = authMiddleware.getAdminToken() || adminInfo.token || '';
                 const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                 
-                const response = await fetch(`${baseUrl}/api/financial/profit-management?page=${page}&limit=${limit}`, {
-                    headers: {
-                        'x-auth-token': token
-                    }
+                console.log('Fetching profit data:', {
+                    page,
+                    limit,
+                    baseUrl,
+                    hasToken: !!token
                 });
                 
-                if (!response.ok) {
-                    throw new Error('Failed to load profit data');
+                // Try different API endpoints to get data
+                let response, result;
+                
+                // First try the profit management endpoint
+                try {
+                    response = await fetch(`${baseUrl}/api/financial/profit-management?page=${page}&limit=${limit}&paymentStatus=all`, {
+                        headers: { 'x-auth-token': token }
+                    });
+                    
+                    console.log('Profit management response status:', response.status);
+                    
+                    if (response.ok) {
+                        result = await response.json();
+                        console.log('Profit management API Response:', result);
+                    } else {
+                        throw new Error(`Profit management API failed: ${response.status}`);
+                    }
+                } catch (profitError) {
+                    console.warn('Profit management API failed, trying invoices API:', profitError);
+                    
+                    // Fallback to invoices API
+                    response = await fetch(`${baseUrl}/api/invoices?page=${page}&limit=${limit}`, {
+                        headers: { 'x-auth-token': token }
+                    });
+                    
+                    console.log('Invoices API response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Invoices API Error Response:', errorText);
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
+                    
+                    result = await response.json();
+                    console.log('Invoices API Response:', result);
                 }
                 
-                const result = await response.json();
-                return result.data.items || [];
+                console.log('API Response type:', typeof result);
+                console.log('API Response keys:', Object.keys(result));
+                
+                if (result.data) {
+                    console.log('Result.data type:', typeof result.data);
+                    console.log('Result.data keys:', Object.keys(result.data));
+                    console.log('Result.data value:', result.data);
+                }
+                
+                // Handle different response structures
+                let items = [];
+                
+                if (result.data && result.data.items) {
+                    items = result.data.items;
+                    console.log('Found items in result.data.items:', items);
+                } else if (result.data && Array.isArray(result.data)) {
+                    items = result.data;
+                    console.log('Found items in result.data (array):', items);
+                } else if (Array.isArray(result)) {
+                    items = result;
+                    console.log('Found items in result (array):', items);
+                } else if (result.items && Array.isArray(result.items)) {
+                    items = result.items;
+                    console.log('Found items in result.items:', items);
+                } else if (result.data && typeof result.data === 'object') {
+                    // Try to find any array in the data object
+                    const dataKeys = Object.keys(result.data);
+                    for (const key of dataKeys) {
+                        if (Array.isArray(result.data[key])) {
+                            items = result.data[key];
+                            console.log(`Found items in result.data.${key}:`, items);
+                            break;
+                        }
+                    }
+                } else {
+                    console.warn('Unexpected response structure:', result);
+                    console.log('Available keys in result:', Object.keys(result));
+                    if (result.data) {
+                        console.log('Available keys in result.data:', Object.keys(result.data));
+                        // Log the full structure for debugging
+                        console.log('Full result.data structure:', JSON.stringify(result.data, null, 2));
+                    }
+                }
+                
+                console.log('Final extracted items:', items);
+                return items || [];
             } catch (error) {
                 console.error('Error fetching profit data:', error);
                 throw error;
@@ -1249,6 +1464,8 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Financial profit management page loaded');
+            
             // Initialize tooltips
             const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
             tooltips.forEach(tooltip => {
@@ -1258,8 +1475,14 @@
             // Setup navigation interactions
             setupNavigationInteractions();
             
-            console.log('Page loaded, starting data load...');
-            loadProfitData();
+            // Setup search functionality
+            setupSearch();
+            
+            // Test database content first
+            testDatabaseContent().then(() => {
+                console.log('Page loaded, starting data load...');
+                loadProfitData();
+            });
 
             // Modal event listeners
             const modalCostPrice = document.getElementById('modalCostPrice');
@@ -1421,6 +1644,37 @@
             }
         });
 
+        // Search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    filterTableData(searchTerm);
+                });
+            }
+        }
+
+        // Filter table data based on search term
+        function filterTableData(searchTerm) {
+            if (!allData || allData.length === 0) return;
+            
+            const filteredData = allData.filter(item => {
+                if (item.type === 'invoice') {
+                    return item.client_name && item.client_name.toLowerCase().includes(searchTerm);
+                } else {
+                    return item.description && item.description.toLowerCase().includes(searchTerm);
+                }
+            });
+            
+            renderTable(filteredData);
+            
+            // Show search results count
+            if (searchTerm) {
+                console.log(`Search results: ${filteredData.length} of ${allData.length} items`);
+            }
+        }
+
         // Setup navigation interactions
         function setupNavigationInteractions() {
             const navLinks = document.querySelectorAll('.navbar .nav-link');
@@ -1459,6 +1713,98 @@
                     link.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
                 });
             });
+        }
+
+        // Test API call to check database content
+        async function testDatabaseContent() {
+            try {
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                console.log('🔍 Testing database content...');
+                
+                // Test 1: Check all invoices
+                const invoicesResponse = await fetch(`${baseUrl}/api/invoices?limit=5`, {
+                    headers: { 'x-auth-token': token }
+                });
+                const invoicesData = await invoicesResponse.json();
+                console.log('📋 All invoices (first 5):', invoicesData);
+                
+                // Test 2: Check paid invoices specifically
+                const paidInvoicesResponse = await fetch(`${baseUrl}/api/invoices?paymentStatus=paid&limit=5`, {
+                    headers: { 'x-auth-token': token }
+                });
+                const paidInvoicesData = await paidInvoicesResponse.json();
+                console.log('💰 Paid invoices (first 5):', paidInvoicesData);
+                
+                // Test 3: Check invoice items (only if we have invoices)
+                if (invoicesData && invoicesData.length > 0) {
+                    try {
+                        const invoiceItemsResponse = await fetch(`${baseUrl}/api/invoices/${invoicesData[0].id}/items`, {
+                            headers: { 'x-auth-token': token }
+                        });
+                        
+                        if (invoiceItemsResponse.ok) {
+                            const invoiceItemsData = await invoiceItemsResponse.json();
+                            console.log('📦 Invoice items for first invoice:', invoiceItemsData);
+                        } else {
+                            console.log('📦 Invoice items endpoint not available (404)');
+                        }
+                    } catch (itemsError) {
+                        console.log('📦 Invoice items endpoint error:', itemsError.message);
+                    }
+                }
+                
+                // Test 4: Check payment status values
+                console.log('🔍 Checking payment status values...');
+                if (invoicesData && invoicesData.length > 0) {
+                    invoicesData.slice(0, 3).forEach((invoice, index) => {
+                        console.log(`Invoice ${index + 1}:`, {
+                            id: invoice.id,
+                            paymentStatus: invoice.paymentStatus,
+                            total: invoice.total,
+                            date: invoice.date
+                        });
+                    });
+                }
+                
+                // Test 5: Check financial profit management with different parameters
+                try {
+                    const profitResponse = await fetch(`${baseUrl}/api/financial/profit-management?limit=10&type=invoices`, {
+                        headers: { 'x-auth-token': token }
+                    });
+                    
+                    if (profitResponse.ok) {
+                        const profitData = await profitResponse.json();
+                        console.log('📊 Profit management data:', profitData);
+                    } else {
+                        console.log('📊 Profit management API failed:', profitResponse.status);
+                    }
+                } catch (profitError) {
+                    console.log('📊 Profit management API error:', profitError.message);
+                }
+                
+                // Test 6: Try without payment status filter
+                try {
+                    const profitResponse2 = await fetch(`${baseUrl}/api/financial/profit-management?limit=10&type=invoices&paymentStatus=all`, {
+                        headers: { 'x-auth-token': token }
+                    });
+                    
+                    if (profitResponse2.ok) {
+                        const profitData2 = await profitResponse2.json();
+                        console.log('📊 Profit management data (all payment statuses):', profitData2);
+                    } else {
+                        console.log('📊 Profit management API (all statuses) failed:', profitResponse2.status);
+                    }
+                } catch (profitError2) {
+                    console.log('📊 Profit management API (all statuses) error:', profitError2.message);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error testing database content:', error);
+            }
         }
     </script>
     

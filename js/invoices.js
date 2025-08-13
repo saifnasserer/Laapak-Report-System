@@ -1993,13 +1993,24 @@ function createInvoice() {
  * @param {boolean} skipReportSync - Whether to skip report synchronization (to prevent loops)
  */
 async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync = false) {
+    let statusBadge = null;
+    let originalContent = '';
+    
     try {
+        console.log(`Updating invoice ${invoiceId} payment status to: ${newStatus}`);
+        
         // Show loading state on the status badge
-        const statusBadge = document.querySelector(`[data-invoice-id="${invoiceId}"].payment-status-badge`);
+        statusBadge = document.querySelector(`[data-invoice-id="${invoiceId}"].payment-status-badge`);
         if (statusBadge) {
-            const originalContent = statusBadge.innerHTML;
+            originalContent = statusBadge.innerHTML;
             statusBadge.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             statusBadge.disabled = true;
+        }
+        
+        // Get auth token
+        const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        if (!token) {
+            throw new Error('No authentication token found');
         }
         
         // Update via API
@@ -2007,14 +2018,21 @@ async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync =
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'x-auth-token': localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+                'x-auth-token': token
             },
             body: JSON.stringify({ paymentStatus: newStatus })
         });
         
+        console.log(`Invoice update response status: ${response.status}`);
+        
         if (!response.ok) {
-            throw new Error('Failed to update invoice payment status');
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Invoice update error response:', errorData);
+            throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: Failed to update invoice payment status`);
         }
+        
+        const responseData = await response.json();
+        console.log(`Invoice ${invoiceId} payment status updated successfully to ${newStatus}:`, responseData);
         
         // Update the status badge with new status
         if (statusBadge) {
@@ -2042,12 +2060,12 @@ async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync =
         console.error('Error updating invoice payment status:', error);
         
         // Restore original content on error
-        if (statusBadge) {
+        if (statusBadge && originalContent) {
             statusBadge.innerHTML = originalContent;
             statusBadge.disabled = false;
         }
         
-        showToast('حدث خطأ أثناء تحديث حالة الدفع', 'error');
+        showToast(`حدث خطأ أثناء تحديث حالة الدفع: ${error.message}`, 'error');
     }
 }
 

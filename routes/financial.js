@@ -287,11 +287,27 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 // Use direct SQL query to bypass association issues
                 const { sequelize } = require('../models');
                 
+                // Check what payment status values exist
+                const statusQuery = `
+                    SELECT DISTINCT paymentStatus, COUNT(*) as count 
+                    FROM invoices 
+                    GROUP BY paymentStatus
+                `;
+                const [statusResults] = await sequelize.query(statusQuery);
+                console.log('Available payment statuses:', statusResults);
+                
+                // Build the main query - allow all payment statuses for now
+                let paymentFilter = '';
+                if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
+                    paymentFilter = `WHERE i.paymentStatus = '${req.query.paymentStatus}'`;
+                }
+                
                 const query = `
                     SELECT 
                         i.id as invoice_id,
                         i.date as invoice_date,
                         i.total as invoice_total,
+                        i.paymentStatus as payment_status,
                         c.name as client_name,
                         c.id as client_id,
                         COUNT(ii.id) as items_count,
@@ -300,13 +316,14 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     FROM invoices i
                     LEFT JOIN clients c ON i.client_id = c.id
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
-                    WHERE i.paymentStatus = 'paid'
-                    GROUP BY i.id, i.date, i.total, c.name, c.id
+                    ${paymentFilter}
+                    GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
                     ORDER BY i.date DESC
                     LIMIT ${parseInt(limit)}
                     OFFSET ${offset}
                 `;
                 
+                console.log('Executing SQL query:', query);
                 const [rawResults] = await sequelize.query(query);
                 console.log(`Raw SQL query returned ${rawResults.length} invoices`);
                 
@@ -321,7 +338,8 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                         total: parseFloat(row.invoice_total),
                         items_count: parseInt(row.items_count),
                         total_cost: parseFloat(row.total_cost),
-                        total_profit: parseFloat(row.total_profit)
+                        total_profit: parseFloat(row.total_profit),
+                        payment_status: row.payment_status
                     });
                 }
                 
