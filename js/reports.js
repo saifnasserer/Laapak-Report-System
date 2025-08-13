@@ -392,6 +392,21 @@ function populateReportsTable(reports, updatePagination = true) {
             formattedDate = `${year}-${month}-${day}`;
         }
         
+        // Add action buttons
+        const actionsHtml = `
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-primary" onclick="viewReport('${report.id}')" title="عرض التقرير">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button type="button" class="btn btn-outline-warning" onclick="editReport('${report.id}')" title="تعديل التقرير">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="deleteReport('${report.id}')" title="حذف التقرير">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
         row.innerHTML = `
             <td>${mappedReport.orderNumber || 'غير محدد'}</td>
             <td>${mappedReport.clientName || 'غير محدد'}</td>
@@ -698,5 +713,12 @@ function deleteReport(reportId) {
                 // Show error message
                 alert('حدث خطأ أثناء حذف التقرير. يرجى المحاولة مرة أخرى لاحقًا.');
             });
+    }
+}
+
+// Function to edit a report
+function editReport(reportId) {
+    if (confirm('هل تريد تعديل هذا التقرير؟')) {
+        window.location.href = `edit-report.html?id=${reportId}`;
     }
 }

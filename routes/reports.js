@@ -287,24 +287,63 @@ router.post('/', async (req, res) => {
 
 // PUT /reports/:id - update a report
 router.put('/:id', async (req, res) => {
-  const { clientId, title, description, data } = req.body;
-
   try {
+    console.log(`Updating report ${req.params.id} with data:`, req.body);
+    
     const report = await Report.findByPk(req.params.id);
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
 
-    if (clientId !== undefined) report.clientId = clientId;
-    if (title !== undefined) report.title = title;
-    if (description !== undefined) report.description = description;
-    if (data !== undefined) report.data = data;
+    // Update all fields that can be updated
+    const updateFields = [
+      'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
+      'order_number', 'device_model', 'serial_number', 'inspection_date',
+      'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'status'
+    ];
+
+    updateFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        report[field] = req.body[field];
+      }
+    });
+
+    // Handle special fields
+    if (req.body.inspection_date) {
+      report.inspection_date = new Date(req.body.inspection_date);
+    }
+
+    // Handle JSON fields
+    if (req.body.hardware_status && typeof req.body.hardware_status === 'string') {
+      try {
+        JSON.parse(req.body.hardware_status); // Validate JSON
+        report.hardware_status = req.body.hardware_status;
+      } catch (error) {
+        console.error('Invalid hardware_status JSON:', error);
+        return res.status(400).json({ error: 'Invalid hardware_status format' });
+      }
+    }
+
+    if (req.body.external_images && typeof req.body.external_images === 'string') {
+      try {
+        JSON.parse(req.body.external_images); // Validate JSON
+        report.external_images = req.body.external_images;
+      } catch (error) {
+        console.error('Invalid external_images JSON:', error);
+        return res.status(400).json({ error: 'Invalid external_images format' });
+      }
+    }
 
     await report.save();
-    res.json(report);
+    
+    console.log(`Report ${req.params.id} updated successfully`);
+    res.json({ 
+      message: 'Report updated successfully',
+      report: report 
+    });
   } catch (error) {
     console.error('Failed to update report:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
