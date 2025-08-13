@@ -523,7 +523,7 @@
     </div>
 
     <!-- Invoice Items Modal -->
-    <div class="modal fade" id="invoiceItemsModal" tabindex="-1" aria-labelledby="invoiceItemsModalLabel">
+    <div class="modal fade" id="invoiceItemsModal" tabindex="-1" aria-labelledby="invoiceItemsModalLabel" aria-hidden="false">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -531,7 +531,7 @@
                         <i class="fas fa-list me-2"></i>
                         منتجات الفاتورة - <span id="modalInvoiceClient"></span>
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeModal('invoiceItemsModal')" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
@@ -554,7 +554,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('invoiceItemsModal')">
                         <i class="fas fa-times me-2"></i>
                         إغلاق
                     </button>
@@ -564,7 +564,7 @@
     </div>
 
     <!-- Cost Price Edit Modal -->
-    <div class="modal fade" id="costPriceModal" tabindex="-1" aria-labelledby="costPriceModalLabel">
+    <div class="modal fade" id="costPriceModal" tabindex="-1" aria-labelledby="costPriceModalLabel" aria-hidden="false">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -572,7 +572,7 @@
                         <i class="fas fa-dollar-sign me-2"></i>
                         إضافة تكلفة المنتج
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeModal('costPriceModal')" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-4">
@@ -607,7 +607,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('costPriceModal')">
                         <i class="fas fa-times me-2"></i>
                         إلغاء
                     </button>
@@ -711,22 +711,27 @@
             // Ensure all numeric values are properly parsed
             const total = parseFloat(item.total) || 0;
             const totalCost = parseFloat(item.total_cost) || 0;
-            const totalProfit = parseFloat(item.total_profit) || 0;
+            const totalProfit = item.total_profit !== null ? parseFloat(item.total_profit) : null;
+            
+            // Check if profit can be calculated (cost > 0)
+            const hasCost = totalCost > 0;
             
             // Validate that profit calculation is consistent (invoice total - total cost)
-            const calculatedProfit = total - totalCost;
-            const profitDifference = Math.abs(totalProfit - calculatedProfit);
-            
-            // If there's a significant difference, log it for debugging
-            if (profitDifference > 0.01) {
-                console.warn('Profit calculation mismatch:', {
-                    invoice_id: item.invoice_id,
-                    total,
-                    totalCost,
-                    totalProfit,
-                    calculatedProfit,
-                    difference: profitDifference
-                });
+            if (hasCost && totalProfit !== null) {
+                const calculatedProfit = total - totalCost;
+                const profitDifference = Math.abs(totalProfit - calculatedProfit);
+                
+                // If there's a significant difference, log it for debugging
+                if (profitDifference > 0.01) {
+                    console.warn('Profit calculation mismatch:', {
+                        invoice_id: item.invoice_id,
+                        total,
+                        totalCost,
+                        totalProfit,
+                        calculatedProfit,
+                        difference: profitDifference
+                    });
+                }
             }
             
             return {
@@ -734,8 +739,9 @@
                 total,
                 total_cost: totalCost,
                 total_profit: totalProfit,
-                profit_margin: total > 0 ? (totalProfit / total) * 100 : 0,
-                is_profit_valid: totalProfit >= 0 && totalCost >= 0 && total >= 0
+                profit_margin: hasCost && totalProfit !== null && total > 0 ? (totalProfit / total) * 100 : null,
+                is_profit_valid: hasCost && totalProfit !== null && totalProfit >= 0 && totalCost >= 0 && total >= 0,
+                has_cost: hasCost
             };
         }
 
@@ -767,13 +773,21 @@
                     // Validate profit data
                     const validatedItem = validateProfitData(item);
                     
-                    const profitClass = validatedItem.total_profit >= 0 ? 'profit-positive' : 'profit-negative';
-                    const profitText = validatedItem.total_profit >= 0 ? 
-                        `+${formatCurrency(validatedItem.total_profit)}` : 
-                        formatCurrency(validatedItem.total_profit);
+                    // Check if profit can be calculated (cost > 0)
+                    const hasCost = validatedItem.has_cost;
+                    const profitClass = hasCost ? (validatedItem.total_profit !== null ? (validatedItem.total_profit >= 0 ? 'profit-positive' : 'profit-negative') : 'text-muted') : 'text-muted';
+                    const profitText = hasCost ? 
+                        (validatedItem.total_profit !== null ? 
+                            (validatedItem.total_profit >= 0 ? 
+                                `+${formatCurrency(validatedItem.total_profit)}` : 
+                                formatCurrency(validatedItem.total_profit)
+                            ) : 
+                            'لم يتم تحديد الربح'
+                        ) : 
+                        'لم يتم تحديد التكلفة';
                     
-                    // Add profit margin display based on invoice total
-                    const marginText = validatedItem.total > 0 ? 
+                    // Add profit margin display based on invoice total (only if cost is set)
+                    const marginText = hasCost && validatedItem.total > 0 && validatedItem.total_profit !== null ? 
                         ` (${((validatedItem.total_profit / validatedItem.total) * 100).toFixed(1)}%)` : '';
                     
                     return `
@@ -785,11 +799,11 @@
                             </td>
                             <td>${item.items_count}</td>
                             <td>${formatCurrency(validatedItem.total)}</td>
-                            <td>${formatCurrency(validatedItem.total_cost)}</td>
+                            <td>${hasCost ? formatCurrency(validatedItem.total_cost) : 'لم يتم تحديده'}</td>
                             <td class="${profitClass}">
                                 ${profitText}${marginText}
-                                ${!validatedItem.is_profit_valid ? 
-                                    '<br><small class="text-warning">تحقق من البيانات</small>' : ''}
+                                ${!hasCost ? 
+                                    '<br><small class="text-warning">أضف التكاليف لحساب الربح</small>' : ''}
                             </td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" 
@@ -839,11 +853,12 @@
         async function openInvoiceItemsModal(invoiceId, clientName, total) {
             try {
                 // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('invoiceItemsModal'));
+                const modalElement = document.getElementById('invoiceItemsModal');
+                const modal = new bootstrap.Modal(modalElement);
                 modal.show();
                 
                 // Store current invoice ID for refresh purposes
-                document.getElementById('invoiceItemsModal').setAttribute('data-current-invoice-id', invoiceId);
+                modalElement.setAttribute('data-current-invoice-id', invoiceId);
                 
                 // Update modal title
                 document.getElementById('modalInvoiceClient').textContent = clientName;
@@ -913,6 +928,29 @@
             } catch (error) {
                 console.error('Error loading invoice items:', error);
                 showNotification('خطأ في تحميل منتجات الفاتورة', 'error');
+            }
+        }
+
+        // Close modal properly with cleanup
+        function closeModal(modalId) {
+            const modalElement = document.getElementById(modalId);
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+                
+                // Clean up backdrop manually if needed
+                setTimeout(() => {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    // Remove modal-open class from body
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }, 150);
             }
         }
 
@@ -1094,9 +1132,9 @@
                 stats.totalCost += validatedItem.total_cost;
                 stats.totalProfit += validatedItem.total_profit;
                 
-                if (validatedItem.total_profit > 0) {
+                if (validatedItem.total_profit !== null && validatedItem.total_profit > 0) {
                     stats.profitableInvoices++;
-                } else if (validatedItem.total_profit < 0) {
+                } else if (validatedItem.total_profit !== null && validatedItem.total_profit < 0) {
                     stats.lossInvoices++;
                 }
             });
@@ -1427,8 +1465,13 @@
             const rowClass = item.type === 'invoice' ? 'row-invoice' : 'row-expense';
             
             if (item.type === 'invoice') {
-                const profitClass = item.total_profit >= 0 ? 'profit-positive' : 'profit-negative';
-                const profitText = item.total_profit >= 0 ? `+${formatCurrency(item.total_profit)}` : formatCurrency(item.total_profit);
+                const profitClass = item.total_profit !== null ? (item.total_profit >= 0 ? 'profit-positive' : 'profit-negative') : 'text-muted';
+                const profitText = item.total_profit !== null ? 
+                    (item.total_profit >= 0 ? 
+                        `+${formatCurrency(item.total_profit)}` : 
+                        formatCurrency(item.total_profit)
+                    ) : 
+                    'لم يتم تحديد الربح';
                 
                 return `
                     <tr class="${rowClass}" data-id="${item.id}">
@@ -1484,6 +1527,9 @@
             
             // Setup search functionality
             setupSearch();
+            
+            // Setup modal event listeners for proper cleanup
+            setupModalEventListeners();
             
             // Test database content first
             testDatabaseContent().then(() => {
@@ -1811,6 +1857,49 @@
                 
             } catch (error) {
                 console.error('❌ Error testing database content:', error);
+            }
+        }
+
+        // Setup modal event listeners for proper cleanup
+        function setupModalEventListeners() {
+            // Invoice Items Modal
+            const invoiceItemsModal = document.getElementById('invoiceItemsModal');
+            if (invoiceItemsModal) {
+                invoiceItemsModal.addEventListener('hidden.bs.modal', function () {
+                    // Clean up backdrop and body classes
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                });
+                
+                invoiceItemsModal.addEventListener('show.bs.modal', function () {
+                    // Ensure proper focus management
+                    this.setAttribute('aria-hidden', 'false');
+                });
+            }
+            
+            // Cost Price Modal
+            const costPriceModal = document.getElementById('costPriceModal');
+            if (costPriceModal) {
+                costPriceModal.addEventListener('hidden.bs.modal', function () {
+                    // Clean up backdrop and body classes
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                });
+                
+                costPriceModal.addEventListener('show.bs.modal', function () {
+                    // Ensure proper focus management
+                    this.setAttribute('aria-hidden', 'false');
+                });
             }
         }
     </script>
