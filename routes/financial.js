@@ -628,6 +628,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 `;
                 
                 console.log('hasMore test query:', testQuery);
+                const { sequelize } = require('../models');
                 const [testResults] = await sequelize.query(testQuery);
                 console.log('hasMore test results:', testResults);
                 hasMore = testResults.length > 0;
