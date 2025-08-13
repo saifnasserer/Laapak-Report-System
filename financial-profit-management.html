@@ -1755,6 +1755,9 @@
                 // Request all invoices (not just those with cost prices) for profit management
                 queryParams.append('showOnlyWithCost', 'false');
                 
+                // For debugging: set to 'true' to show all invoices regardless of status
+                // queryParams.append('showAllInvoices', 'true');
+                
                 console.log('Fetching profit data (loading all invoices):', {
                     page,
                     limit,

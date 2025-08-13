@@ -618,12 +618,13 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 
         if (!type || type === 'invoices') {
             try {
-                console.log('Fetching ALL invoices first, then filtering...');
+                console.log('Fetching completed/paid invoices first, then filtering...');
                 
                 // Use direct SQL query to get ALL invoices with their data
                 const { sequelize } = require('../models');
                 
-                // Fetch ALL invoices with their cost data
+                // Fetch completed/paid invoices with their cost data (or all if explicitly requested)
+                const showAllInvoices = req.query.showAllInvoices === 'true';
                 const allInvoicesQuery = `
                     SELECT 
                         i.id as invoice_id,
@@ -642,29 +643,30 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     FROM invoices i
                     LEFT JOIN clients c ON i.client_id = c.id
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
+                    ${showAllInvoices ? '' : 'WHERE i.paymentStatus IN (\'completed\', \'paid\')'}
                     GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
                     ORDER BY i.date DESC
                 `;
                 
-                console.log('Fetching all invoices...');
+                console.log(`Fetching ${showAllInvoices ? 'ALL' : 'completed/paid'} invoices...`);
                 const [allInvoices] = await sequelize.query(allInvoicesQuery);
-                console.log(`Total invoices in database: ${allInvoices.length}`);
+                console.log(`Total ${showAllInvoices ? 'invoices' : 'completed/paid invoices'} in database: ${allInvoices.length}`);
                 
                 // Now filter the results in application layer
                 let filteredInvoices = allInvoices;
                 
-                // Filter by payment status
+                // Filter by payment status - ALWAYS show only completed/paid invoices by default
                 if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
                     filteredInvoices = filteredInvoices.filter(invoice => 
                         invoice.payment_status === req.query.paymentStatus
                     );
                     console.log(`After payment status filter: ${filteredInvoices.length} invoices`);
-                } else if (!showAll && (startDate || endDate)) {
-                    // If date filter is applied, default to completed invoices
+                } else {
+                    // Default to completed/paid invoices only
                     filteredInvoices = filteredInvoices.filter(invoice => 
-                        invoice.payment_status === 'completed'
+                        ['completed', 'paid'].includes(invoice.payment_status)
                     );
-                    console.log(`After default completed filter: ${filteredInvoices.length} invoices`);
+                    console.log(`After default completed/paid filter: ${filteredInvoices.length} invoices`);
                 }
                 
                 // Filter by date range
