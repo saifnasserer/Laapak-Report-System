@@ -149,7 +149,7 @@
 
         /* Modern Buttons */
         .btn {
-            border-radius: 8px;
+            border-radius: 25px;
             font-weight: 500;
             transition: all 0.3s ease;
             border: none;
@@ -180,6 +180,18 @@
             transform: translateY(-1px);
         }
 
+        .btn-outline-secondary {
+            border: 2px solid var(--text-muted);
+            color: var(--text-muted);
+            background: transparent;
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--text-muted);
+            color: var(--white);
+            transform: translateY(-1px);
+        }
+
         .btn-outline-success {
             border: 2px solid var(--success-color);
             color: var(--success-color);
@@ -190,6 +202,12 @@
             background: var(--success-color);
             color: var(--white);
             transform: translateY(-1px);
+        }
+
+        .btn-sm {
+            border-radius: 20px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
         }
 
         /* Profit Indicators */
@@ -236,9 +254,32 @@
             border: none;
             padding: 0.75rem 1rem;
             font-size: 1rem;
+            transition: all 0.3s ease;
         }
 
         .form-control:focus {
+            box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
+        }
+
+        /* Search toggle button styling */
+        #toggleSearchBtn {
+            border-radius: 25px;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        #toggleSearchBtn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Search input animation */
+        #searchInput {
+            transition: all 0.3s ease;
+        }
+
+        #searchInput:focus {
+            border-color: var(--primary-color);
             box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
         }
 
@@ -252,43 +293,94 @@
             transition: all 0.3s ease;
             position: relative;
             justify-content: center;
+            min-height: 70px;
+            overflow: visible;
         }
 
         .filter-bar:hover {
             box-shadow: var(--shadow-md);
         }
 
-        .filter-input-group {
-            background: var(--light-bg);
-            border-radius: 8px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+        /* Icon-based buttons */
+        .btn.rounded-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: all 0.3s ease;
+            border: 2px solid var(--primary-color);
+            z-index: 10;
+            position: relative;
         }
 
-        .filter-input-group:hover {
-            border-color: var(--primary-color);
-            box-shadow: 0 2px 8px rgba(0, 117, 83, 0.1);
+        .btn.rounded-circle:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
         }
 
-        .filter-input-group .input-group-text {
-            background: transparent;
+        /* Search input container */
+        .search-input-container {
+            transition: all 0.3s ease;
+            z-index: 5;
+            position: relative;
+        }
+
+        .search-input-container .input-group {
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-input-container .form-control {
             border: none;
-            color: var(--text-muted);
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
         }
 
-        .filter-input-group .form-control {
-            border: none;
-            background: transparent;
-            box-shadow: none;
-        }
-
-        .filter-input-group .form-control:focus {
+        .search-input-container .form-control:focus {
             box-shadow: none;
             border-color: var(--primary-color);
         }
 
+        .search-input-container .btn {
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0 25px 25px 0;
+        }
+
+        /* Date filters */
         .date-filters {
             flex-shrink: 0;
+            z-index: 5;
+            position: relative;
+            background: var(--white);
+            border-radius: 8px;
+            padding: 0.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .date-filters .input-group {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .date-filters .input-group-text {
+            background: var(--primary-color);
+            border: none;
+            color: var(--white);
+        }
+
+        .date-filters .form-control {
+            border: none;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        /* Filter buttons */
+        #filterButtons {
+            z-index: 5;
+            position: relative;
         }
 
         .period-indicator {
@@ -298,25 +390,55 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
+            z-index: 1;
         }
 
         .period-badge {
             background: var(--primary-light);
             color: var(--white);
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            border-radius: 25px;
             font-size: 0.875rem;
             font-weight: 500;
+            box-shadow: var(--shadow-sm);
         }
 
         /* When filter is active, adjust layout */
         .filter-bar.filter-active {
             justify-content: space-between;
+            min-height: 120px;
+            align-items: flex-start;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
         }
 
         .filter-bar.filter-active .period-indicator {
             position: static;
             transform: none;
+            order: 3;
+        }
+
+        .filter-bar.filter-active .date-filters {
+            order: 1;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .filter-bar.filter-active #filterButtons {
+            order: 2;
+        }
+
+        /* Ensure date filters are visible when active */
+        .date-filters[style*="display: flex"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        #filterButtons[style*="display: flex"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         /* Responsive Filter Design */
@@ -325,6 +447,7 @@
                 flex-direction: column;
                 gap: 1rem;
                 padding: 1rem;
+                min-height: auto;
             }
             
             .filter-bar .d-flex {
@@ -332,13 +455,41 @@
                 width: 100%;
             }
             
-            .filter-input-group {
-                width: 100% !important;
+            .search-input-container {
+                max-width: 100% !important;
+                width: 100%;
             }
             
             .date-filters {
                 flex-direction: column;
                 gap: 0.5rem;
+                width: 100%;
+            }
+            
+            .date-filters .input-group {
+                width: 100% !important;
+            }
+            
+            .period-indicator {
+                position: static;
+                transform: none;
+                justify-content: center;
+            }
+            
+            .btn.rounded-circle {
+                width: 40px !important;
+                height: 40px !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .filter-bar {
+                padding: 0.75rem;
+            }
+            
+            .period-badge {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.75rem;
             }
         }
 
@@ -544,10 +695,11 @@
         .period-badge {
             background: var(--primary-light);
             color: var(--white);
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            border-radius: 25px;
             font-size: 0.875rem;
             font-weight: 500;
+            box-shadow: var(--shadow-sm);
         }
 
         /* Responsive Filter Design */
@@ -560,8 +712,7 @@
             <div class="col-12">
                 <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #0d964e 0%, #0a572b 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: var(--border-radius);">
                     <div class="container py-2">
-                        <div class="d-flex justify-content-between align-items-center w-100">
-                            
+                        <div class="d-flex justify-content-center align-items-center w-100">
                             <!-- Navigation items in center -->
                             <ul class="navbar-nav d-flex flex-row align-items-center justify-content-center">
                                 <li class="nav-item mx-2">
@@ -586,7 +737,6 @@
                                     </a>
                                 </li>
                             </ul>
-                            
                         </div>
                     </div>
                 </nav>
@@ -596,29 +746,39 @@
         <!-- Search Bar -->
         <div class="row mb-3">
             <div class="col-12">
-                <div class="filter-bar d-flex align-items-center gap-3 p-3">
-                    <!-- Search Input -->
-                    <div class="flex-grow-1">
-                        <div class="filter-input-group input-group">
-                            <span class="input-group-text">
-                                <i class="fas fa-search"></i>
-                            </span>
+                <div class="filter-bar d-flex align-items-center justify-content-center gap-3 p-3">
+                    <!-- Search Toggle Button - Icon Only -->
+                    <button type="button" class="btn btn-outline-primary rounded-circle" id="toggleSearchBtn" style="width: 45px; height: 45px;">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    
+                    <!-- Search Input - Hidden by default -->
+                    <div class="search-input-container" id="searchInputContainer" style="display: none; flex: 1; max-width: 300px;">
+                <div class="input-group">
                             <input type="text" class="form-control" id="searchInput" placeholder="البحث في اسم العميل...">
+                            <button type="button" class="btn btn-outline-secondary" id="clearSearchBtn">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                     
+                    <!-- Date Filter Toggle Button - Icon Only -->
+                    <button type="button" class="btn btn-outline-primary rounded-circle" id="toggleFilterBtn" style="width: 45px; height: 45px;">
+                        <i class="fas fa-calendar-alt"></i>
+                    </button>
+                    
                     <!-- Date Filters - Hidden by default -->
                     <div class="date-filters d-flex align-items-center gap-2" id="dateFilters" style="display: none;">
-                        <div class="filter-input-group input-group" style="width: 140px;">
-                            <span class="input-group-text">
+                        <div class="input-group" style="width: 140px;">
+                    <span class="input-group-text">
                                 <i class="fas fa-calendar"></i>
-                            </span>
+                    </span>
                             <input type="date" class="form-control" id="startDate">
                         </div>
                         
                         <span class="text-muted">إلى</span>
                         
-                        <div class="filter-input-group input-group" style="width: 140px;">
+                        <div class="input-group" style="width: 140px;">
                             <input type="date" class="form-control" id="endDate">
                             <span class="input-group-text">
                                 <i class="fas fa-calendar"></i>
@@ -638,10 +798,7 @@
                     
                     <!-- Period Indicator - Always visible in center -->
                     <div class="period-indicator">
-                        <span class="period-badge" id="currentPeriodDisplay">الشهر الحالي</span>
-                        <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="toggleFilterBtn">
-                            <i class="fas fa-calendar-alt"></i>
-                        </button>
+                        <span class="period-badge" id="currentPeriodDisplay">جميع البيانات</span>
                     </div>
                 </div>
             </div>
@@ -663,13 +820,13 @@
                             <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
-                                        <th>التاريخ</th>
-                                        <th>اسم العميل</th>
-                                        <th>عدد المنتجات</th>
-                                        <th>الإجمالي</th>
-                                        <th>التكلفة</th>
-                                        <th>الربح</th>
-                                        <th>الإجراءات</th>
+                                                                <th>التاريخ</th>
+                        <th>اسم العميل</th>
+                        <th>عدد المنتجات</th>
+                        <th>الإجمالي</th>
+                        <th>التكلفة</th>
+                        <th>الربح</th>
+                        <th>الإجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="dataTableBody">
@@ -846,13 +1003,18 @@
                     renderTable(allData);
                     updateTableStats(allData);
                     
-                    // Check if there's more data
-                    if (firstPageData.length < itemsPerPage) {
+                    // Check if there's more data - only set to false if we got exactly the page size
+                    // This means there might be more data on the next page
+                    if (firstPageData.length === itemsPerPage) {
+                        hasMoreData = true;
+                        console.log('More data likely available (got full page)');
+                    } else {
                         hasMoreData = false;
-                        console.log('No more data available');
+                        console.log('No more data available (got partial page)');
                     }
                 } else {
                     console.log('No data received from API');
+                    hasMoreData = false;
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="7" class="text-center py-5">
@@ -868,6 +1030,7 @@
 
             } catch (error) {
                 console.error('Profit data error:', error);
+                hasMoreData = false;
                 showErrorState(error.message);
             }
         }
@@ -1000,8 +1163,8 @@
                 }
             }).join('');
             
-            // Add load more button if there's more data
-            if (hasMoreData && data.length > 0) {
+            // Add load more button if there's more data and we're on the first page
+            if (hasMoreData && currentPage === 1) {
                 const loadMoreRow = `
                     <tr id="load-more-row">
                         <td colspan="7" class="text-center py-3">
@@ -1012,7 +1175,16 @@
                     </tr>
                 `;
                 tbody.insertAdjacentHTML('beforeend', loadMoreRow);
+                console.log('Added load more button to table');
             }
+        }
+
+        // Reset load more state
+        function resetLoadMoreState() {
+            currentPage = 1;
+            isLoading = false;
+            hasMoreData = true;
+            console.log('Reset load more state:', { currentPage, isLoading, hasMoreData });
         }
 
         // Open invoice items modal
@@ -1154,40 +1326,40 @@
             }
             
             try {
-                // Populate modal fields
-                modalProductName.textContent = description;
-                modalSalePrice.textContent = formatCurrency(salePrice);
-                modalQuantity.textContent = quantity || 1;
-                
-                // Set current cost if it exists and is greater than 0
-                console.log('Setting cost price:', currentPrice, 'Type:', typeof currentPrice);
-                if (currentPrice && currentPrice > 0) {
-                    modalCostPrice.value = currentPrice;
-                    console.log('Set cost price to:', currentPrice);
-                } else {
-                    modalCostPrice.value = '';
-                    console.log('Cleared cost price');
-                }
-                
-                // Calculate expected profit and margin
-                updateModalCalculations();
-                
-                // Store current item data
-                costPriceModal.setAttribute('data-item-id', itemId);
-                costPriceModal.setAttribute('data-row-id', id);
-                costPriceModal.setAttribute('data-description', description);
-                costPriceModal.setAttribute('data-serial-number', serialNumber);
+            // Populate modal fields
+            modalProductName.textContent = description;
+            modalSalePrice.textContent = formatCurrency(salePrice);
+            modalQuantity.textContent = quantity || 1;
+            
+            // Set current cost if it exists and is greater than 0
+            console.log('Setting cost price:', currentPrice, 'Type:', typeof currentPrice);
+            if (currentPrice && currentPrice > 0) {
+                modalCostPrice.value = currentPrice;
+                console.log('Set cost price to:', currentPrice);
+            } else {
+                modalCostPrice.value = '';
+                console.log('Cleared cost price');
+            }
+            
+            // Calculate expected profit and margin
+            updateModalCalculations();
+            
+            // Store current item data
+            costPriceModal.setAttribute('data-item-id', itemId);
+            costPriceModal.setAttribute('data-row-id', id);
+            costPriceModal.setAttribute('data-description', description);
+            costPriceModal.setAttribute('data-serial-number', serialNumber);
                 costPriceModal.setAttribute('data-sale-price', salePrice);
                 costPriceModal.setAttribute('data-quantity', quantity || 1);
-                
-                // Show modal
-                const modal = new bootstrap.Modal(costPriceModal);
-                modal.show();
-                
-                // Focus on cost price input
-                setTimeout(() => {
-                    modalCostPrice.focus();
-                }, 500);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(costPriceModal);
+            modal.show();
+            
+            // Focus on cost price input
+            setTimeout(() => {
+                modalCostPrice.focus();
+            }, 500);
                 
             } catch (error) {
                 console.error('Error opening cost price modal:', error);
@@ -1215,11 +1387,11 @@
                 const salePrice = parseFloat(salePriceText.replace(/[^\d.-]/g, '')) || 0;
                 
                 // Parse cost price
-                const costPrice = parseFloat(modalCostPrice.value) || 0;
+            const costPrice = parseFloat(modalCostPrice.value) || 0;
                 
                 // Parse quantity
-                const quantity = parseInt(modalQuantity.textContent) || 1;
-                
+            const quantity = parseInt(modalQuantity.textContent) || 1;
+            
                 // Validate inputs
                 if (salePrice < 0) {
                     console.warn('Sale price is negative:', salePrice);
@@ -1244,16 +1416,16 @@
                 
                 // Calculate profit using consistent formula
                 // Profit = (Sale Price - Cost Price) * Quantity
-                const profit = costPrice > 0 ? (salePrice - costPrice) * quantity : 0;
+            const profit = costPrice > 0 ? (salePrice - costPrice) * quantity : 0;
                 
                 // Calculate margin using consistent formula
                 // Margin = ((Sale Price - Cost Price) / Sale Price) * 100
-                const margin = salePrice > 0 && costPrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
-                
+            const margin = salePrice > 0 && costPrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
+            
                 // Format and display results
-                modalExpectedProfit.textContent = formatCurrency(profit);
-                modalExpectedMargin.textContent = formatPercentage(margin);
-                
+            modalExpectedProfit.textContent = formatCurrency(profit);
+            modalExpectedMargin.textContent = formatPercentage(margin);
+            
                 // Color coding based on profit and margin
                 const profitClass = profit >= 0 ? 'text-success' : 'text-danger';
                 const marginClass = margin >= 20 ? 'text-success' : margin >= 10 ? 'text-warning' : 'text-danger';
@@ -1419,7 +1591,22 @@
 
         // Load more data for infinite scroll
         async function loadMoreData() {
-            if (isLoading || !hasMoreData) return;
+            console.log('LoadMoreData called with state:', { 
+                isLoading, 
+                hasMoreData, 
+                currentPage, 
+                totalItems: allData.length 
+            });
+            
+            if (isLoading) {
+                console.log('Load more blocked: already loading');
+                return;
+            }
+            
+            if (!hasMoreData) {
+                console.log('Load more blocked: no more data available');
+                return;
+            }
             
             isLoading = true;
             currentPage++;
@@ -1454,7 +1641,11 @@
             try {
                 const newData = await fetchProfitData(currentPage, itemsPerPage);
                 
-                console.log(`Page ${currentPage} data received:`, newData);
+                console.log(`Page ${currentPage} data received:`, {
+                    dataLength: newData ? newData.length : 0,
+                    itemsPerPage,
+                    hasData: !!newData && newData.length > 0
+                });
                 
                 if (newData && newData.length > 0) {
                     // Remove loading row
@@ -1472,11 +1663,14 @@
                     // Update stats with all data
                     updateTableStats(allData);
                     
-                    // Check if there's more data
+                    // Check if there's more data - only set to false if we got less than a full page
                     if (newData.length < itemsPerPage) {
                         hasMoreData = false;
-                        console.log('No more data available');
+                        console.log('No more data available (got partial page)');
                     } else {
+                        hasMoreData = true;
+                        console.log('More data likely available (got full page)');
+                        
                         // Add load more button again if there's more data
                         const loadMoreRow = `
                             <tr id="load-more-row">
@@ -1500,7 +1694,7 @@
                             </td>
                         `;
                     }
-                    console.log('No more data available');
+                    console.log('No more data available (empty response)');
                 }
             } catch (error) {
                 console.error('Error loading more data:', error);
@@ -1519,6 +1713,12 @@
                 }
             } finally {
                 isLoading = false;
+                console.log('LoadMoreData completed. Final state:', { 
+                    isLoading, 
+                    hasMoreData, 
+                    currentPage, 
+                    totalItems: allData.length 
+                });
             }
         }
 
@@ -1540,10 +1740,10 @@
                 });
                 
                 // Add date filters if provided
-                if (filterParams.startDate) {
+                if (filterParams.startDate && filterParams.startDate.trim() !== '') {
                     queryParams.append('startDate', filterParams.startDate);
                 }
-                if (filterParams.endDate) {
+                if (filterParams.endDate && filterParams.endDate.trim() !== '') {
                     queryParams.append('endDate', filterParams.endDate);
                 }
                 
@@ -1555,92 +1755,66 @@
                     filters: filterParams
                 });
                 
-                // Try different API endpoints to get data
-                let response, result;
+                // Try the profit management endpoint first
+                let response = await fetch(`${baseUrl}/api/financial/profit-management?${queryParams.toString()}`, {
+                    headers: { 'x-auth-token': token }
+                });
                 
-                // First try the profit management endpoint
-                try {
-                    response = await fetch(`${baseUrl}/api/financial/profit-management?${queryParams.toString()}`, {
-                        headers: { 'x-auth-token': token }
-                    });
-                    
-                    console.log('Profit management response status:', response.status);
-                    
-                    if (response.ok) {
-                        result = await response.json();
-                        console.log('Profit management API Response:', result);
-                    } else {
-                        throw new Error(`Profit management API failed: ${response.status}`);
-                    }
-                } catch (profitError) {
-                    console.warn('Profit management API failed, trying invoices API:', profitError);
-                    
-                    // Fallback to invoices API
-                    response = await fetch(`${baseUrl}/api/invoices?${queryParams.toString()}`, {
-                        headers: { 'x-auth-token': token }
-                    });
-                    
-                    console.log('Invoices API response status:', response.status);
-                    
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Invoices API Error Response:', errorText);
-                        throw new Error(`HTTP ${response.status}: ${errorText}`);
-                    }
-                    
-                    result = await response.json();
-                    console.log('Invoices API Response:', result);
+                console.log('Profit management response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`Profit management API failed: ${response.status}`);
                 }
                 
-                console.log('API Response type:', typeof result);
-                console.log('API Response keys:', Object.keys(result));
+                const result = await response.json();
+                console.log('Profit management API Response:', result);
                 
-                if (result.data) {
-                    console.log('Result.data type:', typeof result.data);
-                    console.log('Result.data keys:', Object.keys(result.data));
-                    console.log('Result.data value:', result.data);
-                }
-                
-                // Handle different response structures
+                // Extract items from the response
                 let items = [];
                 
-                if (result.data && result.data.items) {
+                if (result.success && result.data && result.data.items) {
                     items = result.data.items;
-                    console.log('Found items in result.data.items:', items);
+                    console.log('Found items in result.data.items:', items.length);
                 } else if (result.data && Array.isArray(result.data)) {
                     items = result.data;
-                    console.log('Found items in result.data (array):', items);
+                    console.log('Found items in result.data (array):', items.length);
                 } else if (Array.isArray(result)) {
                     items = result;
-                    console.log('Found items in result (array):', items);
-                } else if (result.items && Array.isArray(result.items)) {
-                    items = result.items;
-                    console.log('Found items in result.items:', items);
-                } else if (result.data && typeof result.data === 'object') {
-                    // Try to find any array in the data object
-                    const dataKeys = Object.keys(result.data);
-                    for (const key of dataKeys) {
-                        if (Array.isArray(result.data[key])) {
-                            items = result.data[key];
-                            console.log(`Found items in result.data.${key}:`, items);
-                            break;
-                        }
-                    }
+                    console.log('Found items in result (array):', items.length);
                 } else {
                     console.warn('Unexpected response structure:', result);
-                    console.log('Available keys in result:', Object.keys(result));
-                    if (result.data) {
-                        console.log('Available keys in result.data:', Object.keys(result.data));
-                        // Log the full structure for debugging
-                        console.log('Full result.data structure:', JSON.stringify(result.data, null, 2));
-                    }
+                    items = [];
                 }
                 
-                console.log('Final extracted items:', items);
+                console.log('Final extracted items count:', items.length);
                 return items || [];
+                
             } catch (error) {
                 console.error('Error fetching profit data:', error);
-                throw error;
+                
+                // Fallback to invoices API if profit management fails
+                try {
+                    console.log('Trying fallback to invoices API...');
+                    const response = await fetch(`${baseUrl}/api/invoices?${queryParams.toString()}`, {
+                        headers: { 'x-auth-token': token }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Invoices API failed: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    console.log('Invoices API Response:', result);
+                    
+                    // Convert invoices to the expected format
+                    const items = Array.isArray(result) ? result : (result.data || []);
+                    console.log('Fallback items count:', items.length);
+                    return items;
+                    
+                } catch (fallbackError) {
+                    console.error('Fallback API also failed:', fallbackError);
+                    throw error; // Throw the original error
+                }
             }
         }
 
@@ -1705,6 +1879,9 @@
             tooltips.forEach(tooltip => {
                 new bootstrap.Tooltip(tooltip);
             });
+            
+            // Initialize filter elements first
+            initializeFilterElements();
             
             // Setup navigation interactions
             setupNavigationInteractions();
@@ -1890,10 +2067,54 @@
         // Search functionality
         function setupSearch() {
             const searchInput = document.getElementById('searchInput');
+            const searchInputContainer = document.getElementById('searchInputContainer');
+            const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+            const clearSearchBtn = document.getElementById('clearSearchBtn');
+            
+            if (toggleSearchBtn) {
+                toggleSearchBtn.addEventListener('click', function() {
+                    const isVisible = searchInputContainer.style.display !== 'none';
+                    
+                    if (isVisible) {
+                        // Hide search input
+                        searchInputContainer.style.display = 'none';
+                        searchInput.value = '';
+                        toggleSearchBtn.innerHTML = '<i class="fas fa-search"></i>';
+                        // Clear search results
+                        if (allData && allData.length > 0) {
+                            renderTable(allData);
+                        }
+                    } else {
+                        // Show search input
+                        searchInputContainer.style.display = 'flex';
+                        toggleSearchBtn.innerHTML = '<i class="fas fa-times"></i>';
+                        searchInput.focus();
+                    }
+                });
+            }
+            
+            if (clearSearchBtn) {
+                clearSearchBtn.addEventListener('click', function() {
+                    searchInput.value = '';
+                    if (allData && allData.length > 0) {
+                        renderTable(allData);
+                    }
+                    searchInput.focus();
+                });
+            }
+            
             if (searchInput) {
                 searchInput.addEventListener('input', function() {
                     const searchTerm = this.value.toLowerCase().trim();
                     filterTableData(searchTerm);
+                });
+                
+                // Handle Enter key
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const searchTerm = this.value.toLowerCase().trim();
+                        filterTableData(searchTerm);
+                    }
                 });
             }
         }
@@ -1907,6 +2128,17 @@
             const toggleFilterBtn = document.getElementById('toggleFilterBtn');
             const dateFilters = document.getElementById('dateFilters');
             const filterButtons = document.getElementById('filterButtons');
+            const searchInput = document.getElementById('searchInput');
+            
+            console.log('Setting up date filter with elements:', {
+                applyFilterBtn: !!applyFilterBtn,
+                clearFilterBtn: !!clearFilterBtn,
+                startDate: !!startDate,
+                endDate: !!endDate,
+                toggleFilterBtn: !!toggleFilterBtn,
+                dateFilters: !!dateFilters,
+                filterButtons: !!filterButtons
+            });
             
             // Setup smart date constraints
             setupDateConstraints();
@@ -1917,6 +2149,7 @@
             if (applyFilterBtn) {
                 applyFilterBtn.addEventListener('click', function() {
                     console.log('Applying date filter...');
+                    resetLoadMoreState(); // Reset load more state before loading new data
                     loadProfitData();
                 });
             }
@@ -1924,48 +2157,62 @@
             if (clearFilterBtn) {
                 clearFilterBtn.addEventListener('click', function() {
                     console.log('Clearing filters...');
-                    setDefaultDateRange();
+                    // Clear date inputs to show all data
+                    if (startDate) startDate.value = '';
+                    if (endDate) endDate.value = '';
                     if (searchInput) searchInput.value = '';
+                    updatePeriodDisplay('', '');
+                    resetLoadMoreState(); // Reset load more state before loading new data
                     loadProfitData();
                 });
             }
             
             if (toggleFilterBtn) {
                 toggleFilterBtn.addEventListener('click', function() {
+                    console.log('Toggle filter button clicked');
                     const isVisible = dateFilters.style.display !== 'none';
                     
                     if (isVisible) {
                         // Hide filter controls
+                        console.log('Hiding filter controls');
                         dateFilters.style.display = 'none';
                         filterButtons.style.display = 'none';
                         toggleFilterBtn.innerHTML = '<i class="fas fa-calendar-alt"></i>';
                         document.querySelector('.filter-bar').classList.remove('filter-active');
                     } else {
                         // Show filter controls
+                        console.log('Showing filter controls');
                         dateFilters.style.display = 'flex';
                         filterButtons.style.display = 'flex';
                         toggleFilterBtn.innerHTML = '<i class="fas fa-times"></i>';
                         document.querySelector('.filter-bar').classList.add('filter-active');
+                        
+                        // Focus on start date when showing
+                        setTimeout(() => {
+                            if (startDate) startDate.focus();
+                        }, 100);
                     }
                     
-                    updatePeriodDisplay(startDate.value, endDate.value);
+                    updatePeriodDisplay(startDate ? startDate.value : '', endDate ? endDate.value : '');
                 });
             }
             
             // Auto-apply filter when dates change
             if (startDate) {
                 startDate.addEventListener('change', function() {
-                    if (this.value && endDate.value) {
-                        loadProfitData();
-                    }
+                    console.log('Start date changed:', this.value);
+                    updatePeriodDisplay(this.value, endDate ? endDate.value : '');
+                    resetLoadMoreState(); // Reset load more state before loading new data
+                    loadProfitData();
                 });
             }
             
             if (endDate) {
                 endDate.addEventListener('change', function() {
-                    if (this.value && startDate.value) {
-                        loadProfitData();
-                    }
+                    console.log('End date changed:', this.value);
+                    updatePeriodDisplay(startDate ? startDate.value : '', this.value);
+                    resetLoadMoreState(); // Reset load more state before loading new data
+                    loadProfitData();
                 });
             }
         }
@@ -1976,39 +2223,14 @@
             const endDate = document.getElementById('endDate');
             
             if (startDate && endDate) {
-                const today = new Date();
+                // Clear the date inputs to show all data by default
+                startDate.value = '';
+                endDate.value = '';
                 
-                // Get first day of current month
-                const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                // Update period display to show "جميع البيانات"
+                updatePeriodDisplay('', '');
                 
-                // Format dates for input fields (YYYY-MM-DD)
-                const formatDate = (date) => {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                };
-                
-                const startDateStr = formatDate(startOfMonth);
-                const endDateStr = formatDate(today);
-                
-                console.log('Date calculation:', {
-                    today: today.toISOString(),
-                    startOfMonth: startOfMonth.toISOString(),
-                    startDateStr,
-                    endDateStr
-                });
-                
-                startDate.value = startDateStr;
-                endDate.value = endDateStr;
-                
-                // Update period display
-                updatePeriodDisplay(startDateStr, endDateStr);
-                
-                console.log('Set default date range:', {
-                    start: startDateStr,
-                    end: endDateStr
-                });
+                console.log('Set default to show all data (no date filter)');
             }
         }
 
@@ -2070,33 +2292,39 @@
         // Update period display
         function updatePeriodDisplay(startDate, endDate) {
             const display = document.getElementById('currentPeriodDisplay');
-            if (display && startDate && endDate) {
-                const start = new Date(startDate);
-                const end = new Date(endDate);
-                const today = new Date();
-                
-                // Check if it's current month (from 1st to today)
-                const isCurrentMonth = start.getMonth() === today.getMonth() && 
-                                     start.getFullYear() === today.getFullYear() && 
-                                     start.getDate() === 1 && 
-                                     end.getDate() === today.getDate();
-                
-                if (isCurrentMonth) {
-                    // Current month display
-                    const monthName = start.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
-                    display.textContent = `${monthName} (الشهر الحالي)`;
-                    display.style.background = 'linear-gradient(135deg, #007553 0%, #00a67a 100%)';
-                } else if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-                    // Same month but not current
-                    const monthName = start.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
-                    display.textContent = monthName;
+            if (display) {
+                if (!startDate || !endDate) {
+                    // No date filter applied - show all data
+                    display.textContent = 'جميع البيانات';
                     display.style.background = 'var(--primary-light)';
                 } else {
-                    // Date range
-                    const startStr = start.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
-                    const endStr = end.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
-                    display.textContent = `${startStr} - ${endStr}`;
-                    display.style.background = 'var(--primary-light)';
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    const today = new Date();
+                    
+                    // Check if it's current month (from 1st to today)
+                    const isCurrentMonth = start.getMonth() === today.getMonth() && 
+                                         start.getFullYear() === today.getFullYear() && 
+                                         start.getDate() === 1 && 
+                                         end.getDate() === today.getDate();
+                    
+                    if (isCurrentMonth) {
+                        // Current month display
+                        const monthName = start.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+                        display.textContent = `${monthName} (الشهر الحالي)`;
+                        display.style.background = 'linear-gradient(135deg, #007553 0%, #00a67a 100%)';
+                    } else if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+                        // Same month but not current
+                        const monthName = start.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+                        display.textContent = monthName;
+                        display.style.background = 'var(--primary-light)';
+                    } else {
+                        // Date range
+                        const startStr = start.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
+                        const endStr = end.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
+                        display.textContent = `${startStr} - ${endStr}`;
+                        display.style.background = 'var(--primary-light)';
+                    }
                 }
             }
         }
@@ -2306,6 +2534,42 @@
                     // Ensure proper focus management
                     this.setAttribute('aria-hidden', 'false');
                 });
+            }
+        }
+
+        // Initialize filter elements
+        function initializeFilterElements() {
+            const dateFilters = document.getElementById('dateFilters');
+            const filterButtons = document.getElementById('filterButtons');
+            const toggleFilterBtn = document.getElementById('toggleFilterBtn');
+            
+            console.log('Initializing filter elements...');
+            
+            // Ensure elements are properly hidden by default
+            if (dateFilters) {
+                dateFilters.style.display = 'none';
+                dateFilters.style.visibility = 'hidden';
+                dateFilters.style.opacity = '0';
+                console.log('Date filters initialized and hidden');
+            }
+            
+            if (filterButtons) {
+                filterButtons.style.display = 'none';
+                filterButtons.style.visibility = 'hidden';
+                filterButtons.style.opacity = '0';
+                console.log('Filter buttons initialized and hidden');
+            }
+            
+            if (toggleFilterBtn) {
+                toggleFilterBtn.innerHTML = '<i class="fas fa-calendar-alt"></i>';
+                console.log('Toggle filter button initialized');
+            }
+            
+            // Remove any active filter classes
+            const filterBar = document.querySelector('.filter-bar');
+            if (filterBar) {
+                filterBar.classList.remove('filter-active');
+                console.log('Filter bar reset to inactive state');
             }
         }
     </script>

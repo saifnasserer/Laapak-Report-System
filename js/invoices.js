@@ -23,8 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeDataTable();
     loadClientsData().then(() => {
         // After clients are loaded, load invoices and reports
-        loadInvoicesData();
-        loadReportsData();
+    loadInvoicesData();
+    loadReportsData();
     });
     setupEventListeners();
     setupCalculations();

@@ -137,10 +137,10 @@ router.get('/', async (req, res) => {
         where: whereClause,
         include: [
           {
-            model: Client,
+          model: Client,
             as: 'client',
-            attributes: ['id', 'name', 'phone', 'email'],
-          },
+          attributes: ['id', 'name', 'phone', 'email'],
+        },
           {
             model: Invoice,
             as: 'invoices',

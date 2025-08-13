@@ -686,7 +686,7 @@ function initiateDirectInvoiceCreation() {
 
     // Store the invoice data in localStorage for edit-invoice.js to pick up
     localStorage.setItem('lpk_new_invoice_data', JSON.stringify(invoiceData));
-    
+
     // Redirect to edit-invoice.js
     window.location.href = 'edit-invoice.html?new=true';
 }
@@ -782,7 +782,7 @@ function updateSelectedReportsSummary() {
     if (selectedReportsSection) {
         selectedReportsSection.style.display = selectedReports.length > 0 ? 'block' : 'none';
     }
-    
+
     // Update top selected reports info visibility
     const selectedReportsInfo = document.getElementById('selectedReportsInfo');
     if (selectedReportsInfo) {

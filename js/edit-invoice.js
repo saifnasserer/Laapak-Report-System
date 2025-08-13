@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <label for="amount-${itemId}" class="form-label">السعر الوحدوي <span class="text-danger">*</span></label>
                 <input type="number" class="form-control item-amount" id="amount-${itemId}" value="${parseFloat(item.amount || 0).toFixed(2)}" step="0.01" min="0" required>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
+             <div class="col-md-2 d-flex align-items-end">
                 <button type="button" class="btn btn-sm btn-danger removeItemBtn w-100">
                     <i class="fas fa-trash-alt me-1"></i> إزالة
                 </button>
@@ -574,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (isNewInvoice) {
             loadNewInvoiceData();
         } else {
-            fetchInvoiceDetails();
+        fetchInvoiceDetails();
         }
     });
 

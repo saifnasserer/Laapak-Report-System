@@ -346,41 +346,73 @@
         .text-info { color: var(--info-color) !important; }
 
         /* Filter Container Styles */
-        .simple-filter-bar {
+        .filter-bar {
             background: var(--white);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-sm);
             border: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 1rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            justify-content: center;
+            min-height: 70px;
+            overflow: visible;
+        }
+
+        .filter-bar:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Icon-based buttons */
+        .btn.rounded-circle {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 1rem;
+            transition: all 0.3s ease;
+            border: 2px solid var(--primary-color);
+            z-index: 10;
             position: relative;
         }
 
-        .filter-controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-grow: 1;
+        .btn.rounded-circle:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
         }
 
-        .date-inputs {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        /* Date filters */
+        .date-filters {
+            flex-shrink: 0;
+            z-index: 5;
+            position: relative;
+            background: var(--white);
+            border-radius: 8px;
+            padding: 0.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        .date-separator {
-            color: var(--text-muted);
-            font-size: 0.875rem;
-            font-weight: 500;
+        .date-filters .input-group {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
         }
 
-        .filter-buttons {
-            display: flex;
-            gap: 0.5rem;
+        .date-filters .input-group-text {
+            background: var(--primary-color);
+            border: none;
+            color: var(--white);
+        }
+
+        .date-filters .form-control {
+            border: none;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        /* Filter buttons */
+        #filterButtons {
+            z-index: 5;
+            position: relative;
         }
 
         .period-indicator {
@@ -390,65 +422,101 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
+            z-index: 1;
         }
 
         .period-badge {
             background: var(--primary-light);
             color: var(--white);
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            border-radius: 25px;
             font-size: 0.875rem;
             font-weight: 500;
+            box-shadow: var(--shadow-sm);
         }
 
         /* When filter is active, adjust layout */
-        .simple-filter-bar.filter-active {
+        .filter-bar.filter-active {
             justify-content: space-between;
+            min-height: 120px;
+            align-items: flex-start;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
         }
 
-        .simple-filter-bar.filter-active .period-indicator {
+        .filter-bar.filter-active .period-indicator {
             position: static;
             transform: none;
+            order: 3;
+        }
+
+        .filter-bar.filter-active .date-filters {
+            order: 1;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .filter-bar.filter-active #filterButtons {
+            order: 2;
+        }
+
+        /* Ensure date filters are visible when active */
+        .date-filters[style*="display: flex"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        #filterButtons[style*="display: flex"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         /* Responsive Design for Filter */
         @media (max-width: 768px) {
-            .simple-filter-bar {
+            .filter-bar {
                 flex-direction: column;
                 gap: 1rem;
-                align-items: stretch;
+                padding: 1rem;
+                min-height: auto;
             }
             
-            .filter-controls {
+            .filter-bar .d-flex {
                 flex-direction: column;
-                gap: 1rem;
+                width: 100%;
             }
             
-            .date-inputs {
-                justify-content: center;
+            .date-filters {
+                flex-direction: column;
+                gap: 0.5rem;
+                width: 100%;
             }
             
-            .filter-buttons {
-                justify-content: center;
+            .date-filters .input-group {
+                width: 100% !important;
             }
             
             .period-indicator {
-                text-align: center;
+                position: static;
+                transform: none;
+                justify-content: center;
+            }
+            
+            .btn.rounded-circle {
+                width: 40px !important;
+                height: 40px !important;
             }
         }
 
         @media (max-width: 576px) {
-            .simple-filter-bar {
+            .filter-bar {
                 padding: 0.75rem;
             }
             
-            .date-inputs {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            .date-separator {
-                text-align: center;
+            .period-badge {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.75rem;
             }
         }
     </style>
@@ -460,8 +528,7 @@
             <div class="col-12">
                 <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #0d964e 0%, #0a572b 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: var(--border-radius);">
                     <div class="container py-2">
-                        <div class="d-flex justify-content-between align-items-center w-100">
-                            <!-- Logo on left -->
+                        <div class="d-flex justify-content-center align-items-center w-100">
                             <!-- Navigation items in center -->
                             <ul class="navbar-nav d-flex flex-row align-items-center justify-content-center">
                                 <li class="nav-item mx-2">
@@ -486,7 +553,6 @@
                                     </a>
                                 </li>
                             </ul>
-                            
                         </div>
                     </div>
                 </nav>
@@ -496,31 +562,44 @@
         <!-- Date Filter Bar -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="simple-filter-bar">
-                    <div class="filter-controls">
-                        <!-- Hidden by default, shown when filter is active -->
-                        <div class="date-inputs" id="dateInputs" style="display: none;">
-                            <input type="date" class="form-control form-control-sm" id="startDate" placeholder="من تاريخ">
-                            <span class="date-separator">إلى</span>
-                            <input type="date" class="form-control form-control-sm" id="endDate" placeholder="إلى تاريخ">
+                <div class="filter-bar d-flex align-items-center justify-content-center gap-3 p-3">
+                    <!-- Date Filter Toggle Button - Icon Only -->
+                    <button type="button" class="btn btn-outline-primary rounded-circle" id="toggleFilterBtn" style="width: 45px; height: 45px;">
+                        <i class="fas fa-calendar-alt"></i>
+                    </button>
+                    
+                    <!-- Date Filters - Hidden by default -->
+                    <div class="date-filters d-flex align-items-center gap-2" id="dateFilters" style="display: none;">
+                        <div class="input-group" style="width: 140px;">
+                            <span class="input-group-text">
+                                <i class="fas fa-calendar"></i>
+                            </span>
+                            <input type="date" class="form-control" id="startDate">
                         </div>
                         
-                        <div class="filter-buttons">
-                            <button type="button" class="btn btn-primary btn-sm" id="applyFilterBtn" style="display: none;">
-                                <i class="fas fa-filter me-1"></i>تطبيق
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearFilterBtn" style="display: none;">
-                                <i class="fas fa-times me-1"></i>مسح
-                            </button>
+                        <span class="text-muted">إلى</span>
+                        
+                        <div class="input-group" style="width: 140px;">
+                            <input type="date" class="form-control" id="endDate">
+                            <span class="input-group-text">
+                                <i class="fas fa-calendar"></i>
+                            </span>
                         </div>
+                    </div>
+                    
+                    <!-- Filter Buttons - Hidden by default -->
+                    <div class="d-flex gap-2" id="filterButtons" style="display: none;">
+                        <button type="button" class="btn btn-sm btn-primary" id="applyFilterBtn">
+                            <i class="fas fa-filter me-1"></i>تطبيق
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearFilterBtn">
+                            <i class="fas fa-times me-1"></i>مسح
+                        </button>
                     </div>
                     
                     <!-- Period Indicator - Always visible in center -->
                     <div class="period-indicator">
                         <span class="period-badge" id="currentPeriodDisplay">الشهر الحالي</span>
-                        <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="toggleFilterBtn">
-                            <i class="fas fa-calendar-alt"></i>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -901,73 +980,73 @@
             
             try {
                 window.trendChart = new Chart(ctx.getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: trendData.map(item => {
-                            const date = new Date(item.month + '-01');
-                            return date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
-                        }),
-                        datasets: [
-                            {
-                                label: 'الإيرادات',
+                type: 'line',
+                data: {
+                    labels: trendData.map(item => {
+                        const date = new Date(item.month + '-01');
+                        return date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+                    }),
+                    datasets: [
+                        {
+                            label: 'الإيرادات',
                                 data: trendData.map(item => item.revenue || 0),
-                                borderColor: '#007553',
-                                backgroundColor: 'rgba(0, 117, 83, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4
-                            },
-                            {
-                                label: 'المصروفات',
+                            borderColor: '#007553',
+                            backgroundColor: 'rgba(0, 117, 83, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'المصروفات',
                                 data: trendData.map(item => item.expenses || 0),
-                                borderColor: '#dc3545',
-                                backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4
-                            },
-                            {
-                                label: 'صافي الربح',
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'صافي الربح',
                                 data: trendData.map(item => item.profit || 0),
-                                borderColor: '#198754',
-                                backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                                labels: {
-                                    font: { family: 'Tajawal', size: 12 },
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { family: 'Tajawal', size: 12 },
                                     usePointStyle: true,
                                     padding: 20
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { family: 'Tajawal' },
+                                callback: function(value) {
+                                    return formatCurrency(value);
                                 }
                             }
                         },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    font: { family: 'Tajawal' },
-                                    callback: function(value) {
-                                        return formatCurrency(value);
-                                    }
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    font: { family: 'Tajawal' }
-                                }
+                        x: {
+                            ticks: {
+                                font: { family: 'Tajawal' }
                             }
                         }
                     }
-                });
+                }
+            });
             } catch (error) {
                 console.error('Error creating trend chart:', error);
                 // Show error state for chart
@@ -1021,32 +1100,32 @@
 
             try {
                 window.expenseChart = new Chart(ctx.getContext('2d'), {
-                    type: 'doughnut',
-                    data: {
+                type: 'doughnut',
+                data: {
                         labels: expenseData.map(item => item.category_name || 'غير محدد'),
-                        datasets: [{
+                    datasets: [{
                             data: expenseData.map(item => item.total || 0),
-                            backgroundColor: [
-                                '#007553', '#dc3545', '#ffc107', '#0dcaf0', 
-                                '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'
-                            ],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    font: { family: 'Tajawal', size: 11 },
-                                    padding: 15
-                                }
+                        backgroundColor: [
+                            '#007553', '#dc3545', '#ffc107', '#0dcaf0', 
+                            '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Tajawal', size: 11 },
+                                padding: 15
                             }
                         }
                     }
-                });
+                }
+            });
             } catch (error) {
                 console.error('Error creating expense chart:', error);
                 // Show error state for chart
@@ -1135,6 +1214,42 @@
             }, 500);
         }
 
+        // Initialize filter elements
+        function initializeFilterElements() {
+            const dateFilters = document.getElementById('dateFilters');
+            const filterButtons = document.getElementById('filterButtons');
+            const toggleFilterBtn = document.getElementById('toggleFilterBtn');
+            
+            console.log('Initializing filter elements...');
+            
+            // Ensure elements are properly hidden by default
+            if (dateFilters) {
+                dateFilters.style.display = 'none';
+                dateFilters.style.visibility = 'hidden';
+                dateFilters.style.opacity = '0';
+                console.log('Date filters initialized and hidden');
+            }
+            
+            if (filterButtons) {
+                filterButtons.style.display = 'none';
+                filterButtons.style.visibility = 'hidden';
+                filterButtons.style.opacity = '0';
+                console.log('Filter buttons initialized and hidden');
+            }
+            
+            if (toggleFilterBtn) {
+                toggleFilterBtn.innerHTML = '<i class="fas fa-calendar-alt"></i>';
+                console.log('Toggle filter button initialized');
+            }
+            
+            // Remove any active filter classes
+            const filterBar = document.querySelector('.filter-bar');
+            if (filterBar) {
+                filterBar.classList.remove('filter-active');
+                console.log('Filter bar reset to inactive state');
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Financial dashboard page loaded');
@@ -1144,6 +1259,9 @@
             tooltips.forEach(tooltip => {
                 new bootstrap.Tooltip(tooltip);
             });
+            
+            // Initialize filter elements first
+            initializeFilterElements();
             
             // Setup navigation interactions
             setupNavigationInteractions();
@@ -1171,7 +1289,48 @@
             const startDate = document.getElementById('startDate');
             const endDate = document.getElementById('endDate');
             const toggleFilterBtn = document.getElementById('toggleFilterBtn');
-            const dateInputs = document.getElementById('dateInputs');
+            const dateFilters = document.getElementById('dateFilters');
+            const filterButtons = document.getElementById('filterButtons');
+            
+            console.log('Setting up date filter with elements:', {
+                applyFilterBtn: !!applyFilterBtn,
+                clearFilterBtn: !!clearFilterBtn,
+                startDate: !!startDate,
+                endDate: !!endDate,
+                toggleFilterBtn: !!toggleFilterBtn,
+                dateFilters: !!dateFilters,
+                filterButtons: !!filterButtons
+            });
+            
+            if (toggleFilterBtn) {
+                toggleFilterBtn.addEventListener('click', function() {
+                    console.log('Toggle filter button clicked');
+                    const isVisible = dateFilters.style.display !== 'none';
+                    
+                    if (isVisible) {
+                        // Hide filter controls
+                        console.log('Hiding filter controls');
+                        dateFilters.style.display = 'none';
+                        filterButtons.style.display = 'none';
+                        toggleFilterBtn.innerHTML = '<i class="fas fa-calendar-alt"></i>';
+                        document.querySelector('.filter-bar').classList.remove('filter-active');
+                    } else {
+                        // Show filter controls
+                        console.log('Showing filter controls');
+                        dateFilters.style.display = 'flex';
+                        filterButtons.style.display = 'flex';
+                        toggleFilterBtn.innerHTML = '<i class="fas fa-times"></i>';
+                        document.querySelector('.filter-bar').classList.add('filter-active');
+                        
+                        // Focus on start date when showing
+                        setTimeout(() => {
+                            if (startDate) startDate.focus();
+                        }, 100);
+                    }
+                    
+                    updatePeriodDisplay(startDate ? startDate.value : '', endDate ? endDate.value : '');
+                });
+            }
             
             if (applyFilterBtn) {
                 applyFilterBtn.addEventListener('click', function() {
@@ -1188,33 +1347,10 @@
                 });
             }
 
-            if (toggleFilterBtn) {
-                toggleFilterBtn.addEventListener('click', function() {
-                    const isVisible = dateInputs.style.display !== 'none';
-                    
-                    if (isVisible) {
-                        // Hide filter controls
-                        dateInputs.style.display = 'none';
-                        applyFilterBtn.style.display = 'none';
-                        clearFilterBtn.style.display = 'none';
-                        toggleFilterBtn.innerHTML = '<i class="fas fa-calendar-alt"></i>';
-                        document.querySelector('.simple-filter-bar').classList.remove('filter-active');
-                    } else {
-                        // Show filter controls
-                        dateInputs.style.display = 'flex';
-                        applyFilterBtn.style.display = 'block';
-                        clearFilterBtn.style.display = 'block';
-                        toggleFilterBtn.innerHTML = '<i class="fas fa-times"></i>';
-                        document.querySelector('.simple-filter-bar').classList.add('filter-active');
-                    }
-                    
-                    updatePeriodDisplay(startDate.value, endDate.value);
-                });
-            }
-            
             // Auto-apply filter when dates change
             if (startDate) {
                 startDate.addEventListener('change', function() {
+                    console.log('Start date changed:', this.value);
                     if (this.value && endDate.value) {
                         updatePeriodDisplay(this.value, endDate.value);
                         loadDashboardData();
@@ -1224,6 +1360,7 @@
             
             if (endDate) {
                 endDate.addEventListener('change', function() {
+                    console.log('End date changed:', this.value);
                     if (this.value && startDate.value) {
                         updatePeriodDisplay(startDate.value, this.value);
                         loadDashboardData();
