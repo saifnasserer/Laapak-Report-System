@@ -141,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
         populateHardwareComponentsTable(hardwareStatusData);
 
         // Step 4: Technician Notes
-        let hasNotes = false;
         let notesContent = '';
         
         // First check if there are notes in hardware_status with type 'note'
@@ -155,6 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (regularNotes && regularNotes.trim() && regularNotes !== '-') {
                 notesContent = regularNotes;
                 hasNotes = true;
+            } else {
+                hasNotes = false;
             }
         }
         
@@ -165,7 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Hide notes step if no content
         if (!hasNotes) {
+            console.log('No notes found, hiding notes step');
             hideNotesStep();
+        } else {
+            console.log('Notes found, keeping notes step visible');
         }
 
         // Step 5: Billing Summary (Now handled by static content in Step 6 in HTML)
@@ -175,16 +179,18 @@ document.addEventListener('DOMContentLoaded', () => {
      * Hide the notes step if there's no content
      */
     function hideNotesStep() {
-        // Find the notes step element (assuming it's step 4)
-        const notesStep = document.querySelector('.form-step[data-step="4"], .step-4, #step4');
-        const notesStepItem = document.querySelector('.step-item[data-step="4"], .step-item:nth-child(4)');
+        // Find the notes step element (it's step 5 in the HTML structure)
+        const notesStep = document.querySelector('.form-step[data-step="5"], .step-5, #step5');
+        const notesStepItem = document.querySelector('.step-item[data-step="5"], .step-item:nth-child(5)');
         
         if (notesStep) {
             notesStep.style.display = 'none';
+            console.log('Notes step hidden');
         }
         
         if (notesStepItem) {
             notesStepItem.style.display = 'none';
+            console.log('Notes step item hidden');
         }
         
         // Also hide the entire notes section container if it exists
@@ -192,6 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (notesSection) {
             notesSection.style.display = 'none';
         }
+        
+        // Set global hasNotes to false
+        hasNotes = false;
         
         // Update step navigation to skip the hidden step
         updateStepNavigation();
@@ -204,6 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Recalculate total steps after hiding notes step
         const visibleSteps = document.querySelectorAll('.form-step:not([style*="display: none"])');
         const visibleStepItems = document.querySelectorAll('.step-item:not([style*="display: none"])');
+        
+        console.log(`Notes step hidden. Total visible steps: ${visibleSteps.length}, Total visible step items: ${visibleStepItems.length}`);
         
         // Update step navigation logic to account for hidden steps
         if (visibleSteps.length !== steps.length) {
@@ -227,6 +238,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateSteps();
             }
         }
+        
+        // Update the step navigation to reflect the correct total
+        updateSteps();
     }
 
     function safeJsonParse(jsonString, defaultValue = []) {
@@ -650,22 +664,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (videoPlayerWrapper) videoPlayerWrapper.innerHTML = '';
             if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
         }
-    } // Closing brace for renderDeviceVideo function
+        } // Closing brace for renderDeviceVideo function
 
-// Helper function to check if URL is YouTube
-function isYouTubeUrl(url) {
-    try {
-        const videoUrl = new URL(url);
-        return videoUrl.hostname === 'www.youtube.com' || 
-               videoUrl.hostname === 'youtube.com' || 
-               videoUrl.hostname === 'youtu.be';
-    } catch (e) {
-        return false;
+    // Helper function to check if URL is YouTube
+    function isYouTubeUrl(url) {
+        try {
+            const videoUrl = new URL(url);
+            return videoUrl.hostname === 'www.youtube.com' || 
+                   videoUrl.hostname === 'youtube.com' || 
+                   videoUrl.hostname === 'youtu.be';
+        } catch (e) {
+            return false;
+        }
     }
-}
 
-// Helper to embed YouTube videos with modern player interface
-function embedYouTubeVideo(url, playerWrapperArgument) { // Renamed argument to avoid conflict with global
+    // Helper to embed YouTube videos with modern player interface
+    function embedYouTubeVideo(url, playerWrapperArgument) { // Renamed argument to avoid conflict with global
     try {
         playerWrapperArgument.innerHTML = ''; // Clear previous player
         const youtubeHostDiv = document.createElement('div');
@@ -837,6 +851,40 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         }
     });
 } // End of embedDirectVideo function
+
+    function onYouTubePlayerReady(event) {
+        console.log('YouTube player ready');
+        // Hide loading placeholder
+        if (videoPlaceholder) {
+            videoPlaceholder.style.display = 'none';
+            videoPlaceholder.style.visibility = 'hidden';
+            videoPlaceholder.style.opacity = '0';
+        }
+        
+        // Show controls
+        if (videoControlsOverlay) {
+            videoControlsOverlay.style.visibility = 'visible';
+            videoControlsOverlay.style.opacity = '1';
+        }
+        
+        // Initialize video controls
+        initializeVideoControls();
+        
+        // Set up thumbnail if available
+        if (videoThumbnail) {
+            videoThumbnail.style.display = 'flex';
+            videoThumbnail.onclick = function() {
+                videoThumbnail.style.display = 'none';
+                if (player && player.playVideo) {
+                    player.playVideo();
+                }
+                if (videoControlsOverlay) {
+                    videoControlsOverlay.style.visibility = 'visible';
+                    videoControlsOverlay.style.opacity = '1';
+                }
+            };
+        }
+    }
 
     function onYouTubePlayerStateChange(event) {
         updatePlayPauseButton();
@@ -1385,9 +1433,11 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
     }
 
     function populateHardwareComponentsTable(hardwareStatusData) {
+        console.log('Populating hardware components table with data:', hardwareStatusData);
         hardwareStatusTableBody.innerHTML = ''; // Clear previous
         if (!Array.isArray(hardwareStatusData) || hardwareStatusData.length === 0) {
             hardwareStatusTableBody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">لا توجد بيانات عن حالة مكونات الجهاز.</td></tr>';
+            console.log('No hardware data available');
             return;
         }
 
@@ -1447,8 +1497,12 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         return 'bg-light text-dark';
     }
 
+    // Global variable to track if notes are available
+    let hasNotes = false;
+    
     // Step navigation logic
     function updateSteps() {
+        console.log('Updating steps, current step:', currentStep);
         // Scroll to top of the page with a smooth animation
         window.scrollTo({
             top: 0,
@@ -1459,10 +1513,42 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         const visibleSteps = Array.from(steps).filter(step => step.style.display !== 'none');
         const visibleStepItems = Array.from(stepItems).filter(item => item.style.display !== 'none');
         
-        // Update step visibility
+        console.log('Visible steps:', visibleSteps.length, 'Visible step items:', visibleStepItems.length);
+        
+        // Update step visibility - handle the correct step order
         steps.forEach((step, index) => {
-            if (index + 1 === currentStep) {
+            // Map the step order correctly based on HTML structure
+            let stepNumber;
+            const stepId = step.id;
+            
+            if (stepId === 'step1') stepNumber = 1;
+            else if (stepId === 'step2') stepNumber = 2;
+            else if (stepId === 'step4') stepNumber = 3; // Test screenshots
+            else if (stepId === 'step3') stepNumber = 4; // Hardware tests
+            else if (stepId === 'step5') stepNumber = 5; // Notes
+            else if (stepId === 'step6') stepNumber = 6; // Next steps
+            else stepNumber = index + 1; // Fallback
+            
+            // If notes are hidden, adjust the step numbers
+            if (!hasNotes) {
+                if (stepId === 'step5') {
+                    // Hide the notes step content
+                    step.style.display = 'none';
+                    return;
+                } else if (stepId === 'step6') {
+                    // Move step 6 to step 5 when notes are hidden
+                    stepNumber = 5;
+                }
+            } else {
+                // Show the notes step if it was hidden before
+                if (stepId === 'step5') {
+                    step.style.display = 'block';
+                }
+            }
+            
+            if (stepNumber === currentStep) {
                 step.classList.add('active');
+                console.log('Activated step:', stepNumber, 'for element:', stepId);
             } else {
                 step.classList.remove('active');
             }
@@ -1478,14 +1564,56 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 return;
             }
             
-            // Calculate the visible step number for this item
-            const visibleStepNumber = visibleStepItems.indexOf(item) + 1;
+            // Get the step number from data-step attribute
+            const stepNumber = parseInt(item.dataset.step);
             
-            if (visibleStepNumber === currentStep) {
+            // Map the step numbers correctly based on the actual content order
+            let actualStepNumber;
+            if (stepNumber === 1) actualStepNumber = 1; // General Information
+            else if (stepNumber === 2) actualStepNumber = 2; // External Inspection
+            else if (stepNumber === 3) actualStepNumber = 4; // Internal Inspection (Hardware Tests) - this is step 4 content
+            else if (stepNumber === 4) actualStepNumber = 3; // Basic Components (Test Screenshots) - this is step 3 content
+            else if (stepNumber === 5) actualStepNumber = 5; // Notes
+            else if (stepNumber === 6) actualStepNumber = 6; // Next Steps
+            else actualStepNumber = stepNumber; // Fallback
+            
+            // If notes are hidden, adjust the step numbers and update button text
+            if (!hasNotes) {
+                if (stepNumber === 5) {
+                    // Hide the notes step item
+                    item.style.display = 'none';
+                    return;
+                } else if (stepNumber === 6) {
+                    // Move step 6 to step 5 when notes are hidden
+                    actualStepNumber = 5;
+                    // Update the button text to show "5" instead of "6"
+                    button.textContent = '5';
+                }
+            } else {
+                // Reset button text to original when notes are visible
+                if (stepNumber === 6) {
+                    button.textContent = '6';
+                }
+            }
+            
+            // Fix the step titles to match the actual content order
+            const stepTitle = item.querySelector('.step-title');
+            if (stepTitle) {
+                if (stepNumber === 3) {
+                    // Step 3 should show "المكونات الاساسية" (Basic Components) - Test Screenshots
+                    stepTitle.textContent = 'المكونات الاساسية';
+                } else if (stepNumber === 4) {
+                    // Step 4 should show "الفحص الداخلي" (Internal Inspection) - Hardware Tests
+                    stepTitle.textContent = 'الفحص الداخلي';
+                }
+            }
+            
+            if (actualStepNumber === currentStep) {
                 item.classList.add('active');
                 button.classList.remove('btn-outline-primary');
                 button.classList.add('btn-primary');
-            } else if (visibleStepNumber < currentStep) {
+                console.log('Activated step item:', actualStepNumber, 'for navigation item:', stepNumber);
+            } else if (actualStepNumber < currentStep) {
                 item.classList.add('completed');
                 item.classList.remove('active');
                 button.classList.remove('btn-primary');
@@ -1499,16 +1627,27 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
 
         // Update navigation buttons
         prevBtn.disabled = currentStep === 1;
-        nextBtn.disabled = currentStep === visibleSteps.length;
         
-        // Update progress bar based on visible steps
-        const progressPercentage = ((currentStep - 1) / (visibleSteps.length - 1)) * 100;
+        // Calculate the correct total steps (considering hidden notes step)
+        const totalSteps = hasNotes ? 6 : 5; // If notes are hidden, we have 5 steps instead of 6
+        nextBtn.disabled = currentStep === totalSteps;
+        
+        // Update progress bar based on total steps
+        const progressPercentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
         progressBar.style.width = `${progressPercentage}%`;
+        
+        // Update mobile step indicator
+        const totalStepsElement = document.querySelector('.total-steps');
+        if (totalStepsElement) {
+            totalStepsElement.textContent = totalSteps;
+        }
+        
+        console.log('Navigation updated - current step:', currentStep, 'total steps:', totalSteps, 'has notes:', hasNotes);
     }
 
     nextBtn.addEventListener('click', () => {
-        const visibleSteps = Array.from(steps).filter(step => step.style.display !== 'none');
-        if (currentStep < visibleSteps.length) {
+        const totalSteps = hasNotes ? 6 : 5; // If notes are hidden, we have 5 steps instead of 6
+        if (currentStep < totalSteps) {
             // Scroll to top of the page with a smooth animation
             window.scrollTo({
                 top: 0,

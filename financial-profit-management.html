@@ -1160,23 +1160,18 @@
                 }
             }).join('');
             
-            // Add load more button only if there's more data available
+            // Always add load more button
             console.log('renderTable - hasMoreData value:', hasMoreData, 'data length:', data.length);
-            if (hasMoreData) {
-                const loadMoreRow = `
-                    <tr id="load-more-row">
-                        <td colspan="7" class="text-center py-3">
-                            <button class="btn btn-outline-primary" onclick="loadMoreData()" id="loadMoreBtn">
-                                <i class="fas fa-arrow-down me-2"></i>تحميل المزيد
-                            </button>
-                        </td>
+            const loadMoreRow = `
+                <tr id="load-more-row">
+                    <td colspan="7" class="text-center py-3">
+                        <button class="btn btn-outline-primary" onclick="loadMoreData()" id="loadMoreBtn" ${!hasMoreData ? 'disabled' : ''}>
+                            <i class="fas fa-arrow-down me-2"></i>تحميل المزيد
+                        </button>
                     </tr>
                 `;
-                tbody.insertAdjacentHTML('beforeend', loadMoreRow);
-                console.log('Added load more button to table (hasMoreData: true)');
-            } else {
-                console.log('No load more button added (hasMoreData: false)');
-            }
+            tbody.insertAdjacentHTML('beforeend', loadMoreRow);
+            console.log('Added load more button to table (always visible)');
         }
 
         // Reset load more state
@@ -1604,7 +1599,14 @@
             }
             
             if (!hasMoreData) {
-                console.log('Load more blocked: no more data available');
+                console.log('No more data available');
+                // Show a message to the user
+                const loadMoreBtn = document.getElementById('loadMoreBtn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.innerHTML = '<i class="fas fa-check me-2"></i>تم تحميل جميع البيانات';
+                    loadMoreBtn.disabled = true;
+                    loadMoreBtn.className = 'btn btn-success';
+                }
                 return;
             }
             
@@ -1668,19 +1670,17 @@
                     hasMoreData = newDataResult.hasMore || false;
                     console.log('API returned hasMoreData for page', currentPage, ':', hasMoreData);
                     
-                    // Add load more button again if there's more data
-                    if (hasMoreData) {
-                        const loadMoreRow = `
-                            <tr id="load-more-row">
-                                <td colspan="7" class="text-center py-3">
-                                    <button class="btn btn-outline-primary" onclick="loadMoreData()" id="loadMoreBtn">
-                                        <i class="fas fa-arrow-down me-2"></i>تحميل المزيد
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                        tbody.insertAdjacentHTML('beforeend', loadMoreRow);
-                    }
+                    // Always add load more button again
+                    const loadMoreRow = `
+                        <tr id="load-more-row">
+                            <td colspan="7" class="text-center py-3">
+                                <button class="btn btn-outline-primary" onclick="loadMoreData()" id="loadMoreBtn" ${!hasMoreData ? 'disabled' : ''}>
+                                    <i class="fas fa-arrow-down me-2"></i>تحميل المزيد
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', loadMoreRow);
                 } else {
                     hasMoreData = false;
                     const loadingRow = document.getElementById('loading-row');
