@@ -132,38 +132,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             console.error('Error fetching expenses:', error);
         }
 
-        // Calculate profits - only for items with cost prices
-        const grossProfit = totalCost > 0 ? totalRevenue - totalCost : 0;
-        const netProfit = grossProfit - totalExpenses;
-        
-        // Calculate profit margin only for invoices with cost prices
-        let profitMargin = 0;
-        if (totalCost > 0 && totalRevenue > 0) {
-            profitMargin = (grossProfit / totalRevenue) * 100;
-        }
-        
-        // Additional calculations for better insights
-        const invoicesWithCost = await Invoice.count({
-            where: {
-                date: {
-                    [Op.between]: [startDateStr, endDateStr]
-                },
-                paymentStatus: ['paid', 'completed']
-            },
-            include: [{
-                model: InvoiceItem,
-                as: 'InvoiceItems',
-                where: {
-                    cost_price: {
-                        [Op.not]: null
-                    }
-                }
-            }]
-        });
-        
-        const invoicesWithoutCost = invoiceCount - invoicesWithCost;
-        
-        // Calculate revenue breakdown
+        // Calculate revenue breakdown FIRST
         let revenueWithCost = 0;
         let revenueWithoutCost = 0;
         
@@ -223,6 +192,39 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             console.error('Error calculating revenue breakdown:', error);
         }
         
+        // Calculate profits - only for items with cost prices
+        const grossProfit = totalCost > 0 ? revenueWithCost - totalCost : 0;
+        const netProfit = grossProfit - totalExpenses;
+        
+        // Calculate profit margin only for invoices with cost prices
+        let profitMargin = 0;
+        if (totalCost > 0 && revenueWithCost > 0) {
+            profitMargin = (grossProfit / revenueWithCost) * 100;
+        }
+        
+        // Additional calculations for better insights
+        const invoicesWithCost = await Invoice.count({
+            where: {
+                date: {
+                    [Op.between]: [startDateStr, endDateStr]
+                },
+                paymentStatus: ['paid', 'completed']
+            },
+            include: [{
+                model: InvoiceItem,
+                as: 'InvoiceItems',
+                where: {
+                    cost_price: {
+                        [Op.not]: null
+                    }
+                }
+            }]
+        });
+        
+        const invoicesWithoutCost = invoiceCount - invoicesWithCost;
+        
+
+        
         console.log(`Profit calculations: GrossProfit=${grossProfit}, NetProfit=${netProfit}, Margin=${profitMargin}%`);
         console.log(`Invoice breakdown: Total=${invoiceCount}, WithCost=${invoicesWithCost}, WithoutCost=${invoicesWithoutCost}`);
         console.log(`Revenue breakdown: Total=${totalRevenue}, WithCost=${revenueWithCost}, WithoutCost=${revenueWithoutCost}`);
@@ -233,6 +235,8 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         const expectedNetProfit = expectedGrossProfit - totalExpenses;
         console.log(`Profit verification: ExpectedGrossProfit=${expectedGrossProfit}, ExpectedNetProfit=${expectedNetProfit}`);
         console.log(`Profit verification: ActualGrossProfit=${grossProfit}, ActualNetProfit=${netProfit}`);
+        console.log(`Profit calculation breakdown: RevenueWithCost=${revenueWithCost} - TotalCost=${totalCost} = GrossProfit=${grossProfit}`);
+        console.log(`Net profit calculation: GrossProfit=${grossProfit} - Expenses=${totalExpenses} = NetProfit=${netProfit}`);
 
         // Get alerts
         const alerts = [];

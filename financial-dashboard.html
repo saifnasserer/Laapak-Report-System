@@ -920,7 +920,15 @@
                 console.log('⚠️ WARNING: No costs set - Profit calculation disabled');
                 console.log(`📊 Revenue: ${formatCurrency(safeKPIs.totalRevenue)} (no costs to calculate profit)`);
             } else if (safeKPIs.totalCost > 0) {
-                console.log(`💰 Profit calculation: Revenue=${formatCurrency(safeKPIs.totalRevenue)}, Cost=${formatCurrency(safeKPIs.totalCost)}, NetProfit=${formatCurrency(safeKPIs.netProfit)}`);
+                const revenueWithCost = safeKPIs.revenueWithCost || safeKPIs.totalRevenue;
+                const revenueWithoutCost = safeKPIs.revenueWithoutCost || 0;
+                console.log(`💰 Profit calculation breakdown:`);
+                console.log(`   Revenue with Cost: ${formatCurrency(revenueWithCost)}`);
+                console.log(`   Revenue without Cost: ${formatCurrency(revenueWithoutCost)}`);
+                console.log(`   Total Cost: ${formatCurrency(safeKPIs.totalCost)}`);
+                console.log(`   Gross Profit: ${formatCurrency(safeKPIs.grossProfit || 0)}`);
+                console.log(`   Net Profit: ${formatCurrency(safeKPIs.netProfit)}`);
+                console.log(`   Profit Margin: ${safeKPIs.profitMargin}%`);
             }
             
             const animateValue = (element, start, end, duration = 1500) => {
