@@ -401,6 +401,10 @@ router.get('/profit-management', adminAuth, async (req, res) => {
             console.log('No date filtering applied to profit management');
         }
 
+        // Check if we should show all data (no date filter)
+        const showAll = req.query.showAll === 'true';
+        console.log('Show all data:', showAll);
+
         // Search filtering
         if (search) {
             whereClause[Op.or] = [
@@ -433,8 +437,13 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
                     paymentFilter = `WHERE i.paymentStatus = '${req.query.paymentStatus}'`;
                 } else {
-                    // Default to only show completed invoices
-                    paymentFilter = `WHERE i.paymentStatus = 'completed'`;
+                    // If showAll is true or no date filter is applied, show all invoices
+                    // If date filter is applied, default to completed invoices
+                    if (showAll || (!startDate && !endDate)) {
+                        paymentFilter = `WHERE 1=1`;
+                    } else {
+                        paymentFilter = `WHERE i.paymentStatus = 'completed'`;
+                    }
                 }
                 
                 // Add date filter if provided

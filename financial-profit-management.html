@@ -968,6 +968,30 @@
             return percentage.toFixed(1) + '%';
         }
 
+        // Check if there's more data available
+        async function checkForMoreData() {
+            try {
+                console.log('Checking for more data...');
+                
+                // Make a test request to page 2 to see if there's more data
+                const testData = await fetchProfitData(2, itemsPerPage);
+                
+                if (testData && testData.length > 0) {
+                    hasMoreData = true;
+                    console.log('More data confirmed available (found ' + testData.length + ' items on page 2)');
+                } else {
+                    hasMoreData = false;
+                    console.log('No more data confirmed (page 2 is empty)');
+                }
+                
+                return hasMoreData;
+            } catch (error) {
+                console.error('Error checking for more data:', error);
+                hasMoreData = false;
+                return false;
+            }
+        }
+
         // Load profit management data
         async function loadProfitData() {
             try {
@@ -1006,12 +1030,16 @@
                     // Check if there's more data - only set to false if we got exactly the page size
                     // This means there might be more data on the next page
                     if (firstPageData.length === itemsPerPage) {
-                        hasMoreData = true;
-                        console.log('More data likely available (got full page)');
+                        // If we got exactly 20 items, check if there's more data on page 2
+                        hasMoreData = await checkForMoreData();
+                        console.log('Got full page, checked for more data. hasMoreData:', hasMoreData);
                     } else {
                         hasMoreData = false;
-                        console.log('No more data available (got partial page)');
+                        console.log('No more data available (got partial page of ' + firstPageData.length + ' items)');
                     }
+                    
+                    // Re-render table to show/hide load more button based on hasMoreData
+                    renderTable(allData);
                 } else {
                     console.log('No data received from API');
                     hasMoreData = false;
@@ -1163,8 +1191,8 @@
                 }
             }).join('');
             
-            // Add load more button if there's more data and we're on the first page
-            if (hasMoreData && currentPage === 1) {
+            // Add load more button only if there's more data available
+            if (hasMoreData) {
                 const loadMoreRow = `
                     <tr id="load-more-row">
                         <td colspan="7" class="text-center py-3">
@@ -1175,7 +1203,9 @@
                     </tr>
                 `;
                 tbody.insertAdjacentHTML('beforeend', loadMoreRow);
-                console.log('Added load more button to table');
+                console.log('Added load more button to table (hasMoreData: true)');
+            } else {
+                console.log('No load more button added (hasMoreData: false)');
             }
         }
 
@@ -1747,12 +1777,18 @@
                     queryParams.append('endDate', filterParams.endDate);
                 }
                 
+                // If no date filter is applied, explicitly request all data
+                if (!filterParams.startDate && !filterParams.endDate) {
+                    queryParams.append('showAll', 'true');
+                }
+                
                 console.log('Fetching profit data:', {
                     page,
                     limit,
                     baseUrl,
                     hasToken: !!token,
-                    filters: filterParams
+                    filters: filterParams,
+                    queryString: queryParams.toString()
                 });
                 
                 // Try the profit management endpoint first
@@ -2334,6 +2370,8 @@
             const searchTerm = document.getElementById('searchInput')?.value || '';
             const startDate = document.getElementById('startDate')?.value || '';
             const endDate = document.getElementById('endDate')?.value || '';
+            
+            console.log('Current filter params:', { searchTerm, startDate, endDate });
             
             return {
                 search: searchTerm,
