@@ -1761,6 +1761,7 @@
                     filters: filterParams,
                     queryString: queryParams.toString()
                 });
+                console.log('Main page query parameters:', Object.fromEntries(queryParams.entries()));
                 
                 // Try the profit management endpoint first
                 let response = await fetch(`${baseUrl}/api/financial/profit-management?${queryParams.toString()}`, {
@@ -2622,7 +2623,15 @@
                 });
                 
                 // Test the API directly
-                const response = await fetch(`${baseUrl}/api/financial/profit-management?page=1&limit=5&showAll=true`, {
+                const testParams = new URLSearchParams({
+                    page: '1',
+                    limit: '5',
+                    showAll: 'true',
+                    showOnlyWithCost: 'false'
+                });
+                console.log('Debug test query params:', testParams.toString());
+                
+                const response = await fetch(`${baseUrl}/api/financial/profit-management?${testParams.toString()}`, {
                     headers: { 'x-auth-token': token }
                 });
                 

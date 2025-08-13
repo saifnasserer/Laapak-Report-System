@@ -600,7 +600,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
                     ${paymentFilter} ${dateFilter}
                     GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
-                    HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0
+                    ${showOnlyWithCost ? 'HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0' : ''}
                     ORDER BY i.date DESC
                     LIMIT 1
                     OFFSET ${testOffset}
