@@ -58,6 +58,10 @@ Report.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
 Client.hasMany(Invoice, { foreignKey: 'client_id', as: 'clientInvoices' });
 Invoice.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
 
+// Invoice and InvoiceItem associations
+Invoice.hasMany(InvoiceItem, { foreignKey: 'invoiceId', as: 'InvoiceItems' });
+InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoiceId', as: 'invoice' });
+
 module.exports = {
   Admin,
   Client,
