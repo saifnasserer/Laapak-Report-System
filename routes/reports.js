@@ -145,7 +145,7 @@ router.get('/', async (req, res) => {
             model: Invoice,
             as: 'invoices',
             through: { attributes: [] }, // Don't include junction table attributes
-            attributes: ['id', 'invoice_number', 'total_amount', 'status'],
+            attributes: ['id', 'total', 'paymentStatus'],
             required: false // Left join to include reports without invoices
           }
         ],
