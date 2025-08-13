@@ -286,7 +286,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /reports/:id - update a report
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     console.log(`Updating report ${req.params.id} with data:`, req.body);
     

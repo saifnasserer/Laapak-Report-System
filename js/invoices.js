@@ -19,11 +19,13 @@ document.addEventListener('DOMContentLoaded', function() {
         HeaderComponent.loadAdminHeader('invoices');
     }
     
-    // Initialize the page
+    // Initialize the page - load clients first, then invoices
     initializeDataTable();
-    loadInvoicesData();
-    loadClientsData();
-    loadReportsData();
+    loadClientsData().then(() => {
+        // After clients are loaded, load invoices and reports
+        loadInvoicesData();
+        loadReportsData();
+    });
     setupEventListeners();
     setupCalculations();
 });
@@ -237,18 +239,37 @@ function formatInvoiceForTable(invoice) {
         
         // Get client name - might come from joined data or need to be looked up
         let clientName = 'غير معروف'; // Unknown
+        let clientFound = false;
+        
+        // First, try to get client name from the invoice data itself
         if (invoice.client_name) {
-            // If the API already provides the client name
             clientName = invoice.client_name;
+            clientFound = true;
         } else if (invoice.Client && invoice.Client.name) {
             // If using Sequelize include with nested Client object
             clientName = invoice.Client.name;
-        } else {
-            // Try to find the client in our cached clients array
-            const client = clients.find(c => c.id === invoice.client_id);
+            clientFound = true;
+        } else if (invoice.client && invoice.client.name) {
+            // Alternative nested client structure
+            clientName = invoice.client.name;
+            clientFound = true;
+        }
+        
+        // If not found in invoice data, try to find in our cached clients array
+        if (!clientFound && invoice.client_id && clients && clients.length > 0) {
+            const client = clients.find(c => c.id == invoice.client_id);
             if (client) {
                 clientName = client.name;
+                clientFound = true;
+                console.log(`Found client ${clientName} for invoice ${invoice.id}`);
+            } else {
+                console.warn(`Client not found for invoice ${invoice.id} with client_id ${invoice.client_id}`);
             }
+        }
+        
+        // If still not found, show client ID as fallback
+        if (!clientFound && invoice.client_id) {
+            clientName = `العميل #${invoice.client_id}`;
         }
         
         // Format date - handle both string and Date objects
@@ -272,22 +293,8 @@ function formatInvoiceForTable(invoice) {
             }
         }
         
-        // Format payment status with appropriate badge
-        let statusBadge = '<span class="badge bg-secondary rounded-pill px-3">غير معروف</span>';
-        if (invoice.paymentStatus) {
-            switch (invoice.paymentStatus) {
-                case 'paid':
-                    statusBadge = '<span class="badge bg-success rounded-pill px-3">مدفوعة</span>';
-                    break;
-                case 'partial':
-                    statusBadge = '<span class="badge bg-warning text-dark rounded-pill px-3">مدفوعة جزئياً</span>';
-                    break;
-                case 'unpaid':
-                default:
-                    statusBadge = '<span class="badge bg-danger rounded-pill px-3">غير مدفوعة</span>';
-                    break;
-            }
-        }
+        // Format payment status with appropriate badge and quick edit functionality
+        let statusBadge = formatInvoicePaymentStatus(invoice.paymentStatus, invoice.id);
         
         // Format payment method
         let paymentMethodText = '-';
@@ -369,33 +376,150 @@ function formatInvoiceForTable(invoice) {
 }
 
 /**
+ * Format invoice payment status with quick edit functionality
+ * @param {string} status - The payment status
+ * @param {string} invoiceId - The invoice ID for editing
+ * @returns {string} HTML string with formatted status badge and edit functionality
+ */
+function formatInvoicePaymentStatus(status, invoiceId) {
+    if (!status) status = 'pending';
+    
+    const statusLower = status.toLowerCase();
+    let badgeClass = 'bg-secondary';
+    let statusText = status;
+    
+    switch (statusLower) {
+        case 'completed':
+        case 'paid':
+            badgeClass = 'bg-success';
+            statusText = 'مكتمل';
+            break;
+        case 'pending':
+        case 'unpaid':
+            badgeClass = 'bg-warning text-dark';
+            statusText = 'قيد الانتظار';
+            break;
+        case 'cancelled':
+        case 'canceled':
+        case 'ملغى':
+            badgeClass = 'bg-danger';
+            statusText = 'ملغى';
+            break;
+        case 'partial':
+            badgeClass = 'bg-info text-dark';
+            statusText = 'مدفوع جزئياً';
+            break;
+        case 'overdue':
+            badgeClass = 'bg-danger';
+            statusText = 'متأخر';
+            break;
+        case 'draft':
+            badgeClass = 'bg-secondary';
+            statusText = 'مسودة';
+            break;
+        default:
+            badgeClass = 'bg-secondary';
+            statusText = status;
+    }
+    
+    return `
+        <div class="dropdown">
+            <span class="badge ${badgeClass} payment-status-badge rounded-pill px-3 py-2" 
+                  data-bs-toggle="dropdown" 
+                  data-invoice-id="${invoiceId}" 
+                  style="cursor: pointer; font-size: 0.85rem; min-width: 100px; display: inline-flex; align-items: center; justify-content: center; gap: 5px;" 
+                  title="انقر لتغيير حالة الدفع">
+                ${statusText}
+                <i class="fas fa-chevron-down" style="font-size: 0.7em;"></i>
+            </span>
+            <ul class="dropdown-menu payment-status-dropdown shadow-sm border-0" style="min-width: 200px;">
+                <li><a class="dropdown-item payment-status-option d-flex align-items-center py-2" href="#" data-status="pending" data-invoice-id="${invoiceId}">
+                    <span class="badge bg-warning text-dark rounded-pill me-3" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">⏳</span>
+                    <span>قيد الانتظار</span>
+                </a></li>
+                <li><a class="dropdown-item payment-status-option d-flex align-items-center py-2" href="#" data-status="completed" data-invoice-id="${invoiceId}">
+                    <span class="badge bg-success rounded-pill me-3" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">✓</span>
+                    <span>مكتمل</span>
+                </a></li>
+                <li><a class="dropdown-item payment-status-option d-flex align-items-center py-2" href="#" data-status="cancelled" data-invoice-id="${invoiceId}">
+                    <span class="badge bg-danger rounded-pill me-3" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">✕</span>
+                    <span>ملغى</span>
+                </a></li>
+            </ul>
+        </div>
+    `;
+}
+
+/**
  * Load clients data from API
  */
 async function loadClientsData() {
     try {
+        console.log('Loading clients data...');
+        
         // Build API URL
-        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        const apiBaseUrl = window.config ? window.config.api.baseUrl : 
+                          (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://reports.laapak.com');
         const apiUrl = `${apiBaseUrl}/api/clients`;
         
-        // Get token for authentication
-        const token = authMiddleware.getAdminToken();
+        console.log('Fetching clients from:', apiUrl);
+        
+        // Get token for authentication - try multiple sources
+        let token = null;
+        if (typeof authMiddleware !== 'undefined' && authMiddleware.getAdminToken) {
+            token = authMiddleware.getAdminToken();
+        } else {
+            // Fallback to direct token access
+            token = localStorage.getItem('adminToken') || 
+                   sessionStorage.getItem('adminToken') || 
+                   localStorage.getItem('clientToken') || 
+                   sessionStorage.getItem('clientToken');
+        }
+        
         if (!token) {
-            throw new Error('Authentication token not available');
+            console.warn('No authentication token found, trying without token');
+        }
+        
+        // Prepare headers
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+            headers['x-auth-token'] = token; // Try both header formats
         }
         
         // Fetch clients from API
         const response = await fetch(apiUrl, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            method: 'GET',
+            headers: headers
         });
         
+        console.log('Client API response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            throw new Error(`API error: ${response.status} - ${response.statusText}`);
         }
         
         const data = await response.json();
-        clients = data.clients || data; // Handle different API response formats
+        console.log('Client API response data:', data);
+        
+        // Handle different API response formats
+        if (Array.isArray(data)) {
+            clients = data;
+        } else if (data && data.clients && Array.isArray(data.clients)) {
+            clients = data.clients;
+        } else if (data && data.data && Array.isArray(data.data)) {
+            clients = data.data;
+        } else if (data && typeof data === 'object') {
+            // If it's an object with client properties, convert to array
+            clients = Object.values(data).filter(item => item && typeof item === 'object' && item.id);
+        } else {
+            clients = [];
+        }
+        
+        console.log('Processed clients data:', clients);
         
         // Populate client dropdowns
         populateClientDropdowns(clients);
@@ -403,6 +527,20 @@ async function loadClientsData() {
         return clients;
     } catch (error) {
         console.error('Error loading clients:', error);
+        
+        // Try to load from cache if available
+        try {
+            const cachedClients = localStorage.getItem('cachedClients');
+            if (cachedClients) {
+                clients = JSON.parse(cachedClients);
+                console.log('Loaded clients from cache:', clients);
+                populateClientDropdowns(clients);
+                return clients;
+            }
+        } catch (cacheError) {
+            console.error('Error loading cached clients:', cacheError);
+        }
+        
         return [];
     }
 }
@@ -450,24 +588,36 @@ async function loadReportsData() {
 /**
  * Populate client dropdowns in the forms
  */
-/**
- * Populate client dropdowns in the forms
- */
 function populateClientDropdowns(clientsData) {
     try {
+        console.log('Populating client dropdowns with data:', clientsData);
+        
         // Make sure we have valid data
         if (!Array.isArray(clientsData)) {
-            console.error('Invalid client data format');
+            console.error('Invalid client data format - expected array, got:', typeof clientsData);
+            return;
+        }
+        
+        if (clientsData.length === 0) {
+            console.warn('No clients data available');
             return;
         }
         
         const clientDropdowns = [
             document.getElementById('clientId'),
-            document.getElementById('editClientId')
+            document.getElementById('editClientId'),
+            document.getElementById('clientFilter') // Add filter dropdown if it exists
         ];
 
-        clientDropdowns.forEach(dropdown => {
-            if (!dropdown) return;
+        console.log('Found client dropdowns:', clientDropdowns.filter(d => d !== null).length);
+
+        clientDropdowns.forEach((dropdown, index) => {
+            if (!dropdown) {
+                console.log(`Dropdown ${index} not found in DOM`);
+                return;
+            }
+
+            console.log(`Populating dropdown ${index}:`, dropdown.id);
 
             // Keep default option and clear the rest
             const defaultOption = dropdown.querySelector('option');
@@ -477,20 +627,65 @@ function populateClientDropdowns(clientsData) {
             }
 
             // Add client options
+            let addedCount = 0;
             clientsData.forEach(client => {
                 // Add safety check for client data
                 if (client && client.id && client.name) {
                     const option = document.createElement('option');
                     option.value = client.id;
-                    option.textContent = client.name;
+                    option.textContent = `${client.name}${client.phone ? ` (${client.phone})` : ''}`;
                     dropdown.appendChild(option);
+                    addedCount++;
+                } else {
+                    console.warn('Invalid client data:', client);
                 }
             });
+            
+            console.log(`Added ${addedCount} clients to dropdown ${index}`);
         });
         
+        // Cache the clients data for offline use
+        try {
+            localStorage.setItem('cachedClients', JSON.stringify(clientsData));
+            console.log('Clients data cached successfully');
+        } catch (cacheError) {
+            console.error('Error caching clients data:', cacheError);
+        }
+        
         console.log('Client dropdowns populated successfully');
+        
+        // Refresh invoice table if it exists to update client names
+        refreshInvoiceTableWithClientNames();
     } catch (error) {
         console.error('Error populating client dropdowns:', error);
+    }
+}
+
+/**
+ * Refresh invoice table to update client names after clients are loaded
+ */
+function refreshInvoiceTableWithClientNames() {
+    if (invoicesTable && clients && clients.length > 0) {
+        console.log('Refreshing invoice table with client names...');
+        
+        // Get current table data
+        const currentData = invoicesTable.data().toArray();
+        
+        // Update client names in the data
+        const updatedData = currentData.map(row => {
+            if (row.raw && row.raw.client_id && !row.raw.client_name) {
+                const client = clients.find(c => c.id == row.raw.client_id);
+                if (client) {
+                    row.client_name = client.name;
+                    console.log(`Updated client name for invoice ${row.id} to ${client.name}`);
+                }
+            }
+            return row;
+        });
+        
+        // Clear and redraw the table with updated data
+        invoicesTable.clear().rows.add(updatedData).draw();
+        console.log('Invoice table refreshed with client names');
     }
 }
 
@@ -609,6 +804,14 @@ function addEditInvoiceItem() {
 }
 
 function setupEventListeners() {
+    // Create invoice button
+    const createInvoiceBtn = document.getElementById('createInvoiceBtn');
+    if (createInvoiceBtn) {
+        createInvoiceBtn.addEventListener('click', function() {
+            window.location.href = 'create-invoice.html';
+        });
+    }
+    
     // The Add Invoice button now uses a direct href link to create-invoice.html
     // No event handler needed for navigation
     
@@ -690,6 +893,16 @@ function setupEventListeners() {
                     showToast('يجب أن يكون هناك بند واحد على الأقل', 'warning');
                 }
             }
+        }
+        
+        // Payment status option clicks
+        if (event.target.closest('.payment-status-option')) {
+            event.preventDefault();
+            const statusOption = event.target.closest('.payment-status-option');
+            const invoiceId = statusOption.dataset.invoiceId;
+            const newStatus = statusOption.dataset.status;
+            
+            updateInvoicePaymentStatus(invoiceId, newStatus);
         }
     });
     
@@ -1117,19 +1330,37 @@ async function viewInvoice(invoiceId) {
         let statusBadge = '';
         let statusText = '';
         switch (invoice.paymentStatus) {
+            case 'completed':
             case 'paid':
                 statusBadge = 'bg-success';
-                statusText = 'مدفوعة';
+                statusText = 'مكتمل';
+                break;
+            case 'pending':
+            case 'unpaid':
+                statusBadge = 'bg-warning text-dark';
+                statusText = 'قيد الانتظار';
+                break;
+            case 'cancelled':
+            case 'canceled':
+            case 'ملغى':
+                statusBadge = 'bg-danger';
+                statusText = 'ملغى';
                 break;
             case 'partial':
-                statusBadge = 'bg-warning text-dark';
-                statusText = 'مدفوعة جزئياً';
+                statusBadge = 'bg-info text-dark';
+                statusText = 'مدفوع جزئياً';
                 break;
-            case 'unpaid':
-            default:
+            case 'overdue':
                 statusBadge = 'bg-danger';
-                statusText = 'غير مدفوعة';
+                statusText = 'متأخر';
                 break;
+            case 'draft':
+                statusBadge = 'bg-secondary';
+                statusText = 'مسودة';
+                break;
+            default:
+                statusBadge = 'bg-secondary';
+                statusText = invoice.paymentStatus;
         }
 
         // Format payment method
@@ -1745,5 +1976,159 @@ function showToast(message, type = 'info') {
         default:
             toastr.info(message);
             break;
+    }
+}
+
+/**
+ * Create new invoice - redirect to create invoice page
+ */
+function createInvoice() {
+    window.location.href = 'create-invoice.html';
+}
+
+/**
+ * Update invoice payment status via API
+ * @param {string} invoiceId - The invoice ID
+ * @param {string} newStatus - The new payment status
+ * @param {boolean} skipReportSync - Whether to skip report synchronization (to prevent loops)
+ */
+async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync = false) {
+    try {
+        // Show loading state on the status badge
+        const statusBadge = document.querySelector(`[data-invoice-id="${invoiceId}"].payment-status-badge`);
+        if (statusBadge) {
+            const originalContent = statusBadge.innerHTML;
+            statusBadge.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            statusBadge.disabled = true;
+        }
+        
+        // Update via API
+        const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+            },
+            body: JSON.stringify({ paymentStatus: newStatus })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update invoice payment status');
+        }
+        
+        // Update the status badge with new status
+        if (statusBadge) {
+            const newStatusHtml = formatInvoicePaymentStatus(newStatus, invoiceId);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newStatusHtml;
+            const newBadge = tempDiv.querySelector('.payment-status-badge');
+            if (newBadge) {
+                statusBadge.className = newBadge.className;
+                statusBadge.innerHTML = newBadge.innerHTML;
+                statusBadge.dataset.invoiceId = invoiceId;
+            }
+            statusBadge.disabled = false;
+        }
+        
+        // Handle status synchronization with linked reports (only if not skipping)
+        if (!skipReportSync) {
+            await handleInvoiceReportStatusSync(invoiceId, newStatus);
+        }
+        
+        // Show success message
+        showToast('تم تحديث حالة الدفع بنجاح', 'success');
+        
+    } catch (error) {
+        console.error('Error updating invoice payment status:', error);
+        
+        // Restore original content on error
+        if (statusBadge) {
+            statusBadge.innerHTML = originalContent;
+            statusBadge.disabled = false;
+        }
+        
+        showToast('حدث خطأ أثناء تحديث حالة الدفع', 'error');
+    }
+}
+
+/**
+ * Handle status synchronization between invoices and reports
+ * @param {string} invoiceId - The invoice ID
+ * @param {string} newStatus - The new invoice status
+ */
+async function handleInvoiceReportStatusSync(invoiceId, newStatus) {
+    try {
+        // Get invoice details to find linked reports
+        const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch invoice details');
+        }
+        
+        const invoice = await response.json();
+        
+        // Map invoice status to report status (direct mapping)
+        let reportStatus = newStatus; // Use the same status
+        
+        // Update linked reports
+        if (invoice.report_id) {
+            console.log(`Updating report ${invoice.report_id} status to ${reportStatus}`);
+            await updateReportStatusFromInvoice(invoice.report_id, reportStatus);
+        } else if (invoice.report_ids && Array.isArray(invoice.report_ids)) {
+            // Handle multiple reports
+            for (const reportId of invoice.report_ids) {
+                console.log(`Updating report ${reportId} status to ${reportStatus}`);
+                await updateReportStatusFromInvoice(reportId, reportStatus);
+            }
+        } else {
+            console.log('No linked reports found for invoice', invoiceId);
+        }
+        
+        console.log(`Synchronized linked reports to status: ${reportStatus}`);
+        
+    } catch (error) {
+        console.error('Error synchronizing report status:', error);
+        // Don't show error to user as this is a background sync
+    }
+}
+
+/**
+ * Update report status from invoice (without triggering invoice sync)
+ * @param {string} reportId - The report ID
+ * @param {string} newStatus - The new status
+ */
+async function updateReportStatusFromInvoice(reportId, newStatus) {
+    try {
+        const response = await fetch(`https://reports.laapak.com/api/reports/${reportId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update report status');
+        }
+        
+        console.log(`Report ${reportId} status updated to ${newStatus}`);
+        
+        // Update the cached reports data
+        const cachedReports = JSON.parse(localStorage.getItem('cachedReports') || '[]');
+        const reportIndex = cachedReports.findIndex(r => r.id == reportId);
+        if (reportIndex !== -1) {
+            cachedReports[reportIndex].status = newStatus;
+            localStorage.setItem('cachedReports', JSON.stringify(cachedReports));
+        }
+        
+    } catch (error) {
+        console.error(`Error updating report ${reportId} status:`, error);
+        throw error;
     }
 }

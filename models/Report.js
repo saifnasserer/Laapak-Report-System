@@ -76,8 +76,8 @@ const Report = sequelize.define('Report', {
         defaultValue: 0
     },
     status: {
-        type: DataTypes.ENUM('pending', 'in-progress', 'completed', 'cancelled', 'active'),
-        defaultValue: 'active'
+        type: DataTypes.ENUM('قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى', 'pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active'),
+        defaultValue: 'قيد الانتظار'
     }
 }, {
     tableName: 'reports',

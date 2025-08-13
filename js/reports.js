@@ -35,12 +35,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Format report status with appropriate badge
+ * Format report status with appropriate badge and quick edit functionality
  * @param {string} status - The status string
- * @returns {string} HTML string with formatted status badge
+ * @param {string} reportId - The report ID for editing
+ * @returns {string} HTML string with formatted status badge and edit functionality
  */
-function formatReportStatus(status) {
-    if (!status) return '<span class="badge bg-secondary">غير محدد</span>';
+function formatReportStatus(status, reportId) {
+    if (!status) status = 'قيد الانتظار';
     
     const statusLower = status.toLowerCase();
     let badgeClass = 'bg-secondary';
@@ -54,30 +55,54 @@ function formatReportStatus(status) {
             break;
         case 'pending':
         case 'قيد الانتظار':
+        case 'في المخزن':
+        case 'active':
             badgeClass = 'bg-warning text-dark';
             statusText = 'قيد الانتظار';
+            break;
+        case 'cancelled':
+        case 'ملغى':
+        case 'canceled':
+        case 'ملغي':
+            badgeClass = 'bg-danger';
+            statusText = 'ملغي';
             break;
         case 'in-progress':
         case 'قيد المعالجة':
             badgeClass = 'bg-info text-dark';
             statusText = 'قيد المعالجة';
             break;
-        case 'cancelled':
-        case 'ملغى':
-            badgeClass = 'bg-danger';
-            statusText = 'ملغى';
-            break;
-        case 'active':
-        case 'نشط':
-            badgeClass = 'bg-primary';
-            statusText = 'قيد الانتظار';
-            break;
         default:
             badgeClass = 'bg-secondary';
             statusText = status;
     }
     
-    return `<span class="badge ${badgeClass}">${statusText}</span>`;
+    return `
+        <div class="dropdown">
+            <span class="badge ${badgeClass} status-badge rounded-pill px-3 py-2" 
+                  data-bs-toggle="dropdown" 
+                  data-report-id="${reportId}" 
+                  style="cursor: pointer; font-size: 0.85rem; min-width: 100px; display: inline-flex; align-items: center; justify-content: center; gap: 5px;" 
+                  title="انقر لتغيير الحالة">
+                ${statusText}
+                <i class="fas fa-chevron-down" style="font-size: 0.7em;"></i>
+            </span>
+            <ul class="dropdown-menu status-dropdown shadow-sm border-0" style="min-width: 200px;">
+                <li><a class="dropdown-item status-option d-flex align-items-center py-2" href="#" data-status="قيد الانتظار" data-report-id="${reportId}">
+                    <span class="badge bg-warning text-dark rounded-pill me-3" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">⏳</span>
+                    <span>قيد الانتظار</span>
+                </a></li>
+                <li><a class="dropdown-item status-option d-flex align-items-center py-2" href="#" data-status="مكتمل" data-report-id="${reportId}">
+                    <span class="badge bg-success rounded-pill me-3" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">✓</span>
+                    <span>مكتمل</span>
+                </a></li>
+                <li><a class="dropdown-item status-option d-flex align-items-center py-2" href="#" data-status="ملغي" data-report-id="${reportId}">
+                    <span class="badge bg-danger rounded-pill me-3" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">✕</span>
+                    <span>ملغي</span>
+                </a></li>
+            </ul>
+        </div>
+    `;
 }
 
 /**
@@ -95,7 +120,7 @@ function getInvoiceLink(report) {
                 <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
                 </a>
-                <small class="text-muted">${report.invoice_number || 'رقم الفاتورة غير محدد'}</small>
+                <!-- <small class="text-muted">${report.invoice_number || 'رقم الفاتورة غير محدد'}</small> -->
                 ${statusBadge}
             </div>`;
         } else {
@@ -224,6 +249,9 @@ function initReports() {
                 // Populate reports table with data
                 populateReportsTable(reports);
             }
+            
+            // Add event listeners for status dropdown after populating table
+            setupStatusDropdownListeners();
         })
         .catch(error => {
             console.error('Error fetching reports:', error);
@@ -412,7 +440,7 @@ function populateReportsTable(reports, updatePagination = true) {
             <td>${mappedReport.clientName || 'غير محدد'}</td>
             <td>${mappedReport.deviceModel || 'غير محدد'}</td>
             <td>${formattedDate}</td>
-            <td class="text-center">${formatReportStatus(mappedReport.status)}</td>
+            <td class="text-center">${formatReportStatus(mappedReport.status, mappedReport.id)}</td>
             <td class="text-center">${getInvoiceLink(mappedReport)}</td>
             <td class="text-center">
                 <div class="dropdown">
@@ -656,32 +684,66 @@ function loadReportsFromCache() {
 }
 
 /**
- * Share a report
+ * Share a report via WhatsApp
  * @param {string} reportId - ID of the report to share
  */
 function shareReport(reportId) {
-    const reportUrl = `${window.location.origin}/report.html?id=${reportId}`;
+    // Find the report in cached data to get client information
+    const cachedReports = JSON.parse(localStorage.getItem('cachedReports') || '[]');
+    const report = cachedReports.find(r => r.id == reportId);
     
-    // Check if Web Share API is available
-    if (navigator.share) {
-        navigator.share({
-            title: 'تقرير صيانة Laapak',
-            text: 'إليك تقرير الصيانة الخاص بجهازك',
-            url: reportUrl
-        })
-        .then(() => console.log('Report shared successfully'))
-        .catch(error => console.error('Error sharing report:', error));
-    } else {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(reportUrl)
-            .then(() => {
-                alert('تم نسخ رابط التقرير إلى الحافظة');
-            })
-            .catch(error => {
-                console.error('Error copying report URL:', error);
-                prompt('انسخ رابط التقرير أدناه:', reportUrl);
-            });
+    if (!report) {
+        showToast('لم يتم العثور على بيانات التقرير', 'error');
+        return;
     }
+    
+    // Get client phone number and order number
+    const clientPhone = report.client_phone || report.client?.phone || '';
+    const orderNumber = report.order_number || report.orderNumber || '';
+    
+    if (!clientPhone) {
+        showToast('رقم هاتف العميل غير متوفر', 'error');
+        return;
+    }
+    
+    if (!orderNumber) {
+        showToast('رقم الطلب غير متوفر', 'error');
+        return;
+    }
+    
+    // Format phone number for WhatsApp (remove any non-digit characters and ensure it starts with country code)
+    let formattedPhone = clientPhone.replace(/\D/g, ''); // Remove non-digits
+    
+    // If phone doesn't start with country code, assume it's Egyptian (+20)
+    if (!formattedPhone.startsWith('20') && formattedPhone.length === 11) {
+        formattedPhone = '20' + formattedPhone;
+    } else if (formattedPhone.length === 10) {
+        formattedPhone = '20' + formattedPhone;
+    }
+    
+    // Ensure it starts with country code
+    if (!formattedPhone.startsWith('20')) {
+        formattedPhone = '20' + formattedPhone;
+    }
+    
+    // Create the message
+    const message = `التقرير الخاص بحضرتك دلوقتي جاهز تقدر تشوف تفاصيله كامله دلوقتي من هنا
+https://reports.laapak.com
+
+Username: ${clientPhone}
+Password: ${orderNumber}`;
+    
+    // Encode the message for URL
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Create WhatsApp URL
+    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+    
+    // Open WhatsApp in new tab
+    window.open(whatsappUrl, '_blank');
+    
+    // Show success message
+    showToast('تم فتح واتساب مع العميل', 'success');
 }
 
 /**
@@ -720,5 +782,252 @@ function deleteReport(reportId) {
 function editReport(reportId) {
     if (confirm('هل تريد تعديل هذا التقرير؟')) {
         window.location.href = `edit-report.html?id=${reportId}`;
+    }
+}
+
+/**
+ * Setup event listeners for status dropdown
+ */
+function setupStatusDropdownListeners() {
+    // Add event listeners for status option clicks
+    document.addEventListener('click', function(event) {
+        if (event.target.closest('.status-option')) {
+            event.preventDefault();
+            const statusOption = event.target.closest('.status-option');
+            const reportId = statusOption.dataset.reportId;
+            const newStatus = statusOption.dataset.status;
+            
+            updateReportStatus(reportId, newStatus);
+        }
+    });
+}
+
+/**
+ * Update report status via API
+ * @param {string} reportId - The report ID
+ * @param {string} newStatus - The new status
+ * @param {boolean} skipInvoiceSync - Whether to skip invoice synchronization (to prevent loops)
+ */
+async function updateReportStatus(reportId, newStatus, skipInvoiceSync = false) {
+    let statusBadge = null;
+    let originalContent = '';
+    
+    try {
+        console.log(`Updating report ${reportId} status to: ${newStatus}`);
+        
+        // Show loading state on the status badge
+        statusBadge = document.querySelector(`[data-report-id="${reportId}"].status-badge`);
+        if (statusBadge) {
+            originalContent = statusBadge.innerHTML;
+            statusBadge.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            statusBadge.disabled = true;
+        }
+        
+        // Prepare the request data
+        const requestData = { status: newStatus };
+        console.log('Request data:', requestData);
+        
+        // Get auth token
+        const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        console.log('Auth token available:', !!token);
+        
+        if (!token) {
+            throw new Error('No authentication token found');
+        }
+        
+        // Update via API
+        const response = await fetch(`https://reports.laapak.com/api/reports/${reportId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Error response data:', errorData);
+            throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: Failed to update report status`);
+        }
+        
+        const responseData = await response.json();
+        console.log('Success response:', responseData);
+        
+        // Update the status badge with new status
+        if (statusBadge) {
+            const newStatusHtml = formatReportStatus(newStatus, reportId);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newStatusHtml;
+            const newBadge = tempDiv.querySelector('.status-badge');
+            if (newBadge) {
+                statusBadge.className = newBadge.className;
+                statusBadge.innerHTML = newBadge.innerHTML;
+                statusBadge.dataset.reportId = reportId;
+            }
+            statusBadge.disabled = false;
+        }
+        
+        // Handle status synchronization with linked invoices (only if not skipping)
+        if (!skipInvoiceSync) {
+            await handleReportInvoiceStatusSync(reportId, newStatus);
+        }
+        
+        // Show success message
+        showToast('تم تحديث حالة التقرير بنجاح', 'success');
+        
+        // Update the cached reports data
+        const cachedReports = JSON.parse(localStorage.getItem('cachedReports') || '[]');
+        const reportIndex = cachedReports.findIndex(r => r.id == reportId);
+        if (reportIndex !== -1) {
+            cachedReports[reportIndex].status = newStatus;
+            localStorage.setItem('cachedReports', JSON.stringify(cachedReports));
+        }
+        
+    } catch (error) {
+        console.error('Error updating report status:', error);
+        
+        // Restore original content on error
+        if (statusBadge && originalContent) {
+            statusBadge.innerHTML = originalContent;
+            statusBadge.disabled = false;
+        }
+        
+        showToast(`حدث خطأ أثناء تحديث حالة التقرير: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Handle status synchronization between reports and invoices
+ * @param {string} reportId - The report ID
+ * @param {string} newStatus - The new report status
+ */
+async function handleReportInvoiceStatusSync(reportId, newStatus) {
+    try {
+        console.log(`Starting invoice sync for report ${reportId} with status: ${newStatus}`);
+        
+        // Find the report in cached data to get invoice information
+        const cachedReports = JSON.parse(localStorage.getItem('cachedReports') || '[]');
+        console.log('Cached reports count:', cachedReports.length);
+        
+        const report = cachedReports.find(r => r.id == reportId);
+        console.log('Found report:', report);
+        
+        if (!report) {
+            console.log('Report not found in cache');
+            return;
+        }
+        
+        console.log('Report invoices:', report.invoices);
+        console.log('Report invoice_id:', report.invoice_id);
+        
+        // Check for different invoice data structures
+        let invoices = [];
+        if (report.invoices && Array.isArray(report.invoices)) {
+            invoices = report.invoices;
+        } else if (report.invoice_id) {
+            // Single invoice case
+            invoices = [{ id: report.invoice_id, paymentStatus: report.invoice_status }];
+        } else if (report.invoice) {
+            // Direct invoice object
+            invoices = [report.invoice];
+        }
+        
+        console.log('Processed invoices:', invoices);
+        
+        if (invoices.length === 0) {
+            console.log('No linked invoices found for report', reportId);
+            return; // No linked invoices to update
+        }
+        
+        // Map Arabic report status to invoice status
+        let invoiceStatus = 'pending'; // Default to English for invoices
+        
+        switch (newStatus) {
+            case 'مكتمل':
+                invoiceStatus = 'completed';
+                break;
+            case 'ملغي':
+                invoiceStatus = 'cancelled';
+                break;
+            case 'قيد الانتظار':
+            case 'قيد المعالجة':
+            default:
+                invoiceStatus = 'pending';
+                break;
+        }
+        
+        console.log(`Mapping report status '${newStatus}' to invoice status '${invoiceStatus}'`);
+        
+        // Update all linked invoices
+        for (const invoice of invoices) {
+            if (invoice.id) {
+                console.log(`Updating invoice ${invoice.id} status from ${invoice.paymentStatus} to ${invoiceStatus}`);
+                await updateInvoiceStatus(invoice.id, invoiceStatus, true); // Skip report sync to prevent loops
+            }
+        }
+        
+        console.log(`Synchronized ${invoices.length} linked invoices to status: ${invoiceStatus}`);
+        
+    } catch (error) {
+        console.error('Error synchronizing invoice status:', error);
+        // Don't show error to user as this is a background sync
+    }
+}
+
+/**
+ * Update invoice status via API
+ * @param {string} invoiceId - The invoice ID
+ * @param {string} newStatus - The new status
+ * @param {boolean} skipReportSync - Whether to skip report synchronization
+ */
+async function updateInvoiceStatus(invoiceId, newStatus, skipReportSync = false) {
+    try {
+        console.log(`Updating invoice ${invoiceId} status to: ${newStatus}`);
+        
+        // Get auth token
+        const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        if (!token) {
+            throw new Error('No authentication token found for invoice update');
+        }
+        
+        const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            },
+            body: JSON.stringify({ paymentStatus: newStatus })
+        });
+        
+        console.log(`Invoice update response status: ${response.status}`);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Invoice update error response:', errorData);
+            throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: Failed to update invoice status`);
+        }
+        
+        const responseData = await response.json();
+        console.log(`Invoice ${invoiceId} status updated successfully to ${newStatus}:`, responseData);
+        
+    } catch (error) {
+        console.error(`Error updating invoice ${invoiceId} status:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Show toast notification
+ */
+function showToast(message, type = 'info') {
+    // Check if toastr is available
+    if (typeof toastr !== 'undefined') {
+        toastr[type](message);
+    } else {
+        // Fallback to alert
+        alert(message);
     }
 }

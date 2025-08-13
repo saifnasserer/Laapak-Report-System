@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const editInvoiceForm = document.getElementById('editInvoiceForm');
     const clientIdSelect = document.getElementById('clientId');
     const reportIdInput = document.getElementById('reportId');
+    const reportSelect = document.getElementById('reportSelect'); // New report select dropdown
     const invoiceDateInput = document.getElementById('invoiceDate');
     const paymentStatusSelect = document.getElementById('paymentStatus');
     const paymentMethodSelect = document.getElementById('paymentMethod');
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const noItemsAlert = document.getElementById('noItemsAlert');
 
     let clients = []; // To store clients for the dropdown
+    let reports = []; // To store reports for the dropdown
 
     // Update page title and button text for new invoices
     if (isNewInvoice) {
@@ -74,12 +76,111 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function fetchReports() {
+        try {
+            // Get the admin or client token based on which one is available
+            const token = localStorage.getItem('adminToken') || 
+                         sessionStorage.getItem('adminToken') || 
+                         localStorage.getItem('clientToken') || 
+                         sessionStorage.getItem('clientToken');
+                         
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+            
+            // Fetch reports that are not linked to invoices
+            const response = await fetch('https://reports.laapak.com/api/reports?limit=1000&sort=desc', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch reports');
+            }
+            
+            const data = await response.json();
+            reports = data.reports || data; // Handle different response formats
+            
+            // Filter out reports that are already linked to invoices
+            const availableReports = reports.filter(report => {
+                // Check if report has an invoice association
+                return !report.invoice_id && !report.invoice;
+            });
+            
+            populateReportDropdown(availableReports);
+        } catch (error) {
+            console.error('Error fetching reports:', error);
+            toastr.error('فشل في تحميل قائمة التقارير.');
+        }
+    }
+
     function populateClientDropdown() {
         clients.forEach(client => {
             const option = document.createElement('option');
             option.value = client.id;
             option.textContent = `${client.name} (${client.phone})`;
             clientIdSelect.appendChild(option);
+        });
+    }
+
+    function populateReportDropdown(availableReports) {
+        if (!reportSelect) return;
+        
+        // Clear existing options except the first one
+        while (reportSelect.children.length > 1) {
+            reportSelect.removeChild(reportSelect.lastChild);
+        }
+        
+        // Add available reports
+        availableReports.forEach(report => {
+            const option = document.createElement('option');
+            option.value = report.id;
+            option.textContent = `#${report.id} - ${report.client_name || report.client?.name || 'غير معروف'} - ${report.device_model || 'غير محدد'}`;
+            reportSelect.appendChild(option);
+        });
+        
+        // If no reports available, show a message
+        if (availableReports.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'لا توجد تقارير متاحة للربط';
+            option.disabled = true;
+            reportSelect.appendChild(option);
+        }
+    }
+
+    // Add event listener for report selection
+    if (reportSelect) {
+        reportSelect.addEventListener('change', function() {
+            const selectedReportId = this.value;
+            if (selectedReportId) {
+                // Update the report ID input field
+                if (reportIdInput) {
+                    reportIdInput.value = selectedReportId;
+                }
+                
+                // Optionally, you can also auto-populate some fields from the selected report
+                const selectedReport = reports.find(r => r.id == selectedReportId);
+                if (selectedReport) {
+                    // Auto-populate client if not already selected
+                    if (clientIdSelect && !clientIdSelect.value) {
+                        clientIdSelect.value = selectedReport.client_id;
+                    }
+                    
+                    // Auto-populate device information in invoice items if no items exist
+                    if (invoiceItemsContainer.children.length === 0) {
+                        addInvoiceItemRow({
+                            description: `تقرير فحص - ${selectedReport.device_model || 'جهاز'}`,
+                            type: 'service',
+                            quantity: 1,
+                            amount: selectedReport.amount || 250,
+                            serialNumber: selectedReport.serial_number || ''
+                        });
+                    }
+                }
+            }
         });
     }
 
@@ -138,15 +239,30 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('invoiceId').value = invoice.id;
             clientIdSelect.value = invoice.client_id;
             
-            // Handle report_id for new invoices (multiple reports)
-            if (invoice.report_ids && Array.isArray(invoice.report_ids)) {
-                reportIdInput.value = invoice.report_ids.join(', ');
+            // Handle report_id for existing invoices
+            if (invoice.report_id) {
+                if (reportIdInput) {
+                    reportIdInput.value = invoice.report_id;
+                }
+                if (reportSelect) {
+                    reportSelect.value = invoice.report_id;
+                }
+            } else if (invoice.report_ids && Array.isArray(invoice.report_ids)) {
+                // Handle multiple reports for new invoices
+                if (reportIdInput) {
+                    reportIdInput.value = invoice.report_ids.join(', ');
+                }
             } else {
-                reportIdInput.value = invoice.report_id || 'N/A';
+                if (reportIdInput) {
+                    reportIdInput.value = 'N/A';
+                }
+                if (reportSelect) {
+                    reportSelect.value = '';
+                }
             }
             
             invoiceDateInput.value = invoice.date ? invoice.date.split('T')[0] : '';
-            paymentStatusSelect.value = invoice.paymentStatus;
+            paymentStatusSelect.value = invoice.paymentStatus || 'pending';
             paymentMethodSelect.value = invoice.paymentMethod || '';
             paymentDateInput.value = invoice.paymentDate ? invoice.paymentDate.split('T')[0] : '';
             discountInput.value = parseFloat(invoice.discount || 0).toFixed(2);
@@ -162,7 +278,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 items.forEach(item => {
                     addInvoiceItemRow({
                         description: item.description,
-                        type: item.type,
                         quantity: item.quantity || 1,
                         amount: parseFloat(item.amount).toFixed(2),
                         serialNumber: item.serialNumber || ''
@@ -188,27 +303,19 @@ document.addEventListener('DOMContentLoaded', function () {
         itemRow.setAttribute('data-item-id', itemId);
 
         itemRow.innerHTML = `
-            <div class="col-md-4">
+            <div class="col-md-5">
                 <label for="description-${itemId}" class="form-label">الوصف <span class="text-danger">*</span></label>
                 <input type="text" class="form-control item-description" id="description-${itemId}" value="${item.description || ''}" required>
-            </div>
-            <div class="col-md-2">
-                <label for="type-${itemId}" class="form-label">النوع <span class="text-danger">*</span></label>
-                <select class="form-select item-type" id="type-${itemId}" required>
-                    <option value="item" ${item.type === 'item' ? 'selected' : ''}>قطعة</option>
-                    <option value="service" ${item.type === 'service' ? 'selected' : ''}>خدمة</option>
-                    <option value="laptop" ${item.type === 'laptop' ? 'selected' : ''}>جهاز</option>
-                </select>
             </div>
             <div class="col-md-2">
                 <label for="quantity-${itemId}" class="form-label">الكمية <span class="text-danger">*</span></label>
                 <input type="number" class="form-control item-quantity" id="quantity-${itemId}" value="${item.quantity || 1}" min="1" required>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label for="amount-${itemId}" class="form-label">السعر الوحدوي <span class="text-danger">*</span></label>
                 <input type="number" class="form-control item-amount" id="amount-${itemId}" value="${parseFloat(item.amount || 0).toFixed(2)}" step="0.01" min="0" required>
             </div>
-             <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
                 <button type="button" class="btn btn-sm btn-danger removeItemBtn w-100">
                     <i class="fas fa-trash-alt me-1"></i> إزالة
                 </button>
@@ -265,10 +372,18 @@ document.addEventListener('DOMContentLoaded', function () {
         updateInvoiceBtn.disabled = true;
         updateInvoiceBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري التحديث...';
 
+        // Get the selected report ID from the dropdown if available
+        let selectedReportId = null;
+        if (reportSelect && reportSelect.value) {
+            selectedReportId = reportSelect.value;
+        } else if (reportIdInput && reportIdInput.value && reportIdInput.value !== 'N/A') {
+            selectedReportId = reportIdInput.value;
+        }
+
         const invoiceData = {
             id: document.getElementById('invoiceId').value,
             client_id: clientIdSelect.value,
-            report_id: reportIdInput.value === 'N/A' ? null : reportIdInput.value,
+            report_id: selectedReportId, // Use the selected report ID
             date: invoiceDateInput.value,
             paymentStatus: paymentStatusSelect.value,
             paymentMethod: paymentMethodSelect.value || null,
@@ -278,9 +393,9 @@ document.addEventListener('DOMContentLoaded', function () {
             items: []
         };
 
-        // Handle report_ids for new invoices
-        if (isNewInvoice && reportIdInput.value !== 'N/A') {
-            const reportIds = reportIdInput.value.split(',').map(id => id.trim()).filter(id => id);
+        // Handle report_ids for new invoices (multiple reports)
+        if (isNewInvoice && selectedReportId) {
+            const reportIds = selectedReportId.split(',').map(id => id.trim()).filter(id => id);
             invoiceData.report_ids = reportIds;
         }
 
@@ -288,7 +403,6 @@ document.addEventListener('DOMContentLoaded', function () {
         itemRows.forEach(row => {
             invoiceData.items.push({
                 description: row.querySelector('.item-description').value,
-                type: row.querySelector('.item-type').value,
                 quantity: parseInt(row.querySelector('.item-quantity').value),
                 amount: parseFloat(row.querySelector('.item-amount').value).toFixed(2),
                 serialNumber: row.querySelector('.item-serial').value || null
@@ -360,11 +474,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initial setup
     fetchClients().then(() => { // Ensure clients are loaded before fetching invoice details
-        if (isNewInvoice) {
-            loadNewInvoiceData();
-        } else {
-            fetchInvoiceDetails();
-        }
+        fetchReports().then(() => { // Also fetch reports
+            if (isNewInvoice) {
+                loadNewInvoiceData();
+            } else {
+                fetchInvoiceDetails();
+            }
+        });
     });
 
     function loadNewInvoiceData() {

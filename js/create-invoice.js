@@ -82,6 +82,18 @@ function setupEventListeners() {
         });
     }
     
+    // Create invoice button (new top button)
+    const createInvoiceBtn = document.getElementById('createInvoiceBtn');
+    if (createInvoiceBtn) {
+        createInvoiceBtn.addEventListener('click', function() {
+            if (selectedReports.length > 0) {
+                initiateDirectInvoiceCreation();
+            } else {
+                showToast('الرجاء تحديد تقرير واحد على الأقل', 'warning');
+            }
+        });
+    }
+    
     // Apply settings button
     const applySettingsBtn = document.getElementById('applySettingsBtn');
     if (applySettingsBtn) {
@@ -590,12 +602,25 @@ function updateClientSelectAllState(clientId) {
 function getReportStatusBadge(status) {
     const statusMap = {
         'pending': 'warning',
-        'in-progress': 'info',
         'completed': 'success',
         'cancelled': 'danger',
+        'canceled': 'danger',
         'active': 'primary' // Assuming 'active' means ready for invoicing or similar
     };
     return statusMap[status.toLowerCase()] || 'secondary';
+}
+
+// Helper function to get status text (assuming it exists or you'll add it)
+function getReportStatusText(status) {
+    // This could be more sophisticated, perhaps fetching from a localization object
+    const statusTextMap = {
+        'pending': 'قيد الانتظار',
+        'completed': 'مكتمل',
+        'cancelled': 'ملغى',
+        'canceled': 'ملغى',
+        'active': 'نشط'
+    };
+    return statusTextMap[status.toLowerCase()] || status;
 }
 
 // New function to handle direct invoice creation
@@ -666,19 +691,6 @@ function initiateDirectInvoiceCreation() {
     window.location.href = 'edit-invoice.html?new=true';
 }
 
-// Helper function to get status text (assuming it exists or you'll add it)
-function getReportStatusText(status) {
-    // This could be more sophisticated, perhaps fetching from a localization object
-    const statusTextMap = {
-        'pending': 'قيد الانتظار',
-        'in-progress': 'قيد التنفيذ',
-        'completed': 'مكتمل',
-        'cancelled': 'ملغي',
-        'active': 'نشط'
-    };
-    return statusTextMap[status.toLowerCase()] || status;
-}
-
 /**
  * Update the selected reports summary
  */
@@ -702,12 +714,26 @@ function updateSelectedReportsSummary() {
     } else {
         console.warn('[updateSelectedReportsSummary] generateInvoiceBtn not found!');
     }
+    
+    // Update the top create invoice button
+    const createInvoiceBtn = document.getElementById('createInvoiceBtn');
+    if (createInvoiceBtn) {
+        createInvoiceBtn.disabled = selectedReports.length === 0;
+    } else {
+        console.warn('[updateSelectedReportsSummary] createInvoiceBtn not found!');
+    }
 
     const selectedCountElement = document.getElementById('selectedCount');
     if (selectedCountElement) {
         selectedCountElement.textContent = selectedReports.length;
     } else {
         console.warn('[updateSelectedReportsSummary] selectedCountElement (ID: selectedCount) not found!');
+    }
+    
+    // Update top section count
+    const selectedCountTopElement = document.getElementById('selectedCountTop');
+    if (selectedCountTopElement) {
+        selectedCountTopElement.textContent = selectedReports.length;
     }
 
     let currentTotalAmount = 0;
@@ -734,6 +760,12 @@ function updateSelectedReportsSummary() {
     } else {
         console.warn('[updateSelectedReportsSummary] totalAmountElement (ID: totalAmount) not found!');
     }
+    
+    // Update top section total amount
+    const totalAmountTopElement = document.getElementById('totalAmountTop');
+    if (totalAmountTopElement) {
+        totalAmountTopElement.textContent = formatCurrency(currentTotalAmount);
+    }
 
     // Also update the second count display if it exists
     const selectedCount2Element = document.getElementById('selectedCount2');
@@ -749,6 +781,12 @@ function updateSelectedReportsSummary() {
     const selectedReportsSection = document.getElementById('selectedReportsSection');
     if (selectedReportsSection) {
         selectedReportsSection.style.display = selectedReports.length > 0 ? 'block' : 'none';
+    }
+    
+    // Update top selected reports info visibility
+    const selectedReportsInfo = document.getElementById('selectedReportsInfo');
+    if (selectedReportsInfo) {
+        selectedReportsInfo.style.display = selectedReports.length > 0 ? 'block' : 'none';
     }
 
     // Clear preview when no reports are selected
@@ -1378,9 +1416,10 @@ function getPaymentMethodText(method) {
  */
 function getPaymentStatusText(status) {
     const statuses = {
-        'unpaid': 'غير مدفوع',
-        'partial': 'مدفوع جزئياً',
-        'paid': 'مدفوع'
+        'pending': 'قيد الانتظار',
+        'completed': 'مكتمل',
+        'cancelled': 'ملغى',
+        'canceled': 'ملغى'
     };
     
     return statuses[status] || status;
