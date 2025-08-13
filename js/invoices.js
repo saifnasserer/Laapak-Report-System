@@ -117,12 +117,8 @@ function initializeDataTable() {
             }
         });
         
-        // Add custom search functionality
-        $('#searchInvoice').on('keyup', function() {
-            if (invoicesTable) {
-                invoicesTable.search(this.value).draw();
-            }
-        });
+        // Add custom search functionality with enhanced features
+        setupSearchFunctionality();
         
         console.log('DataTable initialized successfully');
     } catch (error) {
@@ -1936,6 +1932,84 @@ function updateCustomPagination(pageInfo) {
         e.preventDefault();
         const page = parseInt($(this).data('page'));
         invoicesTable.page(page).draw('page');
+    });
+}
+
+/**
+ * Setup enhanced search functionality for invoices
+ */
+function setupSearchFunctionality() {
+    const searchInput = document.getElementById('searchInvoice');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    
+    if (!searchInput) return;
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.trim();
+        
+        // Show/hide clear button
+        if (clearSearchBtn) {
+            if (searchTerm.length > 0) {
+                clearSearchBtn.classList.remove('d-none');
+            } else {
+                clearSearchBtn.classList.add('d-none');
+            }
+        }
+        
+        // Perform search
+        if (invoicesTable) {
+            invoicesTable.search(searchTerm).draw();
+        }
+        
+        // Add visual feedback
+        if (searchTerm.length > 0) {
+            searchInput.style.backgroundColor = '#fff';
+            searchInput.style.boxShadow = '0 0 0 0.2rem rgba(0, 117, 83, 0.15)';
+        } else {
+            searchInput.style.backgroundColor = '#f8f9fa';
+            searchInput.style.boxShadow = '';
+        }
+    });
+    
+    // Clear search functionality
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            searchInput.style.backgroundColor = '#f8f9fa';
+            searchInput.style.boxShadow = '';
+            clearSearchBtn.classList.add('d-none');
+            
+            if (invoicesTable) {
+                invoicesTable.search('').draw();
+            }
+            
+            searchInput.focus();
+        });
+    }
+    
+    // Handle Enter key
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // Trigger search
+            if (invoicesTable) {
+                invoicesTable.search(this.value.trim()).draw();
+            }
+        }
+    });
+    
+    // Focus management
+    searchInput.addEventListener('focus', function() {
+        this.style.backgroundColor = '#fff';
+        this.style.boxShadow = '0 0 0 0.2rem rgba(0, 117, 83, 0.15)';
+    });
+    
+    searchInput.addEventListener('blur', function() {
+        if (this.value.trim().length === 0) {
+            this.style.backgroundColor = '#f8f9fa';
+            this.style.boxShadow = '';
+        }
     });
 }
 

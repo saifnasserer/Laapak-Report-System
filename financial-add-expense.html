@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إضافة مصروف جديد - نظام تقارير لاباك</title>
+    <title>تسجيل المصروفات والأرباح - نظام تقارير لاباك</title>
     
     <!-- Favicon -->
     <link rel="icon" href="img/cropped-Logo-mark.png.png" type="image/png">
@@ -36,7 +36,6 @@
             --border-radius: 12px;
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
             --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
-            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
         }
 
         body {
@@ -47,7 +46,7 @@
             line-height: 1.6;
         }
 
-        /* Modern Navigation Bar */
+        /* Navigation Bar */
         .nav-bar {
             background: var(--white);
             border-radius: var(--border-radius);
@@ -57,19 +56,8 @@
             border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
-        .nav-bar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary-color), var(--primary-light), var(--primary-color));
-            border-radius: var(--border-radius) var(--border-radius) 0 0;
-        }
-
-        /* Modern Form Card */
-        .form-card {
+        /* Main Card */
+        .main-card {
             background: var(--white);
             border-radius: var(--border-radius);
             border: 1px solid rgba(0, 0, 0, 0.05);
@@ -77,96 +65,26 @@
             transition: all 0.3s ease;
         }
 
-        .form-card:hover {
+        .main-card:hover {
             box-shadow: var(--shadow-md);
         }
 
-        .form-card .card-header {
-            background: var(--white);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 1.25rem 1.5rem 0.75rem;
-        }
-
-        .form-card .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin: 0;
-        }
-
-        .form-card .card-body {
+        .main-card .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
             padding: 1.5rem;
         }
 
-        /* Modern Form Controls */
-        .form-label {
+        .main-card .card-title {
+            color: var(--white);
+            font-size: 1.25rem;
             font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
+            margin: 0;
         }
 
-        .form-control {
-            border: 2px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: var(--white);
-        }
-
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
-            outline: none;
-        }
-
-        .form-control::placeholder {
-            color: var(--text-muted);
-        }
-
-        /* Category Selection */
-        .category-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .category-option {
-            padding: 1.25rem;
-            border: 2px solid rgba(0, 0, 0, 0.1);
-            border-radius: var(--border-radius);
-            background: var(--white);
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .category-option:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .category-option.selected {
-            border-color: var(--primary-color);
-            background: rgba(0, 117, 83, 0.05);
-            transform: scale(1.02);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .category-color {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            margin: 0 auto 0.75rem;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .category-name {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text-dark);
+        .main-card .card-body {
+            padding: 2rem;
         }
 
         /* Type Toggle */
@@ -175,18 +93,19 @@
             background: var(--light-bg);
             border-radius: var(--border-radius);
             padding: 4px;
-            margin-bottom: 1rem;
+            margin-bottom: 2rem;
         }
 
         .type-option {
             flex: 1;
-            padding: 0.75rem 1rem;
+            padding: 1rem 1.5rem;
             border: none;
             border-radius: 8px;
             background: transparent;
             cursor: pointer;
             font-family: inherit;
             font-weight: 600;
+            font-size: 1rem;
             transition: all 0.3s ease;
             color: var(--text-muted);
         }
@@ -202,31 +121,79 @@
             color: var(--primary-color);
         }
 
-        /* Custom Checkbox */
-        .custom-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-top: 1rem;
-            padding: 1rem;
-            background: var(--light-bg);
-            border-radius: var(--border-radius);
-        }
-
-        .custom-checkbox input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            accent-color: var(--primary-color);
-        }
-
-        .custom-checkbox label {
-            margin: 0;
-            cursor: pointer;
+        /* Form Controls */
+        .form-label {
+            font-weight: 600;
             color: var(--text-dark);
-            font-weight: 500;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
         }
 
-        /* Recent Expenses */
+        .form-control {
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--white);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Amount Input Styling */
+        .amount-input {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .amount-input:focus {
+            color: var(--primary-dark);
+        }
+
+        /* Buttons */
+        .btn {
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-outline-secondary {
+            border: 2px solid var(--text-muted);
+            color: var(--text-muted);
+            background: transparent;
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--text-muted);
+            color: var(--white);
+            transform: translateY(-2px);
+        }
+
+        /* Recent Records */
         .recent-card {
             background: var(--white);
             border-radius: var(--border-radius);
@@ -273,11 +240,23 @@
             margin-bottom: 0;
         }
 
-        .recent-item-color {
-            width: 12px;
-            height: 12px;
+        .recent-item-icon {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.1rem;
+        }
+
+        .recent-item-icon.expense {
+            background: var(--danger-color);
+        }
+
+        .recent-item-icon.profit {
+            background: var(--success-color);
         }
 
         .recent-item-content {
@@ -290,50 +269,26 @@
             margin-bottom: 0.25rem;
         }
 
-        .recent-item-details {
-            font-size: 0.8rem;
+        .recent-item-date {
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
         .recent-item-amount {
             font-weight: 700;
-            color: var(--text-dark);
+            font-size: 1.1rem;
             font-family: 'Courier New', monospace;
         }
 
-        /* Modern Buttons */
-        .btn {
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border: none;
-            padding: 0.75rem 1.5rem;
+        .recent-item-amount.expense {
+            color: var(--danger-color);
         }
 
-        .btn-primary {
-            background: var(--primary-color);
-            color: var(--white);
+        .recent-item-amount.profit {
+            color: var(--success-color);
         }
 
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .btn-outline-secondary {
-            border: 2px solid var(--text-muted);
-            color: var(--text-muted);
-            background: transparent;
-        }
-
-        .btn-outline-secondary:hover {
-            background: var(--text-muted);
-            color: var(--white);
-            transform: translateY(-1px);
-        }
-
-        /* Loading States */
+        /* Loading Spinner */
         .loading-spinner {
             width: 2rem;
             height: 2rem;
@@ -364,25 +319,24 @@
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .category-grid {
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            }
-            
-            .form-card .card-body {
-                padding: 1rem;
+            .main-card .card-body {
+                padding: 1.5rem;
             }
             
             .recent-card .card-body {
                 padding: 1rem;
+            }
+            
+            .btn {
+                padding: 0.875rem 1.5rem;
+                font-size: 0.95rem;
             }
         }
 
         /* Utility Classes */
         .text-primary { color: var(--primary-color) !important; }
         .text-success { color: var(--success-color) !important; }
-        .text-warning { color: var(--warning-color) !important; }
         .text-danger { color: var(--danger-color) !important; }
-        .text-info { color: var(--info-color) !important; }
     </style>
 </head>
 <body>
@@ -412,7 +366,7 @@
                                 <li class="nav-item mx-2">
                                     <a href="financial-add-expense.html" class="nav-link active fw-bold rounded-circle d-flex align-items-center justify-content-center" 
                                        style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.3s ease;" 
-                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="إضافة مصروف">
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="تسجيل المصروفات">
                                         <i class="fas fa-plus"></i>
                                     </a>
                                 </li>
@@ -427,88 +381,62 @@
         <div class="row">
             <!-- Form Section -->
             <div class="col-lg-8 mb-4">
-                <div class="form-card">
+                <div class="main-card">
                     <div class="card-header">
                         <h5 class="card-title">
-                            <i class="fas fa-edit me-2 text-primary"></i>
-                            تفاصيل المصروف
+                            <i class="fas fa-edit me-2"></i>
+                            تسجيل مصروف أو ربح جديد
                         </h5>
                     </div>
                     <div class="card-body">
-                        <form id="expenseForm">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">اسم المصروف</label>
-                                    <input type="text" class="form-control" id="expenseName" 
-                                           placeholder="مثال: إيجار المكتب، معدات جديدة..." required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">اسم المصروف بالعربية</label>
-                                    <input type="text" class="form-control" id="expenseNameAr" 
-                                           placeholder="الاسم باللغة العربية..." required>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">فئة المصروف</label>
-                                <div class="category-grid" id="categoryGrid">
-                                    <div class="text-center py-3">
-                                        <div class="loading-spinner mx-auto"></div>
-                                        <p class="text-muted mt-2">جاري تحميل الفئات...</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">نوع المصروف</label>
+                        <form id="recordForm">
+                            <!-- Type Toggle -->
+                            <div class="mb-4">
+                                <label class="form-label">نوع التسجيل</label>
                                 <div class="type-toggle">
-                                    <button type="button" class="type-option active" data-type="variable">
-                                        <i class="fas fa-chart-line me-2"></i>
-                                        متغير
+                                    <button type="button" class="type-option active" data-type="expense">
+                                        <i class="fas fa-minus-circle me-2"></i>
+                                        مصروف
                                     </button>
-                                    <button type="button" class="type-option" data-type="fixed">
-                                        <i class="fas fa-calendar-check me-2"></i>
-                                        ثابت
+                                    <button type="button" class="type-option" data-type="profit">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        ربح
                                     </button>
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">المبلغ (جنيه مصري)</label>
-                                    <input type="number" class="form-control" id="expenseAmount" 
-                                           placeholder="0.00" step="0.01" min="0" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">تاريخ المصروف</label>
-                                    <input type="date" class="form-control" id="expenseDate" required>
-                                </div>
+                            <!-- Name Input -->
+                            <div class="mb-4">
+                                <label class="form-label">الاسم</label>
+                                <input type="text" class="form-control" id="recordName" 
+                                       placeholder="مثال: إيجار المكتب، مبيعات اليوم، صيانة المعدات..." required>
                             </div>
 
-                            <div class="mb-3">
+                            <!-- Amount Input -->
+                            <div class="mb-4">
+                                <label class="form-label">المبلغ (جنيه مصري)</label>
+                                <input type="number" class="form-control amount-input" id="recordAmount" 
+                                       placeholder="0" step="0.01" min="0" required>
+                            </div>
+
+                            <!-- Date Input -->
+                            <div class="mb-4">
+                                <label class="form-label">التاريخ</label>
+                                <input type="date" class="form-control" id="recordDate" required>
+                            </div>
+
+                            <!-- Notes Input -->
+                            <div class="mb-4">
                                 <label class="form-label">ملاحظات (اختياري)</label>
-                                <textarea class="form-control" id="expenseDescription" rows="3" 
-                                          placeholder="تفاصيل إضافية عن المصروف..."></textarea>
+                                <textarea class="form-control" id="recordNotes" rows="3" 
+                                          placeholder="تفاصيل إضافية..."></textarea>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">رابط الإيصال (اختياري)</label>
-                                <input type="url" class="form-control" id="receiptUrl" 
-                                       placeholder="https://example.com/receipt.pdf">
-                            </div>
-
-                            <div class="custom-checkbox">
-                                <input type="checkbox" id="repeatMonthly">
-                                <label for="repeatMonthly">
-                                    <i class="fas fa-sync-alt me-2"></i>
-                                    تكرار شهرياً (للمصروفات الثابتة)
-                                </label>
-                            </div>
-
-                            <div class="d-flex gap-3 mt-4">
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-3">
                                 <button type="submit" class="btn btn-primary flex-fill">
                                     <i class="fas fa-save me-2"></i>
-                                    حفظ المصروف
+                                    حفظ التسجيل
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
                                     <i class="fas fa-undo me-2"></i>
@@ -520,20 +448,20 @@
                 </div>
             </div>
 
-            <!-- Recent Expenses Section -->
+            <!-- Recent Records Section -->
             <div class="col-lg-4 mb-4">
                 <div class="recent-card">
                     <div class="card-header">
                         <h5 class="card-title">
                             <i class="fas fa-history me-2 text-primary"></i>
-                            المصروفات الأخيرة
+                            التسجيلات الأخيرة
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div id="recentExpenses">
+                        <div id="recentRecords">
                             <div class="text-center py-3">
                                 <div class="loading-spinner mx-auto"></div>
-                                <p class="text-muted mt-2">جاري تحميل المصروفات...</p>
+                                <p class="text-muted mt-2">جاري التحميل...</p>
                             </div>
                         </div>
                     </div>
@@ -550,8 +478,8 @@
                     <div class="success-icon">
                         <i class="fas fa-check"></i>
                     </div>
-                    <h4 class="mb-3">تم حفظ المصروف بنجاح!</h4>
-                    <p class="text-muted mb-4">تم إضافة المصروف إلى قاعدة البيانات</p>
+                    <h4 class="mb-3">تم الحفظ بنجاح!</h4>
+                    <p class="text-muted mb-4">تم تسجيل <span id="recordTypeText">المصروف</span> بنجاح</p>
                     <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
                         <i class="fas fa-check me-2"></i>
                         موافق
@@ -568,9 +496,7 @@
     <script src="js/header-component.js"></script>
 
     <script>
-        let categories = [];
-        let selectedCategoryId = null;
-        let selectedType = 'variable';
+        let selectedType = 'expense';
 
         // Format currency
         function formatCurrency(amount) {
@@ -581,128 +507,6 @@
             }).format(amount);
         }
 
-        // Load expense categories
-        async function loadCategories() {
-            try {
-                // Get admin info from localStorage
-                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-                const authMiddleware = new AuthMiddleware();
-                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
-                
-                // API base URL
-                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-                
-                const response = await fetch(`${baseUrl}/api/financial/expense-categories`, {
-                    headers: {
-                        'x-auth-token': token,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to load categories');
-                }
-
-                const result = await response.json();
-                categories = result.data.categories;
-                renderCategories();
-
-            } catch (error) {
-                console.error('Categories error:', error);
-                showCategoriesError();
-            }
-        }
-
-        // Render categories grid
-        function renderCategories() {
-            const grid = document.getElementById('categoryGrid');
-            
-            grid.innerHTML = categories.map(category => `
-                <div class="category-option" data-id="${category.id}" onclick="selectCategory(${category.id})">
-                    <div class="category-color" style="background-color: ${category.color}"></div>
-                    <div class="category-name">${category.name_ar}</div>
-                </div>
-            `).join('');
-        }
-
-        // Select category
-        function selectCategory(categoryId) {
-            // Remove previous selection
-            document.querySelectorAll('.category-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-
-            // Add selection to clicked category
-            document.querySelector(`[data-id="${categoryId}"]`).classList.add('selected');
-            selectedCategoryId = categoryId;
-        }
-
-        // Load recent expenses
-        async function loadRecentExpenses() {
-            try {
-                // Get admin info from localStorage
-                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-                const authMiddleware = new AuthMiddleware();
-                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
-                
-                // API base URL
-                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-                
-                const response = await fetch(`${baseUrl}/api/financial/recent-expenses`, {
-                    headers: {
-                        'x-auth-token': token,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to load recent expenses');
-                }
-
-                const result = await response.json();
-                renderRecentExpenses(result.data.expenses);
-
-            } catch (error) {
-                console.error('Recent expenses error:', error);
-                showRecentExpensesError();
-            }
-        }
-
-        // Render recent expenses
-        function renderRecentExpenses(expenses) {
-            const container = document.getElementById('recentExpenses');
-            
-            if (!expenses || expenses.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.3;"></i>
-                        <p class="mt-2">لا توجد مصروفات حديثة</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = expenses.map(expense => `
-                <div class="recent-item" onclick="fillFromRecent('${expense.id}')">
-                    <div class="recent-item-color" style="background-color: ${expense.category?.color || '#007553'}"></div>
-                    <div class="recent-item-content">
-                        <div class="recent-item-name">${expense.name_ar}</div>
-                        <div class="recent-item-details">
-                            ${expense.category?.name_ar} • ${new Date(expense.date).toLocaleDateString('ar-EG')}
-                        </div>
-                    </div>
-                    <div class="recent-item-amount">
-                        ${formatCurrency(expense.amount)}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Fill form from recent expense
-        function fillFromRecent(expenseId) {
-            showNotification('تم تعبئة النموذج من المصروف السابق', 'info');
-        }
-
         // Handle type toggle
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('type-option')) {
@@ -711,28 +515,95 @@
                 });
                 e.target.classList.add('active');
                 selectedType = e.target.dataset.type;
+                
+                // Update amount input styling
+                const amountInput = document.getElementById('recordAmount');
+                if (selectedType === 'expense') {
+                    amountInput.style.color = 'var(--danger-color)';
+                } else {
+                    amountInput.style.color = 'var(--success-color)';
+                }
             }
         });
 
-        // Handle form submission
-        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Load recent records
+        async function loadRecentRecords() {
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/records/recent`, {
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-            if (!selectedCategoryId) {
-                showNotification('يرجى اختيار فئة المصروف', 'error');
+                if (!response.ok) {
+                    throw new Error('Failed to load recent records');
+                }
+
+                const result = await response.json();
+                renderRecentRecords(result.data.records || []);
+
+            } catch (error) {
+                console.error('Recent records error:', error);
+                showRecentRecordsError();
+            }
+        }
+
+        // Render recent records
+        function renderRecentRecords(records) {
+            const container = document.getElementById('recentRecords');
+            
+            if (!records || records.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.3;"></i>
+                        <p class="mt-2">لا توجد تسجيلات حديثة</p>
+                    </div>
+                `;
                 return;
             }
 
+            container.innerHTML = records.map(record => `
+                <div class="recent-item" onclick="fillFromRecent('${record.id}')">
+                    <div class="recent-item-icon ${record.type}">
+                        <i class="fas ${record.type === 'expense' ? 'fa-minus' : 'fa-plus'}"></i>
+                    </div>
+                    <div class="recent-item-content">
+                        <div class="recent-item-name">${record.name}</div>
+                        <div class="recent-item-date">
+                            ${new Date(record.date).toLocaleDateString('ar-EG')}
+                        </div>
+                    </div>
+                    <div class="recent-item-amount ${record.type}">
+                        ${record.type === 'expense' ? '-' : '+'}${formatCurrency(record.amount)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Fill form from recent record
+        function fillFromRecent(recordId) {
+            showNotification('تم تعبئة النموذج من التسجيل السابق', 'info');
+        }
+
+        // Handle form submission
+        document.getElementById('recordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
             const formData = {
-                name: document.getElementById('expenseName').value,
-                name_ar: document.getElementById('expenseNameAr').value,
-                amount: parseFloat(document.getElementById('expenseAmount').value),
-                category_id: selectedCategoryId,
+                name: document.getElementById('recordName').value,
+                amount: parseFloat(document.getElementById('recordAmount').value),
                 type: selectedType,
-                date: document.getElementById('expenseDate').value,
-                repeat_monthly: document.getElementById('repeatMonthly').checked,
-                description: document.getElementById('expenseDescription').value,
-                receipt_url: document.getElementById('receiptUrl').value
+                date: document.getElementById('recordDate').value,
+                notes: document.getElementById('recordNotes').value
             };
 
             // Show loading state
@@ -750,7 +621,7 @@
                 // API base URL
                 const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                 
-                const response = await fetch(`${baseUrl}/api/financial/expenses`, {
+                const response = await fetch(`${baseUrl}/api/records`, {
                     method: 'POST',
                     headers: {
                         'x-auth-token': token,
@@ -760,8 +631,12 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to save expense');
+                    throw new Error('Failed to save record');
                 }
+
+                // Update success modal text
+                document.getElementById('recordTypeText').textContent = 
+                    selectedType === 'expense' ? 'المصروف' : 'الربح';
 
                 // Show success modal
                 const successModal = new bootstrap.Modal(document.getElementById('successModal'));
@@ -770,12 +645,12 @@
                 // Reset form
                 resetForm();
                 
-                // Reload recent expenses
-                loadRecentExpenses();
+                // Reload recent records
+                loadRecentRecords();
 
             } catch (error) {
-                console.error('Save expense error:', error);
-                showNotification('خطأ في حفظ المصروف', 'error');
+                console.error('Save record error:', error);
+                showNotification('خطأ في حفظ التسجيل', 'error');
             } finally {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
@@ -784,23 +659,20 @@
 
         // Reset form
         function resetForm() {
-            document.getElementById('expenseForm').reset();
+            document.getElementById('recordForm').reset();
             
-            // Reset category selection
-            document.querySelectorAll('.category-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            selectedCategoryId = null;
-
             // Reset type selection
             document.querySelectorAll('.type-option').forEach(option => {
                 option.classList.remove('active');
             });
-            document.querySelector('[data-type="variable"]').classList.add('active');
-            selectedType = 'variable';
+            document.querySelector('[data-type="expense"]').classList.add('active');
+            selectedType = 'expense';
 
             // Set today's date
-            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+            
+            // Reset amount input color
+            document.getElementById('recordAmount').style.color = 'var(--danger-color)';
         }
 
         // Show notification
@@ -824,24 +696,13 @@
             setTimeout(() => toast.remove(), 5000);
         }
 
-        // Show categories error
-        function showCategoriesError() {
-            document.getElementById('categoryGrid').innerHTML = `
-                <div class="text-center text-danger py-3" style="grid-column: 1 / -1;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i>
-                    <p class="mt-2">خطأ في تحميل الفئات</p>
-                    <button class="btn btn-primary btn-sm" onclick="loadCategories()">إعادة المحاولة</button>
-                </div>
-            `;
-        }
-
-        // Show recent expenses error
-        function showRecentExpensesError() {
-            document.getElementById('recentExpenses').innerHTML = `
+        // Show recent records error
+        function showRecentRecordsError() {
+            document.getElementById('recentRecords').innerHTML = `
                 <div class="text-center text-danger py-3">
                     <i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i>
-                    <p class="mt-2">خطأ في تحميل المصروفات الأخيرة</p>
-                    <button class="btn btn-primary btn-sm" onclick="loadRecentExpenses()">إعادة المحاولة</button>
+                    <p class="mt-2">خطأ في تحميل التسجيلات الأخيرة</p>
+                    <button class="btn btn-primary btn-sm" onclick="loadRecentRecords()">إعادة المحاولة</button>
                 </div>
             `;
         }
@@ -857,11 +718,13 @@
             // Setup navigation interactions
             setupNavigationInteractions();
             
-            loadCategories();
-            loadRecentExpenses();
+            loadRecentRecords();
 
             // Set today's date as default
-            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+            
+            // Set initial amount input color
+            document.getElementById('recordAmount').style.color = 'var(--danger-color)';
         });
 
         // Setup navigation interactions

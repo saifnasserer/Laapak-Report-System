@@ -24,6 +24,7 @@ const reportsRoutes = require('./routes/reports');
 const invoicesRoutes = require('./routes/invoices');
 const goalsRoutes = require('./routes/goals');
 const financialRoutes = require('./routes/financial');
+const recordsRoutes = require('./routes/records');
 const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
@@ -48,6 +49,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/invoices', invoicesRoutes);
 app.use('/api/goals', goalsRoutes);
 app.use('/api/financial', financialRoutes);
+app.use('/api/records', recordsRoutes);
 
 // Protected routes examples
 app.get('/api/protected', auth, (req, res) => {

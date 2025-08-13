@@ -469,6 +469,10 @@ function populateReportsTable(reports, updatePagination = true) {
  * Initialize search form functionality
  */
 function initSearchForm() {
+    // Setup the minimal round search bar functionality
+    setupMinimalSearchBar();
+    
+    // Keep the existing search form functionality for backward compatibility
     const searchForm = document.getElementById('searchForm');
     
     if (searchForm) {
@@ -514,6 +518,122 @@ function initSearchForm() {
                     alert('حدث خطأ أثناء البحث عن التقارير. يرجى المحاولة مرة أخرى لاحقًا.');
                 });
         });
+    }
+}
+
+/**
+ * Setup minimal round search bar functionality for reports
+ */
+function setupMinimalSearchBar() {
+    const searchInput = document.getElementById('searchReport');
+    const clearSearchBtn = document.getElementById('clearReportSearchBtn');
+    
+    if (!searchInput) return;
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.trim();
+        
+        // Show/hide clear button
+        if (clearSearchBtn) {
+            if (searchTerm.length > 0) {
+                clearSearchBtn.classList.remove('d-none');
+            } else {
+                clearSearchBtn.classList.add('d-none');
+            }
+        }
+        
+        // Filter reports based on search term
+        filterReportsBySearch(searchTerm);
+        
+        // Add visual feedback
+        if (searchTerm.length > 0) {
+            searchInput.style.backgroundColor = '#fff';
+            searchInput.style.boxShadow = '0 0 0 0.2rem rgba(0, 117, 83, 0.15)';
+        } else {
+            searchInput.style.backgroundColor = '#f8f9fa';
+            searchInput.style.boxShadow = '';
+        }
+    });
+    
+    // Clear search functionality
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            searchInput.style.backgroundColor = '#f8f9fa';
+            searchInput.style.boxShadow = '';
+            clearSearchBtn.classList.add('d-none');
+            
+            // Reset to show all reports
+            filterReportsBySearch('');
+            
+            searchInput.focus();
+        });
+    }
+    
+    // Handle Enter key
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // Trigger search
+            filterReportsBySearch(this.value.trim());
+        }
+    });
+    
+    // Focus management
+    searchInput.addEventListener('focus', function() {
+        this.style.backgroundColor = '#fff';
+        this.style.boxShadow = '0 0 0 0.2rem rgba(0, 117, 83, 0.15)';
+    });
+    
+    searchInput.addEventListener('blur', function() {
+        if (this.value.trim().length === 0) {
+            this.style.backgroundColor = '#f8f9fa';
+            this.style.boxShadow = '';
+        }
+    });
+}
+
+/**
+ * Filter reports based on search term
+ * @param {string} searchTerm - The search term to filter by
+ */
+function filterReportsBySearch(searchTerm) {
+    if (!allReports || allReports.length === 0) return;
+    
+    let filteredReports = allReports;
+    
+    if (searchTerm.length > 0) {
+        const searchLower = searchTerm.toLowerCase();
+        filteredReports = allReports.filter(report => {
+            // Search in multiple fields
+            const orderNumber = (report.order_number || report.orderNumber || '').toLowerCase();
+            const clientName = (report.client_name || report.clientName || '').toLowerCase();
+            const deviceModel = (report.device_model || report.deviceModel || '').toLowerCase();
+            const serialNumber = (report.serial_number || report.serialNumber || '').toLowerCase();
+            const status = (report.status || '').toLowerCase();
+            
+            return orderNumber.includes(searchLower) ||
+                   clientName.includes(searchLower) ||
+                   deviceModel.includes(searchLower) ||
+                   serialNumber.includes(searchLower) ||
+                   status.includes(searchLower);
+        });
+    }
+    
+    // Reset to first page when filtering
+    currentPage = 1;
+    
+    // Populate table with filtered results
+    populateReportsTable(filteredReports, false);
+    
+    // Update pagination for filtered results
+    totalReports = filteredReports.length;
+    updatePaginationControls();
+    
+    // Show search results count
+    if (searchTerm.length > 0) {
+        console.log(`Search results: ${filteredReports.length} of ${allReports.length} reports`);
     }
 }
 
