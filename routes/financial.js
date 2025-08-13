@@ -300,6 +300,9 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 let paymentFilter = '';
                 if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
                     paymentFilter = `WHERE i.paymentStatus = '${req.query.paymentStatus}'`;
+                } else {
+                    // Default to only show completed invoices
+                    paymentFilter = `WHERE i.paymentStatus = 'completed'`;
                 }
                 
                 const query = `
@@ -312,7 +315,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                         c.id as client_id,
                         COUNT(ii.id) as items_count,
                         COALESCE(SUM(ii.cost_price * ii.quantity), 0) as total_cost,
-                        COALESCE(SUM(CASE WHEN ii.cost_price IS NOT NULL THEN (ii.amount - ii.cost_price) * ii.quantity ELSE 0 END), 0) as total_profit
+                        (i.total - COALESCE(SUM(ii.cost_price * ii.quantity), 0)) as total_profit
                     FROM invoices i
                     LEFT JOIN clients c ON i.client_id = c.id
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId

@@ -713,7 +713,7 @@
             const totalCost = parseFloat(item.total_cost) || 0;
             const totalProfit = parseFloat(item.total_profit) || 0;
             
-            // Validate that profit calculation is consistent
+            // Validate that profit calculation is consistent (invoice total - total cost)
             const calculatedProfit = total - totalCost;
             const profitDifference = Math.abs(totalProfit - calculatedProfit);
             
@@ -772,9 +772,9 @@
                         `+${formatCurrency(validatedItem.total_profit)}` : 
                         formatCurrency(validatedItem.total_profit);
                     
-                    // Add profit margin display
-                    const marginText = validatedItem.profit_margin > 0 ? 
-                        ` (${validatedItem.profit_margin.toFixed(1)}%)` : '';
+                    // Add profit margin display based on invoice total
+                    const marginText = validatedItem.total > 0 ? 
+                        ` (${((validatedItem.total_profit / validatedItem.total) * 100).toFixed(1)}%)` : '';
                     
                     return `
                         <tr class="${rowClass}" data-id="${item.id}">
@@ -865,6 +865,7 @@
                 const items = result.data;
                 
                 console.log('Invoice items loaded:', items);
+                console.log('Sample invoice item structure:', items[0]);
                 
                 // Render invoice items table
                 const tbody = document.getElementById('invoiceItemsTableBody');
@@ -874,14 +875,14 @@
                             <div class="fw-bold">${item.item_description}</div>
                             <small class="text-muted">${item.serial_number || 'لا يوجد رقم تسلسلي'}</small>
                         </td>
-                        <td>${formatCurrency(item.sale_price)}</td>
+                        <td>${formatCurrency(item.sale_price || item.amount || 0)}</td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <span class="${!item.cost_price ? 'text-muted' : ''}">
                                     ${item.cost_price ? formatCurrency(item.cost_price) : 'لم يتم تحديده'}
                                 </span>
                                 <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || 0}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price}, '${clientName}', ${item.item_id}, ${item.quantity})">
+                                        onclick="openCostPriceModal('${item.item_id}', ${item.cost_price || 0}, '${item.item_description}', '${item.serial_number || ''}', ${item.sale_price || item.amount || 0}, '${clientName}', ${item.item_id}, ${item.quantity})">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </div>
@@ -935,11 +936,17 @@
                 return;
             }
             
-            // Validate input parameters
-            if (!description || !salePrice || !itemId) {
-                console.error('Invalid parameters provided to modal');
+            // Validate input parameters - allow salePrice to be 0 but require description and itemId
+            if (!description || !itemId) {
+                console.error('Invalid parameters provided to modal - missing description or itemId');
                 showNotification('بيانات غير صحيحة', 'error');
                 return;
+            }
+            
+            // Check if salePrice is valid (can be 0 but should be a number)
+            if (typeof salePrice !== 'number' || salePrice < 0) {
+                console.warn('Invalid sale price:', salePrice, 'Type:', typeof salePrice);
+                salePrice = 0; // Default to 0 if invalid
             }
             
             try {
@@ -1331,7 +1338,7 @@
                 
                 // First try the profit management endpoint
                 try {
-                    response = await fetch(`${baseUrl}/api/financial/profit-management?page=${page}&limit=${limit}&paymentStatus=all`, {
+                    response = await fetch(`${baseUrl}/api/financial/profit-management?page=${page}&limit=${limit}`, {
                         headers: { 'x-auth-token': token }
                     });
                     
