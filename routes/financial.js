@@ -225,6 +225,14 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         
         console.log(`Profit calculations: GrossProfit=${grossProfit}, NetProfit=${netProfit}, Margin=${profitMargin}%`);
         console.log(`Invoice breakdown: Total=${invoiceCount}, WithCost=${invoicesWithCost}, WithoutCost=${invoicesWithoutCost}`);
+        console.log(`Revenue breakdown: Total=${totalRevenue}, WithCost=${revenueWithCost}, WithoutCost=${revenueWithoutCost}`);
+        console.log(`Cost breakdown: TotalCost=${totalCost}, Expenses=${totalExpenses}`);
+        
+        // Verify profit calculation
+        const expectedGrossProfit = revenueWithCost - totalCost;
+        const expectedNetProfit = expectedGrossProfit - totalExpenses;
+        console.log(`Profit verification: ExpectedGrossProfit=${expectedGrossProfit}, ExpectedNetProfit=${expectedNetProfit}`);
+        console.log(`Profit verification: ActualGrossProfit=${grossProfit}, ActualNetProfit=${netProfit}`);
 
         // Get alerts
         const alerts = [];
@@ -234,14 +242,14 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             const itemsWithoutCost = await InvoiceItem.count({
                 where: {
                     cost_price: null,
-                    '$Invoice.date$': {
+                    '$invoice.date$': {
                         [Op.between]: [startDateStr, endDateStr]
                     },
-                    '$Invoice.paymentStatus$': ['paid', 'completed']
+                    '$invoice.paymentStatus$': ['paid', 'completed']
                 },
                 include: [{
                     model: Invoice,
-                    as: 'Invoice'
+                    as: 'invoice'
                 }]
             });
 
