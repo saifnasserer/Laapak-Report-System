@@ -421,64 +421,13 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 
         if (!type || type === 'invoices') {
             try {
-                console.log('Fetching invoices with whereClause:', whereClause);
+                console.log('Fetching ALL invoices first, then filtering...');
                 
-                // Use direct SQL query to bypass association issues
+                // Use direct SQL query to get ALL invoices with their data
                 const { sequelize } = require('../models');
                 
-                // Check what payment status values exist
-                const statusQuery = `
-                    SELECT DISTINCT paymentStatus, COUNT(*) as count 
-                    FROM invoices 
-                    GROUP BY paymentStatus
-                `;
-                const [statusResults] = await sequelize.query(statusQuery);
-                console.log('Available payment statuses:', statusResults);
-                
-                // Build the main query - check if we should show all invoices or only those with cost prices
-                const showOnlyWithCost = req.query.showOnlyWithCost === 'true'; // Only filter if explicitly set to true
-                console.log('Show only invoices with cost prices:', showOnlyWithCost);
-                
-                let paymentFilter = '';
-                if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
-                    paymentFilter = `WHERE i.paymentStatus = '${req.query.paymentStatus}'`;
-                } else {
-                    // If showAll is true or no date filter is applied, show all invoices
-                    // If date filter is applied, default to completed invoices
-                    if (showAll || (!startDate && !endDate)) {
-                        paymentFilter = `WHERE 1=1`;
-                    } else {
-                        paymentFilter = `WHERE i.paymentStatus = 'completed'`;
-                    }
-                }
-                
-                // Add date filter if provided
-                let dateFilter = '';
-                if (startDate && endDate) {
-                    dateFilter = `AND i.date BETWEEN '${startDate}' AND '${endDate}'`;
-                }
-                
-                // Check total invoices vs invoices with cost prices (after paymentFilter is defined)
-                const totalInvoicesQuery = `
-                    SELECT COUNT(*) as total_invoices
-                    FROM invoices i
-                    ${paymentFilter} ${dateFilter}
-                `;
-                const [totalInvoicesResult] = await sequelize.query(totalInvoicesQuery);
-                console.log('Total invoices (before cost filter):', totalInvoicesResult[0].total_invoices);
-                
-                const invoicesWithCostQuery = `
-                    SELECT COUNT(*) as invoices_with_cost
-                    FROM invoices i
-                    LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
-                    ${paymentFilter} ${dateFilter}
-                    GROUP BY i.id
-                    HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0
-                `;
-                const [invoicesWithCostResult] = await sequelize.query(invoicesWithCostQuery);
-                console.log('Invoices with cost prices:', invoicesWithCostResult.length);
-                
-                const query = `
+                // Fetch ALL invoices with their cost data
+                const allInvoicesQuery = `
                     SELECT 
                         i.id as invoice_id,
                         i.date as invoice_date,
@@ -496,34 +445,61 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     FROM invoices i
                     LEFT JOIN clients c ON i.client_id = c.id
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
-                    ${paymentFilter} ${dateFilter}
                     GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
-                    ${showOnlyWithCost ? 'HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0' : ''}
                     ORDER BY i.date DESC
-                    LIMIT ${parseInt(limit)}
-                    OFFSET ${offset}
                 `;
                 
-                console.log('Executing SQL query:', query);
-                console.log('Query parameters:', {
-                    paymentFilter,
-                    dateFilter,
-                    showOnlyWithCost,
-                    limit: parseInt(limit),
-                    offset
-                });
-                const [rawResults] = await sequelize.query(query);
-                console.log(`Raw SQL query returned ${rawResults.length} invoices`);
-                if (rawResults.length === 0) {
-                    console.log('No results returned. Checking if this is due to the HAVING clause...');
-                    // Test without the HAVING clause
-                    const testQuery = query.replace(/HAVING.*$/m, '');
-                    console.log('Testing query without HAVING clause:', testQuery);
-                    const [testResults] = await sequelize.query(testQuery);
-                    console.log(`Test query returned ${testResults.length} invoices`);
+                console.log('Fetching all invoices...');
+                const [allInvoices] = await sequelize.query(allInvoicesQuery);
+                console.log(`Total invoices in database: ${allInvoices.length}`);
+                
+                // Now filter the results in application layer
+                let filteredInvoices = allInvoices;
+                
+                // Filter by payment status
+                if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
+                    filteredInvoices = filteredInvoices.filter(invoice => 
+                        invoice.payment_status === req.query.paymentStatus
+                    );
+                    console.log(`After payment status filter: ${filteredInvoices.length} invoices`);
+                } else if (!showAll && (startDate || endDate)) {
+                    // If date filter is applied, default to completed invoices
+                    filteredInvoices = filteredInvoices.filter(invoice => 
+                        invoice.payment_status === 'completed'
+                    );
+                    console.log(`After default completed filter: ${filteredInvoices.length} invoices`);
                 }
                 
-                for (const row of rawResults) {
+                // Filter by date range
+                if (startDate && endDate) {
+                    filteredInvoices = filteredInvoices.filter(invoice => {
+                        const invoiceDate = new Date(invoice.invoice_date);
+                        const start = new Date(startDate);
+                        const end = new Date(endDate);
+                        return invoiceDate >= start && invoiceDate <= end;
+                    });
+                    console.log(`After date filter: ${filteredInvoices.length} invoices`);
+                }
+                
+                // Filter by cost prices (if requested)
+                const showOnlyWithCost = req.query.showOnlyWithCost === 'true';
+                if (showOnlyWithCost) {
+                    filteredInvoices = filteredInvoices.filter(invoice => 
+                        parseFloat(invoice.total_cost) > 0
+                    );
+                    console.log(`After cost filter: ${filteredInvoices.length} invoices`);
+                }
+                
+                // Apply pagination
+                const startIndex = offset;
+                const endIndex = offset + parseInt(limit);
+                const paginatedInvoices = filteredInvoices.slice(startIndex, endIndex);
+                
+                console.log(`Pagination: ${startIndex} to ${endIndex} of ${filteredInvoices.length} filtered invoices`);
+                console.log(`Returning ${paginatedInvoices.length} invoices`);
+                
+                // Convert to results format
+                for (const row of paginatedInvoices) {
                     results.push({
                         id: `invoice-${row.invoice_id}`,
                         type: 'invoice',
@@ -540,6 +516,14 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 }
                 
                 console.log(`Total results from invoices: ${results.length}`);
+                
+                // Calculate hasMore based on filtered results
+                const hasMore = endIndex < filteredInvoices.length;
+                console.log(`hasMore calculation: ${endIndex} < ${filteredInvoices.length} = ${hasMore}`);
+                
+                // Store hasMore for later use
+                results.hasMore = hasMore;
+                
             } catch (invoiceError) {
                 console.error('Error fetching invoices:', invoiceError);
                 console.error('Error details:', invoiceError.message);
@@ -589,56 +573,13 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 
         // Check if there are more results available
         let hasMore = false;
-        console.log('Checking hasMore - results.length:', results.length, 'limit:', parseInt(limit));
         
-        if (results.length === parseInt(limit)) {
-            // Make a test query to see if there are more results
-            try {
-                const testOffset = offset + parseInt(limit);
-                console.log('Testing for more data at offset:', testOffset);
-                
-                // Reconstruct the filters for the hasMore test
-                let testPaymentFilter = '';
-                if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
-                    testPaymentFilter = `WHERE i.paymentStatus = '${req.query.paymentStatus}'`;
-                } else {
-                    if (showAll || (!startDate && !endDate)) {
-                        testPaymentFilter = `WHERE 1=1`;
-                    } else {
-                        testPaymentFilter = `WHERE i.paymentStatus = 'completed'`;
-                    }
-                }
-                
-                let testDateFilter = '';
-                if (startDate && endDate) {
-                    testDateFilter = `AND i.date BETWEEN '${startDate}' AND '${endDate}'`;
-                }
-                
-                const testQuery = `
-                    SELECT COUNT(*) as count
-                    FROM invoices i
-                    LEFT JOIN clients c ON i.client_id = c.id
-                    LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
-                    ${testPaymentFilter} ${testDateFilter}
-                    GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
-                    ${showOnlyWithCost ? 'HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0' : ''}
-                    ORDER BY i.date DESC
-                    LIMIT 1
-                    OFFSET ${testOffset}
-                `;
-                
-                console.log('hasMore test query:', testQuery);
-                const { sequelize } = require('../models');
-                const [testResults] = await sequelize.query(testQuery);
-                console.log('hasMore test results:', testResults);
-                hasMore = testResults.length > 0;
-                console.log('hasMore calculated as:', hasMore);
-            } catch (testError) {
-                console.error('Error checking for more data:', testError);
-                hasMore = false;
-            }
+        // Use the hasMore value calculated in the invoices section if available
+        if (results.hasMore !== undefined) {
+            hasMore = results.hasMore;
+            console.log('Using hasMore from invoices calculation:', hasMore);
         } else {
-            console.log('Not checking hasMore - results.length (', results.length, ') != limit (', parseInt(limit), ')');
+            console.log('No hasMore value from invoices, defaulting to false');
         }
 
         console.log(`Sending ${results.length} total results, hasMore: ${hasMore}`);
