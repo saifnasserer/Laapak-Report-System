@@ -968,29 +968,7 @@
             return percentage.toFixed(1) + '%';
         }
 
-        // Check if there's more data available
-        async function checkForMoreData() {
-            try {
-                console.log('Checking for more data...');
-                
-                // Make a test request to page 2 to see if there's more data
-                const testData = await fetchProfitData(2, itemsPerPage);
-                
-                if (testData && testData.length > 0) {
-                    hasMoreData = true;
-                    console.log('More data confirmed available (found ' + testData.length + ' items on page 2)');
-                } else {
-                    hasMoreData = false;
-                    console.log('No more data confirmed (page 2 is empty)');
-                }
-                
-                return hasMoreData;
-            } catch (error) {
-                console.error('Error checking for more data:', error);
-                hasMoreData = false;
-                return false;
-            }
-        }
+
 
         // Load profit management data
         async function loadProfitData() {
@@ -1015,28 +993,21 @@
 
                 // Load first page of data
                 console.log('Fetching first page of data...');
-                const firstPageData = await fetchProfitData(1, itemsPerPage);
+                const firstPageResult = await fetchProfitData(1, itemsPerPage);
                 
-                console.log('First page data received:', firstPageData);
+                console.log('First page data received:', firstPageResult);
                 
-                if (firstPageData && firstPageData.length > 0) {
-                    allData = firstPageData;
+                if (firstPageResult && firstPageResult.items && firstPageResult.items.length > 0) {
+                    allData = firstPageResult.items;
                     console.log('Initial data items count:', allData.length);
                     console.log('Sample data:', allData.slice(0, 3));
                     
                     renderTable(allData);
                     updateTableStats(allData);
                     
-                    // Check if there's more data - only set to false if we got exactly the page size
-                    // This means there might be more data on the next page
-                    if (firstPageData.length === itemsPerPage) {
-                        // If we got exactly 20 items, check if there's more data on page 2
-                        hasMoreData = await checkForMoreData();
-                        console.log('Got full page, checked for more data. hasMoreData:', hasMoreData);
-                    } else {
-                        hasMoreData = false;
-                        console.log('No more data available (got partial page of ' + firstPageData.length + ' items)');
-                    }
+                    // Use the hasMore information from the API response
+                    hasMoreData = firstPageResult.hasMore || false;
+                    console.log('API returned hasMoreData:', hasMoreData);
                     
                     // Re-render table to show/hide load more button based on hasMoreData
                     renderTable(allData);
@@ -1669,39 +1640,37 @@
             tbody.appendChild(loadingRow);
             
             try {
-                const newData = await fetchProfitData(currentPage, itemsPerPage);
+                const newDataResult = await fetchProfitData(currentPage, itemsPerPage);
                 
                 console.log(`Page ${currentPage} data received:`, {
-                    dataLength: newData ? newData.length : 0,
+                    dataLength: newDataResult ? newDataResult.items.length : 0,
                     itemsPerPage,
-                    hasData: !!newData && newData.length > 0
+                    hasData: !!newDataResult && newDataResult.items && newDataResult.items.length > 0,
+                    hasMore: newDataResult ? newDataResult.hasMore : false
                 });
                 
-                if (newData && newData.length > 0) {
+                if (newDataResult && newDataResult.items && newDataResult.items.length > 0) {
                     // Remove loading row
                     const loadingRow = document.getElementById('loading-row');
                     if (loadingRow) loadingRow.remove();
                     
                     // Append new data to existing data
-                    allData = allData.concat(newData);
+                    allData = allData.concat(newDataResult.items);
                     console.log(`Total data items: ${allData.length}`);
                     
                     // Render new rows
-                    const newRows = newData.map(item => renderTableRow(item)).join('');
+                    const newRows = newDataResult.items.map(item => renderTableRow(item)).join('');
                     tbody.insertAdjacentHTML('beforeend', newRows);
                     
                     // Update stats with all data
                     updateTableStats(allData);
                     
-                    // Check if there's more data - only set to false if we got less than a full page
-                    if (newData.length < itemsPerPage) {
-                        hasMoreData = false;
-                        console.log('No more data available (got partial page)');
-                    } else {
-                        hasMoreData = true;
-                        console.log('More data likely available (got full page)');
-                        
-                        // Add load more button again if there's more data
+                    // Use the hasMore information from the API response
+                    hasMoreData = newDataResult.hasMore || false;
+                    console.log('API returned hasMoreData for page', currentPage, ':', hasMoreData);
+                    
+                    // Add load more button again if there's more data
+                    if (hasMoreData) {
                         const loadMoreRow = `
                             <tr id="load-more-row">
                                 <td colspan="7" class="text-center py-3">
@@ -1823,7 +1792,18 @@
                 }
                 
                 console.log('Final extracted items count:', items.length);
-                return items || [];
+                
+                // Extract hasMore information from the response
+                let hasMore = false;
+                if (result.success && result.data && result.data.pagination) {
+                    hasMore = result.data.pagination.hasMore || false;
+                    console.log('API returned hasMore:', hasMore);
+                }
+                
+                return {
+                    items: items || [],
+                    hasMore: hasMore
+                };
                 
             } catch (error) {
                 console.error('Error fetching profit data:', error);
@@ -1845,7 +1825,10 @@
                     // Convert invoices to the expected format
                     const items = Array.isArray(result) ? result : (result.data || []);
                     console.log('Fallback items count:', items.length);
-                    return items;
+                    return {
+                        items: items,
+                        hasMore: false // Fallback doesn't support pagination
+                    };
                     
                 } catch (fallbackError) {
                     console.error('Fallback API also failed:', fallbackError);

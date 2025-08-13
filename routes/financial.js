@@ -546,7 +546,34 @@ router.get('/profit-management', adminAuth, async (req, res) => {
         // Sort combined results by date
         results.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        console.log(`Sending ${results.length} total results`);
+        // Check if there are more results available
+        let hasMore = false;
+        if (results.length === parseInt(limit)) {
+            // Make a test query to see if there are more results
+            try {
+                const testOffset = offset + parseInt(limit);
+                const testQuery = `
+                    SELECT COUNT(*) as count
+                    FROM invoices i
+                    LEFT JOIN clients c ON i.client_id = c.id
+                    LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
+                    ${paymentFilter} ${dateFilter}
+                    GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
+                    HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0
+                    ORDER BY i.date DESC
+                    LIMIT 1
+                    OFFSET ${testOffset}
+                `;
+                
+                const [testResults] = await sequelize.query(testQuery);
+                hasMore = testResults.length > 0;
+            } catch (testError) {
+                console.error('Error checking for more data:', testError);
+                hasMore = false;
+            }
+        }
+
+        console.log(`Sending ${results.length} total results, hasMore: ${hasMore}`);
         console.log('Sample result:', results[0]);
 
         res.json({
@@ -556,7 +583,8 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 pagination: {
                     page: parseInt(page),
                     limit: parseInt(limit),
-                    total: results.length
+                    total: results.length,
+                    hasMore: hasMore
                 }
             }
         });
