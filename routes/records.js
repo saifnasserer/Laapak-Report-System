@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { adminAuth } = require('../middleware/auth');
+const { adminRoleAuth } = require('../middleware/auth');
 const { Expense, ExpenseCategory, Admin } = require('../models');
 
 /**
  * GET /api/records/recent
  * Get recent financial records (expenses and profits) for quick reference
  */
-router.get('/recent', adminAuth, async (req, res) => {
+router.get('/recent', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         // Get recent expenses
         const recentExpenses = await Expense.findAll({
@@ -53,7 +53,7 @@ router.get('/recent', adminAuth, async (req, res) => {
  * POST /api/records
  * Create a new financial record (expense or profit)
  */
-router.post('/', adminAuth, async (req, res) => {
+router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const {
             name,
@@ -133,7 +133,7 @@ router.post('/', adminAuth, async (req, res) => {
  * GET /api/records
  * Get all financial records with pagination and filtering
  */
-router.get('/', adminAuth, async (req, res) => {
+router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { page = 1, limit = 20, type, search, startDate, endDate } = req.query;
         const offset = (page - 1) * limit;
@@ -220,7 +220,7 @@ router.get('/', adminAuth, async (req, res) => {
  * PUT /api/records/:id
  * Update a financial record
  */
-router.put('/:id', adminAuth, async (req, res) => {
+router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { id } = req.params;
         const {
@@ -281,7 +281,7 @@ router.put('/:id', adminAuth, async (req, res) => {
  * DELETE /api/records/:id
  * Delete a financial record
  */
-router.delete('/:id', adminAuth, async (req, res) => {
+router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -316,7 +316,7 @@ router.delete('/:id', adminAuth, async (req, res) => {
  * GET /api/records/stats
  * Get financial statistics
  */
-router.get('/stats', adminAuth, async (req, res) => {
+router.get('/stats', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 

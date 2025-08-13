@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { adminAuth } = require('../middleware/auth');
+const { adminRoleAuth } = require('../middleware/auth');
 const { 
     ExpenseCategory, 
     Expense, 
@@ -25,8 +25,9 @@ const { Op } = require('sequelize');
 /**
  * GET /api/financial/dashboard
  * Get financial dashboard data with KPIs and charts
+ * Access: Superadmin only
  */
-router.get('/dashboard', adminAuth, async (req, res) => {
+router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { startDate, endDate, month, year } = req.query;
         
@@ -468,7 +469,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
  * GET /api/financial/dashboard-debug
  * Debug endpoint to check dashboard data without filtering
  */
-router.get('/dashboard-debug', adminAuth, async (req, res) => {
+router.get('/dashboard-debug', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         console.log('=== DASHBOARD DEBUG ENDPOINT ===');
         
@@ -528,7 +529,7 @@ router.get('/dashboard-debug', adminAuth, async (req, res) => {
  * GET /api/financial/dashboard-simple
  * Simple dashboard endpoint for testing
  */
-router.get('/dashboard-simple', adminAuth, async (req, res) => {
+router.get('/dashboard-simple', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         // Simple test - just return basic data
         const basicData = {
@@ -577,7 +578,7 @@ router.get('/dashboard-simple', adminAuth, async (req, res) => {
  * GET /api/financial/profit-management
  * Get combined data for profit and cost management page
  */
-router.get('/profit-management', adminAuth, async (req, res) => {
+router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { page = 1, limit = 1000, search, startDate, endDate, type } = req.query;
         const offset = (page - 1) * limit;
@@ -811,7 +812,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
  * PUT /api/financial/cost-prices/bulk
  * Bulk update cost prices for invoice items
  */
-router.put('/cost-prices/bulk', adminAuth, async (req, res) => {
+router.put('/cost-prices/bulk', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { updates } = req.body; // Array of { item_id, cost_price, product_name, product_model, serial_number }
         console.log('Received bulk update request:', updates);
@@ -887,7 +888,7 @@ router.put('/cost-prices/bulk', adminAuth, async (req, res) => {
  * PUT /api/financial/cost-price/:itemId
  * Update cost price for a single invoice item
  */
-router.put('/cost-price/:itemId', adminAuth, async (req, res) => {
+router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res) => {
     console.log('=== COST PRICE UPDATE ROUTE HIT ===');
     console.log('Params:', req.params);
     console.log('Body:', req.body);
@@ -961,7 +962,7 @@ router.put('/cost-price/:itemId', adminAuth, async (req, res) => {
  * GET /api/financial/invoice/:invoiceId/items
  * Get invoice items for a specific invoice
  */
-router.get('/invoice/:invoiceId/items', adminAuth, async (req, res) => {
+router.get('/invoice/:invoiceId/items', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { invoiceId } = req.params;
         
@@ -1044,7 +1045,7 @@ router.get('/invoice/:invoiceId/items', adminAuth, async (req, res) => {
  * POST /api/financial/calculate-profits
  * Calculate profits for all invoice items with cost prices
  */
-router.post('/calculate-profits', adminAuth, async (req, res) => {
+router.post('/calculate-profits', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         // Get all invoice items with cost prices but no profit calculation
         const items = await InvoiceItem.findAll({
@@ -1090,7 +1091,7 @@ router.post('/calculate-profits', adminAuth, async (req, res) => {
  * GET /api/financial/expenses
  * Get all expenses with filtering and pagination
  */
-router.get('/expenses', adminAuth, async (req, res) => {
+router.get('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { page = 1, limit = 20, category, type, status, search } = req.query;
         const offset = (page - 1) * limit;
@@ -1153,7 +1154,7 @@ router.get('/expenses', adminAuth, async (req, res) => {
  * POST /api/financial/expenses
  * Create a new expense
  */
-router.post('/expenses', adminAuth, async (req, res) => {
+router.post('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const {
             name,
@@ -1211,7 +1212,7 @@ router.post('/expenses', adminAuth, async (req, res) => {
  * GET /api/financial/expense-categories
  * Get all expense categories
  */
-router.get('/expense-categories', adminAuth, async (req, res) => {
+router.get('/expense-categories', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const categories = await ExpenseCategory.findAll({
             where: { is_active: true },
@@ -1237,7 +1238,7 @@ router.get('/expense-categories', adminAuth, async (req, res) => {
  * GET /api/financial/recent-expenses
  * Get recent expenses for the add expense form
  */
-router.get('/recent-expenses', adminAuth, async (req, res) => {
+router.get('/recent-expenses', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const recentExpenses = await Expense.findAll({
             include: [
@@ -1274,7 +1275,7 @@ router.get('/recent-expenses', adminAuth, async (req, res) => {
  * GET /api/financial/product-costs
  * Get product costs with search and pagination
  */
-router.get('/product-costs', adminAuth, async (req, res) => {
+router.get('/product-costs', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { page = 1, limit = 20, search } = req.query;
         const offset = (page - 1) * limit;
@@ -1333,7 +1334,7 @@ router.get('/product-costs', adminAuth, async (req, res) => {
  * GET /api/financial/analytics/monthly-summary/:monthYear
  * Recalculate and get monthly summary
  */
-router.get('/analytics/monthly-summary/:monthYear', adminAuth, async (req, res) => {
+router.get('/analytics/monthly-summary/:monthYear', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { monthYear } = req.params;
         const summary = await FinancialSummary.calculateForMonth(monthYear);
@@ -1361,7 +1362,7 @@ router.get('/analytics/monthly-summary/:monthYear', adminAuth, async (req, res) 
  * GET /api/financial/test
  * Test endpoint to check if financial tables and models exist
  */
-router.get('/test', adminAuth, async (req, res) => {
+router.get('/test', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         // Test if models are loaded
         const modelTests = {

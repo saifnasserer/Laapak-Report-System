@@ -27,7 +27,11 @@ document.addEventListener('DOMContentLoaded', function() {
         'invoices.html',
         'create-invoice.html',
         'edit-invoice.html',
-        'view-invoice.html',
+        'view-invoice.html'
+    ];
+    
+    // Define superadmin-only pages (financial pages)
+    const superadminPages = [
         'financial-dashboard.html',
         'financial-profit-management.html',
         'financial-add-expense.html'
@@ -41,20 +45,39 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check if current page is an admin page
     const isAdminPage = adminPages.includes(filename);
+    const isSuperadminPage = superadminPages.includes(filename);
     const isClientPage = clientPages.includes(filename);
     const isLoginPage = filename === 'index.html';
     
-    console.log('Page type:', { isAdminPage, isClientPage, isLoginPage });
+    console.log('Page type:', { isAdminPage, isSuperadminPage, isClientPage, isLoginPage });
     
     // Handle authentication checks
-    if (isAdminPage) {
+    if (isAdminPage || isSuperadminPage) {
         // Check if admin is logged in
         if (!authMiddleware.isAdminLoggedIn()) {
             console.log('Admin not authenticated, redirecting to login page');
             window.location.href = 'index.html';
             return;
         } else {
-            console.log('Admin authenticated, access granted');
+            console.log('Admin authenticated, checking role permissions...');
+            
+            // For superadmin pages, check if user has superadmin role
+            if (isSuperadminPage) {
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const userRole = adminInfo.role || 'admin';
+                
+                console.log('User role:', userRole);
+                
+                if (userRole !== 'superadmin') {
+                    console.log('Access denied: Financial pages require superadmin role');
+                    showAccessDeniedModal();
+                    return;
+                } else {
+                    console.log('Superadmin access granted to financial page');
+                }
+            } else {
+                console.log('Admin access granted');
+            }
         }
     }
     
@@ -98,92 +121,81 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Logout button clicked');
             
             if (button.classList.contains('admin-logout-btn')) {
-                // Clear admin session
-                localStorage.removeItem('adminToken');
-                localStorage.removeItem('adminInfo');
-                sessionStorage.removeItem('adminToken');
-                sessionStorage.removeItem('adminInfo');
-                
-                console.log('Admin session cleared');
-                
-                // Redirect to login page
-                window.location.href = 'index.html';
+                authMiddleware.adminLogout();
             } else if (button.classList.contains('client-logout-btn')) {
-                // Clear client session
-                localStorage.removeItem('clientToken');
-                localStorage.removeItem('clientInfo');
-                sessionStorage.removeItem('clientToken');
-                sessionStorage.removeItem('clientInfo');
-                
-                console.log('Client session cleared');
-                
-                // Redirect to login page
-                window.location.href = 'index.html';
+                authMiddleware.clientLogout();
             } else {
-                // Generic logout - clear all sessions
-                localStorage.removeItem('adminToken');
-                localStorage.removeItem('adminInfo');
-                localStorage.removeItem('clientToken');
-                localStorage.removeItem('clientInfo');
-                sessionStorage.removeItem('adminToken');
-                sessionStorage.removeItem('adminInfo');
-                sessionStorage.removeItem('clientToken');
-                sessionStorage.removeItem('clientInfo');
-                
-                console.log('All sessions cleared');
-                
-                // Redirect to login page
-                window.location.href = 'index.html';
+                // Generic logout - try both
+                authMiddleware.adminLogout();
+                authMiddleware.clientLogout();
             }
+            
+            // Redirect to login page
+            window.location.href = 'index.html';
         });
     });
-    
-    // Add token validation on page load
-    function validateToken() {
-        const adminToken = authMiddleware.getAdminToken();
-        const clientToken = authMiddleware.getClientToken();
-        
-        if (adminToken || clientToken) {
-            // Validate token with server
-            const token = adminToken || clientToken;
-            const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-            
-            fetch(`${apiBaseUrl}/api/auth/me`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': token
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    console.log('Token validation failed, clearing sessions');
-                    // Clear invalid sessions
-                    localStorage.removeItem('adminToken');
-                    localStorage.removeItem('adminInfo');
-                    localStorage.removeItem('clientToken');
-                    localStorage.removeItem('clientInfo');
-                    sessionStorage.removeItem('adminToken');
-                    sessionStorage.removeItem('adminInfo');
-                    sessionStorage.removeItem('clientToken');
-                    sessionStorage.removeItem('clientInfo');
-                    
-                    // Redirect to login if not already there
-                    if (!isLoginPage) {
-                        window.location.href = 'index.html';
-                    }
-                } else {
-                    console.log('Token validation successful');
-                }
-            })
-            .catch(error => {
-                console.error('Token validation error:', error);
-                // On network error, don't clear sessions immediately
-                // Let the user continue with their current session
-            });
-        }
-    }
-    
-    // Run token validation after a short delay
-    setTimeout(validateToken, 1000);
 });
+
+// Show access denied modal
+function showAccessDeniedModal() {
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="accessDeniedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            رفض الوصول
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-4">
+                            <i class="fas fa-lock" style="font-size: 4rem; color: #dc3545; opacity: 0.7;"></i>
+                        </div>
+                        <h4 class="mb-3">غير مصرح لك بالوصول</h4>
+                        <p class="text-muted mb-4">
+                            هذه الصفحة متاحة فقط لمدير النظام الأعلى (Super Admin).<br>
+                            يرجى التواصل مع مدير النظام للحصول على الصلاحيات المطلوبة.
+                        </p>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>دورك الحالي:</strong> 
+                            <span id="currentUserRole">مدير</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 justify-content-center">
+                        <button type="button" class="btn btn-primary" onclick="redirectToAdmin()">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            العودة للوحة التحكم
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show current user role
+    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+    const userRole = adminInfo.role || 'admin';
+    const roleDisplay = userRole === 'superadmin' ? 'مدير النظام الأعلى' : 'مدير';
+    document.getElementById('currentUserRole').textContent = roleDisplay;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('accessDeniedModal'));
+    modal.show();
+    
+    // Prevent modal from being closed by clicking outside or pressing ESC
+    document.getElementById('accessDeniedModal').addEventListener('hide.bs.modal', function (e) {
+        e.preventDefault();
+        return false;
+    });
+}
+
+// Redirect to admin dashboard
+function redirectToAdmin() {
+    window.location.href = 'admin.html';
+}

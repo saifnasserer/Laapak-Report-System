@@ -138,6 +138,7 @@ class LpkHeader {
         let adminName = 'المستخدم';
         let adminFirstName = adminName;
         let adminRole = 'مسؤول';
+        let userRole = 'admin';
         
         try {
             const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || sessionStorage.getItem('adminInfo') || '{}');
@@ -149,10 +150,28 @@ class LpkHeader {
                 adminFirstName = nameParts[0];
                 
                 adminRole = this.translateRole(adminInfo.role) || 'مسؤول';
+                userRole = adminInfo.role || 'admin';
             }
         } catch (e) {
             console.error('Error parsing admin info:', e);
         }
+        
+        // Filter navigation items based on user role
+        const filteredNavigationItems = this.options.navigationItems.filter(item => {
+            // If user is not superadmin, hide financial pages
+            if (userRole !== 'superadmin') {
+                const financialPages = [
+                    'financial-dashboard.html',
+                    'financial-profit-management.html', 
+                    'financial-add-expense.html'
+                ];
+                
+                if (financialPages.includes(item.url)) {
+                    return false; // Hide this item
+                }
+            }
+            return true; // Show this item
+        });
         
         let html = `
         <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #0d964e 0%, #0a572b 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -168,7 +187,7 @@ class LpkHeader {
                     <ul class="navbar-nav d-flex flex-row align-items-center justify-content-center">`;
                         
         // Navigation items - Icon only version with consistent styling
-        this.options.navigationItems.forEach(item => {
+        filteredNavigationItems.forEach(item => {
             const isActive = item.id === this.options.activeItem;
             const commonStyles = 'width: 40px; height: 40px; transition: all 0.3s ease;';
             const activeStyles = 'background-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15);';
