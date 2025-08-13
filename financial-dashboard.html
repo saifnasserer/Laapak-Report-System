@@ -354,8 +354,9 @@
             padding: 1rem;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             gap: 1rem;
+            position: relative;
         }
 
         .filter-controls {
@@ -383,7 +384,12 @@
         }
 
         .period-indicator {
-            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
         }
 
         .period-badge {
@@ -393,6 +399,16 @@
             border-radius: 20px;
             font-size: 0.875rem;
             font-weight: 500;
+        }
+
+        /* When filter is active, adjust layout */
+        .simple-filter-bar.filter-active {
+            justify-content: space-between;
+        }
+
+        .simple-filter-bar.filter-active .period-indicator {
+            position: static;
+            transform: none;
         }
 
         /* Responsive Design for Filter */
@@ -482,22 +498,29 @@
             <div class="col-12">
                 <div class="simple-filter-bar">
                     <div class="filter-controls">
-                        <div class="date-inputs">
+                        <!-- Hidden by default, shown when filter is active -->
+                        <div class="date-inputs" id="dateInputs" style="display: none;">
                             <input type="date" class="form-control form-control-sm" id="startDate" placeholder="من تاريخ">
                             <span class="date-separator">إلى</span>
                             <input type="date" class="form-control form-control-sm" id="endDate" placeholder="إلى تاريخ">
                         </div>
+                        
                         <div class="filter-buttons">
-                            <button type="button" class="btn btn-primary btn-sm" id="applyFilterBtn">
+                            <button type="button" class="btn btn-primary btn-sm" id="applyFilterBtn" style="display: none;">
                                 <i class="fas fa-filter me-1"></i>تطبيق
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearFilterBtn">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearFilterBtn" style="display: none;">
                                 <i class="fas fa-times me-1"></i>مسح
                             </button>
                         </div>
                     </div>
+                    
+                    <!-- Period Indicator - Always visible in center -->
                     <div class="period-indicator">
                         <span class="period-badge" id="currentPeriodDisplay">الشهر الحالي</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="toggleFilterBtn">
+                            <i class="fas fa-calendar-alt"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1128,6 +1151,9 @@
             // Setup date filter functionality
             setupDateFilter();
             
+            // Setup smart date constraints
+            setupDateConstraints();
+            
             // Set default date range (current month)
             setDefaultDateRange();
             
@@ -1144,6 +1170,8 @@
             const clearFilterBtn = document.getElementById('clearFilterBtn');
             const startDate = document.getElementById('startDate');
             const endDate = document.getElementById('endDate');
+            const toggleFilterBtn = document.getElementById('toggleFilterBtn');
+            const dateInputs = document.getElementById('dateInputs');
             
             if (applyFilterBtn) {
                 applyFilterBtn.addEventListener('click', function() {
@@ -1157,6 +1185,30 @@
                     console.log('Clearing filters...');
                     setDefaultDateRange();
                     loadDashboardData();
+                });
+            }
+
+            if (toggleFilterBtn) {
+                toggleFilterBtn.addEventListener('click', function() {
+                    const isVisible = dateInputs.style.display !== 'none';
+                    
+                    if (isVisible) {
+                        // Hide filter controls
+                        dateInputs.style.display = 'none';
+                        applyFilterBtn.style.display = 'none';
+                        clearFilterBtn.style.display = 'none';
+                        toggleFilterBtn.innerHTML = '<i class="fas fa-calendar-alt"></i>';
+                        document.querySelector('.simple-filter-bar').classList.remove('filter-active');
+                    } else {
+                        // Show filter controls
+                        dateInputs.style.display = 'flex';
+                        applyFilterBtn.style.display = 'block';
+                        clearFilterBtn.style.display = 'block';
+                        toggleFilterBtn.innerHTML = '<i class="fas fa-times"></i>';
+                        document.querySelector('.simple-filter-bar').classList.add('filter-active');
+                    }
+                    
+                    updatePeriodDisplay(startDate.value, endDate.value);
                 });
             }
             
@@ -1187,23 +1239,96 @@
             
             if (startDate && endDate) {
                 const today = new Date();
+                
+                // Get first day of current month
                 const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
                 
                 // Format dates for input fields (YYYY-MM-DD)
                 const formatDate = (date) => {
-                    return date.toISOString().split('T')[0];
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
                 };
                 
-                startDate.value = formatDate(startOfMonth);
-                endDate.value = formatDate(endOfMonth);
+                const startDateStr = formatDate(startOfMonth);
+                const endDateStr = formatDate(today);
+                
+                console.log('Date calculation:', {
+                    today: today.toISOString(),
+                    startOfMonth: startOfMonth.toISOString(),
+                    startDateStr,
+                    endDateStr
+                });
+                
+                startDate.value = startDateStr;
+                endDate.value = endDateStr;
+                
+                // Set max date constraints
+                startDate.max = endDateStr;
+                endDate.max = endDateStr;
                 
                 // Update period display
-                updatePeriodDisplay(startDate.value, endDate.value);
+                updatePeriodDisplay(startDateStr, endDateStr);
                 
                 console.log('Set default date range:', {
-                    start: startDate.value,
-                    end: endDate.value
+                    start: startDateStr,
+                    end: endDateStr
+                });
+            }
+        }
+
+        // Setup smart date constraints
+        function setupDateConstraints() {
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            
+            if (startDate && endDate) {
+                const today = new Date();
+                
+                // Format today's date consistently
+                const formatDate = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+                
+                const todayStr = formatDate(today);
+                
+                // Set max date for both inputs to today
+                startDate.max = todayStr;
+                endDate.max = todayStr;
+                
+                // Add event listeners for smart constraints
+                startDate.addEventListener('change', function() {
+                    // When start date changes, update end date min constraint
+                    if (this.value) {
+                        endDate.min = this.value;
+                        
+                        // If end date is before start date, reset it
+                        if (endDate.value && endDate.value < this.value) {
+                            endDate.value = this.value;
+                        }
+                        
+                        updatePeriodDisplay(this.value, endDate.value);
+                        loadDashboardData();
+                    }
+                });
+                
+                endDate.addEventListener('change', function() {
+                    // When end date changes, update start date max constraint
+                    if (this.value) {
+                        startDate.max = this.value;
+                        
+                        // If start date is after end date, reset it
+                        if (startDate.value && startDate.value > this.value) {
+                            startDate.value = this.value;
+                        }
+                        
+                        updatePeriodDisplay(startDate.value, this.value);
+                        loadDashboardData();
+                    }
                 });
             }
         }
@@ -1214,16 +1339,30 @@
             if (display && startDate && endDate) {
                 const start = new Date(startDate);
                 const end = new Date(endDate);
+                const today = new Date();
                 
-                if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-                    // Same month
+                // Check if it's current month (from 1st to today)
+                const isCurrentMonth = start.getMonth() === today.getMonth() && 
+                                     start.getFullYear() === today.getFullYear() && 
+                                     start.getDate() === 1 && 
+                                     end.getDate() === today.getDate();
+                
+                if (isCurrentMonth) {
+                    // Current month display
+                    const monthName = start.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+                    display.textContent = `${monthName} (الشهر الحالي)`;
+                    display.style.background = 'linear-gradient(135deg, #007553 0%, #00a67a 100%)';
+                } else if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+                    // Same month but not current
                     const monthName = start.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
                     display.textContent = monthName;
+                    display.style.background = 'var(--primary-light)';
                 } else {
                     // Date range
                     const startStr = start.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
                     const endStr = end.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
                     display.textContent = `${startStr} - ${endStr}`;
+                    display.style.background = 'var(--primary-light)';
                 }
             }
         }

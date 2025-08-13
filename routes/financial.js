@@ -30,6 +30,8 @@ router.get('/dashboard', adminAuth, async (req, res) => {
     try {
         const { startDate, endDate, month, year } = req.query;
         
+        console.log('Dashboard received query params:', { startDate, endDate, month, year });
+        
         // Determine date range
         let startDateObj, endDateObj;
         
@@ -47,11 +49,23 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             endDateObj = new Date(targetYear, targetMonth, 0);
         }
         
-        // Format dates for database queries
-        const startDateStr = startDateObj.toISOString().split('T')[0];
-        const endDateStr = endDateObj.toISOString().split('T')[0];
+        // Format dates for database queries (avoid timezone issues)
+        const formatDateForDB = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
         
-        console.log('Dashboard date range:', { startDate: startDateStr, endDate: endDateStr });
+        const startDateStr = formatDateForDB(startDateObj);
+        const endDateStr = formatDateForDB(endDateObj);
+        
+        console.log('Dashboard date range:', { 
+            startDate: startDateStr, 
+            endDate: endDateStr,
+            startDateObj: startDateObj.toISOString(),
+            endDateObj: endDateObj.toISOString()
+        });
 
         // Calculate KPIs from invoices and expenses for the date range
         let totalRevenue = 0;
@@ -177,8 +191,8 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 const trendStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
                 const trendEndDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
                 
-                const trendStartStr = trendStartDate.toISOString().split('T')[0];
-                const trendEndStr = trendEndDate.toISOString().split('T')[0];
+                const trendStartStr = formatDateForDB(trendStartDate);
+                const trendEndStr = formatDateForDB(trendEndDate);
                 
                 // Get revenue for this month
                 const monthInvoices = await Invoice.findAll({
@@ -360,12 +374,15 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 
         // Date filtering
         if (startDate && endDate) {
+            console.log('Profit management date filtering:', { startDate, endDate });
             whereClause.date = {
                 [Op.between]: [startDate, endDate]
             };
             expenseWhere.date = {
                 [Op.between]: [startDate, endDate]
             };
+        } else {
+            console.log('No date filtering applied to profit management');
         }
 
         // Search filtering
