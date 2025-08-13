@@ -597,12 +597,29 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 const testOffset = offset + parseInt(limit);
                 console.log('Testing for more data at offset:', testOffset);
                 
+                // Reconstruct the filters for the hasMore test
+                let testPaymentFilter = '';
+                if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
+                    testPaymentFilter = `WHERE i.paymentStatus = '${req.query.paymentStatus}'`;
+                } else {
+                    if (showAll || (!startDate && !endDate)) {
+                        testPaymentFilter = `WHERE 1=1`;
+                    } else {
+                        testPaymentFilter = `WHERE i.paymentStatus = 'completed'`;
+                    }
+                }
+                
+                let testDateFilter = '';
+                if (startDate && endDate) {
+                    testDateFilter = `AND i.date BETWEEN '${startDate}' AND '${endDate}'`;
+                }
+                
                 const testQuery = `
                     SELECT COUNT(*) as count
                     FROM invoices i
                     LEFT JOIN clients c ON i.client_id = c.id
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
-                    ${paymentFilter} ${dateFilter}
+                    ${testPaymentFilter} ${testDateFilter}
                     GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
                     ${showOnlyWithCost ? 'HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0' : ''}
                     ORDER BY i.date DESC
