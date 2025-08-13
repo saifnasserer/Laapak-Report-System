@@ -403,7 +403,10 @@ router.get('/profit-management', adminAuth, async (req, res) => {
 
         // Check if we should show all data (no date filter)
         const showAll = req.query.showAll === 'true';
+        const showOnlyWithCost = req.query.showOnlyWithCost === 'false'; // Note: we're checking for 'false' since frontend sends 'false'
         console.log('Show all data:', showAll);
+        console.log('Show only with cost:', showOnlyWithCost);
+        console.log('Query parameters:', req.query);
 
         // Search filtering
         if (search) {
@@ -453,7 +456,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 console.log('Invoices with cost prices:', invoicesWithCostResult.length);
                 
                 // Build the main query - check if we should show all invoices or only those with cost prices
-                const showOnlyWithCost = req.query.showOnlyWithCost === 'true';
+                const showOnlyWithCost = req.query.showOnlyWithCost === 'true'; // Only filter if explicitly set to true
                 console.log('Show only invoices with cost prices:', showOnlyWithCost);
                 
                 let paymentFilter = '';
@@ -502,8 +505,23 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 `;
                 
                 console.log('Executing SQL query:', query);
+                console.log('Query parameters:', {
+                    paymentFilter,
+                    dateFilter,
+                    showOnlyWithCost,
+                    limit: parseInt(limit),
+                    offset
+                });
                 const [rawResults] = await sequelize.query(query);
                 console.log(`Raw SQL query returned ${rawResults.length} invoices`);
+                if (rawResults.length === 0) {
+                    console.log('No results returned. Checking if this is due to the HAVING clause...');
+                    // Test without the HAVING clause
+                    const testQuery = query.replace(/HAVING.*$/m, '');
+                    console.log('Testing query without HAVING clause:', testQuery);
+                    const [testResults] = await sequelize.query(testQuery);
+                    console.log(`Test query returned ${testResults.length} invoices`);
+                }
                 
                 for (const row of rawResults) {
                     results.push({
