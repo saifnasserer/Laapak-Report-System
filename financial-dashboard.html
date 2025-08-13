@@ -915,6 +915,14 @@
             
             console.log('Safe KPIs values:', safeKPIs);
             
+            // Log profit calculation details
+            if (safeKPIs.totalCost === 0 && safeKPIs.totalRevenue > 0) {
+                console.log('⚠️ WARNING: No costs set - Profit calculation disabled');
+                console.log(`📊 Revenue: ${formatCurrency(safeKPIs.totalRevenue)} (no costs to calculate profit)`);
+            } else if (safeKPIs.totalCost > 0) {
+                console.log(`💰 Profit calculation: Revenue=${formatCurrency(safeKPIs.totalRevenue)}, Cost=${formatCurrency(safeKPIs.totalCost)}, NetProfit=${formatCurrency(safeKPIs.netProfit)}`);
+            }
+            
             const animateValue = (element, start, end, duration = 1500) => {
                 if (!element) {
                     console.warn('KPI element not found');
@@ -949,6 +957,16 @@
             setTimeout(() => animateValue(document.getElementById('totalExpenses'), 0, safeKPIs.totalExpenses), 400);
             setTimeout(() => animateValue(document.getElementById('netProfit'), 0, safeKPIs.netProfit), 600);
             setTimeout(() => animateValue(document.getElementById('profitMargin'), 0, safeKPIs.profitMargin), 800);
+            
+            // Add profit calculation info
+            const profitElement = document.getElementById('netProfit');
+            if (profitElement && safeKPIs.totalCost === 0 && safeKPIs.totalRevenue > 0) {
+                profitElement.title = 'الربح غير محسوب - لا توجد تكاليف محددة';
+                profitElement.style.opacity = '0.6';
+            } else if (profitElement) {
+                profitElement.title = 'صافي الربح (الإيرادات - التكاليف - المصروفات)';
+                profitElement.style.opacity = '1';
+            }
         }
 
         // Create trend chart
@@ -1280,6 +1298,22 @@
                 
                 const dashboardResult = await dashboardResponse.json();
                 console.log('Dashboard result:', dashboardResult);
+                
+                // Show profit calculation details
+                if (dashboardResult.success && dashboardResult.data && dashboardResult.data.kpis) {
+                    const kpis = dashboardResult.data.kpis;
+                    console.log('💰 Profit Analysis:');
+                    console.log(`   Total Revenue: ${formatCurrency(kpis.totalRevenue)}`);
+                    console.log(`   Revenue with Cost: ${formatCurrency(kpis.revenueWithCost || 0)}`);
+                    console.log(`   Revenue without Cost: ${formatCurrency(kpis.revenueWithoutCost || 0)}`);
+                    console.log(`   Total Cost: ${formatCurrency(kpis.totalCost)}`);
+                    console.log(`   Net Profit: ${formatCurrency(kpis.netProfit)}`);
+                    console.log(`   Profit Margin: ${kpis.profitMargin}%`);
+                    
+                    if (kpis.totalCost === 0 && kpis.totalRevenue > 0) {
+                        console.log('⚠️  Profit calculation disabled - no costs set');
+                    }
+                }
                 
                 alert('Debug completed! Check console for details.');
                 

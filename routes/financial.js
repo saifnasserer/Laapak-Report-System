@@ -132,10 +132,15 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             console.error('Error fetching expenses:', error);
         }
 
-        // Calculate profits
-        const grossProfit = totalRevenue - totalCost;
+        // Calculate profits - only for items with cost prices
+        const grossProfit = totalCost > 0 ? totalRevenue - totalCost : 0;
         const netProfit = grossProfit - totalExpenses;
-        const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+        
+        // Calculate profit margin only for invoices with cost prices
+        let profitMargin = 0;
+        if (totalCost > 0 && totalRevenue > 0) {
+            profitMargin = (grossProfit / totalRevenue) * 100;
+        }
         
         // Additional calculations for better insights
         const invoicesWithCost = await Invoice.count({
@@ -157,6 +162,66 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         });
         
         const invoicesWithoutCost = invoiceCount - invoicesWithCost;
+        
+        // Calculate revenue breakdown
+        let revenueWithCost = 0;
+        let revenueWithoutCost = 0;
+        
+        try {
+            // Get revenue from invoices WITH cost prices
+            const invoicesWithCostData = await Invoice.findAll({
+                where: {
+                    date: {
+                        [Op.between]: [startDateStr, endDateStr]
+                    },
+                    paymentStatus: ['paid', 'completed']
+                },
+                include: [{
+                    model: InvoiceItem,
+                    as: 'InvoiceItems',
+                    where: {
+                        cost_price: {
+                            [Op.not]: null
+                        }
+                    }
+                }]
+            });
+            
+            // Get revenue from invoices WITHOUT cost prices
+            const invoicesWithoutCostData = await Invoice.findAll({
+                where: {
+                    date: {
+                        [Op.between]: [startDateStr, endDateStr]
+                    },
+                    paymentStatus: ['paid', 'completed']
+                },
+                include: [{
+                    model: InvoiceItem,
+                    as: 'InvoiceItems',
+                    where: {
+                        cost_price: null
+                    }
+                }]
+            });
+            
+            // Calculate revenue from invoices with cost prices
+            for (const invoice of invoicesWithCostData) {
+                if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
+                    revenueWithCost += parseFloat(invoice.total) || 0;
+                }
+            }
+            
+            // Calculate revenue from invoices without cost prices
+            for (const invoice of invoicesWithoutCostData) {
+                if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
+                    revenueWithoutCost += parseFloat(invoice.total) || 0;
+                }
+            }
+            
+            console.log(`Revenue breakdown: WithCost=${revenueWithCost}, WithoutCost=${revenueWithoutCost}, Total=${totalRevenue}`);
+        } catch (error) {
+            console.error('Error calculating revenue breakdown:', error);
+        }
         
         console.log(`Profit calculations: GrossProfit=${grossProfit}, NetProfit=${netProfit}, Margin=${profitMargin}%`);
         console.log(`Invoice breakdown: Total=${invoiceCount}, WithCost=${invoicesWithCost}, WithoutCost=${invoicesWithoutCost}`);
@@ -195,8 +260,18 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             if (invoicesWithoutCost > 0) {
                 alerts.push({
                     type: 'info',
-                    message: `${invoicesWithoutCost} فواتير بدون تكاليف (${((invoicesWithoutCost / invoiceCount) * 100).toFixed(1)}%)`,
-                    message_en: `${invoicesWithoutCost} invoices without costs (${((invoicesWithoutCost / invoiceCount) * 100).toFixed(1)}%)`,
+                    message: `${invoicesWithoutCost} فواتير بدون تكاليف (${((invoicesWithoutCost / invoiceCount) * 100).toFixed(1)}%) - الربح محسوب فقط للفواتير مع التكاليف`,
+                    message_en: `${invoicesWithoutCost} invoices without costs (${((invoicesWithoutCost / invoiceCount) * 100).toFixed(1)}%) - Profit calculated only for invoices with costs`,
+                    action: 'profit-management'
+                });
+            }
+            
+            // Add alert if no costs are set
+            if (totalCost === 0 && totalRevenue > 0) {
+                alerts.push({
+                    type: 'warning',
+                    message: 'لا توجد تكاليف محددة - الربح غير محسوب',
+                    message_en: 'No costs set - Profit not calculated',
                     action: 'profit-management'
                 });
             }
@@ -287,7 +362,8 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                     monthExpensesTotal += parseFloat(expense.amount) || 0;
                 }
                 
-                const monthProfit = monthRevenue - monthCost - monthExpensesTotal;
+                // Calculate profit only if there are costs (same logic as main calculation)
+                const monthProfit = monthCost > 0 ? monthRevenue - monthCost - monthExpensesTotal : 0;
 
                 trendData.push({
                     month: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
@@ -342,7 +418,9 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                     invoiceCount: invoiceCount,
                     expenseCount: expenseCount,
                     invoicesWithCost: invoicesWithCost,
-                    invoicesWithoutCost: invoicesWithoutCost
+                    invoicesWithoutCost: invoicesWithoutCost,
+                    revenueWithCost: revenueWithCost,
+                    revenueWithoutCost: revenueWithoutCost
                 },
                 charts: {
                     trend: trendData,
