@@ -975,10 +975,10 @@
             try {
                 console.log('Starting to load profit data...');
                 
-                // Reset infinite scroll variables
+                // Reset data loading variables
                 currentPage = 1;
                 isLoading = false;
-                hasMoreData = false; // Start with false, will be updated by API response
+                hasMoreData = false; // Disable infinite scroll - load all at once
                 allData = [];
 
                 const tbody = document.getElementById('dataTableBody');
@@ -991,22 +991,22 @@
                     </tr>
                 `;
 
-                // Load first page of data
-                console.log('Fetching first page of data...');
-                const firstPageResult = await fetchProfitData(1, itemsPerPage);
+                // Load all data at once
+                console.log('Fetching all data...');
+                const allDataResult = await fetchProfitData(1, itemsPerPage);
                 
-                console.log('First page data received:', firstPageResult);
+                console.log('All data received:', allDataResult);
                 
-                if (firstPageResult && firstPageResult.items && firstPageResult.items.length > 0) {
-                    allData = firstPageResult.items;
-                    console.log('Initial data items count:', allData.length);
+                if (allDataResult && allDataResult.items && allDataResult.items.length > 0) {
+                    allData = allDataResult.items;
+                    console.log('Total data items count:', allData.length);
                     console.log('Sample data:', allData.slice(0, 3));
                     
-                    // Use the hasMore information from the API response
-                    hasMoreData = firstPageResult.hasMore || false;
-                    console.log('API returned hasMoreData:', hasMoreData);
+                    // Disable infinite scroll since we loaded all data
+                    hasMoreData = false;
+                    console.log('All data loaded, infinite scroll disabled');
                     
-                    // Render table with correct hasMoreData value
+                    // Render table with all data
                     renderTable(allData);
                     updateTableStats(allData);
                 } else {
@@ -1160,25 +1160,15 @@
                 }
             }).join('');
             
-            // Always add load more button
-            console.log('renderTable - hasMoreData value:', hasMoreData, 'data length:', data.length);
-            const loadMoreRow = `
-                <tr id="load-more-row">
-                    <td colspan="7" class="text-center py-3">
-                        <button class="btn btn-outline-primary" onclick="loadMoreData()" id="loadMoreBtn" ${!hasMoreData ? 'disabled' : ''}>
-                            <i class="fas fa-arrow-down me-2"></i>تحميل المزيد
-                        </button>
-                    </tr>
-                `;
-            tbody.insertAdjacentHTML('beforeend', loadMoreRow);
-            console.log('Added load more button to table (always visible)');
+            // No load more button needed since we load all data at once
+            console.log('renderTable - All data loaded, no pagination needed. Data length:', data.length);
         }
 
         // Reset load more state
         function resetLoadMoreState() {
             currentPage = 1;
             isLoading = false;
-            hasMoreData = true;
+            hasMoreData = false; // Disable infinite scroll
             console.log('Reset load more state:', { currentPage, isLoading, hasMoreData });
         }
 
@@ -1548,14 +1538,19 @@
             `;
         }
 
-        // Infinite scroll variables
+        // Data loading variables
         let currentPage = 1;
         let isLoading = false;
-        let hasMoreData = true;
-        const itemsPerPage = 20;
+        let hasMoreData = false; // Disable infinite scroll
+        const itemsPerPage = 1000; // Load all data at once
 
-        // Setup infinite scroll
+        // Setup infinite scroll (DISABLED - loading all data at once)
         function setupInfiniteScroll() {
+            console.log('Infinite scroll disabled - loading all data at once');
+            return; // Disabled function
+            
+            // Original code commented out since we load all data at once
+            /*
             const tableContainer = document.querySelector('.table-responsive');
             if (tableContainer) {
                 console.log('Setting up infinite scroll for table container');
@@ -1582,10 +1577,16 @@
             } else {
                 console.warn('Table container not found for infinite scroll');
             }
+            */
         }
 
-        // Load more data for infinite scroll
+        // Load more data for infinite scroll (DISABLED - loading all data at once)
         async function loadMoreData() {
+            console.log('LoadMoreData called but disabled - all data loaded at once');
+            return; // Disabled function
+            
+            // Original code commented out since we load all data at once
+            /*
             console.log('LoadMoreData called with state:', { 
                 isLoading, 
                 hasMoreData, 
@@ -1609,6 +1610,7 @@
                 }
                 return;
             }
+            */
             
             isLoading = true;
             currentPage++;
@@ -1720,7 +1722,7 @@
             }
         }
 
-        // Fetch profit data with pagination
+        // Fetch profit data - loads all data at once (no pagination)
         async function fetchProfitData(page = 1, limit = itemsPerPage) {
             try {
                 const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
@@ -1731,10 +1733,10 @@
                 // Get filter parameters
                 const filterParams = getFilterParams();
                 
-                // Build query parameters
+                // Build query parameters - load all data at once
                 const queryParams = new URLSearchParams({
                     page: page.toString(),
-                    limit: limit.toString()
+                    limit: limit.toString() // This will be 1000 to load all invoices
                 });
                 
                 // Add date filters if provided
@@ -1753,7 +1755,7 @@
                 // Request all invoices (not just those with cost prices) for profit management
                 queryParams.append('showOnlyWithCost', 'false');
                 
-                console.log('Fetching profit data:', {
+                console.log('Fetching profit data (loading all invoices):', {
                     page,
                     limit,
                     baseUrl,
@@ -1975,8 +1977,8 @@
                 });
             }
 
-            // Infinite scroll setup
-            setupInfiniteScroll();
+            // No infinite scroll needed - loading all data at once
+            // setupInfiniteScroll();
             
             const saveCostPriceBtn = document.getElementById('saveCostPriceBtn');
             if (saveCostPriceBtn) {

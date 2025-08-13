@@ -382,7 +382,7 @@ router.get('/dashboard-simple', adminAuth, async (req, res) => {
  */
 router.get('/profit-management', adminAuth, async (req, res) => {
     try {
-        const { page = 1, limit = 50, search, startDate, endDate, type } = req.query;
+        const { page = 1, limit = 1000, search, startDate, endDate, type } = req.query;
         const offset = (page - 1) * limit;
 
         let whereClause = {};
