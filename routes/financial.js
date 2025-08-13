@@ -28,75 +28,126 @@ const { Op } = require('sequelize');
  */
 router.get('/dashboard', adminAuth, async (req, res) => {
     try {
-        const { month, year } = req.query;
-        const currentDate = new Date();
-        const targetMonth = month || (currentDate.getMonth() + 1);
-        const targetYear = year || currentDate.getFullYear();
-        const monthYear = `${targetYear}-${String(targetMonth).padStart(2, '0')}`;
-
-        // Get or calculate current month summary
-        let summary = await FinancialSummary.findOne({
-            where: { month_year: monthYear }
-        });
-
-        if (!summary) {
-            try {
-                summary = await FinancialSummary.calculateForMonth(monthYear);
-            } catch (calcError) {
-                console.error('Error calculating financial summary:', calcError);
-                // Create a default summary if calculation fails
-                summary = await FinancialSummary.create({
-                    month_year: monthYear,
-                    total_revenue: 0,
-                    total_cost: 0,
-                    total_expenses: 0,
-                    gross_profit: 0,
-                    net_profit: 0,
-                    profit_margin: 0,
-                    invoice_count: 0,
-                    expense_count: 0
-                });
-            }
+        const { startDate, endDate, month, year } = req.query;
+        
+        // Determine date range
+        let startDateObj, endDateObj;
+        
+        if (startDate && endDate) {
+            // Use provided date range
+            startDateObj = new Date(startDate);
+            endDateObj = new Date(endDate);
+        } else {
+            // Use month/year or default to current month
+            const currentDate = new Date();
+            const targetMonth = month || (currentDate.getMonth() + 1);
+            const targetYear = year || currentDate.getFullYear();
+            
+            startDateObj = new Date(targetYear, targetMonth - 1, 1);
+            endDateObj = new Date(targetYear, targetMonth, 0);
         }
+        
+        // Format dates for database queries
+        const startDateStr = startDateObj.toISOString().split('T')[0];
+        const endDateStr = endDateObj.toISOString().split('T')[0];
+        
+        console.log('Dashboard date range:', { startDate: startDateStr, endDate: endDateStr });
+
+        // Calculate KPIs from invoices and expenses for the date range
+        let totalRevenue = 0;
+        let totalCost = 0;
+        let totalExpenses = 0;
+        let invoiceCount = 0;
+        let expenseCount = 0;
+
+        // Get revenue and cost from invoices
+        try {
+            const invoices = await Invoice.findAll({
+                where: {
+                    date: {
+                        [Op.between]: [startDateStr, endDateStr]
+                    },
+                    paymentStatus: ['paid', 'completed']
+                },
+                include: [{
+                    model: InvoiceItem,
+                    as: 'InvoiceItems'
+                }]
+            });
+
+            for (const invoice of invoices) {
+                totalRevenue += parseFloat(invoice.total) || 0;
+                invoiceCount++;
+                
+                // Calculate total cost from invoice items
+                for (const item of invoice.InvoiceItems) {
+                    const costPrice = parseFloat(item.cost_price) || 0;
+                    const quantity = parseInt(item.quantity) || 1;
+                    totalCost += costPrice * quantity;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching invoices:', error);
+        }
+
+        // Get expenses
+        try {
+            const expenses = await Expense.findAll({
+                where: {
+                    date: {
+                        [Op.between]: [startDateStr, endDateStr]
+                    },
+                    status: ['approved', 'paid']
+                }
+            });
+
+            for (const expense of expenses) {
+                totalExpenses += parseFloat(expense.amount) || 0;
+                expenseCount++;
+            }
+        } catch (error) {
+            console.error('Error fetching expenses:', error);
+        }
+
+        // Calculate profits
+        const grossProfit = totalRevenue - totalCost;
+        const netProfit = grossProfit - totalExpenses;
+        const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         // Get alerts
         const alerts = [];
 
         // Check for products without cost prices
-        let itemsWithoutCost = 0;
         try {
-            itemsWithoutCost = await InvoiceItem.count({
+            const itemsWithoutCost = await InvoiceItem.count({
                 where: {
                     cost_price: null,
-                    '$Invoice.paymentStatus$': 'paid'
+                    '$Invoice.date$': {
+                        [Op.between]: [startDateStr, endDateStr]
+                    },
+                    '$Invoice.paymentStatus$': ['paid', 'completed']
                 },
                 include: [{
                     model: Invoice,
-                    where: {
-                        date: {
-                            [Op.gte]: `${monthYear}-01`,
-                            [Op.lte]: `${monthYear}-31`
-                        }
-                    }
+                    as: 'Invoice'
                 }]
             });
+
+            if (itemsWithoutCost > 0) {
+                alerts.push({
+                    type: 'warning',
+                    message: `${itemsWithoutCost} منتجات بدون سعر تكلفة`,
+                    message_en: `${itemsWithoutCost} products without cost price`,
+                    action: 'profit-management'
+                });
+            }
         } catch (error) {
             console.error('Error checking items without cost:', error);
         }
 
-        if (itemsWithoutCost > 0) {
-            alerts.push({
-                type: 'warning',
-                message: `${itemsWithoutCost} منتجات بدون سعر تكلفة`,
-                message_en: `${itemsWithoutCost} products without cost price`,
-                action: 'profit-management'
-            });
-        }
-
         // Check for upcoming fixed expenses
-        let upcomingExpenses = [];
         try {
-            upcomingExpenses = await Expense.findAll({
+            const upcomingExpenses = await Expense.findAll({
                 where: {
                     type: 'fixed',
                     repeat_monthly: true,
@@ -104,36 +155,80 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 },
                 include: [{ model: ExpenseCategory, as: 'category' }]
             });
+
+            const nextMonthDate = new Date(endDateObj.getFullYear(), endDateObj.getMonth() + 1, 5);
+            for (const expense of upcomingExpenses) {
+                alerts.push({
+                    type: 'info',
+                    message: `${expense.name_ar} سيتم خصمه في ${nextMonthDate.getDate()}/${nextMonthDate.getMonth() + 1}`,
+                    message_en: `${expense.name} will be deducted on ${nextMonthDate.getDate()}/${nextMonthDate.getMonth() + 1}`,
+                    action: 'expenses'
+                });
+            }
         } catch (error) {
             console.error('Error fetching upcoming expenses:', error);
-        }
-
-        const nextMonthDate = new Date(targetYear, targetMonth, 5);
-        for (const expense of upcomingExpenses) {
-            alerts.push({
-                type: 'info',
-                message: `${expense.name_ar} سيتم خصمه في ${nextMonthDate.getDate()}/${nextMonthDate.getMonth() + 1}`,
-                message_en: `${expense.name} will be deducted on ${nextMonthDate.getDate()}/${nextMonthDate.getMonth() + 1}`,
-                action: 'expenses'
-            });
         }
 
         // Get 6-month trend data for charts
         const trendData = [];
         try {
             for (let i = 5; i >= 0; i--) {
-                const date = new Date(targetYear, targetMonth - 1 - i, 1);
-                const trendMonthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const date = new Date(endDateObj.getFullYear(), endDateObj.getMonth() - i, 1);
+                const trendStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
+                const trendEndDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
                 
-                const trendSummary = await FinancialSummary.findOne({
-                    where: { month_year: trendMonthYear }
+                const trendStartStr = trendStartDate.toISOString().split('T')[0];
+                const trendEndStr = trendEndDate.toISOString().split('T')[0];
+                
+                // Get revenue for this month
+                const monthInvoices = await Invoice.findAll({
+                    where: {
+                        date: {
+                            [Op.between]: [trendStartStr, trendEndStr]
+                        },
+                        paymentStatus: ['paid', 'completed']
+                    }
                 });
+                
+                let monthRevenue = 0;
+                let monthCost = 0;
+                
+                for (const invoice of monthInvoices) {
+                    monthRevenue += parseFloat(invoice.total) || 0;
+                    
+                    const items = await InvoiceItem.findAll({
+                        where: { invoiceId: invoice.id }
+                    });
+                    
+                    for (const item of items) {
+                        const costPrice = parseFloat(item.cost_price) || 0;
+                        const quantity = parseInt(item.quantity) || 1;
+                        monthCost += costPrice * quantity;
+                    }
+                }
+                
+                // Get expenses for this month
+                const monthExpenses = await Expense.findAll({
+                    where: {
+                        date: {
+                            [Op.between]: [trendStartStr, trendEndStr]
+                        },
+                        status: ['approved', 'paid']
+                    }
+                });
+                
+                let monthExpensesTotal = 0;
+                for (const expense of monthExpenses) {
+                    monthExpensesTotal += parseFloat(expense.amount) || 0;
+                }
+                
+                const monthProfit = monthRevenue - monthCost - monthExpensesTotal;
 
                 trendData.push({
-                    month: trendMonthYear,
-                    revenue: trendSummary ? parseFloat(trendSummary.total_revenue) : 0,
-                    expenses: trendSummary ? parseFloat(trendSummary.total_expenses) : 0,
-                    profit: trendSummary ? parseFloat(trendSummary.net_profit) : 0
+                    month: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+                    revenue: monthRevenue,
+                    expenses: monthExpensesTotal,
+                    profit: monthProfit
                 });
             }
         } catch (error) {
@@ -143,7 +238,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         // Get expense breakdown by category
         let expenseBreakdown = [];
         try {
-            expenseBreakdown = await Expense.findAll({
+            const breakdownData = await Expense.findAll({
                 attributes: [
                     [ExpenseCategory.sequelize.col('category.name_ar'), 'category_name'],
                     [ExpenseCategory.sequelize.col('category.color'), 'color'],
@@ -151,8 +246,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 ],
                 where: {
                     date: {
-                        [Op.gte]: `${monthYear}-01`,
-                        [Op.lte]: `${monthYear}-31`
+                        [Op.between]: [startDateStr, endDateStr]
                     },
                     status: ['approved', 'paid']
                 },
@@ -164,6 +258,8 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 group: ['category.id'],
                 raw: true
             });
+            
+            expenseBreakdown = breakdownData;
         } catch (error) {
             console.error('Error fetching expense breakdown:', error);
         }
@@ -172,19 +268,22 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             success: true,
             data: {
                 kpis: {
-                    totalRevenue: parseFloat(summary.total_revenue),
-                    totalExpenses: parseFloat(summary.total_expenses),
-                    netProfit: parseFloat(summary.net_profit),
-                    profitMargin: parseFloat(summary.profit_margin),
-                    invoiceCount: summary.invoice_count,
-                    expenseCount: summary.expense_count
+                    totalRevenue: totalRevenue,
+                    totalExpenses: totalExpenses,
+                    netProfit: netProfit,
+                    profitMargin: profitMargin,
+                    invoiceCount: invoiceCount,
+                    expenseCount: expenseCount
                 },
                 charts: {
                     trend: trendData,
                     expenseBreakdown: expenseBreakdown
                 },
                 alerts: alerts,
-                lastCalculated: summary.last_calculated
+                dateRange: {
+                    startDate: startDateStr,
+                    endDate: endDateStr
+                }
             }
         });
 

@@ -218,6 +218,11 @@
             border-radius: var(--border-radius);
             overflow: hidden;
             box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .input-group:hover {
+            box-shadow: var(--shadow-md);
         }
 
         .input-group-text {
@@ -235,6 +240,74 @@
 
         .form-control:focus {
             box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
+        }
+
+        /* Elegant Filter Bar */
+        .filter-bar {
+            background: rgba(255,255,255,0.9);
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .filter-bar:hover {
+            background: rgba(255,255,255,0.95);
+            box-shadow: var(--shadow-md);
+        }
+
+        .filter-input-group {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .filter-input-group:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.1rem rgba(0, 117, 83, 0.1);
+        }
+
+        .filter-input-group .input-group-text {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.5rem 0.75rem;
+        }
+
+        .filter-input-group .form-control {
+            border: none;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            background: transparent;
+        }
+
+        .filter-input-group .form-control:focus {
+            box-shadow: none;
+            background: rgba(0, 117, 83, 0.02);
+        }
+
+        /* Responsive Filter Design */
+        @media (max-width: 768px) {
+            .filter-bar {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            
+            .filter-bar .d-flex {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .filter-input-group {
+                width: 100% !important;
+            }
+            
+            .date-filters {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
         }
 
         /* Loading Spinner */
@@ -472,11 +545,45 @@
         <!-- Search Bar -->
         <div class="row mb-3">
             <div class="col-12">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" class="form-control" id="searchInput" placeholder="البحث في اسم العميل...">
+                <div class="filter-bar d-flex align-items-center gap-3 p-3">
+                    <!-- Search Input -->
+                    <div class="flex-grow-1">
+                        <div class="filter-input-group input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="searchInput" placeholder="البحث في اسم العميل...">
+                        </div>
+                    </div>
+                    
+                    <!-- Date Filters -->
+                    <div class="date-filters d-flex align-items-center gap-2">
+                        <div class="filter-input-group input-group" style="width: 140px;">
+                            <span class="input-group-text">
+                                <i class="fas fa-calendar"></i>
+                            </span>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        
+                        <span class="text-muted">إلى</span>
+                        
+                        <div class="filter-input-group input-group" style="width: 140px;">
+                            <input type="date" class="form-control" id="endDate">
+                            <span class="input-group-text">
+                                <i class="fas fa-calendar"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Buttons -->
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-primary" id="applyFilterBtn">
+                            <i class="fas fa-filter me-1"></i>تطبيق
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearFilterBtn">
+                            <i class="fas fa-times me-1"></i>مسح
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1364,11 +1471,29 @@
                 const token = authMiddleware.getAdminToken() || adminInfo.token || '';
                 const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                 
+                // Get filter parameters
+                const filterParams = getFilterParams();
+                
+                // Build query parameters
+                const queryParams = new URLSearchParams({
+                    page: page.toString(),
+                    limit: limit.toString()
+                });
+                
+                // Add date filters if provided
+                if (filterParams.startDate) {
+                    queryParams.append('startDate', filterParams.startDate);
+                }
+                if (filterParams.endDate) {
+                    queryParams.append('endDate', filterParams.endDate);
+                }
+                
                 console.log('Fetching profit data:', {
                     page,
                     limit,
                     baseUrl,
-                    hasToken: !!token
+                    hasToken: !!token,
+                    filters: filterParams
                 });
                 
                 // Try different API endpoints to get data
@@ -1376,7 +1501,7 @@
                 
                 // First try the profit management endpoint
                 try {
-                    response = await fetch(`${baseUrl}/api/financial/profit-management?page=${page}&limit=${limit}`, {
+                    response = await fetch(`${baseUrl}/api/financial/profit-management?${queryParams.toString()}`, {
                         headers: { 'x-auth-token': token }
                     });
                     
@@ -1392,7 +1517,7 @@
                     console.warn('Profit management API failed, trying invoices API:', profitError);
                     
                     // Fallback to invoices API
-                    response = await fetch(`${baseUrl}/api/invoices?page=${page}&limit=${limit}`, {
+                    response = await fetch(`${baseUrl}/api/invoices?${queryParams.toString()}`, {
                         headers: { 'x-auth-token': token }
                     });
                     
@@ -1528,8 +1653,14 @@
             // Setup search functionality
             setupSearch();
             
+            // Setup date filter functionality
+            setupDateFilter();
+            
             // Setup modal event listeners for proper cleanup
             setupModalEventListeners();
+            
+            // Set default date range (last 30 days)
+            setDefaultDateRange();
             
             // Test database content first
             testDatabaseContent().then(() => {
@@ -1706,6 +1837,61 @@
                     filterTableData(searchTerm);
                 });
             }
+        }
+
+        // Date filter functionality
+        function setupDateFilter() {
+            const applyFilterBtn = document.getElementById('applyFilterBtn');
+            const clearFilterBtn = document.getElementById('clearFilterBtn');
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            
+            if (applyFilterBtn) {
+                applyFilterBtn.addEventListener('click', function() {
+                    console.log('Applying date filter...');
+                    loadProfitData();
+                });
+            }
+            
+            if (clearFilterBtn) {
+                clearFilterBtn.addEventListener('click', function() {
+                    console.log('Clearing filters...');
+                    if (startDate) startDate.value = '';
+                    if (endDate) endDate.value = '';
+                    if (searchInput) searchInput.value = '';
+                    loadProfitData();
+                });
+            }
+            
+            // Auto-apply filter when dates change
+            if (startDate) {
+                startDate.addEventListener('change', function() {
+                    if (this.value && endDate.value) {
+                        loadProfitData();
+                    }
+                });
+            }
+            
+            if (endDate) {
+                endDate.addEventListener('change', function() {
+                    if (this.value && startDate.value) {
+                        loadProfitData();
+                    }
+                });
+            }
+        }
+
+        // Get current filter parameters
+        function getFilterParams() {
+            const searchTerm = document.getElementById('searchInput')?.value || '';
+            const startDate = document.getElementById('startDate')?.value || '';
+            const endDate = document.getElementById('endDate')?.value || '';
+            
+            return {
+                search: searchTerm,
+                startDate: startDate,
+                endDate: endDate
+            };
         }
 
         // Filter table data based on search term
@@ -1899,6 +2085,31 @@
                 costPriceModal.addEventListener('show.bs.modal', function () {
                     // Ensure proper focus management
                     this.setAttribute('aria-hidden', 'false');
+                });
+            }
+        }
+
+        // Set default date range (last 30 days)
+        function setDefaultDateRange() {
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            
+            if (startDate && endDate) {
+                const today = new Date();
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 30);
+                
+                // Format dates for input fields (YYYY-MM-DD)
+                const formatDate = (date) => {
+                    return date.toISOString().split('T')[0];
+                };
+                
+                startDate.value = formatDate(thirtyDaysAgo);
+                endDate.value = formatDate(today);
+                
+                console.log('Set default date range:', {
+                    start: startDate.value,
+                    end: endDate.value
                 });
             }
         }
