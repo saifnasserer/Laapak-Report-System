@@ -74,7 +74,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         let invoiceCount = 0;
         let expenseCount = 0;
 
-        // Get revenue and cost from invoices
+        // Get revenue and cost from invoices (only those with cost prices)
         try {
             const invoices = await Invoice.findAll({
                 where: {
@@ -85,19 +85,27 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 },
                 include: [{
                     model: InvoiceItem,
-                    as: 'InvoiceItems'
+                    as: 'InvoiceItems',
+                    where: {
+                        cost_price: {
+                            [Op.not]: null
+                        }
+                    }
                 }]
             });
 
             for (const invoice of invoices) {
-                totalRevenue += parseFloat(invoice.total) || 0;
-                invoiceCount++;
-                
-                // Calculate total cost from invoice items
-                for (const item of invoice.InvoiceItems) {
-                    const costPrice = parseFloat(item.cost_price) || 0;
-                    const quantity = parseInt(item.quantity) || 1;
-                    totalCost += costPrice * quantity;
+                // Only count invoices that have items with cost prices
+                if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
+                    totalRevenue += parseFloat(invoice.total) || 0;
+                    invoiceCount++;
+                    
+                    // Calculate total cost from invoice items
+                    for (const item of invoice.InvoiceItems) {
+                        const costPrice = parseFloat(item.cost_price) || 0;
+                        const quantity = parseInt(item.quantity) || 1;
+                        totalCost += costPrice * quantity;
+                    }
                 }
             }
         } catch (error) {
@@ -194,30 +202,38 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 const trendStartStr = formatDateForDB(trendStartDate);
                 const trendEndStr = formatDateForDB(trendEndDate);
                 
-                // Get revenue for this month
+                // Get revenue for this month (only invoices with cost prices)
                 const monthInvoices = await Invoice.findAll({
                     where: {
                         date: {
                             [Op.between]: [trendStartStr, trendEndStr]
                         },
                         paymentStatus: ['paid', 'completed']
-                    }
+                    },
+                    include: [{
+                        model: InvoiceItem,
+                        as: 'InvoiceItems',
+                        where: {
+                            cost_price: {
+                                [Op.not]: null
+                            }
+                        }
+                    }]
                 });
                 
                 let monthRevenue = 0;
                 let monthCost = 0;
                 
                 for (const invoice of monthInvoices) {
-                    monthRevenue += parseFloat(invoice.total) || 0;
-                    
-                    const items = await InvoiceItem.findAll({
-                        where: { invoiceId: invoice.id }
-                    });
-                    
-                    for (const item of items) {
-                        const costPrice = parseFloat(item.cost_price) || 0;
-                        const quantity = parseInt(item.quantity) || 1;
-                        monthCost += costPrice * quantity;
+                    // Only count invoices that have items with cost prices
+                    if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
+                        monthRevenue += parseFloat(invoice.total) || 0;
+                        
+                        for (const item of invoice.InvoiceItems) {
+                            const costPrice = parseFloat(item.cost_price) || 0;
+                            const quantity = parseInt(item.quantity) || 1;
+                            monthCost += costPrice * quantity;
+                        }
                     }
                 }
                 
@@ -412,13 +428,19 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 const [statusResults] = await sequelize.query(statusQuery);
                 console.log('Available payment statuses:', statusResults);
                 
-                // Build the main query - allow all payment statuses for now
+                // Build the main query - only include invoices with cost prices
                 let paymentFilter = '';
                 if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
                     paymentFilter = `WHERE i.paymentStatus = '${req.query.paymentStatus}'`;
                 } else {
                     // Default to only show completed invoices
                     paymentFilter = `WHERE i.paymentStatus = 'completed'`;
+                }
+                
+                // Add date filter if provided
+                let dateFilter = '';
+                if (startDate && endDate) {
+                    dateFilter = `AND i.date BETWEEN '${startDate}' AND '${endDate}'`;
                 }
                 
                 const query = `
@@ -439,8 +461,9 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     FROM invoices i
                     LEFT JOIN clients c ON i.client_id = c.id
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
-                    ${paymentFilter}
+                    ${paymentFilter} ${dateFilter}
                     GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
+                    HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0
                     ORDER BY i.date DESC
                     LIMIT ${parseInt(limit)}
                     OFFSET ${offset}
