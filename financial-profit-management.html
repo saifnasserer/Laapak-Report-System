@@ -978,7 +978,7 @@
                 // Reset infinite scroll variables
                 currentPage = 1;
                 isLoading = false;
-                hasMoreData = true;
+                hasMoreData = false; // Start with false, will be updated by API response
                 allData = [];
 
                 const tbody = document.getElementById('dataTableBody');
@@ -1002,15 +1002,13 @@
                     console.log('Initial data items count:', allData.length);
                     console.log('Sample data:', allData.slice(0, 3));
                     
-                    renderTable(allData);
-                    updateTableStats(allData);
-                    
                     // Use the hasMore information from the API response
                     hasMoreData = firstPageResult.hasMore || false;
                     console.log('API returned hasMoreData:', hasMoreData);
                     
-                    // Re-render table to show/hide load more button based on hasMoreData
+                    // Render table with correct hasMoreData value
                     renderTable(allData);
+                    updateTableStats(allData);
                 } else {
                     console.log('No data received from API');
                     hasMoreData = false;
@@ -1163,6 +1161,7 @@
             }).join('');
             
             // Add load more button only if there's more data available
+            console.log('renderTable - hasMoreData value:', hasMoreData, 'data length:', data.length);
             if (hasMoreData) {
                 const loadMoreRow = `
                     <tr id="load-more-row">
@@ -1751,6 +1750,9 @@
                     queryParams.append('showAll', 'true');
                 }
                 
+                // Request all invoices (not just those with cost prices) for profit management
+                queryParams.append('showOnlyWithCost', 'false');
+                
                 console.log('Fetching profit data:', {
                     page,
                     limit,
@@ -1773,6 +1775,14 @@
                 
                 const result = await response.json();
                 console.log('Profit management API Response:', result);
+                console.log('API Response structure:', {
+                    success: result.success,
+                    hasData: !!result.data,
+                    hasItems: !!(result.data && result.data.items),
+                    itemsLength: result.data && result.data.items ? result.data.items.length : 0,
+                    hasPagination: !!(result.data && result.data.pagination),
+                    pagination: result.data && result.data.pagination ? result.data.pagination : null
+                });
                 
                 // Extract items from the response
                 let items = [];
@@ -2593,6 +2603,76 @@
                 console.log('Filter bar reset to inactive state');
             }
         }
+
+        // Debug function to test API directly
+        async function debugAPI() {
+            try {
+                console.log('=== DEBUG API TEST ===');
+                
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                console.log('Debug info:', {
+                    hasAdminInfo: !!adminInfo,
+                    hasToken: !!token,
+                    baseUrl: baseUrl,
+                    adminInfo: adminInfo
+                });
+                
+                // Test the API directly
+                const response = await fetch(`${baseUrl}/api/financial/profit-management?page=1&limit=5&showAll=true`, {
+                    headers: { 'x-auth-token': token }
+                });
+                
+                console.log('API Response status:', response.status);
+                console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error:', errorText);
+                    alert('API Error: ' + response.status + ' - ' + errorText);
+                    return;
+                }
+                
+                const result = await response.json();
+                console.log('API Result:', result);
+                
+                if (result.success && result.data) {
+                    console.log('Data found:', {
+                        itemsCount: result.data.items ? result.data.items.length : 0,
+                        pagination: result.data.pagination,
+                        hasMore: result.data.pagination ? result.data.pagination.hasMore : 'undefined'
+                    });
+                    
+                    if (result.data.items && result.data.items.length > 0) {
+                        console.log('Sample item:', result.data.items[0]);
+                    }
+                }
+                
+                alert('Check console for debug info');
+                
+            } catch (error) {
+                console.error('Debug API Error:', error);
+                alert('Debug Error: ' + error.message);
+            }
+        }
+
+        // Add debug button to the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add debug button to the page
+            const filterBar = document.querySelector('.filter-bar');
+            if (filterBar) {
+                const debugBtn = document.createElement('button');
+                debugBtn.type = 'button';
+                debugBtn.className = 'btn btn-warning btn-sm';
+                debugBtn.innerHTML = '<i class="fas fa-bug"></i>';
+                debugBtn.title = 'Debug API';
+                debugBtn.onclick = debugAPI;
+                filterBar.appendChild(debugBtn);
+            }
+        });
     </script>
     
     <!-- Config -->

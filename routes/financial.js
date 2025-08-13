@@ -432,7 +432,30 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                 const [statusResults] = await sequelize.query(statusQuery);
                 console.log('Available payment statuses:', statusResults);
                 
-                // Build the main query - only include invoices with cost prices
+                // Check total invoices vs invoices with cost prices
+                const totalInvoicesQuery = `
+                    SELECT COUNT(*) as total_invoices
+                    FROM invoices i
+                    ${paymentFilter} ${dateFilter}
+                `;
+                const [totalInvoicesResult] = await sequelize.query(totalInvoicesQuery);
+                console.log('Total invoices (before cost filter):', totalInvoicesResult[0].total_invoices);
+                
+                const invoicesWithCostQuery = `
+                    SELECT COUNT(*) as invoices_with_cost
+                    FROM invoices i
+                    LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
+                    ${paymentFilter} ${dateFilter}
+                    GROUP BY i.id
+                    HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0
+                `;
+                const [invoicesWithCostResult] = await sequelize.query(invoicesWithCostQuery);
+                console.log('Invoices with cost prices:', invoicesWithCostResult.length);
+                
+                // Build the main query - check if we should show all invoices or only those with cost prices
+                const showOnlyWithCost = req.query.showOnlyWithCost === 'true';
+                console.log('Show only invoices with cost prices:', showOnlyWithCost);
+                
                 let paymentFilter = '';
                 if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
                     paymentFilter = `WHERE i.paymentStatus = '${req.query.paymentStatus}'`;
@@ -472,7 +495,7 @@ router.get('/profit-management', adminAuth, async (req, res) => {
                     LEFT JOIN invoice_items ii ON i.id = ii.invoiceId
                     ${paymentFilter} ${dateFilter}
                     GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
-                    HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0
+                    ${showOnlyWithCost ? 'HAVING COALESCE(SUM(ii.cost_price * ii.quantity), 0) > 0' : ''}
                     ORDER BY i.date DESC
                     LIMIT ${parseInt(limit)}
                     OFFSET ${offset}
