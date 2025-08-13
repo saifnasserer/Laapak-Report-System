@@ -756,6 +756,11 @@
     <button class="fab-btn" onclick="refreshDashboard()" title="تحديث البيانات">
         <i class="fas fa-sync-alt"></i>
     </button>
+    
+    <!-- Debug FAB -->
+    <button class="fab-btn" onclick="debugDashboard()" title="تصحيح البيانات" style="bottom: 6rem; background: #ffc107;">
+        <i class="fas fa-bug"></i>
+    </button>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -865,6 +870,9 @@
                 }
 
                 console.log('Final data to display:', data);
+                console.log('KPIs data:', data.kpis);
+                console.log('Charts data:', data.charts);
+                console.log('Alerts data:', data.alerts);
 
                 // Update KPIs with smooth animations
                 updateKPIs(data.kpis);
@@ -1212,6 +1220,73 @@
                 fab.style.transform = 'rotate(0deg)';
                 loadDashboardData();
             }, 500);
+        }
+        
+        // Debug dashboard
+        async function debugDashboard() {
+            try {
+                console.log('=== DEBUGGING DASHBOARD ===');
+                
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                console.log('Debug info:', {
+                    hasAdminInfo: !!adminInfo,
+                    hasToken: !!token,
+                    baseUrl: baseUrl
+                });
+                
+                // Test debug endpoint
+                const debugResponse = await fetch(`${baseUrl}/api/financial/dashboard-debug`, {
+                    headers: { 'x-auth-token': token }
+                });
+                
+                console.log('Debug response status:', debugResponse.status);
+                
+                if (!debugResponse.ok) {
+                    const errorText = await debugResponse.text();
+                    console.error('Debug API Error:', errorText);
+                    alert('Debug Error: ' + debugResponse.status + ' - ' + errorText);
+                    return;
+                }
+                
+                const debugResult = await debugResponse.json();
+                console.log('Debug result:', debugResult);
+                
+                // Test main dashboard endpoint
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                const queryParams = new URLSearchParams();
+                if (startDate) queryParams.append('startDate', startDate);
+                if (endDate) queryParams.append('endDate', endDate);
+                
+                console.log('Testing main dashboard with params:', queryParams.toString());
+                
+                const dashboardResponse = await fetch(`${baseUrl}/api/financial/dashboard?${queryParams.toString()}`, {
+                    headers: { 'x-auth-token': token }
+                });
+                
+                console.log('Dashboard response status:', dashboardResponse.status);
+                
+                if (!dashboardResponse.ok) {
+                    const errorText = await dashboardResponse.text();
+                    console.error('Dashboard API Error:', errorText);
+                    alert('Dashboard Error: ' + dashboardResponse.status + ' - ' + errorText);
+                    return;
+                }
+                
+                const dashboardResult = await dashboardResponse.json();
+                console.log('Dashboard result:', dashboardResult);
+                
+                alert('Debug completed! Check console for details.');
+                
+            } catch (error) {
+                console.error('Debug error:', error);
+                alert('Debug Error: ' + error.message);
+            }
         }
 
         // Initialize filter elements

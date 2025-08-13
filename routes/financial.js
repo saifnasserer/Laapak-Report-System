@@ -74,7 +74,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         let invoiceCount = 0;
         let expenseCount = 0;
 
-        // Get revenue and cost from invoices (only those with cost prices)
+        // Get revenue and cost from ALL invoices (not just those with cost prices)
         try {
             const invoices = await Invoice.findAll({
                 where: {
@@ -85,29 +85,30 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 },
                 include: [{
                     model: InvoiceItem,
-                    as: 'InvoiceItems',
-                    where: {
-                        cost_price: {
-                            [Op.not]: null
-                        }
-                    }
+                    as: 'InvoiceItems'
                 }]
             });
 
+            console.log(`Found ${invoices.length} invoices in date range`);
+
             for (const invoice of invoices) {
-                // Only count invoices that have items with cost prices
+                // Count ALL invoices for revenue (not just those with cost prices)
+                totalRevenue += parseFloat(invoice.total) || 0;
+                invoiceCount++;
+                
+                // Calculate total cost from invoice items (only if cost price exists)
                 if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
-                    totalRevenue += parseFloat(invoice.total) || 0;
-                    invoiceCount++;
-                    
-                    // Calculate total cost from invoice items
                     for (const item of invoice.InvoiceItems) {
-                        const costPrice = parseFloat(item.cost_price) || 0;
-                        const quantity = parseInt(item.quantity) || 1;
-                        totalCost += costPrice * quantity;
+                        if (item.cost_price) {
+                            const costPrice = parseFloat(item.cost_price) || 0;
+                            const quantity = parseInt(item.quantity) || 1;
+                            totalCost += costPrice * quantity;
+                        }
                     }
                 }
             }
+            
+            console.log(`Dashboard calculations: Revenue=${totalRevenue}, Cost=${totalCost}, InvoiceCount=${invoiceCount}`);
         } catch (error) {
             console.error('Error fetching invoices:', error);
         }
@@ -135,6 +136,30 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         const grossProfit = totalRevenue - totalCost;
         const netProfit = grossProfit - totalExpenses;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+        
+        // Additional calculations for better insights
+        const invoicesWithCost = await Invoice.count({
+            where: {
+                date: {
+                    [Op.between]: [startDateStr, endDateStr]
+                },
+                paymentStatus: ['paid', 'completed']
+            },
+            include: [{
+                model: InvoiceItem,
+                as: 'InvoiceItems',
+                where: {
+                    cost_price: {
+                        [Op.not]: null
+                    }
+                }
+            }]
+        });
+        
+        const invoicesWithoutCost = invoiceCount - invoicesWithCost;
+        
+        console.log(`Profit calculations: GrossProfit=${grossProfit}, NetProfit=${netProfit}, Margin=${profitMargin}%`);
+        console.log(`Invoice breakdown: Total=${invoiceCount}, WithCost=${invoicesWithCost}, WithoutCost=${invoicesWithoutCost}`);
 
         // Get alerts
         const alerts = [];
@@ -158,8 +183,20 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             if (itemsWithoutCost > 0) {
                 alerts.push({
                     type: 'warning',
-                    message: `${itemsWithoutCost} منتجات بدون سعر تكلفة`,
-                    message_en: `${itemsWithoutCost} products without cost price`,
+                    message: `${itemsWithoutCost} منتجات بدون سعر تكلفة في الفترة المحددة`,
+                    message_en: `${itemsWithoutCost} products without cost price in selected period`,
+                    action: 'profit-management'
+                });
+            }
+            
+            console.log(`Found ${itemsWithoutCost} items without cost prices in date range`);
+            
+            // Add alert for invoices without cost prices
+            if (invoicesWithoutCost > 0) {
+                alerts.push({
+                    type: 'info',
+                    message: `${invoicesWithoutCost} فواتير بدون تكاليف (${((invoicesWithoutCost / invoiceCount) * 100).toFixed(1)}%)`,
+                    message_en: `${invoicesWithoutCost} invoices without costs (${((invoicesWithoutCost / invoiceCount) * 100).toFixed(1)}%)`,
                     action: 'profit-management'
                 });
             }
@@ -202,7 +239,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 const trendStartStr = formatDateForDB(trendStartDate);
                 const trendEndStr = formatDateForDB(trendEndDate);
                 
-                // Get revenue for this month (only invoices with cost prices)
+                // Get revenue for this month (ALL invoices, not just those with cost prices)
                 const monthInvoices = await Invoice.findAll({
                     where: {
                         date: {
@@ -212,12 +249,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                     },
                     include: [{
                         model: InvoiceItem,
-                        as: 'InvoiceItems',
-                        where: {
-                            cost_price: {
-                                [Op.not]: null
-                            }
-                        }
+                        as: 'InvoiceItems'
                     }]
                 });
                 
@@ -225,14 +257,17 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 let monthCost = 0;
                 
                 for (const invoice of monthInvoices) {
-                    // Only count invoices that have items with cost prices
+                    // Count ALL invoices for revenue
+                    monthRevenue += parseFloat(invoice.total) || 0;
+                    
+                    // Calculate cost only if cost prices exist
                     if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
-                        monthRevenue += parseFloat(invoice.total) || 0;
-                        
                         for (const item of invoice.InvoiceItems) {
-                            const costPrice = parseFloat(item.cost_price) || 0;
-                            const quantity = parseInt(item.quantity) || 1;
-                            monthCost += costPrice * quantity;
+                            if (item.cost_price) {
+                                const costPrice = parseFloat(item.cost_price) || 0;
+                                const quantity = parseInt(item.quantity) || 1;
+                                monthCost += costPrice * quantity;
+                            }
                         }
                     }
                 }
@@ -300,10 +335,14 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 kpis: {
                     totalRevenue: totalRevenue,
                     totalExpenses: totalExpenses,
+                    totalCost: totalCost,
+                    grossProfit: grossProfit,
                     netProfit: netProfit,
                     profitMargin: profitMargin,
                     invoiceCount: invoiceCount,
-                    expenseCount: expenseCount
+                    expenseCount: expenseCount,
+                    invoicesWithCost: invoicesWithCost,
+                    invoicesWithoutCost: invoicesWithoutCost
                 },
                 charts: {
                     trend: trendData,
@@ -313,16 +352,84 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 dateRange: {
                     startDate: startDateStr,
                     endDate: endDateStr
+                },
+                summary: {
+                    totalInvoices: invoiceCount,
+                    totalExpenses: expenseCount,
+                    revenuePerInvoice: invoiceCount > 0 ? totalRevenue / invoiceCount : 0,
+                    expensePerExpense: expenseCount > 0 ? totalExpenses / expenseCount : 0
                 }
             }
         });
 
     } catch (error) {
         console.error('Dashboard error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({ 
             success: false, 
             message: 'Error loading dashboard data',
-            error: error.message 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
+/**
+ * GET /api/financial/dashboard-debug
+ * Debug endpoint to check dashboard data without filtering
+ */
+router.get('/dashboard-debug', adminAuth, async (req, res) => {
+    try {
+        console.log('=== DASHBOARD DEBUG ENDPOINT ===');
+        
+        // Get all invoices without any filtering
+        const allInvoices = await Invoice.findAll({
+            include: [{
+                model: InvoiceItem,
+                as: 'InvoiceItems'
+            }]
+        });
+        
+        console.log(`Total invoices in database: ${allInvoices.length}`);
+        
+        // Get all expenses without any filtering
+        const allExpenses = await Expense.findAll();
+        console.log(`Total expenses in database: ${allExpenses.length}`);
+        
+        // Sample data
+        const sampleInvoices = allInvoices.slice(0, 3).map(invoice => ({
+            id: invoice.id,
+            total: invoice.total,
+            date: invoice.date,
+            paymentStatus: invoice.paymentStatus,
+            itemsCount: invoice.InvoiceItems ? invoice.InvoiceItems.length : 0,
+            itemsWithCost: invoice.InvoiceItems ? invoice.InvoiceItems.filter(item => item.cost_price).length : 0
+        }));
+        
+        const sampleExpenses = allExpenses.slice(0, 3).map(expense => ({
+            id: expense.id,
+            amount: expense.amount,
+            date: expense.date,
+            status: expense.status
+        }));
+        
+        res.json({
+            success: true,
+            debug: {
+                totalInvoices: allInvoices.length,
+                totalExpenses: allExpenses.length,
+                sampleInvoices,
+                sampleExpenses,
+                queryParams: req.query
+            }
+        });
+        
+    } catch (error) {
+        console.error('Dashboard debug error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Debug endpoint failed',
+            error: error.message
         });
     }
 });
