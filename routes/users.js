@@ -10,7 +10,7 @@ const { auth, adminAuth, adminRoleAuth } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 
 // Get all admins (admin only)
-router.get('/admins', adminRoleAuth(['admin']), async (req, res) => {
+router.get('/admins', adminRoleAuth(['admin', 'superadmin']), async (req, res) => {
     try {
         const admins = await Admin.findAll({
             attributes: { exclude: ['password'] }
@@ -42,7 +42,7 @@ router.get('/admins/:id', adminAuth, async (req, res) => {
 });
 
 // Create new admin (admin role only)
-router.post('/admins', adminRoleAuth(['admin']), async (req, res) => {
+router.post('/admins', adminRoleAuth(['superadmin']), async (req, res) => {
     const { username, password, name, role, email } = req.body;
     
     if (!username || !password || !name || !role) {
@@ -93,8 +93,8 @@ router.put('/admins/:id', adminAuth, async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to update this admin' });
         }
         
-        // Only allow role changes by admins
-        if (role && req.user.role !== 'admin') {
+        // Only allow role changes by superadmins
+        if (role && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: 'Only admins can change roles' });
         }
         
@@ -102,7 +102,7 @@ router.put('/admins/:id', adminAuth, async (req, res) => {
         if (name) admin.name = name;
         if (email) admin.email = email;
         if (password) admin.password = password; // Will be hashed by model hooks
-        if (role && req.user.role === 'admin') admin.role = role;
+        if (role && req.user.role === 'superadmin') admin.role = role;
         
         await admin.save();
         
@@ -118,7 +118,7 @@ router.put('/admins/:id', adminAuth, async (req, res) => {
 });
 
 // Delete admin (admin role only)
-router.delete('/admins/:id', adminRoleAuth(['admin']), async (req, res) => {
+router.delete('/admins/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const admin = await Admin.findByPk(req.params.id);
         
@@ -272,7 +272,7 @@ router.post('/change-password', adminAuth, async (req, res) => {
         const targetId = userId || req.user.id;
         
         // Only admins can change other users' passwords
-        if (targetId !== req.user.id && req.user.role !== 'admin') {
+        if (targetId !== req.user.id && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: 'Not authorized to change this password' });
         }
         

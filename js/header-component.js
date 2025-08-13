@@ -42,7 +42,8 @@ class LpkHeader {
     // Translate role from English to Arabic
     translateRole(role) {
         switch(role) {
-            case 'admin': return 'باتمان';
+            case 'admin': return 'مدير';
+            case 'superadmin': return 'مدير النظام الأعلى';
             default: return role || 'مدير';
         }
     }

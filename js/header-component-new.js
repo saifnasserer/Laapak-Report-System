@@ -43,8 +43,7 @@ class LpkHeader {
     translateRole(role) {
         switch(role) {
             case 'admin': return 'مدير';
-            case 'technician': return 'فني';
-            case 'viewer': return 'مشاهد';
+            case 'superadmin': return 'مدير النظام الأعلى';
             default: return role || 'مستخدم';
         }
     }

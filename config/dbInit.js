@@ -94,25 +94,18 @@ const seedInitialData = async () => {
             // Create default admin users
             await Admin.bulkCreate([
                 { 
-                    username: 'admin', 
-                    password: 'admin123', 
-                    name: 'مدير النظام', 
+                    username: 'Mekawy', 
+                    password: 'Mekawy123', 
+                    name: 'اسلام مكاوي', 
                     role: 'admin',
-                    email: 'admin@laapak.com'
+                    email: 'Mekawy@laapak.com'
                 },
                 { 
-                    username: 'tech', 
-                    password: 'tech123', 
-                    name: 'فني الصيانة', 
-                    role: 'technician',
-                    email: 'tech@laapak.com'
-                },
-                { 
-                    username: 'viewer', 
-                    password: 'viewer123', 
-                    name: 'مشاهد', 
-                    role: 'viewer',
-                    email: 'viewer@laapak.com'
+                    username: 'superadmin', 
+                    password: 'superadmin123', 
+                    name: 'سيف ناصر', 
+                    role: 'superadmin',
+                    email: 'superadmin@laapak.com'
                 }
             ]);
             
