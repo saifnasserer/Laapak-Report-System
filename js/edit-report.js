@@ -134,6 +134,7 @@ function populateFormWithReportData(report) {
     populateTechnicalTests(report);
     populateExternalInspection(report);
     populateNotes(report);
+    populateInvoice(report);
     
     // Update step indicators and progress
     updateStepIndicators(currentStep);
@@ -1001,6 +1002,142 @@ function populateNotes(report) {
 }
 
 /**
+ * Populate invoice step
+ * @param {Object} report - The report data
+ */
+function populateInvoice(report) {
+    const contentContainer = document.getElementById('invoiceContent');
+    if (!contentContainer) return;
+    
+    console.log('Populating invoice:', report);
+    
+    const content = `
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-success"><i class="fas fa-file-invoice me-2"></i> تفاصيل الفاتورة</h5>
+                
+                <!-- Billing Toggle Button -->
+                <div class="form-check form-switch ps-0 d-flex align-items-center">
+                    <div class="toggle-container d-inline-flex align-items-center gap-2" style="background: rgba(255,255,255,0.8); padding: 0.5rem 1rem; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <span class="fw-bold small" id="billingStatusText" style="color: var(--primary-color);">الفاتورة مفعلة</span>
+                        <input class="form-check-input ms-2 me-0" type="checkbox" id="enableBilling" ${report.billing_enabled ? 'checked' : ''} style="width: 3rem; height: 1.5rem;">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Billing Info Text -->
+                <div class="alert alert-light border-0 mb-4" style="background: rgba(14, 175, 84, 0.05);">
+                    <div class="d-flex">
+                        <div class="me-3 text-success">
+                            <i class="fas fa-info-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1">معلومات الفاتورة</h6>
+                            <p class="mb-0">عند تفعيل الفاتورة، سيتم إنشاء فاتورة تلقائيًا مع التقرير. إذا كنت ترغب في إنشاء فاتورة لاحقًا، يمكنك إلغاء تفعيل هذا الخيار.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Invoice Fields Container -->
+                <div id="invoiceFieldsContainer" style="display: ${report.billing_enabled ? 'block' : 'none'};">
+                    <!-- Device Details Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">تفاصيل الأجهزة</h6>
+                        <div id="laptopsContainer">
+                            <div class="row mb-3 laptop-row">
+                                <div class="col-md-4">
+                                    <label class="form-label">اسم الجهاز</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control laptop-name" id="invoiceDeviceName" placeholder="موديل الجهاز" value="${report.device_model || ''}" readonly />
+                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-laptop"></i></span>
+                                    </div>
+                                    <small class="text-muted">تم نقله تلقائيًا من الخطوة الأولى</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">الرقم التسلسلي</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control laptop-serial" id="invoiceSerialNumber" placeholder="الرقم التسلسلي" value="${report.serial_number || ''}" readonly />
+                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-barcode"></i></span>
+                                    </div>
+                                    <small class="text-muted">تم نقله تلقائيًا من الخطوة الأولى</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">السعر</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control laptop-price" id="invoicePrice" placeholder="أدخل السعر" min="0" step="1" value="${report.amount || 250}" />
+                                        <span class="input-group-text">جنية</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Items Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">عناصر إضافية</h6>
+                        <div id="itemsContainer">
+                            <!-- Additional items will be added here -->
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addItemBtn">
+                            <i class="fas fa-plus me-1"></i> إضافة عنصر
+                        </button>
+                    </div>
+                    
+                    <!-- Service Fees Section -->
+                    <div class="mb-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">نسبة الضريبة</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="taxRate" value="0" min="0" max="100" oninput="updateTaxDisplay()" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">خصم (إن وجد)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="discount" value="0" min="0" step="0.01" />
+                                    <span class="input-group-text">جنية</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Invoice Preview -->
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3">ملخص الفاتورة</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>المجموع الفرعي:</span>
+                                <span id="subtotalDisplay">${report.amount || 0}.00 جنية</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>الخصم:</span>
+                                <span id="discountDisplay">0.00 جنية</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span id="taxRateLabel">الضريبة (0%):</span>
+                                <span id="taxDisplay">0.00 جنية</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>الإجمالي:</span>
+                                <span id="totalDisplay">${report.amount || 0}.00 جنية</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    contentContainer.innerHTML = content;
+    
+    // Set up invoice functionality
+    setupInvoiceFunctionality();
+}
+
+/**
  * Get technical notes from hardware status
  * @param {string} hardwareStatus - The hardware status JSON string
  * @returns {string} Technical notes
@@ -1170,6 +1307,51 @@ function collectFormData() {
     // Add external inspection data
     formData.external_images = collectExternalInspectionData();
     
+    // Add invoice data
+    const enableBillingCheckbox = document.getElementById('enableBilling');
+    if (enableBillingCheckbox && enableBillingCheckbox.checked) {
+        formData.billing_enabled = true;
+        
+        // Get device price
+        const invoicePriceInput = document.getElementById('invoicePrice');
+        if (invoicePriceInput) {
+            formData.amount = parseFloat(invoicePriceInput.value || '0');
+        }
+        
+        // Get tax rate and discount
+        const taxRateInput = document.getElementById('taxRate');
+        const discountInput = document.getElementById('discount');
+        
+        if (taxRateInput) {
+            formData.tax_rate = parseFloat(taxRateInput.value || '0');
+        }
+        if (discountInput) {
+            formData.discount = parseFloat(discountInput.value || '0');
+        }
+        
+        // Collect additional items
+        const additionalItems = [];
+        document.querySelectorAll('.invoice-item').forEach(item => {
+            const description = item.querySelector('.item-description')?.value || '';
+            const quantity = parseFloat(item.querySelector('.item-quantity')?.value || '0');
+            const unitPrice = parseFloat(item.querySelector('.item-unit-price')?.value || '0');
+            
+            if (description && quantity > 0 && unitPrice > 0) {
+                additionalItems.push({
+                    description: description,
+                    quantity: quantity,
+                    unitPrice: unitPrice,
+                    totalPrice: quantity * unitPrice
+                });
+            }
+        });
+        
+        formData.additional_items = additionalItems;
+    } else {
+        formData.billing_enabled = false;
+        formData.amount = 0;
+    }
+    
     console.log('Collected form data:', formData);
     return formData;
 }
@@ -1256,4 +1438,681 @@ function collectExternalInspectionData() {
     });
     
     return JSON.stringify(externalImages);
+} 
+
+/**
+ * Update client info display
+ * @param {Object} client - The client data
+ */
+function updateClientInfoDisplay(client) {
+    const selectedClientInfo = document.getElementById('selectedClientInfo');
+    const clientQuickActions = document.getElementById('clientQuickActions');
+    
+    if (!selectedClientInfo) return;
+    
+    // Update the client info card
+    const selectedClientName = document.getElementById('selectedClientName');
+    const selectedClientPhone = document.getElementById('selectedClientPhone');
+    const selectedClientEmail = document.getElementById('selectedClientEmail');
+    
+    if (selectedClientName) selectedClientName.textContent = client.name;
+    if (selectedClientPhone) {
+        selectedClientPhone.innerHTML = `<i class="fas fa-phone me-1"></i> ${client.phone || 'غير متوفر'}`;
+    }
+    if (selectedClientEmail) {
+        selectedClientEmail.innerHTML = `<i class="fas fa-envelope me-1"></i> ${client.email || 'غير متوفر'}`;
+    }
+    
+    // Update additional client details if the elements exist
+    if (document.getElementById('selectedClientOrderCode')) {
+        document.getElementById('selectedClientOrderCode').textContent = client.orderCode || 'غير متوفر';
+    }
+    
+    if (document.getElementById('selectedClientStatus')) {
+        const statusElement = document.getElementById('selectedClientStatus');
+        statusElement.textContent = getStatusText(client.status);
+        
+        // Update status badge color based on status
+        statusElement.className = 'badge ms-1 text-white';
+        switch(client.status) {
+            case 'active':
+                statusElement.classList.add('bg-success');
+                break;
+            case 'inactive':
+                statusElement.classList.add('bg-secondary');
+                break;
+            case 'pending':
+                statusElement.classList.add('bg-warning');
+                break;
+            default:
+                statusElement.classList.add('bg-secondary');
+        }
+    }
+    
+    if (document.getElementById('selectedClientAddress')) {
+        document.getElementById('selectedClientAddress').textContent = 
+            client.address || 'غير متوفر';
+    }
+    
+    // Try to get last report date if available
+    if (document.getElementById('selectedClientLastReport')) {
+        const lastReportElement = document.getElementById('selectedClientLastReport');
+        
+        if (client.lastReportDate) {
+            const date = new Date(client.lastReportDate);
+            lastReportElement.textContent = date.toLocaleDateString('ar-SA');
+        } else {
+            lastReportElement.textContent = 'لا يوجد تقارير سابقة';
+        }
+    }
+    
+    // Setup edit button if it exists
+    const editButton = document.getElementById('editSelectedClient');
+    if (editButton) {
+        editButton.onclick = function() {
+            openEditClientModal(client);
+        };
+    }
+    
+    // Show the client info card with a subtle animation
+    selectedClientInfo.style.opacity = '0';
+    selectedClientInfo.style.display = 'block';
+    setTimeout(() => {
+        selectedClientInfo.style.transition = 'opacity 0.3s ease-in-out';
+        selectedClientInfo.style.opacity = '1';
+    }, 10);
+    
+    // Show quick actions if they exist
+    if (clientQuickActions) {
+        clientQuickActions.style.display = 'flex';
+        
+        // Setup view history button if it exists
+        const historyButton = document.getElementById('viewClientHistory');
+        if (historyButton) {
+            historyButton.onclick = function() {
+                viewClientHistory(client.id);
+            };
+        }
+        
+        // Setup view reports button if it exists
+        const reportsButton = document.getElementById('viewClientReports');
+        if (reportsButton) {
+            reportsButton.onclick = function() {
+                viewClientReports(client.id);
+            };
+        }
+    }
+}
+
+/**
+ * Get status text
+ * @param {string} status - The status
+ * @returns {string} The status text
+ */
+function getStatusText(status) {
+    switch(status) {
+        case 'active': return 'نشط';
+        case 'inactive': return 'غير نشط';
+        case 'pending': return 'في الانتظار';
+        default: return status || 'غير محدد';
+    }
+}
+
+/**
+ * Set up client search functionality
+ */
+function setupClientSearch() {
+    const searchInput = document.getElementById('clientSearchInput');
+    const searchResults = document.getElementById('clientSearchResults');
+    const searchIcon = document.getElementById('clientSearchIcon');
+    
+    if (!searchInput || !searchResults) return;
+    
+    let searchTimeout;
+    let selectedIndex = -1;
+    
+    // Handle search input
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.trim();
+        
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
+        // Hide results if search is empty
+        if (!searchTerm) {
+            hideSearchResults();
+            return;
+        }
+        
+        // Debounce search to avoid too many searches
+        searchTimeout = setTimeout(() => {
+            performSearch(searchTerm);
+        }, 300);
+    });
+    
+    // Handle keyboard navigation
+    searchInput.addEventListener('keydown', function(e) {
+        const results = searchResults.querySelectorAll('.client-result-item');
+        
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, results.length - 1);
+                updateSelection(results);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateSelection(results);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (selectedIndex >= 0 && results[selectedIndex]) {
+                    selectClient(results[selectedIndex]);
+                }
+                break;
+            case 'Escape':
+                hideSearchResults();
+                break;
+        }
+    });
+    
+    // Handle search icon click
+    if (searchIcon) {
+        searchIcon.addEventListener('click', function() {
+            if (searchResults.style.display === 'none') {
+                performSearch(searchInput.value.trim());
+            } else {
+                hideSearchResults();
+            }
+        });
+    }
+    
+    // Handle click outside to close results
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            hideSearchResults();
+        }
+    });
+    
+    // Perform search and show results
+    function performSearch(searchTerm) {
+        if (!searchTerm || !Array.isArray(clientsData)) {
+            hideSearchResults();
+            return;
+        }
+        
+        const filteredClients = clientsData.filter(client => {
+            const name = (client.name || '').toLowerCase();
+            const phone = (client.phone || '').toLowerCase();
+            const email = (client.email || '').toLowerCase();
+            const orderCode = (client.orderCode || '').toLowerCase();
+            const searchLower = searchTerm.toLowerCase();
+            
+            return name.includes(searchLower) || 
+                   phone.includes(searchLower) || 
+                   email.includes(searchLower) ||
+                   orderCode.includes(searchLower);
+        });
+        
+        displaySearchResults(filteredClients);
+    }
+    
+    // Display search results
+    function displaySearchResults(clients) {
+        if (!clients || clients.length === 0) {
+            searchResults.innerHTML = '<div class="p-3 text-muted">لا توجد نتائج</div>';
+            searchResults.style.display = 'block';
+            return;
+        }
+        
+        const resultsHTML = clients.map((client, index) => `
+            <div class="client-result-item p-2 border-bottom" data-client-id="${client.id}" data-index="${index}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">${client.name}</div>
+                        <small class="text-muted">
+                            <i class="fas fa-phone me-1"></i>${client.phone || 'غير متوفر'}
+                        </small>
+                    </div>
+                    <small class="text-muted">${client.email || ''}</small>
+                </div>
+            </div>
+        `).join('');
+        
+        searchResults.innerHTML = resultsHTML;
+        searchResults.style.display = 'block';
+        
+        // Add click handlers
+        searchResults.querySelectorAll('.client-result-item').forEach(item => {
+            item.addEventListener('click', function() {
+                selectClient(this);
+            });
+        });
+    }
+    
+    // Select a client
+    function selectClient(element) {
+        const clientId = element.getAttribute('data-client-id');
+        const client = clientsData.find(c => c.id == clientId);
+        
+        if (client) {
+            searchInput.value = client.name;
+            updateClientInfoDisplay(client);
+            hideSearchResults();
+        }
+    }
+    
+    // Update selection
+    function updateSelection(results) {
+        results.forEach((result, index) => {
+            result.classList.toggle('bg-light', index === selectedIndex);
+        });
+    }
+    
+    // Hide search results
+    function hideSearchResults() {
+        searchResults.style.display = 'none';
+        selectedIndex = -1;
+    }
+}
+
+/**
+ * Set up billing toggle functionality
+ */
+function setupBillingToggle() {
+    const enableBillingCheckbox = document.getElementById('enableBilling');
+    const invoiceFieldsContainer = document.getElementById('invoiceFieldsContainer');
+    const submitButton = document.getElementById('submitReportBtn');
+    const billingStatusText = document.getElementById('billingStatusText');
+    
+    if (!enableBillingCheckbox || !invoiceFieldsContainer || !submitButton) {
+        console.warn('Billing toggle setup failed: Required elements not found', {
+            enableBillingCheckbox: !!enableBillingCheckbox,
+            invoiceFieldsContainer: !!invoiceFieldsContainer,
+            submitButton: !!submitButton
+        });
+        return;
+    }
+    
+    // Function to update UI based on checkbox state
+    function updateBillingUI() {
+        const isEnabled = enableBillingCheckbox.checked;
+        
+        // Update invoice fields container visibility
+        invoiceFieldsContainer.style.display = isEnabled ? 'block' : 'none';
+        
+        // Update billing status text if it exists
+        if (billingStatusText) {
+            billingStatusText.textContent = isEnabled ? 'الفاتورة مفعلة' : 'الفاتورة غير مفعلة';
+            billingStatusText.style.color = isEnabled ? 'var(--primary-color)' : '#dc3545';
+        }
+        
+        // Update submit button text
+        submitButton.textContent = isEnabled ? 'إنشاء التقرير والفاتورة' : 'إنشاء التقرير';
+    }
+    
+    // Set initial state
+    updateBillingUI();
+    
+    // Add event listener for checkbox changes
+    enableBillingCheckbox.addEventListener('change', updateBillingUI);
+}
+
+/**
+ * Set up form navigation
+ */
+function setupFormNavigation() {
+    console.log('Setting up form navigation...');
+    
+    // Add event listeners for individual navigation buttons
+    document.querySelectorAll('.btn-next-step').forEach(button => {
+        button.addEventListener('click', function() {
+            console.log('Next button clicked');
+            if (validateCurrentStep(currentStep)) {
+                nextStep();
+            }
+        });
+    });
+    
+    document.querySelectorAll('.btn-prev-step').forEach(button => {
+        button.addEventListener('click', function() {
+            console.log('Previous button clicked');
+            previousStep();
+        });
+    });
+    
+    console.log('Form navigation setup completed');
+}
+
+/**
+ * Navigate to next step
+ */
+function nextStep() {
+    if (currentStep < 4) { // 5 steps total (0-4)
+        currentStep++;
+        showStep(currentStep);
+        updateStepIndicators(currentStep);
+        updateProgressBar();
+        console.log('Moved to step:', currentStep);
+    }
+}
+
+/**
+ * Navigate to previous step
+ */
+function previousStep() {
+    if (currentStep > 0) {
+        currentStep--;
+        showStep(currentStep);
+        updateStepIndicators(currentStep);
+        updateProgressBar();
+        console.log('Moved to step:', currentStep);
+    }
+}
+
+/**
+ * Show specific step
+ * @param {number} stepIndex - The step index to show
+ */
+function showStep(stepIndex) {
+    // Hide all steps
+    document.querySelectorAll('.form-step').forEach(step => {
+        step.style.display = 'none';
+        step.classList.remove('active');
+    });
+    
+    // Show the current step
+    const currentStepElement = document.getElementById(`step${stepIndex + 1}`);
+    if (currentStepElement) {
+        currentStepElement.style.display = 'block';
+        currentStepElement.classList.add('active');
+    }
+    
+    // Update navigation buttons visibility
+    updateNavigationButtons(stepIndex);
+}
+
+/**
+ * Update navigation buttons visibility
+ * @param {number} stepIndex - The current step index
+ */
+function updateNavigationButtons(stepIndex) {
+    const prevButtons = document.querySelectorAll('.btn-prev-step');
+    const nextButtons = document.querySelectorAll('.btn-next-step');
+    
+    // Show/hide previous buttons
+    prevButtons.forEach(btn => {
+        btn.style.display = stepIndex > 0 ? 'inline-block' : 'none';
+    });
+    
+    // Update next buttons text and visibility
+    nextButtons.forEach(btn => {
+        if (stepIndex === 4) { // Last step
+            btn.style.display = 'none';
+        } else {
+            btn.style.display = 'inline-block';
+            btn.textContent = 'التالي';
+        }
+    });
+}
+
+/**
+ * Update step indicators
+ * @param {number} currentStep - The current step
+ */
+function updateStepIndicators(currentStep) {
+    // Remove active class from all step buttons
+    document.querySelectorAll('.step-button').forEach(button => {
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline-primary');
+    });
+    
+    // Add active class to current step button
+    const currentStepButton = document.querySelector(`.step-button[data-step="${currentStep}"]`);
+    if (currentStepButton) {
+        currentStepButton.classList.remove('btn-outline-primary');
+        currentStepButton.classList.add('btn-primary');
+    }
+    
+    console.log('Step indicators updated for step:', currentStep);
+}
+
+/**
+ * Update progress bar
+ */
+function updateProgressBar() {
+    const progressBar = document.querySelector('.progress-bar');
+    if (progressBar) {
+        const progressPercentage = (currentStep / 4) * 100; // 5 steps total (0-4)
+        progressBar.style.width = progressPercentage + '%';
+        progressBar.setAttribute('aria-valuenow', progressPercentage);
+    }
+    console.log('Progress bar updated to:', (currentStep / 4) * 100 + '%');
+}
+
+/**
+ * Get report ID from URL
+ * @returns {string|null} The report ID
+ */
+function getReportIdFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+}
+
+/**
+ * Validate current step
+ * @param {number} step - The step to validate
+ * @returns {boolean} True if valid
+ */
+function validateCurrentStep(step) {
+    // Basic validation - can be enhanced based on requirements
+    console.log('Validating step:', step);
+    return true;
+}
+
+/**
+ * Open edit client modal
+ * @param {Object} client - The client data
+ */
+function openEditClientModal(client) {
+    console.log('Opening edit client modal for:', client);
+    // Implementation can be added if needed
+}
+
+/**
+ * View client history
+ * @param {string} clientId - The client ID
+ */
+function viewClientHistory(clientId) {
+    console.log('Viewing client history for:', clientId);
+    // Implementation can be added if needed
+}
+
+/**
+ * View client reports
+ * @param {string} clientId - The client ID
+ */
+function viewClientReports(clientId) {
+    console.log('Viewing client reports for:', clientId);
+    // Implementation can be added if needed
+} 
+
+/**
+ * Set up invoice functionality
+ */
+function setupInvoiceFunctionality() {
+    // Set up billing toggle
+    const enableBillingCheckbox = document.getElementById('enableBilling');
+    const invoiceFieldsContainer = document.getElementById('invoiceFieldsContainer');
+    const billingStatusText = document.getElementById('billingStatusText');
+    
+    if (enableBillingCheckbox && invoiceFieldsContainer) {
+        // Function to update UI based on checkbox state
+        function updateBillingUI() {
+            const isEnabled = enableBillingCheckbox.checked;
+            
+            // Update invoice fields container visibility
+            invoiceFieldsContainer.style.display = isEnabled ? 'block' : 'none';
+            
+            // Update billing status text if it exists
+            if (billingStatusText) {
+                billingStatusText.textContent = isEnabled ? 'الفاتورة مفعلة' : 'الفاتورة معطلة';
+                billingStatusText.style.color = isEnabled ? 'var(--primary-color)' : '#dc3545';
+            }
+        }
+        
+        // Set initial state
+        updateBillingUI();
+        
+        // Add event listener for checkbox changes
+        enableBillingCheckbox.addEventListener('change', updateBillingUI);
+    }
+    
+    // Set up additional items functionality
+    const addItemBtn = document.getElementById('addItemBtn');
+    const itemsContainer = document.getElementById('itemsContainer');
+    
+    if (addItemBtn && itemsContainer) {
+        addItemBtn.addEventListener('click', function() {
+            addInvoiceItem();
+        });
+    }
+    
+    // Set up tax and discount calculations
+    const taxRateInput = document.getElementById('taxRate');
+    const discountInput = document.getElementById('discount');
+    const invoicePriceInput = document.getElementById('invoicePrice');
+    
+    if (taxRateInput) {
+        taxRateInput.addEventListener('input', updateTaxDisplay);
+    }
+    if (discountInput) {
+        discountInput.addEventListener('input', updateTaxDisplay);
+    }
+    if (invoicePriceInput) {
+        invoicePriceInput.addEventListener('input', updateTaxDisplay);
+    }
+    
+    // Initial tax display update
+    updateTaxDisplay();
+}
+
+/**
+ * Add invoice item
+ */
+function addInvoiceItem() {
+    const itemsContainer = document.getElementById('itemsContainer');
+    if (!itemsContainer) return;
+    
+    const itemId = Date.now();
+    const itemHtml = `
+        <div class="row mb-3 invoice-item" data-item-id="${itemId}">
+            <div class="col-md-4">
+                <label class="form-label">وصف العنصر</label>
+                <input type="text" class="form-control item-description" placeholder="وصف العنصر">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الكمية</label>
+                <input type="number" class="form-control item-quantity" value="1" min="1" oninput="updateItemTotal(${itemId})">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">سعر الوحدة</label>
+                <input type="number" class="form-control item-unit-price" value="0" min="0" step="0.01" oninput="updateItemTotal(${itemId})">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الإجمالي</label>
+                <input type="text" class="form-control item-total" value="0.00" readonly>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeInvoiceItem(${itemId})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    itemsContainer.insertAdjacentHTML('beforeend', itemHtml);
+}
+
+/**
+ * Remove invoice item
+ * @param {number} itemId - The item ID to remove
+ */
+function removeInvoiceItem(itemId) {
+    const item = document.querySelector(`[data-item-id="${itemId}"]`);
+    if (item) {
+        item.remove();
+        updateTaxDisplay();
+    }
+}
+
+/**
+ * Update item total
+ * @param {number} itemId - The item ID to update
+ */
+function updateItemTotal(itemId) {
+    const item = document.querySelector(`[data-item-id="${itemId}"]`);
+    if (!item) return;
+    
+    const quantity = parseFloat(item.querySelector('.item-quantity').value) || 0;
+    const unitPrice = parseFloat(item.querySelector('.item-unit-price').value) || 0;
+    const total = quantity * unitPrice;
+    
+    item.querySelector('.item-total').value = total.toFixed(2);
+    updateTaxDisplay();
+}
+
+/**
+ * Update tax display in the invoice preview
+ */
+function updateTaxDisplay() {
+    const taxRateInput = document.getElementById('taxRate');
+    const taxRateLabel = document.getElementById('taxRateLabel');
+    const taxDisplay = document.getElementById('taxDisplay');
+    const subtotalDisplay = document.getElementById('subtotalDisplay');
+    const totalDisplay = document.getElementById('totalDisplay');
+    const discountDisplay = document.getElementById('discountDisplay');
+    
+    if (taxRateInput && taxRateLabel) {
+        // Get the current tax rate value
+        const taxRate = parseFloat(taxRateInput.value || '0');
+        
+        // Update the tax rate label
+        taxRateLabel.textContent = `الضريبة (${taxRate}%):`;
+        
+        // Recalculate tax and total if all needed elements exist
+        if (taxDisplay && subtotalDisplay && totalDisplay && discountDisplay) {
+            // Calculate subtotal from device price and additional items
+            let subtotal = 0;
+            
+            // Add device price
+            const invoicePriceInput = document.getElementById('invoicePrice');
+            if (invoicePriceInput) {
+                subtotal += parseFloat(invoicePriceInput.value || '0');
+            }
+            
+            // Add additional items
+            const additionalItems = document.querySelectorAll('.invoice-item');
+            additionalItems.forEach(item => {
+                const itemTotal = parseFloat(item.querySelector('.item-total').value || '0');
+                subtotal += itemTotal;
+            });
+            
+            // Get discount
+            const discountInput = document.getElementById('discount');
+            const discount = parseFloat(discountInput?.value || '0');
+            
+            // Calculate tax and total
+            const taxAmount = (subtotal - discount) * (taxRate / 100);
+            const total = subtotal - discount + taxAmount;
+            
+            // Update the display elements
+            subtotalDisplay.textContent = subtotal.toFixed(2) + ' جنية';
+            discountDisplay.textContent = discount.toFixed(2) + ' جنية';
+            taxDisplay.textContent = taxAmount.toFixed(2) + ' جنية';
+            totalDisplay.textContent = total.toFixed(2) + ' جنية';
+        }
+    }
 } 

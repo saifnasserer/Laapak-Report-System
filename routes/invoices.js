@@ -182,6 +182,198 @@ router.get('/:id', auth, async (req, res) => {
     }
 });
 
+// Create bulk invoice for multiple reports
+router.post('/bulk', adminAuth, async (req, res) => {
+    let transaction;
+    
+    try {
+        if (!sequelize || typeof sequelize.transaction !== 'function') {
+            throw new Error('Sequelize instance is not properly initialized');
+        }
+        
+        transaction = await sequelize.transaction();
+        
+        console.log('CREATE BULK INVOICE REQUEST BODY:', JSON.stringify(req.body, null, 2));
+        
+        // Extract data from request body
+        const { 
+            date,
+            reportIds, // Array of report IDs
+            client_id: client_id, 
+            items, 
+            subtotal, 
+            taxRate,
+            tax, 
+            discount, 
+            total, 
+            paymentMethod,
+            paymentStatus,
+            notes,
+            status 
+        } = req.body;
+        
+        // Validate required fields
+        if (!client_id) {
+            return res.status(400).json({
+                message: 'معرف العميل مطلوب',
+                error: 'client_id is required'
+            });
+        }
+        
+        if (!reportIds || !Array.isArray(reportIds) || reportIds.length === 0) {
+            return res.status(400).json({
+                message: 'يجب تحديد تقارير واحدة على الأقل',
+                error: 'At least one report ID is required'
+            });
+        }
+        
+        // Validate client_id is a number
+        const client_idNum = Number(client_id);
+        if (isNaN(client_idNum)) {
+            return res.status(400).json({
+                message: 'معرف العميل يجب أن يكون رقمًا',
+                error: 'client_id must be a number'
+            });
+        }
+        
+        // Validate items array
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({
+                message: 'يجب توفير عناصر الفاتورة',
+                error: 'Invoice items are required'
+            });
+        }
+        
+        // Generate a unique invoice number
+        const invoiceNumber = 'INV' + Date.now().toString() + Math.floor(Math.random() * 1000);
+        console.log('Creating bulk invoice with number:', invoiceNumber);
+        
+        // Convert date string to Date object
+        const dateStringFromRequest = date;
+        const dateObjectForSequelize = new Date(dateStringFromRequest);
+        
+        console.log('--- DEBUG: Original date string from request:', dateStringFromRequest);
+        console.log('--- DEBUG: Converted Date object for Sequelize:', dateObjectForSequelize);
+        
+        // Create the invoice
+        const invoiceDataToCreate = {
+            id: invoiceNumber,
+            client_id: client_idNum,
+            date: dateObjectForSequelize,
+            subtotal: Number(subtotal || 0),
+            discount: Number(discount || 0),
+            taxRate: Number(taxRate || 0),
+            tax: Number(tax || 0),
+            total: Number(total || 0),
+            paymentStatus: paymentStatus || 'unpaid',
+            paymentMethod: paymentMethod || null
+        };
+        
+        console.log('--- DEBUG: Object being passed to Invoice.create:', JSON.stringify(invoiceDataToCreate, null, 2));
+        
+        const invoice = await Invoice.create(invoiceDataToCreate, { transaction });
+        
+        // Create invoice items
+        if (items && items.length > 0) {
+            console.log('Creating invoice items:', JSON.stringify(items, null, 2));
+            
+            try {
+                await Promise.all(items.map(item => {
+                    const itemPayload = {
+                        invoiceId: invoice.id,
+                        description: item.description || '',
+                        type: item.type || 'service',
+                        quantity: Number(item.quantity || 1),
+                        amount: Number(item.amount || 0),
+                        totalAmount: Number(item.totalAmount || (item.quantity * item.amount) || 0),
+                        serialNumber: item.serialNumber || null
+                    };
+                    console.log('--- DEBUG: Payload for InvoiceItem.create:', JSON.stringify(itemPayload, null, 2));
+                    return InvoiceItem.create(itemPayload, { transaction });
+                }));
+                console.log(`Created ${items.length} invoice items successfully`);
+            } catch (itemError) {
+                console.error('Error creating invoice items:', itemError);
+                throw itemError;
+            }
+        }
+        
+        // Link reports to the invoice using the InvoiceReport junction table
+        if (reportIds && Array.isArray(reportIds) && reportIds.length > 0) {
+            console.log('Linking reports to bulk invoice:', reportIds);
+            try {
+                const invoiceReportEntries = reportIds.map(rId => ({
+                    invoice_id: invoice.id,
+                    report_id: rId
+                }));
+                await InvoiceReport.bulkCreate(invoiceReportEntries, { transaction });
+                console.log(`Created ${invoiceReportEntries.length} entries in InvoiceReport table.`);
+                
+                // Update each report to mark it as having an invoice
+                const [affectedRows] = await Report.update(
+                    { 
+                        billingEnabled: true,
+                        invoice_created: true,
+                        invoice_id: invoice.id,
+                        invoice_date: new Date()
+                    }, 
+                    { 
+                        where: { id: { [Op.in]: reportIds } },
+                        transaction
+                    }
+                );
+                console.log(`Updated ${affectedRows} reports with invoice information`);
+                
+            } catch (linkError) {
+                console.error('Error linking reports or updating report status:', linkError);
+                throw linkError;
+            }
+        }
+        
+        await transaction.commit();
+        
+        // Fetch the complete invoice with all associations
+        const completeInvoice = await Invoice.findByPk(invoice.id, {
+            include: [
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
+                { 
+                    model: Report, 
+                    as: 'reports',
+                    attributes: ['id', 'device_model', 'serial_number', 'invoice_created', 'invoice_id'] 
+                },
+                { model: InvoiceItem, as: 'InvoiceItems' }
+            ]
+        });
+        
+        res.status(201).json(completeInvoice);
+    } catch (error) {
+        // Rollback transaction if it exists
+        if (transaction && typeof transaction.rollback === 'function') {
+            try {
+                await transaction.rollback();
+                console.log('Bulk invoice transaction rolled back successfully');
+            } catch (rollbackError) {
+                console.error('Error rolling back bulk invoice transaction:', rollbackError);
+            }
+        }
+        
+        console.error('Error creating bulk invoice:', error);
+        
+        // Log detailed error information
+        if (error.name) console.error('Error name:', error.name);
+        if (error.message) console.error('Error message:', error.message);
+        if (error.parent) {
+            console.error('Parent error:', error.parent.message);
+            console.error('SQL error code:', error.parent.code);
+        }
+        
+        res.status(500).json({ 
+            message: 'فشل في إنشاء الفاتورة المجمعة', 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
+    }
+});
+
 // Create new invoice
 router.post('/', adminAuth, async (req, res) => {
     let transaction;
@@ -282,8 +474,7 @@ router.post('/', adminAuth, async (req, res) => {
             console.log('Creating invoice items:', JSON.stringify(items, null, 2));
             
             try {
-                await Promise.all(items.map(item => 
-{
+                await Promise.all(items.map(item => {
                     const itemPayload = {
                         invoiceId: invoice.id, // Corrected from invoice_id to invoiceId
                         description: item.description || '',
@@ -291,12 +482,12 @@ router.post('/', adminAuth, async (req, res) => {
                         quantity: Number(item.quantity || 1),
                         amount: Number(item.amount || 0),
                         totalAmount: Number(item.totalAmount || 0),
-                        serialNumber: item.serialNumber || null
+                        serialNumber: item.serialNumber || null,
+                        report_id: item.report_id || null // Add report_id field
                     };
                     console.log('--- DEBUG: Payload for InvoiceItem.create:', JSON.stringify(itemPayload, null, 2));
                     return InvoiceItem.create(itemPayload, { transaction });
-}
-                )); // Close Promise.all and map
+                })); // Close Promise.all and map
                 console.log(`Created ${items.length} invoice items successfully`);
             } catch (itemError) {
                 console.error('Error creating invoice items:', itemError);
@@ -478,6 +669,7 @@ router.put('/:id', adminAuth, async (req, res) => {
                     quantity: Number(item.quantity || 1),
                     totalAmount: Number(item.totalAmount || item.total || 0),
                     serialNumber: item.serialNumber || null,
+                    report_id: item.report_id || null, // Add report_id field
                     created_at: new Date(),
                     invoice_id: invoice.id
                 }, { transaction })

@@ -756,6 +756,120 @@ class ApiService {
     async searchReports(query) {
         return this.request(`/api/reports/search/${query}`);
     }
+
+    /**
+     * Create invoice for a report with proper linking
+     * @param {string} reportId - The report ID
+     * @param {Object} invoiceData - The invoice data
+     * @returns {Promise<Object>} The created invoice
+     */
+    async createInvoiceForReport(reportId, invoiceData) {
+        try {
+            console.log(`Creating invoice for report ${reportId}:`, invoiceData);
+            
+            // Ensure the invoice data includes the report ID
+            const invoiceWithReport = {
+                ...invoiceData,
+                reportId: reportId,
+                created_from_report: true,
+                report_order_number: invoiceData.report_order_number || invoiceData.order_number
+            };
+            
+            // Create the invoice
+            const response = await this.request('/api/invoices', 'POST', invoiceWithReport);
+            
+            // Update the report to mark invoice as created
+            if (response && response.id) {
+                await this.request(`/api/reports/${reportId}`, 'PUT', {
+                    invoice_created: true,
+                    invoice_id: response.id,
+                    invoice_date: new Date().toISOString()
+                });
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('Error creating invoice for report:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create bulk invoice for multiple reports with proper linking
+     * @param {Array} reportIds - Array of report IDs
+     * @param {Object} invoiceData - The invoice data
+     * @returns {Promise<Object>} The created invoice
+     */
+    async createBulkInvoiceForReports(reportIds, invoiceData) {
+        try {
+            console.log(`Creating bulk invoice for reports:`, reportIds, invoiceData);
+            
+            // Ensure the invoice data includes all report IDs
+            const bulkInvoiceData = {
+                ...invoiceData,
+                reportIds: reportIds, // Array of report IDs
+                created_from_reports: true,
+                is_bulk_invoice: true
+            };
+            
+            // Create the invoice
+            const response = await this.request('/api/invoices/bulk', 'POST', bulkInvoiceData);
+            
+            // Update all reports to mark invoice as created
+            if (response && response.id) {
+                const updatePromises = reportIds.map(reportId => 
+                    this.request(`/api/reports/${reportId}`, 'PUT', {
+                        invoice_created: true,
+                        invoice_id: response.id,
+                        invoice_date: new Date().toISOString()
+                    })
+                );
+                
+                await Promise.all(updatePromises);
+                console.log(`Updated ${reportIds.length} reports with invoice ID: ${response.id}`);
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('Error creating bulk invoice for reports:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get invoice for a specific report
+     * @param {string} reportId - The report ID
+     * @returns {Promise<Object>} The invoice data
+     */
+    async getInvoiceForReport(reportId) {
+        try {
+            const response = await this.request(`/api/invoices/report/${reportId}`);
+            return response;
+        } catch (error) {
+            console.error('Error getting invoice for report:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get reports with invoice status
+     * @param {Object} filters - Optional filters
+     * @returns {Promise<Array>} Array of reports with invoice information
+     */
+    async getReportsWithInvoiceStatus(filters = {}) {
+        try {
+            const queryParams = new URLSearchParams();
+            Object.entries(filters).forEach(([key, value]) => {
+                queryParams.append(key, value);
+            });
+            
+            const response = await this.request(`/api/reports/with-invoices?${queryParams}`);
+            return response;
+        } catch (error) {
+            console.error('Error getting reports with invoice status:', error);
+            throw error;
+        }
+    }
 }
 
 // Export class for module environments

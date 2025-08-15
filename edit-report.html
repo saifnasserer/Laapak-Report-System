@@ -367,7 +367,7 @@
                                     <!-- Step 1 -->
                                     <div class="step-item text-center active">
                                         <div class="step-circle-container position-relative d-inline-flex justify-content-center">
-                                            <button type="button" class="step-button btn btn-primary position-relative" style="width: 50px; height: 50px; font-weight: 600; box-shadow: 0 4px 15px rgba(0, 117, 83, 0.25); border: none; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center;">1</button>
+                                            <button type="button" class="step-button btn btn-primary position-relative" data-step="0" style="width: 50px; height: 50px; font-weight: 600; box-shadow: 0 4px 15px rgba(0, 117, 83, 0.25); border: none; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center;">1</button>
                                         </div>
                                         <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">معلومات عامة</div>
                                     </div>
@@ -375,7 +375,7 @@
                                     <!-- Step 2 -->
                                     <div class="step-item text-center">
                                         <div class="step-circle-container position-relative d-inline-flex justify-content-center">
-                                            <button type="button" class="step-button btn btn-outline-primary position-relative" style="width: 50px; padding: 0; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">2</button>
+                                            <button type="button" class="step-button btn btn-outline-primary position-relative" data-step="1" style="width: 50px; padding: 0; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">2</button>
                                         </div>
                                         <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">الفحوصات التقنية</div>
                                     </div>
@@ -383,7 +383,7 @@
                                     <!-- Step 3 -->
                                     <div class="step-item text-center">
                                         <div class="step-circle-container position-relative d-inline-flex justify-content-center">
-                                            <button type="button" class="step-button btn btn-outline-primary position-relative" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">3</button>
+                                            <button type="button" class="step-button btn btn-outline-primary position-relative" data-step="2" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">3</button>
                                         </div>
                                         <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">الفحص الخارجي</div>
                                     </div>
@@ -391,7 +391,7 @@
                                     <!-- Step 4 -->
                                     <div class="step-item text-center">
                                         <div class="step-circle-container position-relative d-inline-flex justify-content-center">
-                                            <button type="button" class="step-button btn btn-outline-primary position-relative" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">4</button>
+                                            <button type="button" class="step-button btn btn-outline-primary position-relative" data-step="3" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">4</button>
                                         </div>
                                         <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">ملاحظات</div>
                                     </div>
@@ -399,7 +399,7 @@
                                     <!-- Step 5 -->
                                     <div class="step-item text-center">
                                         <div class="step-circle-container position-relative d-inline-flex justify-content-center">
-                                            <button type="button" class="step-button btn btn-outline-primary position-relative" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">5</button>
+                                            <button type="button" class="step-button btn btn-outline-primary position-relative" data-step="4" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">5</button>
                                         </div>
                                         <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">الفاتورة</div>
                                     </div>
@@ -409,6 +409,23 @@
                                 <div class="progress mt-4" style="height: 4px; background-color: rgba(0, 117, 83, 0.1);">
                                     <div class="progress-bar" role="progressbar" style="width: 20%; background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-hover) 100%);" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Global Navigation Buttons -->
+                    <div class="row mt-4 mb-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" id="globalPrevBtn" style="display: none;">
+                                    <i class="fas fa-arrow-right me-2"></i>السابق
+                                </button>
+                                <button type="button" class="btn btn-primary" id="globalNextBtn">
+                                    التالي <i class="fas fa-arrow-left ms-2"></i>
+                                </button>
+                                <button type="submit" class="btn btn-success d-none" id="submitReportBtn">
+                                    <i class="fas fa-save me-2"></i>حفظ التغييرات
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -722,6 +739,7 @@
     <script src="js/api-service.js"></script>
     <script src="js/auth-check.js"></script>
     <script src="js/form-steps-utils.js"></script>
+    <script src="js/form-steps.js"></script>
     <script src="js/edit-report.js"></script>
 </body>
 </html> 

@@ -65,8 +65,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // If both fields are empty, return null
         if (!identifier && !credential) {
             return null;
-        }
-        
+    }
+    
         // Check if identifier looks like a phone number (Egyptian format)
         const phonePattern = /^(01|02|03|04|05)[0-9]{8,9}$/;
         const isPhoneNumber = phonePattern.test(identifier);
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
             credentialHint.className = 'field-hint show';
             loginSubmitBtn.className = 'btn btn-primary rounded-pill py-3 fw-bold';
             loginSubmitText.textContent = 'تسجيل دخول الموظف';
-        }
+            }
     };
     
     // Real-time detection on input
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (newLoginType !== detectedLoginType) {
             detectedLoginType = newLoginType;
             updateUIForLoginType(detectedLoginType);
-        }
+    }
     };
     
     // Add input event listeners for real-time detection

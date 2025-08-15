@@ -191,13 +191,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 authMiddleware.adminLogout();
                 authMiddleware.clientLogout();
             }
-            
-            // Redirect to login page
-            window.location.href = 'index.html';
+                
+                // Redirect to login page
+                window.location.href = 'index.html';
         });
     });
 });
-
+    
 // Show access denied modal
 function showAccessDeniedModal() {
     console.log('🚨 showAccessDeniedModal called - this should only happen for admin users');
@@ -246,7 +246,7 @@ function showAccessDeniedModal() {
     
     // Add modal to page
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
+                    
     // Show current user role
     const roleDisplay = userRole === 'superadmin' ? 'مدير النظام الأعلى' : 'مدير';
     document.getElementById('currentUserRole').textContent = roleDisplay;
@@ -260,8 +260,8 @@ function showAccessDeniedModal() {
         e.preventDefault();
         return false;
     });
-}
-
+    }
+    
 // Redirect to admin dashboard
 function redirectToAdmin() {
     window.location.href = 'admin.html';

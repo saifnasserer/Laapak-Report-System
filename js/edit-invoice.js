@@ -341,10 +341,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             } else if (invoice.report_ids && Array.isArray(invoice.report_ids)) {
-                // Handle multiple reports for new invoices
+                // Handle multiple reports for bulk invoices
                 if (reportIdInput) {
                     reportIdInput.value = invoice.report_ids.join(', ');
                 }
+                
+                // For bulk invoices, disable report selection since reports are pre-selected
+                if (reportSelect) {
+                    reportSelect.disabled = true;
+                    reportSelect.style.backgroundColor = '#f8f9fa';
+                    reportSelect.style.cursor = 'not-allowed';
+                    
+                    // Add a visual indicator for bulk invoice
+                    const reportSelectContainer = reportSelect.parentElement;
+                    if (reportSelectContainer) {
+                        const bulkIndicator = document.createElement('small');
+                        bulkIndicator.className = 'text-info mt-1 d-block';
+                        bulkIndicator.innerHTML = `<i class="fas fa-layer-group me-1"></i> فاتورة مجمعة - ${invoice.report_ids.length} تقرير محدد مسبقاً`;
+                        reportSelectContainer.appendChild(bulkIndicator);
+                    }
+                }
+                
                 // Load reports for the selected client
                 fetchReportsForClient(invoice.client_id);
             } else {
@@ -377,7 +394,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         description: item.description,
                         quantity: item.quantity || 1,
                         amount: parseFloat(item.amount).toFixed(2),
-                        serialNumber: item.serialNumber || ''
+                        serialNumber: item.serialNumber || '',
+                        type: item.type || 'standard',
+                        report_id: item.report_id || ''
                     });
                 });
                 noItemsAlert.classList.add('d-none');
@@ -400,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function () {
         itemRow.setAttribute('data-item-id', itemId);
 
         itemRow.innerHTML = `
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label for="description-${itemId}" class="form-label">الوصف <span class="text-danger">*</span></label>
                 <input type="text" class="form-control item-description" id="description-${itemId}" value="${item.description || ''}" required>
             </div>
@@ -408,24 +427,39 @@ document.addEventListener('DOMContentLoaded', function () {
                 <label for="quantity-${itemId}" class="form-label">الكمية <span class="text-danger">*</span></label>
                 <input type="number" class="form-control item-quantity" id="quantity-${itemId}" value="${item.quantity || 1}" min="1" required>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="amount-${itemId}" class="form-label">السعر الوحدوي <span class="text-danger">*</span></label>
                 <input type="number" class="form-control item-amount" id="amount-${itemId}" value="${parseFloat(item.amount || 0).toFixed(2)}" step="0.01" min="0" required>
             </div>
-             <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-2">
+                <label for="item-type-${itemId}" class="form-label">نوع العنصر</label>
+                <select class="form-control item-type" id="item-type-${itemId}">
+                    <option value="standard" ${item.type === 'standard' ? 'selected' : ''}>عنصر عادي</option>
+                    <option value="report" ${item.type === 'report' ? 'selected' : ''}>تقرير</option>
+                    <option value="service" ${item.type === 'service' ? 'selected' : ''}>خدمة</option>
+                    <option value="part" ${item.type === 'part' ? 'selected' : ''}>قطع غيار</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
                 <button type="button" class="btn btn-sm btn-danger removeItemBtn w-100">
                     <i class="fas fa-trash-alt me-1"></i> إزالة
                 </button>
             </div>
-            <div class="col-md-12 mt-2">
+            <div class="col-md-6 mt-2">
                 <label for="serialNumber-${itemId}" class="form-label">الرقم التسلسلي (اختياري)</label>
                 <input type="text" class="form-control item-serial" id="serialNumber-${itemId}" value="${item.serialNumber || ''}">
+            </div>
+            <div class="col-md-6 mt-2">
+                <label for="report-id-${itemId}" class="form-label">معرف التقرير (إذا كان نوع التقرير)</label>
+                <input type="text" class="form-control item-report-id" id="report-id-${itemId}" value="${item.report_id || ''}" placeholder="مثال: RPT10001">
             </div>
         `;
         invoiceItemsContainer.appendChild(itemRow);
         noItemsAlert.classList.add('d-none');
 
-        itemRow.querySelector('.removeItemBtn').addEventListener('click', function () {
+        // Add event listeners for the new item row
+        const removeBtn = itemRow.querySelector('.removeItemBtn');
+        removeBtn.addEventListener('click', function () {
             itemRow.remove();
             if (invoiceItemsContainer.children.length === 0) {
                 noItemsAlert.classList.remove('d-none');
@@ -433,9 +467,69 @@ document.addEventListener('DOMContentLoaded', function () {
             calculateTotals();
         });
 
+        // Add event listeners for quantity and amount changes
         ['.item-quantity', '.item-amount'].forEach(selector => {
             itemRow.querySelector(selector).addEventListener('input', calculateTotals);
         });
+
+        // Add event listener for item type change
+        const itemTypeSelect = itemRow.querySelector('.item-type');
+        const reportIdInput = itemRow.querySelector('.item-report-id');
+        
+        itemTypeSelect.addEventListener('change', function() {
+            if (this.value === 'report') {
+                reportIdInput.style.display = 'block';
+                reportIdInput.parentElement.style.display = 'block';
+                reportIdInput.required = true;
+                
+                // Add a button to help select reports
+                if (!itemRow.querySelector('.select-report-btn')) {
+                    const selectReportBtn = document.createElement('button');
+                    selectReportBtn.type = 'button';
+                    selectReportBtn.className = 'btn btn-sm btn-outline-info mt-1 select-report-btn';
+                    selectReportBtn.innerHTML = '<i class="fas fa-search me-1"></i>اختيار تقرير';
+                    selectReportBtn.addEventListener('click', function() {
+                        showReportSelectionModal(itemRow);
+                    });
+                    reportIdInput.parentElement.appendChild(selectReportBtn);
+                }
+            } else {
+                reportIdInput.style.display = 'none';
+                reportIdInput.parentElement.style.display = 'none';
+                reportIdInput.required = false;
+                reportIdInput.value = '';
+                
+                // Remove the select report button
+                const selectReportBtn = itemRow.querySelector('.select-report-btn');
+                if (selectReportBtn) {
+                    selectReportBtn.remove();
+                }
+            }
+        });
+
+        // Initialize visibility based on current type
+        if (itemTypeSelect.value === 'report') {
+            reportIdInput.style.display = 'block';
+            reportIdInput.parentElement.style.display = 'block';
+            reportIdInput.required = true;
+            
+            // Add select report button for existing report items
+            if (!itemRow.querySelector('.select-report-btn')) {
+                const selectReportBtn = document.createElement('button');
+                selectReportBtn.type = 'button';
+                selectReportBtn.className = 'btn btn-sm btn-outline-info mt-1 select-report-btn';
+                selectReportBtn.innerHTML = '<i class="fas fa-search me-1"></i>اختيار تقرير';
+                selectReportBtn.addEventListener('click', function() {
+                    showReportSelectionModal(itemRow);
+                });
+                reportIdInput.parentElement.appendChild(selectReportBtn);
+            }
+        } else {
+            reportIdInput.style.display = 'none';
+            reportIdInput.parentElement.style.display = 'none';
+            reportIdInput.required = false;
+        }
+
         calculateTotals(); // Initial calculation for new row
     }
 
@@ -498,12 +592,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const itemRows = invoiceItemsContainer.querySelectorAll('.invoice-item');
         itemRows.forEach(row => {
-            invoiceData.items.push({
+            const itemType = row.querySelector('.item-type').value;
+            const itemData = {
                 description: row.querySelector('.item-description').value,
                 quantity: parseInt(row.querySelector('.item-quantity').value),
                 amount: parseFloat(row.querySelector('.item-amount').value).toFixed(2),
-                serialNumber: row.querySelector('.item-serial').value || null
-            });
+                serialNumber: row.querySelector('.item-serial').value || null,
+                type: itemType // Include the item type
+            };
+
+            if (itemType === 'report') {
+                itemData.report_id = row.querySelector('.item-report-id').value;
+            }
+
+            invoiceData.items.push(itemData);
         });
         
         // Recalculate final amounts based on items and form values
@@ -518,7 +620,6 @@ document.addEventListener('DOMContentLoaded', function () {
         invoiceData.tax = currentTax.toFixed(2);
         invoiceData.total = (subtotalAfterDiscount + currentTax).toFixed(2);
 
-
         try {
             // Get the admin or client token based on which one is available
             const token = localStorage.getItem('adminToken') || 
@@ -530,11 +631,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const url = isNewInvoice ? 
-                'https://reports.laapak.com/api/invoices' : 
-                `https://reports.laapak.com/api/invoices/${invoiceData.id}`;
+            // Determine if this is a bulk invoice (multiple reports)
+            const isBulkInvoice = invoiceData.report_ids && Array.isArray(invoiceData.report_ids) && invoiceData.report_ids.length > 1;
             
-            const method = isNewInvoice ? 'POST' : 'PUT';
+            let url, method;
+            
+            if (isNewInvoice) {
+                if (isBulkInvoice) {
+                    // Use bulk invoice endpoint for multiple reports
+                    url = 'https://reports.laapak.com/api/invoices/bulk';
+                    // Convert report_ids to reportIds for bulk endpoint
+                    invoiceData.reportIds = invoiceData.report_ids;
+                    delete invoiceData.report_ids;
+                } else {
+                    // Use regular invoice endpoint for single report
+                    url = 'https://reports.laapak.com/api/invoices';
+                }
+                method = 'POST';
+            } else {
+                url = `https://reports.laapak.com/api/invoices/${invoiceData.id}`;
+                method = 'PUT';
+            }
             
             const response = await fetch(url, {
                 method: method,
@@ -603,6 +720,204 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Error loading new invoice data:', error);
             toastr.error('فشل في تحميل بيانات الفاتورة الجديدة.');
             loadingIndicator.innerHTML = '<p class="text-danger">حدث خطأ أثناء تحميل بيانات الفاتورة الجديدة.</p>';
+        }
+    }
+
+    /**
+     * Show report selection modal for choosing reports
+     * @param {HTMLElement} itemRow - The item row to update
+     */
+    function showReportSelectionModal(itemRow) {
+        // Create modal HTML
+        const modalHtml = `
+            <div class="modal fade" id="reportSelectionModal" tabindex="-1" aria-labelledby="reportSelectionModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="reportSelectionModalLabel">اختيار تقرير</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <input type="text" class="form-control" id="reportSearchInput" placeholder="البحث في التقارير...">
+                            </div>
+                            <div class="table-responsive" style="max-height: 400px;">
+                                <table class="table table-hover">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th>معرف التقرير</th>
+                                            <th>العميل</th>
+                                            <th>الجهاز</th>
+                                            <th>الحالة</th>
+                                            <th>الإجراء</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reportSelectionTableBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center">جاري التحميل...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add modal to body if it doesn't exist
+        if (!document.getElementById('reportSelectionModal')) {
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        // Load reports for selection
+        loadReportsForSelection(itemRow);
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('reportSelectionModal'));
+        modal.show();
+    }
+
+    /**
+     * Load reports for selection in the modal
+     * @param {HTMLElement} itemRow - The item row to update
+     */
+    async function loadReportsForSelection(itemRow) {
+        try {
+            const tableBody = document.getElementById('reportSelectionTableBody');
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">جاري التحميل...</td></tr>';
+
+            // Get auth token
+            const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+
+            // Fetch all reports
+            const response = await fetch('https://reports.laapak.com/api/reports?fetch_mode=all_reports', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch reports');
+            }
+
+            const data = await response.json();
+            const reports = Array.isArray(data) ? data : (data.reports || []);
+
+            // Filter out reports that already have invoices
+            const availableReports = reports.filter(report => {
+                const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
+                const hasInvoice = report.invoice && report.invoice !== null;
+                const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
+                const hasInvoiceCreated = report.invoice_created === true;
+                
+                return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated;
+            });
+
+            // Populate table
+            if (availableReports.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد تقارير متاحة</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = availableReports.map(report => `
+                <tr>
+                    <td>${report.id}</td>
+                    <td>${report.client_name || 'غير محدد'}</td>
+                    <td>${report.device_model || 'غير محدد'}</td>
+                    <td><span class="badge bg-${getStatusBadgeColor(report.status)}">${report.status || 'قيد الانتظار'}</span></td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary select-report-btn" 
+                                data-report-id="${report.id}" 
+                                data-report-description="تقرير فحص - ${report.device_model || 'جهاز'} (${report.id})"
+                                data-report-amount="${report.amount || 0}">
+                            اختيار
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Add event listeners for report selection
+            tableBody.querySelectorAll('.select-report-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const reportId = this.dataset.reportId;
+                    const reportDescription = this.dataset.reportDescription;
+                    const reportAmount = parseFloat(this.dataset.reportAmount) || 0;
+
+                    // Update the item row
+                    const descriptionInput = itemRow.querySelector('.item-description');
+                    const amountInput = itemRow.querySelector('.item-amount');
+                    const reportIdInput = itemRow.querySelector('.item-report-id');
+
+                    if (descriptionInput) descriptionInput.value = reportDescription;
+                    if (amountInput) amountInput.value = reportAmount.toFixed(2);
+                    if (reportIdInput) reportIdInput.value = reportId;
+
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('reportSelectionModal'));
+                    modal.hide();
+
+                    // Recalculate totals
+                    calculateTotals();
+
+                    // Show success message
+                    toastr.success('تم اختيار التقرير بنجاح');
+                });
+            });
+
+            // Add search functionality
+            const searchInput = document.getElementById('reportSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = tableBody.querySelectorAll('tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+
+        } catch (error) {
+            console.error('Error loading reports for selection:', error);
+            const tableBody = document.getElementById('reportSelectionTableBody');
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">حدث خطأ أثناء تحميل التقارير</td></tr>';
+        }
+    }
+
+    /**
+     * Get badge color for report status
+     * @param {string} status - Report status
+     * @returns {string} Bootstrap badge color class
+     */
+    function getStatusBadgeColor(status) {
+        if (!status) return 'secondary';
+        
+        const statusLower = status.toLowerCase();
+        switch (statusLower) {
+            case 'completed':
+            case 'مكتمل':
+                return 'success';
+            case 'pending':
+            case 'قيد الانتظار':
+                return 'warning';
+            case 'cancelled':
+            case 'canceled':
+            case 'ملغي':
+                return 'danger';
+            case 'in-progress':
+            case 'قيد المعالجة':
+                return 'info';
+            default:
+                return 'secondary';
         }
     }
 });

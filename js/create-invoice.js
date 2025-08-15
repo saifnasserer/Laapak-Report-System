@@ -285,16 +285,29 @@ async function loadReports() {
                          (window && window.apiService) ? window.apiService : null;
             
             if (service && typeof service.getReports === 'function') {
-                // Get reports that don't have invoices (billing_enabled=0 and no invoice_id)
-                reports = await service.getReports({billing_enabled: false});
+                // Get ALL reports first
+                reports = await service.getReports({ fetch_mode: 'all_reports' });
                 
-                // Filter out reports that already have invoices
+                // Filter out reports that already have invoices OR are cancelled
                 reports = reports.filter(report => {
-                    // Check if report has no invoices array or empty invoices array
-                    return !report.invoices || report.invoices.length === 0;
+                    // Check if report has any invoice association
+                    const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
+                    const hasInvoice = report.invoice && report.invoice !== null;
+                    const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
+                    const hasInvoiceCreated = report.invoice_created === true;
+                    
+                    // Check if report is cancelled
+                    const isCancelled = report.status && (
+                        report.status.toLowerCase() === 'cancelled' || 
+                        report.status.toLowerCase() === 'canceled' || 
+                        report.status === 'ملغي'
+                    );
+                    
+                    // Report is available if it has NO invoice associations AND is NOT cancelled
+                    return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
                 });
                 
-                console.log('Reports without invoices for create-invoice page:', reports);
+                console.log('Reports without invoices and not cancelled for create-invoice page:', reports);
             } else {
                 // Wait a moment and try again - apiService might be initializing
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -304,11 +317,23 @@ async function loadReports() {
                                    (window && window.apiService) ? window.apiService : null;
                 
                 if (retryService && typeof retryService.getReports === 'function') {
-                    reports = await retryService.getReports({billing_enabled: false});
+                    reports = await retryService.getReports({ fetch_mode: 'all_reports' });
                     
-                    // Filter out reports that already have invoices
+                    // Filter out reports that already have invoices OR are cancelled
                     reports = reports.filter(report => {
-                        return !report.invoices || report.invoices.length === 0;
+                        const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
+                        const hasInvoice = report.invoice && report.invoice !== null;
+                        const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
+                        const hasInvoiceCreated = report.invoice_created === true;
+                        
+                        // Check if report is cancelled
+                        const isCancelled = report.status && (
+                            report.status.toLowerCase() === 'cancelled' || 
+                            report.status.toLowerCase() === 'canceled' || 
+                            report.status === 'ملغي'
+                        );
+                        
+                        return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
                     });
                     
                     console.log('Reports fetched on retry for create-invoice page:', reports);
@@ -321,6 +346,23 @@ async function loadReports() {
             // Fall back to localStorage if API fails
             const storedReports = localStorage.getItem('lpk_reports');
             reports = storedReports ? JSON.parse(storedReports) : [];
+            
+            // Filter out reports that already have invoices OR are cancelled
+            reports = reports.filter(report => {
+                const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
+                const hasInvoice = report.invoice && report.invoice !== null;
+                const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
+                const hasInvoiceCreated = report.invoice_created === true;
+                
+                // Check if report is cancelled
+                const isCancelled = report.status && (
+                    report.status.toLowerCase() === 'cancelled' || 
+                    report.status.toLowerCase() === 'canceled' || 
+                    report.status === 'ملغي'
+                );
+                
+                return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
+            });
             
             // If still no reports, use mock data
             if (reports.length === 0) {
@@ -661,18 +703,28 @@ function initiateDirectInvoiceCreation() {
     }
     console.log('[initiateDirectInvoiceCreation] Using client_id:', clientId, 'from report object:', firstReportObject);
 
+    // Calculate total amount from all selected reports
+    const totalAmount = selectedReportObjects.reduce((sum, report) => {
+        return sum + (parseFloat(report.amount) || 0);
+    }, 0);
+
     // Prepare invoice data for edit-invoice.js
     const today = new Date();
     const invoiceData = {
         // Generate a temporary ID for the new invoice
         id: 'TEMP_' + Date.now(),
         client_id: parseInt(clientId, 10),
-        report_ids: selectedReports,
+        report_ids: selectedReports, // Array of report IDs for bulk invoice
         date: today.toISOString().split('T')[0],
-        paymentStatus: 'unpaid',
-        paymentMethod: 'bank_transfer',
-        discount: 0,
-        taxRate: 14,
+        paymentStatus: invoiceSettings.paymentStatus || 'unpaid', // Use the current payment status setting
+        paymentMethod: invoiceSettings.paymentMethod || 'bank_transfer',
+        discount: parseFloat(invoiceSettings.discountRate) || 0,
+        taxRate: parseFloat(invoiceSettings.taxRate) || 14,
+        subtotal: totalAmount,
+        tax: (totalAmount * (parseFloat(invoiceSettings.taxRate) || 14)) / 100,
+        total: totalAmount + (totalAmount * (parseFloat(invoiceSettings.taxRate) || 14)) / 100,
+        notes: invoiceSettings.notes || '',
+        // Items array for the invoice
         items: selectedReportObjects.map((report, index) => ({
             description: `${report.device_model || report.deviceModel || 'جهاز غير محدد'} (${report.id})`,
             type: 'service',
@@ -681,7 +733,8 @@ function initiateDirectInvoiceCreation() {
             serialNumber: report.serial_number || report.serialNumber || '',
             report_id: report.id
         })),
-        isNewInvoice: true // Flag to indicate this is a new invoice
+        isNewInvoice: true, // Flag to indicate this is a new invoice
+        isBulkInvoice: true // Flag to indicate this is a bulk invoice
     };
 
     // Store the invoice data in localStorage for edit-invoice.js to pick up

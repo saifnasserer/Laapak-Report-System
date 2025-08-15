@@ -75,6 +75,25 @@ const Report = sequelize.define('Report', {
         type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0
     },
+    // Add invoice tracking fields
+    invoice_created: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        field: 'invoice_created',
+        comment: 'Indicates if an invoice has been created for this report'
+    },
+    invoice_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'invoice_id',
+        comment: 'Reference to the created invoice ID'
+    },
+    invoice_date: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'invoice_date',
+        comment: 'Date when invoice was created'
+    },
     status: {
         type: DataTypes.ENUM('قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى', 'pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active'),
         defaultValue: 'قيد الانتظار'

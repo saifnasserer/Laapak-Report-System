@@ -7,10 +7,15 @@ const Invoice = sequelize.define('Invoice', {
         primaryKey: true
     },
     reportId: {
-        type: DataTypes.STRING,
-        allowNull: true,
+        type: DataTypes.STRING(50),
+        allowNull: false, // Make this required
         field: 'reportId',
-        references: { model: 'reports', key: 'id' }
+        references: { 
+            model: 'reports', 
+            key: 'id' 
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
     },
     client_id: {
         type: DataTypes.INTEGER,
@@ -20,7 +25,8 @@ const Invoice = sequelize.define('Invoice', {
     },
     date: {
         type: DataTypes.DATE,
-        allowNull: false
+        allowNull: false,
+        defaultValue: DataTypes.NOW
     },
     subtotal: {
         type: DataTypes.DECIMAL(10, 2),
@@ -54,12 +60,34 @@ const Invoice = sequelize.define('Invoice', {
     paymentDate: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    // Add metadata for better tracking
+    created_from_report: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        comment: 'Indicates if invoice was created from a report'
+    },
+    report_order_number: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+        comment: 'Copy of report order number for quick reference'
     }
 }, {
     tableName: 'invoices',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        {
+            fields: ['reportId']
+        },
+        {
+            fields: ['client_id']
+        },
+        {
+            fields: ['date']
+        }
+    ]
 });
 
 module.exports = Invoice;

@@ -94,19 +94,19 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
 
             for (const invoice of invoices) {
                 // Count ALL invoices for revenue (not just those with cost prices)
-                totalRevenue += parseFloat(invoice.total) || 0;
-                invoiceCount++;
-                
+                    totalRevenue += parseFloat(invoice.total) || 0;
+                    invoiceCount++;
+                    
                 // Calculate total cost from invoice items (only if cost price exists)
                 if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
                     for (const item of invoice.InvoiceItems) {
                         if (item.cost_price) {
-                            const costPrice = parseFloat(item.cost_price) || 0;
-                            const quantity = parseInt(item.quantity) || 1;
-                            totalCost += costPrice * quantity;
-                        }
+                        const costPrice = parseFloat(item.cost_price) || 0;
+                        const quantity = parseInt(item.quantity) || 1;
+                        totalCost += costPrice * quantity;
                     }
                 }
+            }
             }
             
             console.log(`Dashboard calculations: Revenue=${totalRevenue}, Cost=${totalCost}, InvoiceCount=${invoiceCount}`);
@@ -346,15 +346,15 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                 
                 for (const invoice of monthInvoices) {
                     // Count ALL invoices for revenue
-                    monthRevenue += parseFloat(invoice.total) || 0;
-                    
+                        monthRevenue += parseFloat(invoice.total) || 0;
+                        
                     // Calculate cost only if cost prices exist
                     if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
                         for (const item of invoice.InvoiceItems) {
                             if (item.cost_price) {
-                                const costPrice = parseFloat(item.cost_price) || 0;
-                                const quantity = parseInt(item.quantity) || 1;
-                                monthCost += costPrice * quantity;
+                            const costPrice = parseFloat(item.cost_price) || 0;
+                            const quantity = parseInt(item.quantity) || 1;
+                            monthCost += costPrice * quantity;
                             }
                         }
                     }
@@ -520,7 +520,7 @@ router.get('/dashboard-debug', adminRoleAuth(['superadmin']), async (req, res) =
         res.status(500).json({
             success: false,
             message: 'Debug endpoint failed',
-            error: error.message
+            error: error.message 
         });
     }
 });

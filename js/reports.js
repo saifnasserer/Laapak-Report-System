@@ -111,28 +111,108 @@ function formatReportStatus(status, reportId) {
  * @returns {string} HTML string with invoice link or status
  */
 function getInvoiceLink(report) {
-    // Check if report has billing enabled
-    if (report.billing_enabled && report.amount > 0) {
-        // Try to find associated invoice
-        if (report.invoice_id) {
-            const statusBadge = getInvoiceStatusBadge(report.invoice_status);
+    // Check if report has invoices array
+    if (report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0) {
+        // Get the first invoice (assuming one invoice per report for now)
+        const invoice = report.invoices[0];
+        const statusBadge = getInvoiceStatusBadge(invoice.paymentStatus);
+        
+        // Check if payment is completed
+        const isCompleted = invoice.paymentStatus && (
+            invoice.paymentStatus.toLowerCase() === 'completed' || 
+            invoice.paymentStatus.toLowerCase() === 'paid' ||
+            invoice.paymentStatus === 'مكتمل' ||
+            invoice.paymentStatus === 'مدفوع'
+        );
+        
+        if (isCompleted) {
+            return `<div class="d-flex flex-column gap-1">
+                <a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-success">
+                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+                </a>
+                                 <!-- ${statusBadge} -->
+
+            </div>`;
+        } else {
+            return `<div class="d-flex flex-column gap-1">
+                <a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+                </a>
+                <!-- ${statusBadge} -->
+            </div>`;
+        }
+    }
+    
+    // Check if report has invoice_id (direct invoice reference)
+    if (report.invoice_id && report.invoice_id !== null) {
+        const statusBadge = getInvoiceStatusBadge(report.invoice_status);
+        
+        // Check if payment is completed
+        const isCompleted = report.invoice_status && (
+            report.invoice_status.toLowerCase() === 'completed' || 
+            report.invoice_status.toLowerCase() === 'paid' ||
+            report.invoice_status === 'مكتمل' ||
+            report.invoice_status === 'مدفوع'
+        );
+        
+        if (isCompleted) {
+            return `<div class="d-flex flex-column gap-1">
+                <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-success">
+                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+                </a>
+                <!-- ${statusBadge} -->
+            </div>`;
+        } else {
             return `<div class="d-flex flex-column gap-1">
                 <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
                 </a>
-                <!-- <small class="text-muted">${report.invoice_number || 'رقم الفاتورة غير محدد'}</small> -->
-                ${statusBadge}
+                <!-- ${statusBadge} -->
+            </div>`;
+        }
+    }
+    
+    // Check if report has invoice_created flag
+    if (report.invoice_created === true && report.invoice_id) {
+        const statusBadge = getInvoiceStatusBadge(report.invoice_status);
+        
+        // Check if payment is completed
+        const isCompleted = report.invoice_status && (
+            report.invoice_status.toLowerCase() === 'completed' || 
+            report.invoice_status.toLowerCase() === 'paid' ||
+            report.invoice_status === 'مكتمل' ||
+            report.invoice_status === 'مدفوع'
+        );
+        
+        if (isCompleted) {
+            return `<div class="d-flex flex-column gap-1">
+                <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-success">
+                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+                </a>
+                <!-- ${statusBadge} -->
             </div>`;
         } else {
-            return `<span class="badge bg-warning text-dark">
-                <i class="fas fa-file-invoice me-1"></i>فاتورة مطلوبة
-            </span>`;
+            return `<div class="d-flex flex-column gap-1">
+                <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+                </a>
+                                <!-- ${statusBadge} -->
+
+            </div>`;
         }
-    } else {
-        return `<span class="badge bg-secondary">
-            <i class="fas fa-times me-1"></i>لا توجد فاتورة
+    }
+    
+    // Check if report has billing enabled but no invoice
+    if (report.billing_enabled && report.amount > 0) {
+        return `<span class="badge bg-warning text-dark">
+            <i class="fas fa-file-invoice me-1"></i>فاتورة مطلوبة
         </span>`;
     }
+    
+    // No billing or invoice
+    return `<span class="badge bg-secondary">
+        <i class="fas fa-times me-1"></i>لا توجد فاتورة
+    </span>`;
 }
 
 /**
@@ -149,24 +229,40 @@ function getInvoiceStatusBadge(status) {
     
     switch (statusLower) {
         case 'paid':
+        case 'completed':
+        case 'مدفوع':
+        case 'مكتمل':
             badgeClass = 'bg-success';
             statusText = 'مدفوع';
             break;
         case 'unpaid':
+        case 'pending':
+        case 'غير مدفوع':
+        case 'قيد الانتظار':
             badgeClass = 'bg-danger';
             statusText = 'غير مدفوع';
             break;
         case 'partial':
+        case 'مدفوع جزئياً':
             badgeClass = 'bg-warning text-dark';
             statusText = 'مدفوع جزئياً';
             break;
         case 'overdue':
+        case 'متأخر':
             badgeClass = 'bg-danger';
             statusText = 'متأخر';
             break;
         case 'draft':
+        case 'مسودة':
             badgeClass = 'bg-secondary';
             statusText = 'مسودة';
+            break;
+        case 'cancelled':
+        case 'canceled':
+        case 'ملغي':
+        case 'ملغى':
+            badgeClass = 'bg-danger';
+            statusText = 'ملغي';
             break;
         default:
             badgeClass = 'bg-secondary';
@@ -407,7 +503,7 @@ function populateReportsTable(reports, updatePagination = true) {
             const firstInvoice = report.invoices[0];
             mappedReport.invoice_id = firstInvoice.id;
             mappedReport.invoice_number = firstInvoice.invoice_number;
-            mappedReport.invoice_status = firstInvoice.status;
+            mappedReport.invoice_status = firstInvoice.paymentStatus; // Use paymentStatus instead of status
         }
         
         // Format date if available
