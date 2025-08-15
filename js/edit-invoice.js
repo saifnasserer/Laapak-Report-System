@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const editInvoiceForm = document.getElementById('editInvoiceForm');
     const clientIdSelect = document.getElementById('clientId');
     const reportIdInput = document.getElementById('reportId');
-    const reportSelect = document.getElementById('reportSelect'); // New report select dropdown
     const invoiceDateInput = document.getElementById('invoiceDate');
     const paymentStatusSelect = document.getElementById('paymentStatus');
     const paymentMethodSelect = document.getElementById('paymentMethod');
@@ -24,7 +23,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const noItemsAlert = document.getElementById('noItemsAlert');
 
     let clients = []; // To store clients for the dropdown
-    let reports = []; // To store reports for the dropdown
 
     // Update page title and button text for new invoices
     if (isNewInvoice) {
@@ -76,191 +74,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    async function fetchReports() {
-        try {
-            // Get the admin or client token based on which one is available
-            const token = localStorage.getItem('adminToken') || 
-                         sessionStorage.getItem('adminToken') || 
-                         localStorage.getItem('clientToken') || 
-                         sessionStorage.getItem('clientToken');
-                         
-            if (!token) {
-                throw new Error('No authentication token found');
-            }
-            
-            // Fetch reports that are not linked to invoices
-            const response = await fetch('https://reports.laapak.com/api/reports?limit=1000&sort=desc', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': token
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch reports');
-            }
-            
-            const data = await response.json();
-            reports = data.reports || data; // Handle different response formats
-            
-            // Filter out reports that are already linked to invoices
-            const availableReports = reports.filter(report => {
-                // Check if report has any invoice association
-                const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
-                const hasInvoice = report.invoice && report.invoice !== null;
-                const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
-                
-                // Report is available if it has NO invoice associations
-                return !hasInvoiceId && !hasInvoice && !hasInvoices;
-            });
-            
-            console.log(`Total reports: ${reports.length}, Available reports: ${availableReports.length}`);
-            
-            populateReportDropdown(availableReports);
-        } catch (error) {
-            console.error('Error fetching reports:', error);
-            toastr.error('فشل في تحميل قائمة التقارير.');
-        }
-    }
-
-    async function fetchReportsForClient(clientId) {
-        try {
-            // Get the admin or client token based on which one is available
-            const token = localStorage.getItem('adminToken') || 
-                         sessionStorage.getItem('adminToken') || 
-                         localStorage.getItem('clientToken') || 
-                         sessionStorage.getItem('clientToken');
-                         
-            if (!token) {
-                throw new Error('No authentication token found');
-            }
-            
-            // Fetch reports for the specific client that are not linked to invoices
-            const response = await fetch(`https://reports.laapak.com/api/reports?limit=1000&sort=desc&clientId=${clientId}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': token
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch reports');
-            }
-            
-            const data = await response.json();
-            const clientReports = data.reports || data; // Handle different response formats
-            
-            // Filter out reports that are already linked to invoices
-            const availableReports = clientReports.filter(report => {
-                // Check if report has any invoice association
-                const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
-                const hasInvoice = report.invoice && report.invoice !== null;
-                const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
-                
-                // Report is available if it has NO invoice associations
-                return !hasInvoiceId && !hasInvoice && !hasInvoices;
-            });
-            
-            console.log(`Client reports: ${clientReports.length}, Available reports: ${availableReports.length}`);
-            
-            populateReportDropdown(availableReports);
-        } catch (error) {
-            console.error('Error fetching client reports:', error);
-            toastr.error('فشل في تحميل تقارير العميل.');
-        }
-    }
-
     function populateClientDropdown() {
         clients.forEach(client => {
             const option = document.createElement('option');
             option.value = client.id;
             option.textContent = `${client.name} (${client.phone})`;
             clientIdSelect.appendChild(option);
-        });
-    }
-
-    function populateReportDropdown(availableReports) {
-        if (!reportSelect) return;
-        
-        // Clear existing options except the first one
-        while (reportSelect.children.length > 1) {
-            reportSelect.removeChild(reportSelect.lastChild);
-        }
-        
-        console.log('Populating report dropdown with:', availableReports.length, 'reports');
-        
-        // Add available reports
-        availableReports.forEach(report => {
-            const option = document.createElement('option');
-            option.value = report.id;
-            
-            // Create a more descriptive text
-            const clientName = report.client_name || report.client?.name || 'غير معروف';
-            const deviceModel = report.device_model || 'غير محدد';
-            const orderNumber = report.order_number || '';
-            const status = report.status || 'قيد الانتظار';
-            
-            option.textContent = `#${report.id} - ${clientName} - ${deviceModel}${orderNumber ? ` (${orderNumber})` : ''} - ${status}`;
-            reportSelect.appendChild(option);
-        });
-        
-        // If no reports available, show a message
-        if (availableReports.length === 0) {
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = 'لا توجد تقارير متاحة للربط (جميع التقارير مرتبطة بفواتير)';
-            option.disabled = true;
-            reportSelect.appendChild(option);
-            
-            // Also show a toast notification
-            toastr.info('جميع التقارير مرتبطة بفواتير بالفعل. لا توجد تقارير متاحة للربط.');
-        } else {
-            // Show success message
-            toastr.success(`تم تحميل ${availableReports.length} تقرير متاح للربط`);
-        }
-    }
-
-    // Add event listener for client selection
-    if (clientIdSelect) {
-        clientIdSelect.addEventListener('change', function() {
-            const selectedClientId = this.value;
-            if (selectedClientId && !reportSelect.disabled) {
-                // Load reports for the selected client
-                fetchReportsForClient(selectedClientId);
-            }
-        });
-    }
-
-    // Add event listener for report selection
-    if (reportSelect) {
-        reportSelect.addEventListener('change', function() {
-            const selectedReportId = this.value;
-            if (selectedReportId) {
-                // Update the report ID input field
-                if (reportIdInput) {
-                    reportIdInput.value = selectedReportId;
-                }
-                
-                // Optionally, you can also auto-populate some fields from the selected report
-                const selectedReport = reports.find(r => r.id == selectedReportId);
-                if (selectedReport) {
-                    // Auto-populate client if not already selected
-                    if (clientIdSelect && !clientIdSelect.value) {
-                        clientIdSelect.value = selectedReport.client_id;
-                    }
-                    
-                    // Auto-populate device information in invoice items if no items exist
-                    if (invoiceItemsContainer.children.length === 0) {
-                        addInvoiceItemRow({
-                            description: `تقرير فحص - ${selectedReport.device_model || 'جهاز'}`,
-                            type: 'service',
-                            quantity: 1,
-                            amount: selectedReport.amount || 250,
-                            serialNumber: selectedReport.serial_number || ''
-                        });
-                    }
-                }
-            }
         });
     }
 
@@ -324,21 +143,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (reportIdInput) {
                     reportIdInput.value = invoice.report_id;
                 }
-                if (reportSelect) {
-                    reportSelect.value = invoice.report_id;
-                    // Freeze the report selection field since invoice is already linked
-                    reportSelect.disabled = true;
-                    reportSelect.style.backgroundColor = '#f8f9fa';
-                    reportSelect.style.cursor = 'not-allowed';
-                    
-                    // Add a visual indicator that the field is frozen
-                    const reportSelectContainer = reportSelect.parentElement;
-                    if (reportSelectContainer) {
-                        const frozenIndicator = document.createElement('small');
-                        frozenIndicator.className = 'text-muted mt-1 d-block';
-                        frozenIndicator.innerHTML = '<i class="fas fa-lock me-1"></i> الفاتورة مرتبطة بتقرير - لا يمكن تغيير الربط';
-                        reportSelectContainer.appendChild(frozenIndicator);
-                    }
+                if (reportIdInput) {
+                    reportIdInput.value = invoice.report_id;
                 }
             } else if (invoice.report_ids && Array.isArray(invoice.report_ids)) {
                 // Handle multiple reports for bulk invoices
@@ -347,32 +153,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 
                 // For bulk invoices, disable report selection since reports are pre-selected
-                if (reportSelect) {
-                    reportSelect.disabled = true;
-                    reportSelect.style.backgroundColor = '#f8f9fa';
-                    reportSelect.style.cursor = 'not-allowed';
-                    
-                    // Add a visual indicator for bulk invoice
-                    const reportSelectContainer = reportSelect.parentElement;
-                    if (reportSelectContainer) {
-                        const bulkIndicator = document.createElement('small');
-                        bulkIndicator.className = 'text-info mt-1 d-block';
-                        bulkIndicator.innerHTML = `<i class="fas fa-layer-group me-1"></i> فاتورة مجمعة - ${invoice.report_ids.length} تقرير محدد مسبقاً`;
-                        reportSelectContainer.appendChild(bulkIndicator);
-                    }
+                if (reportIdInput) {
+                    reportIdInput.value = invoice.report_ids.join(', ');
                 }
-                
-                // Load reports for the selected client
-                fetchReportsForClient(invoice.client_id);
             } else {
                 if (reportIdInput) {
                     reportIdInput.value = 'N/A';
                 }
-                if (reportSelect) {
-                    reportSelect.value = '';
-                }
-                // Load reports for the selected client
-                fetchReportsForClient(invoice.client_id);
             }
             
             invoiceDateInput.value = invoice.date ? invoice.date.split('T')[0] : '';
@@ -565,9 +352,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Get the selected report ID from the dropdown if available
         let selectedReportId = null;
-        if (reportSelect && reportSelect.value) {
-            selectedReportId = reportSelect.value;
-        } else if (reportIdInput && reportIdInput.value && reportIdInput.value !== 'N/A') {
+        if (reportIdInput && reportIdInput.value && reportIdInput.value !== 'N/A') {
             selectedReportId = reportIdInput.value;
         }
 
@@ -708,11 +493,6 @@ document.addEventListener('DOMContentLoaded', function () {
             populateForm(invoice);
             loadingIndicator.classList.add('d-none');
             formContent.classList.remove('d-none');
-            
-            // Load reports for the client if available
-            if (invoice.client_id) {
-                fetchReportsForClient(invoice.client_id);
-            }
             
             // Clear the localStorage data after loading
             localStorage.removeItem('lpk_new_invoice_data');

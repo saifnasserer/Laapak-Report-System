@@ -448,24 +448,20 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
         reports.forEach(report => {
             const inspectionDate = new Date(report.inspection_date);
             
-            // Calculate warranty end dates
-            const manufacturingEnd = new Date(inspectionDate);
-            manufacturingEnd.setMonth(manufacturingEnd.getMonth() + 6);
+            // Calculate maintenance warranty end dates (6 months and 12 months)
+            const maintenance6MonthsEnd = new Date(inspectionDate);
+            maintenance6MonthsEnd.setMonth(maintenance6MonthsEnd.getMonth() + 6);
             
-            const replacementEnd = new Date(inspectionDate);
-            replacementEnd.setDate(replacementEnd.getDate() + 14);
-            
-            const maintenanceEnd = new Date(inspectionDate);
-            maintenanceEnd.setFullYear(maintenanceEnd.getFullYear() + 1);
+            const maintenance12MonthsEnd = new Date(inspectionDate);
+            maintenance12MonthsEnd.setFullYear(maintenance12MonthsEnd.getFullYear() + 1);
 
-            // Check if any warranty is ending within 7 days
-            const warranties = [
-                { type: 'manufacturing', endDate: manufacturingEnd, days: 180 },
-                { type: 'replacement', endDate: replacementEnd, days: 14 },
-                { type: 'maintenance', endDate: maintenanceEnd, days: 365 }
+            // Check if maintenance warranty is ending within 7 days
+            const maintenanceWarranties = [
+                { type: 'maintenance_6months', endDate: maintenance6MonthsEnd, days: 180 },
+                { type: 'maintenance_12months', endDate: maintenance12MonthsEnd, days: 365 }
             ];
 
-            warranties.forEach(warranty => {
+            maintenanceWarranties.forEach(warranty => {
                 if (warranty.endDate >= currentDate && warranty.endDate <= sevenDaysFromNow) {
                     const daysRemaining = Math.ceil((warranty.endDate - currentDate) / (1000 * 60 * 60 * 24));
                     

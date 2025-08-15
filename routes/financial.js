@@ -121,7 +121,8 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                     date: {
                         [Op.between]: [startDateStr, endDateStr]
                     },
-                    status: ['approved', 'paid']
+                    status: ['approved', 'paid'],
+                    type: 'variable' // Only get variable expenses, not fixed profits
                 }
             });
 
@@ -129,6 +130,8 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                 totalExpenses += parseFloat(expense.amount) || 0;
                 expenseCount++;
             }
+            
+            console.log(`Found ${expenseCount} expenses totaling ${totalExpenses}`);
         } catch (error) {
             console.error('Error fetching expenses:', error);
         }
@@ -366,7 +369,8 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                         date: {
                             [Op.between]: [trendStartStr, trendEndStr]
                         },
-                        status: ['approved', 'paid']
+                        status: ['approved', 'paid'],
+                        type: 'variable' // Only get variable expenses, not fixed profits
                     }
                 });
                 
@@ -392,30 +396,51 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
         // Get expense breakdown by category
         let expenseBreakdown = [];
         try {
-            const breakdownData = await Expense.findAll({
-                attributes: [
-                    [ExpenseCategory.sequelize.col('category.name_ar'), 'category_name'],
-                    [ExpenseCategory.sequelize.col('category.color'), 'color'],
-                    [ExpenseCategory.sequelize.fn('SUM', ExpenseCategory.sequelize.col('Expense.amount')), 'total']
-                ],
+            // Get all expenses for the date range
+            const expenses = await Expense.findAll({
                 where: {
                     date: {
                         [Op.between]: [startDateStr, endDateStr]
                     },
-                    status: ['approved', 'paid']
-                },
-                include: [{
-                    model: ExpenseCategory,
-                    as: 'category',
-                    attributes: []
-                }],
-                group: ['category.id'],
-                raw: true
+                    status: ['approved', 'paid'],
+                    type: 'variable' // Only get variable expenses, not fixed profits
+                }
             });
+
+            // Group expenses by name (simple grouping instead of categories)
+            const expenseGroups = {};
             
-            expenseBreakdown = breakdownData;
+            for (const expense of expenses) {
+                const expenseName = expense.name_ar || expense.name || 'مصروفات أخرى';
+                const amount = parseFloat(expense.amount) || 0;
+                
+                if (expenseGroups[expenseName]) {
+                    expenseGroups[expenseName] += amount;
+                } else {
+                    expenseGroups[expenseName] = amount;
+                }
+            }
+
+            // Convert to chart format
+            expenseBreakdown = Object.entries(expenseGroups).map(([name, total], index) => ({
+                category_name: name,
+                total: total,
+                color: getExpenseColor(index) // Generate colors dynamically
+            }));
+
+            console.log('Expense breakdown:', expenseBreakdown);
+            
         } catch (error) {
             console.error('Error fetching expense breakdown:', error);
+        }
+
+        // Helper function to generate colors for expenses
+        function getExpenseColor(index) {
+            const colors = [
+                '#dc3545', '#ffc107', '#0dcaf0', '#6f42c1', 
+                '#fd7e14', '#20c997', '#e83e8c', '#6c757d'
+            ];
+            return colors[index % colors.length];
         }
 
         res.json({

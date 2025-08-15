@@ -195,11 +195,11 @@ async function checkForNewAchievements(adminId) {
         ];
 
         for (const milestone of milestones) {
-            // Check if this achievement already exists
+            // Check if this achievement already exists for the specific metric
             const existingAchievement = await Achievement.findOne({
                 where: {
                     title: milestone.title,
-                    metric: 'total_reports',
+                    metric: milestone.title.includes('تقرير') ? 'total_reports' : 'total_clients',
                     isActive: true
                 }
             });

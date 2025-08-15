@@ -846,23 +846,32 @@ function displayAchievements(achievements, newAchievements = []) {
         `;
     }
     
-    // Display achievements
-    achievements.forEach(achievement => {
+    // Remove duplicates by title and metric
+    const uniqueAchievements = achievements.filter((achievement, index, self) => 
+        index === self.findIndex(a => a.title === achievement.title && a.metric === achievement.metric)
+    );
+    
+    // Display unique achievements
+    uniqueAchievements.forEach(achievement => {
         const isNew = newAchievements.some(newAchievement => newAchievement.id === achievement.id);
         const badgeClass = isNew ? 'badge-success' : 'badge-secondary';
         
+        // Get dynamic icon and color based on achievement type
+        const icon = achievement.icon || getAchievementIcon(achievement.type, achievement.metric);
+        const color = achievement.color || getAchievementColor(achievement.type, achievement.metric);
+        
         achievementsHtml += `
             <div class="d-flex align-items-center mb-3 p-3 rounded" 
-                 style="background-color: ${achievement.color}15; border-left: 4px solid ${achievement.color};">
+                 style="background-color: ${color}15; border-left: 4px solid ${color};">
                 <div class="me-3">
-                    <i class="${achievement.icon}" style="color: ${achievement.color}; font-size: 1.5rem;"></i>
+                    <i class="${icon}" style="color: ${color}; font-size: 1.5rem;"></i>
                 </div>
                 <div class="flex-grow-1">
                     <h6 class="mb-1 fw-bold">${achievement.title}</h6>
                     <p class="text-muted mb-1 small">${achievement.description || ''}</p>
                     <div class="d-flex align-items-center">
                         <span class="badge ${badgeClass} me-2">${achievement.value}</span>
-                        <small class="text-muted">${achievement.metric}</small>
+                        <small class="text-muted">${getMetricText(achievement.metric)}</small>
                     </div>
                 </div>
                 ${isNew ? '<span class="badge bg-success">جديد</span>' : ''}
@@ -871,6 +880,60 @@ function displayAchievements(achievements, newAchievements = []) {
     });
     
     achievementsContent.innerHTML = achievementsHtml;
+}
+
+/**
+ * Get achievement icon based on type and metric
+ */
+function getAchievementIcon(type, metric) {
+    switch (metric) {
+        case 'total_reports':
+            return 'fas fa-file-alt';
+        case 'total_clients':
+            return 'fas fa-users';
+        case 'total_invoices':
+            return 'fas fa-file-invoice';
+        case 'monthly_reports':
+            return 'fas fa-calendar-check';
+        default:
+            return 'fas fa-trophy';
+    }
+}
+
+/**
+ * Get achievement color based on type and metric
+ */
+function getAchievementColor(type, metric) {
+    switch (metric) {
+        case 'total_reports':
+            return '#007553';
+        case 'total_clients':
+            return '#0d6efd';
+        case 'total_invoices':
+            return '#fd7e14';
+        case 'monthly_reports':
+            return '#6f42c1';
+        default:
+            return '#6c757d';
+    }
+}
+
+/**
+ * Get metric text in Arabic
+ */
+function getMetricText(metric) {
+    switch (metric) {
+        case 'total_reports':
+            return 'إجمالي التقارير';
+        case 'total_clients':
+            return 'إجمالي العملاء';
+        case 'total_invoices':
+            return 'إجمالي الفواتير';
+        case 'monthly_reports':
+            return 'التقارير الشهرية';
+        default:
+            return metric;
+    }
 }
 
 /**
@@ -1367,9 +1430,8 @@ function displayWarrantyAlerts(alerts) {
                            alert.days_remaining <= 5 ? '#ffc107' : '#0dcaf0';
         
         const warrantyTypeText = {
-            'manufacturing': 'ضمان عيوب الصناعة',
-            'replacement': 'ضمان الاستبدال',
-            'maintenance': 'ضمان الصيانة الدورية'
+            'maintenance_6months': 'ضمان الصيانة الدورية (6 أشهر)',
+            'maintenance_12months': 'ضمان الصيانة الدورية (12 شهر)'
         }[alert.warranty_type] || alert.warranty_type;
         
         html += `

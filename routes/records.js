@@ -93,7 +93,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             name_ar: name, // Use the same name for both fields
             amount: amount,
             category_id: 1, // Default category (you might want to make this configurable)
-            type: type === 'profit' ? 'profit' : 'variable', // Use 'profit' type for profits, 'variable' for expenses
+            type: type === 'profit' ? 'fixed' : 'variable', // Use 'fixed' for profits, 'variable' for expenses
             date: date,
             description: notes || '',
             created_by: req.user.id,

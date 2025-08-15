@@ -288,6 +288,29 @@
             color: var(--success-color);
         }
 
+        /* Delete Button Styling */
+        .recent-item .btn-outline-danger {
+            border: 1px solid var(--danger-color);
+            color: var(--danger-color);
+            background: transparent;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .recent-item:hover .btn-outline-danger {
+            opacity: 1;
+            background: var(--danger-color);
+            color: var(--white);
+            transform: scale(1.05);
+        }
+
+        .recent-item .btn-outline-danger:hover {
+            background: var(--danger-color);
+            color: var(--white);
+            transform: scale(1.05);
+            box-shadow: var(--shadow-sm);
+        }
+
         /* Loading Spinner */
         .loading-spinner {
             width: 2rem;
@@ -572,11 +595,11 @@
             }
 
             container.innerHTML = records.map(record => `
-                <div class="recent-item" onclick="fillFromRecent('${record.id}')">
+                <div class="recent-item">
                     <div class="recent-item-icon ${record.type}">
                         <i class="fas ${record.type === 'expense' ? 'fa-minus' : 'fa-plus'}"></i>
                     </div>
-                    <div class="recent-item-content">
+                    <div class="recent-item-content" onclick="fillFromRecent('${record.id}')" style="cursor: pointer;">
                         <div class="recent-item-name">${record.name}</div>
                         <div class="recent-item-date">
                             ${new Date(record.date).toLocaleDateString('ar-EG')}
@@ -585,6 +608,10 @@
                     <div class="recent-item-amount ${record.type}">
                         ${record.type === 'expense' ? '-' : '+'}${formatCurrency(record.amount)}
                     </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord('${record.id}', '${record.name}')" 
+                            style="margin-right: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             `).join('');
         }
@@ -592,6 +619,46 @@
         // Fill form from recent record
         function fillFromRecent(recordId) {
             showNotification('تم تعبئة النموذج من التسجيل السابق', 'info');
+        }
+
+        // Delete record
+        async function deleteRecord(recordId, recordName) {
+            // Show confirmation dialog
+            if (!confirm(`هل أنت متأكد من حذف "${recordName}"؟\n\nلا يمكن التراجع عن هذا الإجراء.`)) {
+                return;
+            }
+
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/records/${recordId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete record');
+                }
+
+                // Show success message
+                showNotification(`تم حذف "${recordName}" بنجاح`, 'success');
+                
+                // Reload recent records
+                loadRecentRecords();
+
+            } catch (error) {
+                console.error('Delete record error:', error);
+                showNotification('خطأ في حذف التسجيل', 'error');
+            }
         }
 
         // Handle form submission

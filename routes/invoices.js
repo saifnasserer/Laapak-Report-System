@@ -653,15 +653,34 @@ router.put('/:id', adminAuth, async (req, res) => {
         
         // Update invoice items
         if (items && Array.isArray(items)) {
+            // Get current invoice items to check which reports were removed
+            const currentItems = await InvoiceItem.findAll({
+                where: { invoiceId: invoice.id },
+                attributes: ['report_id'],
+                transaction
+            });
+            
+            const currentReportIds = currentItems
+                .map(item => item.report_id)
+                .filter(reportId => reportId !== null);
+            
             // Delete existing items
             await InvoiceItem.destroy({
                 where: { invoiceId: invoice.id },
                 transaction
             });
             
+            // Collect all report IDs from new items
+            const reportIdsFromItems = [];
+            
             // Create new items
-            await Promise.all(items.map(item => 
-                InvoiceItem.create({
+            await Promise.all(items.map(item => {
+                // Collect report IDs for linking
+                if (item.report_id && item.type === 'report') {
+                    reportIdsFromItems.push(item.report_id);
+                }
+                
+                return InvoiceItem.create({
                     invoiceId: invoice.id,
                     description: item.description || '',
                     type: item.type || 'service',
@@ -672,8 +691,72 @@ router.put('/:id', adminAuth, async (req, res) => {
                     report_id: item.report_id || null, // Add report_id field
                     created_at: new Date(),
                     invoice_id: invoice.id
-                }, { transaction })
-            ));
+                }, { transaction });
+            }));
+            
+            // Find reports that were removed (in current but not in new items)
+            const removedReportIds = currentReportIds.filter(reportId => 
+                !reportIdsFromItems.includes(reportId)
+            );
+            
+            // Unlink removed reports
+            if (removedReportIds.length > 0) {
+                console.log('Unlinking removed reports:', removedReportIds);
+                
+                // Remove entries from InvoiceReport junction table
+                await InvoiceReport.destroy({
+                    where: {
+                        invoice_id: invoice.id,
+                        report_id: { [Op.in]: removedReportIds }
+                    },
+                    transaction
+                });
+                
+                // Update reports to mark them as not having an invoice
+                await Report.update(
+                    { 
+                        billingEnabled: false,
+                        invoice_created: false,
+                        invoice_id: null,
+                        invoice_date: null
+                    }, 
+                    { 
+                        where: { id: { [Op.in]: removedReportIds } },
+                        transaction
+                    }
+                );
+                
+                console.log(`Unlinked ${removedReportIds.length} reports from invoice ${invoice.id}`);
+            }
+            
+            // Link new reports to invoice if any items have report_id
+            if (reportIdsFromItems.length > 0) {
+                console.log('Linking reports from invoice items:', reportIdsFromItems);
+                
+                // Create entries in InvoiceReport junction table
+                const invoiceReportEntries = reportIdsFromItems.map(reportId => ({
+                    invoice_id: invoice.id,
+                    report_id: reportId
+                }));
+                
+                await InvoiceReport.bulkCreate(invoiceReportEntries, { transaction });
+                
+                // Update reports to mark them as having an invoice
+                await Report.update(
+                    { 
+                        billingEnabled: true,
+                        invoice_created: true,
+                        invoice_id: invoice.id,
+                        invoice_date: new Date()
+                    }, 
+                    { 
+                        where: { id: { [Op.in]: reportIdsFromItems } },
+                        transaction
+                    }
+                );
+                
+                console.log(`Linked ${reportIdsFromItems.length} reports to invoice ${invoice.id}`);
+            }
         }
         
         await transaction.commit();

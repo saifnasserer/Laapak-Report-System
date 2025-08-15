@@ -1092,7 +1092,10 @@ async function updateReportStatus(reportId, newStatus, skipInvoiceSync = false) 
         }
         
         // Show success message
-        showToast('تم تحديث حالة التقرير بنجاح', 'success');
+        const statusMessage = newStatus === 'ملغي' || newStatus === 'cancelled' ? 
+            'تم إلغاء التقرير وتحديث حالة الفاتورة' : 
+            'تم تحديث حالة التقرير بنجاح';
+        showToast(statusMessage, 'success');
         
         // Update the cached reports data
         const cachedReports = JSON.parse(localStorage.getItem('cachedReports') || '[]');
@@ -1166,10 +1169,15 @@ async function handleReportInvoiceStatusSync(reportId, newStatus) {
                 invoiceStatus = 'completed';
                 break;
             case 'ملغي':
+            case 'ملغى':
+            case 'cancelled':
+            case 'canceled':
                 invoiceStatus = 'cancelled';
                 break;
             case 'قيد الانتظار':
             case 'قيد المعالجة':
+            case 'pending':
+            case 'in-progress':
             default:
                 invoiceStatus = 'pending';
                 break;
@@ -1177,15 +1185,42 @@ async function handleReportInvoiceStatusSync(reportId, newStatus) {
         
         console.log(`Mapping report status '${newStatus}' to invoice status '${invoiceStatus}'`);
         
-        // Update all linked invoices
+        // Update all linked invoices (only if status is different)
+        let updatedInvoices = 0;
         for (const invoice of invoices) {
             if (invoice.id) {
-                console.log(`Updating invoice ${invoice.id} status from ${invoice.paymentStatus} to ${invoiceStatus}`);
+                const currentInvoiceStatus = invoice.paymentStatus || 'pending';
+                
+                // Check if invoice status is already the target status
+                if (currentInvoiceStatus.toLowerCase() === invoiceStatus.toLowerCase()) {
+                    console.log(`Invoice ${invoice.id} already has status '${currentInvoiceStatus}', skipping update`);
+                    continue;
+                }
+                
+                // Check if invoice is already cancelled and we're trying to cancel it again
+                if (invoiceStatus === 'cancelled' && 
+                    (currentInvoiceStatus.toLowerCase() === 'cancelled' || 
+                     currentInvoiceStatus.toLowerCase() === 'ملغي' || 
+                     currentInvoiceStatus.toLowerCase() === 'ملغى')) {
+                    console.log(`Invoice ${invoice.id} is already cancelled, skipping update`);
+                    continue;
+                }
+                
+                console.log(`Updating invoice ${invoice.id} status from ${currentInvoiceStatus} to ${invoiceStatus}`);
                 await updateInvoiceStatus(invoice.id, invoiceStatus, true); // Skip report sync to prevent loops
+                updatedInvoices++;
             }
         }
         
-        console.log(`Synchronized ${invoices.length} linked invoices to status: ${invoiceStatus}`);
+        console.log(`Synchronized ${updatedInvoices} invoices to status: ${invoiceStatus}`);
+        
+        // Only refresh if we actually updated any invoices
+        if (updatedInvoices > 0) {
+            // Refresh the reports table to show updated invoice status
+            setTimeout(() => {
+                initReports();
+            }, 1000);
+        }
         
     } catch (error) {
         console.error('Error synchronizing invoice status:', error);
