@@ -121,6 +121,94 @@
             </div>
         </div>
         
+        <!-- Filters Section -->
+        <div class="card mb-4 shadow">
+            <div class="card-header" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                <h6 class="mb-0 fw-bold text-dark">
+                    <i class="fas fa-filter me-2"></i>فلاتر البحث
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="paymentMethodFilter" class="form-label">طريقة الدفع</label>
+                        <select class="form-select" id="paymentMethodFilter">
+                            <option value="all">جميع الطرق</option>
+                            <option value="cash">نقداً</option>
+                            <option value="instapay">Instapay</option>
+                            <option value="محفظة">محفظة رقمية</option>
+                            <option value="بنك">بنك</option>
+                            <option value="other">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="paymentStatusFilter" class="form-label">حالة الدفع</label>
+                        <select class="form-select" id="paymentStatusFilter">
+                            <option value="all">جميع الحالات</option>
+                            <option value="paid">مدفوع</option>
+                            <option value="pending">معلق</option>
+                            <option value="partial">مدفوع جزئياً</option>
+                            <option value="cancelled">ملغي</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="startDateFilter" class="form-label">من تاريخ</label>
+                        <input type="date" class="form-control" id="startDateFilter">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="endDateFilter" class="form-label">إلى تاريخ</label>
+                        <input type="date" class="form-control" id="endDateFilter">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-primary me-2" id="applyFiltersBtn">
+                            <i class="fas fa-search me-1"></i>تطبيق الفلاتر
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="clearFiltersBtn">
+                            <i class="fas fa-times me-1"></i>مسح الفلاتر
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center border-primary">
+                    <div class="card-body">
+                        <h4 class="text-primary" id="totalInvoicesCount">0</h4>
+                        <p class="text-muted mb-0">إجمالي الفواتير</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-success">
+                    <div class="card-body">
+                        <h4 class="text-success" id="totalInvoicesAmount">0 ج.م</h4>
+                        <p class="text-muted mb-0">إجمالي المبالغ</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-info">
+                    <div class="card-body">
+                        <h4 class="text-info" id="paidInvoicesAmount">0 ج.م</h4>
+                        <p class="text-muted mb-0">المدفوع</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-warning">
+                    <div class="card-body">
+                        <h4 class="text-warning" id="pendingInvoicesAmount">0 ج.م</h4>
+                        <p class="text-muted mb-0">المعلق</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Invoices Table -->
         <div class="card mb-4 shadow">
             <div class="card-header" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white;">

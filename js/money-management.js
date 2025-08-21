@@ -262,7 +262,13 @@ class MoneyUIRenderer {
 
     // Render money locations
     static renderLocations() {
+        console.log('Rendering locations:', moneyState.locations);
         const container = document.getElementById('locationsContainer');
+        
+        if (!container) {
+            console.error('Locations container not found');
+            return;
+        }
         
         if (moneyState.locations.length === 0) {
             container.innerHTML = `
@@ -348,7 +354,13 @@ class MoneyUIRenderer {
 
     // Render invoice statistics
     static renderInvoiceStats() {
+        console.log('Rendering invoice stats:', moneyState.invoiceStats);
         const container = document.getElementById('invoiceStatsContainer');
+        
+        if (!container) {
+            console.error('Invoice stats container not found');
+            return;
+        }
         
         if (!moneyState.invoiceStats || !moneyState.invoiceStats.byPaymentMethod) {
             container.innerHTML = `
@@ -814,15 +826,27 @@ class MoneyDataLoader {
             moneyState.isLoading = true;
             this.showLoadingStates();
 
+            console.log('Loading money management data...');
+
             const [locationsData, movementsData, invoiceStatsData] = await Promise.all([
                 moneyApi.getLocations(),
                 moneyApi.getMovements({ limit: 50 }),
                 moneyApi.getInvoiceStats()
             ]);
 
+            console.log('Locations data:', locationsData);
+            console.log('Movements data:', movementsData);
+            console.log('Invoice stats data:', invoiceStatsData);
+
             moneyState.setLocations(locationsData.data.locations || []);
             moneyState.setMovements(movementsData.data.movements || []);
             moneyState.setInvoiceStats(invoiceStatsData.data || {});
+
+            console.log('State updated:', {
+                locations: moneyState.locations.length,
+                movements: moneyState.movements.length,
+                invoiceStats: moneyState.invoiceStats
+            });
 
             this.hideLoadingStates();
             moneyState.isLoading = false;
