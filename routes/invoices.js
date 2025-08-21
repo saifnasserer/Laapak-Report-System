@@ -10,6 +10,107 @@ const { auth, adminAuth, clientAuth } = require('../middleware/auth');
 const { Op } = require('sequelize');
 const { autoAssignMoneyLocation, updateInvoicePaymentStatus } = require('./invoice-hooks');
 
+// Get invoice statistics by payment method
+router.get('/stats/payment-methods', adminAuth, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        let whereClause = {};
+        
+        // Filter by date range if provided
+        if (startDate && endDate) {
+            whereClause.date = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        } else if (startDate) {
+            whereClause.date = {
+                [Op.gte]: new Date(startDate)
+            };
+        } else if (endDate) {
+            whereClause.date = {
+                [Op.lte]: new Date(endDate)
+            };
+        }
+        
+        // Get invoices with payment methods
+        const invoices = await Invoice.findAll({
+            where: whereClause,
+            attributes: ['paymentMethod', 'total', 'paymentStatus'],
+            order: [['date', 'DESC']]
+        });
+        
+        // Calculate statistics
+        const stats = {
+            totalInvoices: invoices.length,
+            totalAmount: 0,
+            byPaymentMethod: {
+                cash: { count: 0, amount: 0, paid: 0, pending: 0 },
+                instapay: { count: 0, amount: 0, paid: 0, pending: 0 },
+                محفظة: { count: 0, amount: 0, paid: 0, pending: 0 },
+                بنك: { count: 0, amount: 0, paid: 0, pending: 0 },
+                other: { count: 0, amount: 0, paid: 0, pending: 0 }
+            },
+            byStatus: {
+                paid: { count: 0, amount: 0 },
+                pending: { count: 0, amount: 0 },
+                partial: { count: 0, amount: 0 },
+                cancelled: { count: 0, amount: 0 }
+            }
+        };
+        
+        invoices.forEach(invoice => {
+            const amount = parseFloat(invoice.total) || 0;
+            const method = invoice.paymentMethod || 'other';
+            const status = invoice.paymentStatus || 'pending';
+            
+            // Add to total
+            stats.totalAmount += amount;
+            
+            // Add to payment method stats
+            if (stats.byPaymentMethod.hasOwnProperty(method)) {
+                stats.byPaymentMethod[method].count++;
+                stats.byPaymentMethod[method].amount += amount;
+                
+                if (status === 'paid' || status === 'completed') {
+                    stats.byPaymentMethod[method].paid += amount;
+                } else {
+                    stats.byPaymentMethod[method].pending += amount;
+                }
+            } else {
+                stats.byPaymentMethod.other.count++;
+                stats.byPaymentMethod.other.amount += amount;
+                
+                if (status === 'paid' || status === 'completed') {
+                    stats.byPaymentMethod.other.paid += amount;
+                } else {
+                    stats.byPaymentMethod.other.pending += amount;
+                }
+            }
+            
+            // Add to status stats
+            if (stats.byStatus.hasOwnProperty(status)) {
+                stats.byStatus[status].count++;
+                stats.byStatus[status].amount += amount;
+            } else {
+                stats.byStatus.pending.count++;
+                stats.byStatus.pending.amount += amount;
+            }
+        });
+        
+        res.json({
+            success: true,
+            data: stats
+        });
+    } catch (error) {
+        console.error('Error fetching invoice statistics:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching invoice statistics',
+            error: error.message
+        });
+    }
+});
+
 // Get count of invoices
 router.get('/count', auth, async (req, res) => {
     try {
@@ -49,14 +150,97 @@ router.get('/count', auth, async (req, res) => {
 // Get all invoices (admin only)
 router.get('/', adminAuth, async (req, res) => {
     try {
+        const { paymentMethod, paymentStatus, startDate, endDate, clientId } = req.query;
+        
+        // Build where clause for filtering
+        let whereClause = {};
+        
+        // Filter by payment method
+        if (paymentMethod && paymentMethod !== 'all') {
+            whereClause.paymentMethod = paymentMethod;
+        }
+        
+        // Filter by payment status
+        if (paymentStatus && paymentStatus !== 'all') {
+            whereClause.paymentStatus = paymentStatus;
+        }
+        
+        // Filter by client
+        if (clientId && clientId !== 'all') {
+            whereClause.client_id = clientId;
+        }
+        
+        // Filter by date range
+        if (startDate && endDate) {
+            whereClause.date = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        } else if (startDate) {
+            whereClause.date = {
+                [Op.gte]: new Date(startDate)
+            };
+        } else if (endDate) {
+            whereClause.date = {
+                [Op.lte]: new Date(endDate)
+            };
+        }
+        
         const invoices = await Invoice.findAll({
+            where: whereClause,
             include: [
                 { model: Client, as: 'client', attributes: ['id', 'name', 'phone'] },
                 { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] }
             ],
             order: [['created_at', 'DESC']]
         });
-        res.json(invoices);
+        
+        // Calculate totals for filtered results
+        const totals = {
+            totalAmount: 0,
+            totalPaid: 0,
+            totalPending: 0,
+            byPaymentMethod: {
+                cash: 0,
+                instapay: 0,
+                محفظة: 0,
+                بنك: 0,
+                other: 0
+            }
+        };
+        
+        invoices.forEach(invoice => {
+            const amount = parseFloat(invoice.total) || 0;
+            totals.totalAmount += amount;
+            
+            // Add to payment method totals
+            if (invoice.paymentMethod) {
+                const method = invoice.paymentMethod;
+                if (totals.byPaymentMethod.hasOwnProperty(method)) {
+                    totals.byPaymentMethod[method] += amount;
+                } else {
+                    totals.byPaymentMethod.other += amount;
+                }
+            }
+            
+            // Add to status totals
+            if (invoice.paymentStatus === 'paid' || invoice.paymentStatus === 'completed') {
+                totals.totalPaid += amount;
+            } else {
+                totals.totalPending += amount;
+            }
+        });
+        
+        res.json({
+            invoices,
+            totals,
+            filters: {
+                paymentMethod,
+                paymentStatus,
+                startDate,
+                endDate,
+                clientId
+            }
+        });
     } catch (error) {
         console.error('Error fetching invoices:', error);
         

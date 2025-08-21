@@ -11,6 +11,7 @@ class MoneyState {
     constructor() {
         this.locations = [];
         this.movements = [];
+        this.invoiceStats = {};
         this.stats = {
             totalBalance: 0,
             totalLocations: 0,
@@ -39,6 +40,12 @@ class MoneyState {
         this.movements = movements;
         this.updateStats();
         this.notifySubscribers('movements');
+    }
+
+    // Update invoice statistics
+    setInvoiceStats(invoiceStats) {
+        this.invoiceStats = invoiceStats;
+        this.notifySubscribers('invoiceStats');
     }
 
     // Update statistics
@@ -80,23 +87,31 @@ class MoneyApiService {
     constructor() {
         this.baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         this.token = this.getAuthToken();
+        console.log('MoneyApiService initialized with baseUrl:', this.baseUrl);
+        console.log('Current window.location.origin:', window.location.origin);
+        console.log('Window config:', window.config);
     }
 
     getAuthToken() {
         const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+        console.log('Admin info from localStorage:', adminInfo);
         
         // Try to use AuthMiddleware if available
         if (typeof AuthMiddleware !== 'undefined') {
             try {
                 const authMiddleware = new AuthMiddleware();
-                return authMiddleware.getAdminToken() || adminInfo.token || '';
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                console.log('Token from AuthMiddleware:', token ? 'Present' : 'Missing');
+                return token;
             } catch (error) {
                 console.log('AuthMiddleware not available, using fallback');
             }
         }
         
         // Fallback to direct token access
-        return adminInfo.token || '';
+        const token = adminInfo.token || '';
+        console.log('Token from localStorage:', token ? 'Present' : 'Missing');
+        return token;
     }
 
     getHeaders() {
@@ -122,9 +137,15 @@ class MoneyApiService {
 
     // Get all money locations
     async getLocations() {
-        const response = await fetch(`${this.baseUrl}/api/money/locations`, {
-            headers: this.getHeaders()
+        const url = `${this.baseUrl}/api/money/locations`;
+        const headers = this.getHeaders();
+        console.log('Making request to:', url);
+        console.log('Headers:', headers);
+        
+        const response = await fetch(url, {
+            headers: headers
         });
+        console.log('Response status:', response.status);
         return this.handleResponse(response);
     }
 
@@ -171,6 +192,15 @@ class MoneyApiService {
     async getDashboardData(params = {}) {
         const queryString = new URLSearchParams(params).toString();
         const response = await fetch(`${this.baseUrl}/api/money/dashboard?${queryString}`, {
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    }
+
+    // Get invoice statistics
+    async getInvoiceStats(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await fetch(`${this.baseUrl}/api/invoices/stats/payment-methods?${queryString}`, {
             headers: this.getHeaders()
         });
         return this.handleResponse(response);
@@ -314,6 +344,99 @@ class MoneyUIRenderer {
                 </div>
             </div>
         `).join('');
+    }
+
+    // Render invoice statistics
+    static renderInvoiceStats() {
+        const container = document.getElementById('invoiceStatsContainer');
+        
+        if (!moneyState.invoiceStats || !moneyState.invoiceStats.byPaymentMethod) {
+            container.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">لا توجد بيانات إحصائيات</p>
+                </div>
+            `;
+            return;
+        }
+
+        const stats = moneyState.invoiceStats;
+        const paymentMethods = {
+            cash: { name: 'نقداً', icon: 'fa-money-bill-wave', color: 'success' },
+            instapay: { name: 'Instapay', icon: 'fa-mobile-alt', color: 'primary' },
+            محفظة: { name: 'محفظة رقمية', icon: 'fa-wallet', color: 'info' },
+            بنك: { name: 'بنك', icon: 'fa-university', color: 'warning' },
+            other: { name: 'أخرى', icon: 'fa-ellipsis-h', color: 'secondary' }
+        };
+
+        container.innerHTML = `
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <div class="alert alert-info">
+                        <h6 class="mb-2">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            ملخص الفواتير
+                        </h6>
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <h5 class="text-primary">${stats.totalInvoices}</h5>
+                                <small class="text-muted">إجمالي الفواتير</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-success">${this.formatCurrency(stats.totalAmount)}</h5>
+                                <small class="text-muted">إجمالي المبالغ</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-info">${this.formatCurrency(stats.byPaymentMethod.cash.amount + stats.byPaymentMethod.instapay.amount + stats.byPaymentMethod.محفظة.amount + stats.byPaymentMethod.بنك.amount)}</h5>
+                                <small class="text-muted">إجمالي المدفوع</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 class="text-warning">${this.formatCurrency(stats.byPaymentMethod.other.amount)}</h5>
+                                <small class="text-muted">طرق دفع أخرى</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                ${Object.entries(stats.byPaymentMethod).map(([method, data]) => {
+                    if (data.count === 0) return '';
+                    const methodInfo = paymentMethods[method] || paymentMethods.other;
+                    return `
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-${methodInfo.color}">
+                                <div class="card-body text-center">
+                                    <div class="mb-2">
+                                        <i class="fas ${methodInfo.icon} text-${methodInfo.color}" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h6 class="card-title">${methodInfo.name}</h6>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <h6 class="text-primary">${data.count}</h6>
+                                            <small class="text-muted">عدد الفواتير</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h6 class="text-success">${this.formatCurrency(data.amount)}</h6>
+                                            <small class="text-muted">إجمالي المبلغ</small>
+                                        </div>
+                                    </div>
+                                    <div class="row text-center mt-2">
+                                        <div class="col-6">
+                                            <small class="text-success">${this.formatCurrency(data.paid)}</small>
+                                            <br><small class="text-muted">مدفوع</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-warning">${this.formatCurrency(data.pending)}</small>
+                                            <br><small class="text-muted">معلق</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
     }
 
     // Get location icon based on type
@@ -691,13 +814,15 @@ class MoneyDataLoader {
             moneyState.isLoading = true;
             this.showLoadingStates();
 
-            const [locationsData, movementsData] = await Promise.all([
+            const [locationsData, movementsData, invoiceStatsData] = await Promise.all([
                 moneyApi.getLocations(),
-                moneyApi.getMovements({ limit: 50 })
+                moneyApi.getMovements({ limit: 50 }),
+                moneyApi.getInvoiceStats()
             ]);
 
             moneyState.setLocations(locationsData.data.locations || []);
             moneyState.setMovements(movementsData.data.movements || []);
+            moneyState.setInvoiceStats(invoiceStatsData.data || {});
 
             this.hideLoadingStates();
             moneyState.isLoading = false;
@@ -796,6 +921,10 @@ class MoneyDataLoader {
         const locationsContainer = document.getElementById('locationsContainer');
         const movementsContainer = document.getElementById('movementsContainer');
         
+        // Get authentication info for debugging
+        const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+        const isLoggedIn = adminInfo.token && adminInfo.role;
+        
         if (locationsContainer) {
             locationsContainer.innerHTML = `
                 <div class="col-12 text-center">
@@ -803,6 +932,10 @@ class MoneyDataLoader {
                     <h5 class="mt-3 text-muted">مطلوب تسجيل الدخول</h5>
                     <p class="text-muted">يرجى تسجيل الدخول مرة أخرى للوصول لنظام إدارة الأموال</p>
                     <div class="mt-3">
+                        <p class="text-muted small">
+                            حالة تسجيل الدخول: ${isLoggedIn ? 'مسجل دخول' : 'غير مسجل دخول'}<br>
+                            الدور: ${adminInfo.role || 'غير محدد'}
+                        </p>
                         <a href="admin-login.html" class="btn btn-primary">
                             <i class="fas fa-sign-in-alt me-2"></i>
                             تسجيل الدخول
@@ -862,6 +995,7 @@ class MoneyManager {
             MoneyUIRenderer.renderMovements();
             MoneyCharts.updateAll();
         });
+        moneyState.subscribe('invoiceStats', () => MoneyUIRenderer.renderInvoiceStats());
 
         // Bind global functions for onclick handlers
         window.showTransferModal = MoneyActions.showTransferModal;

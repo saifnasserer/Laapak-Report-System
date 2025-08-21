@@ -833,33 +833,46 @@
         // Load money locations data
         async function loadMoneyLocations() {
             try {
-                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                console.log('Loading money locations...');
                 
-                // Try to use AuthMiddleware if available
-                let token = adminInfo.token || '';
-                if (typeof AuthMiddleware !== 'undefined') {
-                    try {
-                        const authMiddleware = new AuthMiddleware();
-                        token = authMiddleware.getAdminToken() || adminInfo.token || '';
-                    } catch (error) {
-                        console.log('AuthMiddleware not available, using fallback');
-                    }
-                }
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                console.log('Money locations auth:', {
+                    hasAdminInfo: !!adminInfo,
+                    hasToken: !!token,
+                    adminRole: adminInfo.role
+                });
+                
                 const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
 
                 const response = await fetch(`${baseUrl}/api/money/locations`, {
                     headers: { 'x-auth-token': token }
                 });
 
+                console.log('Money locations response status:', response.status);
+                
                 if (response.ok) {
                     const data = await response.json();
                     const locations = data.data.locations || [];
+                    
+                    console.log('Money locations loaded:', locations.length);
                     
                     // Display money locations
                     displayMoneyLocations(locations);
                     
                     // Calculate and display totals
                     calculateMoneyTotals(locations);
+                } else if (response.status === 401) {
+                    console.log('Authentication required for money locations');
+                    document.getElementById('moneyLocationsContainer').innerHTML = `
+                        <div class="col-12 text-center text-muted">
+                            <i class="fas fa-lock me-2"></i>
+                            مطلوب تسجيل الدخول كمدير عام للوصول لبيانات الأموال
+                        </div>
+                    `;
                 } else {
                     console.log('Money locations API not available, skipping...');
                     document.getElementById('moneyLocationsContainer').innerHTML = `
