@@ -3,10 +3,35 @@
  * Handles the report editing functionality
  */
 
+// Store clients data and device details globally to make them accessible across files
+// Attach to window object to ensure it's available across all files
+window.clientsData = window.clientsData || [];
+
+// Global variables to store device details from step 1 (attached to window for cross-file access)
+window.globalDeviceDetails = window.globalDeviceDetails || {
+    orderNumber: '',
+    inspectionDate: '',
+    deviceModel: '',
+    serialNumber: '',
+    devicePrice: ''
+};
+
+// Global client details object for storing selected client information
+window.globalClientDetails = window.globalClientDetails || {
+    client_id: null,
+    clientName: '',
+    clientPhone: '',
+    clientEmail: '',
+    clientAddress: ''
+};
+
+// Local references for convenience
+let globalDeviceDetails = window.globalDeviceDetails;
+let clientsData = window.clientsData;
+
 // Global variables
 let currentReport = null;
 let currentStep = 0;
-let clientsData = [];
 let originalReportData = null;
 
 // Initialize the edit report functionality
@@ -38,6 +63,22 @@ async function initializeEditForm(reportId) {
     try {
         showLoading(true);
         
+        // Add event listeners to update global device details when input values change
+        const deviceInputs = ['orderNumber', 'inspectionDate', 'deviceModel', 'serialNumber'];
+        deviceInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('change', updateGlobalDeviceDetails);
+                input.addEventListener('input', updateGlobalDeviceDetails);
+            }
+        });
+        
+        // Set up order number field with LPK prefix and number-only input
+        setupOrderNumberField();
+        
+        // Initial update of global device details
+        updateGlobalDeviceDetails();
+        
         // Load report data
         const report = await loadReportData(reportId);
         if (!report) {
@@ -60,8 +101,14 @@ async function initializeEditForm(reportId) {
         // Set up client search
         setupClientSearch();
         
+        // Set up client quick actions
+        setupClientQuickActions();
+        
         // Set up billing toggle
         setupBillingToggle();
+        
+        // Set up test screenshot URL functionality for Step 2
+        setupTestScreenshotFunctionality();
         
         showLoading(false);
         
@@ -96,6 +143,28 @@ async function loadReportData(reportId) {
         }
         
         console.log('Extracted report data:', reportData);
+        
+        // Debug: Check external_images and hardware_status
+        if (reportData.external_images) {
+            try {
+                const parsedExternalImages = JSON.parse(reportData.external_images);
+                console.log('Parsed external_images:', parsedExternalImages);
+                const testScreenshots = parsedExternalImages.filter(item => item.type === 'test_screenshot');
+                console.log('Test screenshots found in external_images:', testScreenshots);
+            } catch (error) {
+                console.error('Error parsing external_images:', error);
+            }
+        }
+        
+        if (reportData.hardware_status) {
+            try {
+                const parsedHardwareStatus = JSON.parse(reportData.hardware_status);
+                console.log('Parsed hardware_status:', parsedHardwareStatus);
+            } catch (error) {
+                console.error('Error parsing hardware_status:', error);
+            }
+        }
+        
         return reportData;
     } catch (error) {
         console.error('Error loading report:', error);
@@ -208,6 +277,8 @@ function populateTechnicalTests(report) {
     const contentContainer = document.getElementById('technicalTestsContent');
     if (!contentContainer) return;
     
+    console.log('Populating technical tests with report data:', report);
+    
     // Parse hardware status from JSON
     let hardwareStatus = [];
     try {
@@ -227,10 +298,13 @@ function populateTechnicalTests(report) {
     // Set up technical tests functionality and populate existing values
     setupTechnicalTests();
     populateTechnicalTestsValues(hardwareStatus);
+    
+    // Populate test screenshots from external_images if available
+    populateTestScreenshots(report);
 }
 
 /**
- * Create technical tests content with table format
+ * Create technical tests content with table format and test screenshots
  * @param {Array} hardwareStatus - The hardware status data
  * @returns {string} HTML content
  */
@@ -478,6 +552,172 @@ function createTechnicalTestsContent(hardwareStatus) {
                 </div>
             </div>
         </div>
+
+        <!-- Test Screenshots Section -->
+        <div class="row">
+            <div class="col-12">
+                <h4 class="mb-4" style="color: var(--primary-color);">
+                    <i class="fas fa-images me-2"></i>صور نتائج الاختبارات
+                </h4>
+                <p class="text-muted mb-4">أضف صور نتائج الاختبارات المختلفة للجهاز</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- info Test -->
+            <div class="col-lg-6 mb-4">
+                <div class="card component-test-card mb-4" data-component="info">
+                    <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-success"><i class="fas fa-info-circle me-2"></i> تفاصيل اللابتوب</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="infoScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                            <div class="input-group mb-2">
+                                <input type="url" class="form-control test-screenshot-url" id="infoScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="info">
+                                <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="infoScreenshotUrl" data-component="info">
+                                    <i class="fas fa-plus me-1"></i> إضافة
+                                </button>
+                            </div>
+                            <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                            <div class="mt-2 screenshot-preview" id="infoScreenshotPreview"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CPU Test -->
+            <div class="col-lg-6 mb-4">
+                <div class="card component-test-card mb-4" data-component="cpu">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-microchip me-2"></i> اختبار البروسيسور</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="cpuScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                            <div class="input-group mb-2">
+                                <input type="url" class="form-control test-screenshot-url" id="cpuScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="cpu">
+                                <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="cpuScreenshotUrl" data-component="cpu">
+                                    <i class="fas fa-plus me-1"></i> إضافة
+                                </button>
+                            </div>
+                            <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                            <div class="mt-2 screenshot-preview" id="cpuScreenshotPreview"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- GPU Test (Optional) -->
+            <div class="col-lg-6 mb-4">
+                <div class="card component-test-card mb-4" data-component="gpu">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-tv me-2"></i> اختبار كارت الشاشة</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="gpuScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                            <div class="input-group mb-2">
+                                <input type="url" class="form-control test-screenshot-url" id="gpuScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="gpu">
+                                <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="gpuScreenshotUrl" data-component="gpu">
+                                    <i class="fas fa-plus me-1"></i> إضافة
+                                </button>
+                            </div>
+                            <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                            <div class="mt-2 screenshot-preview" id="gpuScreenshotPreview"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hard Drive Test -->
+            <div class="col-lg-6 mb-4">
+                <div class="card component-test-card mb-4" data-component="hdd">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-hdd me-2"></i> اختبار القرص الصلب</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="hddScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                            <div class="input-group mb-2">
+                                <input type="url" class="form-control test-screenshot-url" id="hddScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="hdd">
+                                <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="hddScreenshotUrl" data-component="hdd">
+                                    <i class="fas fa-plus me-1"></i> إضافة
+                                </button>
+                            </div>
+                            <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                            <div class="mt-2 screenshot-preview" id="hddScreenshotPreview"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Keyboard Test -->
+            <div class="col-lg-6 mb-4">
+                <div class="card component-test-card mb-4" data-component="keyboard">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i> اختبار لوحة المفاتيح</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="keyboardScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                            <div class="input-group mb-2">
+                                <input type="url" class="form-control test-screenshot-url" id="keyboardScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="keyboard">
+                                <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="keyboardScreenshotUrl" data-component="keyboard">
+                                    <i class="fas fa-plus me-1"></i> إضافة
+                                </button>
+                            </div>
+                            <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                            <div class="mt-2 screenshot-preview" id="keyboardScreenshotPreview"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Battery Test -->
+            <div class="col-lg-6 mb-4">
+                <div class="card component-test-card mb-4" data-component="battery">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-battery-three-quarters me-2"></i> اختبار البطارية</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="batteryScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                            <div class="input-group mb-2">
+                                <input type="url" class="form-control test-screenshot-url" id="batteryScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="battery">
+                                <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="batteryScreenshotUrl" data-component="battery">
+                                    <i class="fas fa-plus me-1"></i> إضافة
+                                </button>
+                            </div>
+                            <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                            <div class="mt-2 screenshot-preview" id="batteryScreenshotPreview"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- DxDiag Test -->
+            <div class="col-lg-6 mb-4">
+                <div class="card component-test-card mb-4" data-component="dxdiag">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-laptop me-2"></i> اختبار معلومات النظام (DxDiag)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="dxdiagScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                            <div class="input-group mb-2">
+                                <input type="url" class="form-control test-screenshot-url" id="dxdiagScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="dxdiag">
+                                <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="dxdiagScreenshotUrl" data-component="dxdiag">
+                                    <i class="fas fa-plus me-1"></i> إضافة
+                                </button>
+                            </div>
+                            <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                            <div class="mt-2 screenshot-preview" id="dxdiagScreenshotPreview"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 }
 
@@ -535,6 +775,103 @@ function populateTechnicalTestsValues(hardwareStatus) {
             console.warn(`Radio button not found for ${formFieldName} with value ${status}`);
         }
     });
+}
+
+/**
+ * Populate test screenshots from existing report data
+ * @param {Object} report - The report data
+ */
+function populateTestScreenshots(report) {
+    console.log('Populating test screenshots from report data:', report);
+    
+    // Parse external images from JSON
+    let externalImages = [];
+    try {
+        if (report.external_images) {
+            externalImages = JSON.parse(report.external_images);
+        }
+    } catch (error) {
+        console.error('Error parsing external images:', error);
+    }
+    
+    console.log('Parsed external images:', externalImages);
+    
+    if (!Array.isArray(externalImages)) {
+        console.warn('External images is not an array:', externalImages);
+        return;
+    }
+    
+    // Filter test screenshots from external images
+    const testScreenshots = externalImages.filter(item => item.type === 'test_screenshot');
+    
+    console.log('Found test screenshots:', testScreenshots);
+    
+    // Also check if there are any images that might be test screenshots but stored differently
+    const allImages = externalImages.filter(item => item.type === 'image');
+    console.log('All images in external_images:', allImages);
+    
+    // Add a small delay to ensure DOM elements are created
+    setTimeout(() => {
+        // Check if preview containers exist
+        const components = ['info', 'cpu', 'gpu', 'hdd', 'keyboard', 'battery', 'dxdiag'];
+        components.forEach(component => {
+            const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
+            console.log(`Preview container for ${component}:`, previewContainer);
+        });
+        
+        // Populate each test screenshot
+        testScreenshots.forEach(screenshot => {
+            const component = screenshot.component;
+            const url = screenshot.url;
+            
+            console.log(`Adding test screenshot for component ${component}:`, url);
+            
+            if (component && url) {
+                // Check if the preview container exists
+                const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
+                if (!previewContainer) {
+                    console.error(`Preview container for ${component} not found!`);
+                    return;
+                }
+                
+                // Add the screenshot preview
+                const success = addTestScreenshotPreview(url, component);
+                if (success) {
+                    console.log(`Successfully added test screenshot for ${component}`);
+                } else {
+                    console.error(`Failed to add test screenshot for ${component}`);
+                }
+            }
+        });
+        
+        // If no test screenshots found, try to populate from hardware_status if it contains screenshot data
+        if (testScreenshots.length === 0) {
+            console.log('No test screenshots found in external_images, checking hardware_status...');
+            try {
+                if (report.hardware_status) {
+                    const hardwareStatus = JSON.parse(report.hardware_status);
+                    console.log('Hardware status for screenshot check:', hardwareStatus);
+                    
+                    // Look for any components that might have screenshot URLs
+                    hardwareStatus.forEach(item => {
+                        if (item.screenshots && Array.isArray(item.screenshots)) {
+                            console.log(`Found screenshots in hardware component ${item.componentName}:`, item.screenshots);
+                            item.screenshots.forEach(screenshotUrl => {
+                                // Try to determine the component from the hardware status
+                                const component = item.componentName;
+                                if (component && screenshotUrl) {
+                                    console.log(`Adding screenshot from hardware status for ${component}:`, screenshotUrl);
+                                    addTestScreenshotPreview(screenshotUrl, component);
+                                }
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error checking hardware_status for screenshots:', error);
+            }
+        }
+    }, 200); // Increased delay to ensure DOM is ready
 }
 
 /**
@@ -1437,6 +1774,19 @@ function collectExternalInspectionData() {
         }
     });
     
+    // Collect test screenshot URLs
+    const components = ['info', 'cpu', 'gpu', 'hdd', 'keyboard', 'battery', 'dxdiag'];
+    components.forEach(component => {
+        const urls = getTestScreenshotUrls(component);
+        urls.forEach(url => {
+            externalImages.push({
+                type: 'test_screenshot',
+                component: component,
+                url: url
+            });
+        });
+    });
+    
     return JSON.stringify(externalImages);
 } 
 
@@ -2115,4 +2465,917 @@ function updateTaxDisplay() {
             totalDisplay.textContent = total.toFixed(2) + ' جنية';
         }
     }
+} 
+
+/**
+ * Set up order number field with LPK prefix and number-only input
+ */
+function setupOrderNumberField() {
+    const orderNumberInput = document.getElementById('orderNumber');
+    if (!orderNumberInput) return;
+    
+    // Set initial value with LPK prefix
+    if (!orderNumberInput.value || orderNumberInput.value === 'LPK') {
+        orderNumberInput.value = 'LPK';
+    }
+    
+    // Add event listeners for input handling
+    orderNumberInput.addEventListener('input', function(e) {
+        let value = this.value;
+        
+        // Ensure LPK prefix is always present
+        if (!value.startsWith('LPK')) {
+            value = 'LPK' + value.replace(/^LPK/, '');
+        }
+        
+        // Remove any non-numeric characters after LPK
+        const prefix = 'LPK';
+        const numericPart = value.substring(prefix.length).replace(/[^0-9]/g, '');
+        
+        // Limit to reasonable length (e.g., 6 digits)
+        const limitedNumericPart = numericPart.substring(0, 6);
+        
+        // Combine prefix with numeric part
+        const finalValue = prefix + limitedNumericPart;
+        
+        // Update input value
+        this.value = finalValue;
+        
+        // Update global device details
+        updateGlobalDeviceDetails();
+    });
+    
+    // Handle paste events
+    orderNumberInput.addEventListener('paste', function(e) {
+        e.preventDefault();
+        
+        // Get pasted text
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        
+        // Process the pasted text
+        let value = pastedText;
+        
+        // Remove LPK if it's in the pasted text
+        value = value.replace(/^LPK/i, '');
+        
+        // Keep only numbers
+        value = value.replace(/[^0-9]/g, '');
+        
+        // Limit length
+        value = value.substring(0, 6);
+        
+        // Set the value with LPK prefix
+        this.value = 'LPK' + value;
+        
+        // Update global device details
+        updateGlobalDeviceDetails();
+    });
+    
+    // Handle keydown for special keys
+    orderNumberInput.addEventListener('keydown', function(e) {
+        // Allow: backspace, delete, tab, escape, enter, and navigation keys
+        if ([8, 9, 27, 13, 46, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+            // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+            (e.keyCode === 65 && e.ctrlKey === true) ||
+            (e.keyCode === 67 && e.ctrlKey === true) ||
+            (e.keyCode === 86 && e.ctrlKey === true) ||
+            (e.keyCode === 88 && e.ctrlKey === true)) {
+            return;
+        }
+        
+        // Allow numbers only
+        if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105)) {
+            return;
+        }
+        
+        // Prevent all other keys
+        e.preventDefault();
+    });
+    
+    // Handle focus to select numeric part only
+    orderNumberInput.addEventListener('focus', function() {
+        // Select only the numeric part (after LPK)
+        const value = this.value;
+        const prefixLength = 'LPK'.length;
+        
+        if (value.length > prefixLength) {
+            this.setSelectionRange(prefixLength, value.length);
+        } else {
+            this.setSelectionRange(prefixLength, prefixLength);
+        }
+    });
+    
+    // Handle click to position cursor correctly
+    orderNumberInput.addEventListener('click', function() {
+        const value = this.value;
+        const prefixLength = 'LPK'.length;
+        const cursorPosition = this.selectionStart;
+        
+        // If cursor is in the prefix area, move it to the end
+        if (cursorPosition < prefixLength) {
+            this.setSelectionRange(prefixLength, prefixLength);
+        }
+    });
+    
+    console.log('Order number field setup completed');
+}
+
+/**
+ * Update global device details from form inputs
+ */
+function updateGlobalDeviceDetails() {
+    window.globalDeviceDetails = {
+        orderNumber: document.getElementById('orderNumber')?.value || '',
+        inspectionDate: document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0],
+        deviceModel: document.getElementById('deviceModel')?.value || '',
+        serialNumber: document.getElementById('serialNumber')?.value || '',
+        devicePrice: parseFloat(document.getElementById('devicePrice')?.value || '250')
+    };
+    console.log('Global device details updated:', window.globalDeviceDetails);
+}
+
+// Helper function to extract Google Drive File ID
+function getGoogleDriveFileId(url) {
+    console.log('[Debug GDrive] getGoogleDriveFileId received_url:', url);
+    if (!url) return null;
+    const gDrivePatterns = [
+        /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/,
+        /drive\.google\.com\/uc\?id=([a-zA-Z0-9_-]+)/,
+        /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/,
+        /lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of gDrivePatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            return match[1];
+        }
+    }
+    return null;
+}
+
+// Helper function to validate image URL
+function isValidImageUrl(url) {
+    // Basic URL validation
+    if (!url || !url.match(/^https?:\/\/.+/i)) {
+        return false;
+    }
+
+    // Check for Google Drive link
+    if (getGoogleDriveFileId(url)) {
+        return true;
+    }
+    
+    // Check if URL ends with common image extensions
+    const imageExtensions = /\.(jpeg|jpg|png|gif|bmp|webp)$/i;
+    return imageExtensions.test(url);
+}
+
+// Helper function to add a test screenshot URL preview
+function addTestScreenshotPreview(url, component) {
+    // Validate URL - now uses updated isValidImageUrl which includes GDrive check
+    if (!isValidImageUrl(url)) {
+        alert('الرجاء إدخال رابط صورة صالح (jpg, jpeg, png, gif, webp, or valid Google Drive link)');
+        return false;
+    }
+    
+    const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
+    if (!previewContainer) {
+        console.error(`Preview container for ${component} not found`);
+        return false;
+    }
+    
+    const card = document.createElement('div');
+    card.className = 'card mb-2';
+    card.setAttribute('data-url', url);
+    
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body p-2';
+    
+    const row = document.createElement('div');
+    row.className = 'row align-items-center';
+    
+    const imgCol = document.createElement('div');
+    imgCol.className = 'col-auto';
+    
+    const img = document.createElement('img');
+    let displayUrl = url;
+    console.log('[Debug GDrive] addTestScreenshotPreview original_url:', url);
+    const gDriveFileId = getGoogleDriveFileId(url);
+    console.log('[Debug GDrive] addTestScreenshotPreview extracted_gDriveFileId:', gDriveFileId);
+    if (gDriveFileId) {
+        displayUrl = `https://lh3.googleusercontent.com/d/${gDriveFileId}`;
+    }
+    img.src = displayUrl;
+    console.log('[Debug GDrive] addTestScreenshotPreview final_displayUrl_for_img_src:', displayUrl);
+    img.alt = 'Test screenshot';
+    img.className = 'img-thumbnail';
+    img.style.maxWidth = '100px';
+    img.style.maxHeight = '100px';
+    img.onerror = function() {
+        this.onerror = null;
+        this.src = 'img/image-error.png';
+        this.alt = 'Image failed to load';
+    };
+    
+    imgCol.appendChild(img);
+    
+    const urlCol = document.createElement('div');
+    urlCol.className = 'col';
+    
+    const urlText = document.createElement('small');
+    urlText.className = 'text-muted';
+    urlText.textContent = url.length > 40 ? url.substring(0, 37) + '...' : url;
+    urlText.title = url;
+    
+    urlCol.appendChild(urlText);
+    
+    const btnCol = document.createElement('div');
+    btnCol.className = 'col-auto';
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-sm btn-danger';
+    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    removeBtn.addEventListener('click', function() {
+        card.remove();
+    });
+    
+    btnCol.appendChild(removeBtn);
+    
+    row.appendChild(imgCol);
+    row.appendChild(urlCol);
+    row.appendChild(btnCol);
+    cardBody.appendChild(row);
+    card.appendChild(cardBody);
+    
+    previewContainer.appendChild(card);
+    
+    return true;
+}
+
+// Helper function to collect test screenshot URLs for a component
+function getTestScreenshotUrls(component) {
+    const urls = [];
+    const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
+    if (previewContainer) {
+        const cards = previewContainer.querySelectorAll('.card[data-url]');
+        cards.forEach(card => {
+            const url = card.getAttribute('data-url');
+            if (url) {
+                urls.push(url);
+            }
+        });
+    }
+    return urls;
+}
+
+/**
+ * Show a toast notification
+ * @param {string} message - The message to display
+ * @param {string} type - The notification type (success, info, warning, error)
+ */
+function showToast(message, type = 'info') {
+    // Check if toast container exists, create if not
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toastId = 'toast-' + Date.now();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.id = toastId;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    // Set toast color based on type
+    let bgClass = 'bg-light';
+    let iconClass = 'fas fa-info-circle text-info';
+    
+    switch(type) {
+        case 'success':
+            bgClass = 'bg-success text-white';
+            iconClass = 'fas fa-check-circle';
+            break;
+        case 'warning':
+            bgClass = 'bg-warning';
+            iconClass = 'fas fa-exclamation-triangle';
+            break;
+        case 'error':
+        case 'danger':
+            bgClass = 'bg-danger text-white';
+            iconClass = 'fas fa-times-circle';
+            break;
+    }
+    
+    // Create toast content
+    toast.innerHTML = `
+        <div class="toast-header ${bgClass}">
+            <i class="${iconClass} me-2"></i>
+            <strong class="me-auto">نظام لاباك</strong>
+            <small>الآن</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="إغلاق"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+    
+    // Add toast to container
+    toastContainer.appendChild(toast);
+    
+    // Initialize and show toast
+    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+    bsToast.show();
+    
+    // Remove toast after it's hidden
+    toast.addEventListener('hidden.bs.toast', function() {
+        toast.remove();
+    });
+}
+
+/**
+ * Save a new client to the database with enhanced error handling and validation
+ * @returns {Promise<Object|null>} The saved client object or null if operation failed
+ */
+async function saveNewClient() {
+    // Get form elements
+    const saveBtn = document.getElementById('saveClientBtn');
+    const clientNameInput = document.getElementById('clientName');
+    const clientPhoneInput = document.getElementById('clientPhone');
+    const clientEmailInput = document.getElementById('clientEmail');
+    const clientAddressInput = document.getElementById('clientAddress');
+    const clientOrderCodeInput = document.getElementById('clientOrderCode');
+    const statusInputs = document.querySelectorAll('input[name="clientStatus"]');
+    const formFeedback = document.getElementById('clientFormFeedback') || createFeedbackElement();
+    
+    // Clear previous validation states
+    [clientNameInput, clientPhoneInput, clientEmailInput, clientOrderCodeInput].forEach(input => {
+        if (input) {
+            input.classList.remove('is-invalid');
+            const feedbackEl = input.nextElementSibling;
+            if (feedbackEl && feedbackEl.classList.contains('invalid-feedback')) {
+                feedbackEl.textContent = '';
+            }
+        }
+    });
+    
+    try {
+        // Get form values
+        const clientName = clientNameInput?.value.trim() || '';
+        const clientPhone = clientPhoneInput?.value.trim() || '';
+        const clientEmail = clientEmailInput?.value.trim() || '';
+        const clientAddress = clientAddressInput?.value.trim() || '';
+        const clientOrderCode = clientOrderCodeInput?.value.trim() || '';
+        const clientStatus = Array.from(statusInputs).find(input => input.checked)?.value || 'active';
+        
+        // Validate required fields
+        let isValid = true;
+        let focusSet = false;
+        
+        // Validate name
+        if (!clientName) {
+            markInvalid(clientNameInput, 'الرجاء إدخال اسم العميل');
+            isValid = false;
+            if (!focusSet) {
+                clientNameInput.focus();
+                focusSet = true;
+            }
+        }
+        
+        // Validate phone
+        if (!clientPhone) {
+            markInvalid(clientPhoneInput, 'الرجاء إدخال رقم الهاتف');
+            isValid = false;
+            if (!focusSet) {
+                clientPhoneInput.focus();
+                focusSet = true;
+            }
+        } else if (!/^\d{11}$/.test(clientPhone.replace(/[\s-]/g, ''))) {
+            markInvalid(clientPhoneInput, 'الرجاء إدخال رقم هاتف صحيح (11 أرقام)');
+            isValid = false;
+            if (!focusSet) {
+                clientPhoneInput.focus();
+                focusSet = true;
+            }
+        }
+        
+        // Validate email (if provided)
+        if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+            markInvalid(clientEmailInput, 'الرجاء إدخال بريد إلكتروني صحيح (اختياري)');
+            isValid = false;
+            if (!focusSet) {
+                clientEmailInput.focus();
+                focusSet = true;
+            }
+        } else if (!clientEmail) {
+            clientEmailInput.classList.remove('is-invalid');
+            const feedbackEl = clientEmailInput.nextElementSibling;
+            if (feedbackEl && feedbackEl.classList.contains('invalid-feedback')) {
+                feedbackEl.textContent = '';
+            }
+        }
+        
+        // Validate order code
+        if (!clientOrderCode) {
+            markInvalid(clientOrderCodeInput, 'الرجاء إدخال رقم الطلب');
+            isValid = false;
+            if (!focusSet) {
+                clientOrderCodeInput.focus();
+                focusSet = true;
+            }
+        } else if (!clientOrderCode.startsWith('LPK')) {
+            markInvalid(clientOrderCodeInput, 'يجب أن يبدأ رقم الطلب بـ LPK');
+            isValid = false;
+            if (!focusSet) {
+                clientOrderCodeInput.focus();
+                focusSet = true;
+            }
+        } else if (clientOrderCode.length < 4) { // LPK + at least 1 digit
+            markInvalid(clientOrderCodeInput, 'يجب أن يحتوي رقم الطلب على أرقام بعد LPK');
+            isValid = false;
+            if (!focusSet) {
+                clientOrderCodeInput.focus();
+                focusSet = true;
+            }
+        }
+        
+        if (!isValid) {
+            showFeedback(formFeedback, 'الرجاء تصحيح الأخطاء في النموذج', 'danger');
+            return null;
+        }
+        
+        // Check if client with same phone already exists
+        const existingClient = clientsData.find(client => client.phone === clientPhone);
+        if (existingClient) {
+            const confirmUpdate = confirm('يوجد عميل بنفس رقم الهاتف. هل تريد تحديث بياناته؟');
+            if (!confirmUpdate) {
+                return null;
+            }
+        }
+        
+        // Show loading state
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الحفظ...';
+        }
+        
+        // Prepare client data
+        const clientData = {
+            name: clientName,
+            phone: clientPhone,
+            email: clientEmail || null,
+            address: clientAddress || null,
+            orderCode: clientOrderCode,
+            status: clientStatus,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        // If client exists, update it, otherwise create new
+        let response;
+        let operationSuccess = false;
+        let errorMessage = '';
+        
+        // Check network status
+        const isOnline = navigator.onLine;
+        
+        if (isOnline) {
+            try {
+                // Set timeout for API request
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('API request timeout')), 5000);
+                });
+                
+                if (existingClient) {
+                    if (typeof apiService !== 'undefined' && typeof apiService.updateClient === 'function') {
+                        console.log(`Attempting to update client ID ${existingClient.id}...`);
+                        
+                        // Race between API request and timeout
+                        response = await Promise.race([
+                            apiService.updateClient(existingClient.id, clientData),
+                            timeoutPromise
+                        ]);
+                        
+                        if (response && response.id) {
+                            console.log(`Successfully updated client ID ${response.id}`);
+                            operationSuccess = true;
+                        } else {
+                            throw new Error('API returned invalid response');
+                        }
+                    } else {
+                        throw new Error('API service not available');
+                    }
+                } else {
+                    if (typeof apiService !== 'undefined' && typeof apiService.createClient === 'function') {
+                        console.log('Attempting to create new client...');
+                        
+                        // Race between API request and timeout
+                        response = await Promise.race([
+                            apiService.createClient(clientData),
+                            timeoutPromise
+                        ]);
+                        
+                        if (response && response.id) {
+                            console.log(`Successfully created client ID ${response.id}`);
+                            operationSuccess = true;
+                        } else {
+                            throw new Error('API returned invalid response');
+                        }
+                    } else {
+                        throw new Error('API service not available');
+                    }
+                }
+            } catch (apiError) {
+                console.warn(`API error: ${apiError.message}. Using local data instead.`);
+                errorMessage = apiError.message;
+                // Continue with local data update
+            }
+        } else {
+            console.log('Device is offline. Using local data only.');
+            errorMessage = 'الجهاز غير متصل بالإنترنت. سيتم حفظ البيانات محلياً.';
+        }
+        
+        // If API failed, use local data
+        if (!operationSuccess) {
+            if (existingClient) {
+                // Update existing client in local data
+                response = { ...existingClient, ...clientData, id: existingClient.id };
+                console.log(`Updated client ID ${response.id} in local data`);
+            } else {
+                // Create new client with generated ID
+                const maxId = clientsData.reduce((max, c) => Math.max(max, c.id || 0), 0);
+                response = { ...clientData, id: maxId + 1 };
+                console.log(`Created client ID ${response.id} in local data`);
+            }
+        }
+        
+        // Update local data
+        if (existingClient) {
+            // Update existing client in the array
+            const index = clientsData.findIndex(c => c.id === existingClient.id);
+            if (index !== -1) {
+                clientsData[index] = { ...clientsData[index], ...clientData, id: existingClient.id };
+            }
+        } else {
+            // Add new client to the array
+            clientsData.push(response);
+        }
+        
+        // Update localStorage cache
+        localStorage.setItem('lpk_clients', JSON.stringify(clientsData));
+        localStorage.setItem('lpk_clients_timestamp', Date.now().toString());
+        
+        // Update the search input and select the new/updated client
+        const clientSearchInput = document.getElementById('clientSearchInput');
+        if (clientSearchInput) {
+            // Select the new/updated client
+            const client_id = existingClient ? existingClient.id : response.id;
+            const selectedClient = clientsData.find(client => client.id == client_id);
+            
+            if (selectedClient) {
+                // Update search input with client name
+                clientSearchInput.value = selectedClient.name;
+                
+                // Update global client details
+                window.globalClientDetails = {
+                    client_id: selectedClient.id,
+                    clientName: selectedClient.name || '',
+                    clientPhone: selectedClient.phone || '',
+                    clientEmail: selectedClient.email || '',
+                    clientAddress: selectedClient.address || ''
+                };
+                
+                // Update client info display
+                updateClientInfoDisplay(selectedClient);
+            }
+        }
+        
+        // Hide the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addClientModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Reset the form
+        const addClientForm = document.getElementById('addClientForm');
+        if (addClientForm) {
+            addClientForm.reset();
+        }
+        
+        // Show success message with warning if offline
+        if (operationSuccess) {
+            showFeedback(formFeedback, existingClient ? 
+                'تم تحديث بيانات العميل بنجاح' : 
+                'تم إضافة العميل بنجاح', 
+                'success');
+        } else {
+            showFeedback(formFeedback, (existingClient ? 
+                'تم تحديث بيانات العميل محلياً' : 
+                'تم إضافة العميل محلياً') + 
+                (errorMessage ? `: ${errorMessage}` : ''), 
+                'warning');
+        }
+        
+        return response;
+        
+    } catch (error) {
+        console.error('Error saving client:', error);
+        showFeedback(formFeedback, `حدث خطأ أثناء حفظ بيانات العميل: ${error.message}`, 'danger');
+        return null;
+    } finally {
+        // Reset button state
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ العميل';
+        }
+    }
+}
+
+/**
+ * Mark a form input as invalid
+ * @param {HTMLElement} input - The input element
+ * @param {string} message - The error message
+ */
+function markInvalid(input, message) {
+    if (!input) return;
+    
+    input.classList.add('is-invalid');
+    
+    // Check if feedback element already exists
+    let feedbackEl = input.nextElementSibling;
+    if (!feedbackEl || !feedbackEl.classList.contains('invalid-feedback')) {
+        feedbackEl = document.createElement('div');
+        feedbackEl.className = 'invalid-feedback';
+        input.parentNode.insertBefore(feedbackEl, input.nextSibling);
+    }
+    
+    feedbackEl.textContent = message;
+}
+
+/**
+ * Show feedback message
+ * @param {HTMLElement} element - The feedback element
+ * @param {string} message - The message to display
+ * @param {string} type - The message type (success, danger, warning, info)
+ */
+function showFeedback(element, message, type = 'info') {
+    if (!element) return;
+    
+    // Remove previous alert classes
+    element.className = 'alert mt-3';
+    element.classList.add(`alert-${type}`);
+    element.textContent = message;
+    element.style.display = 'block';
+    
+    // Auto-hide success messages after 3 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            element.style.display = 'none';
+        }, 3000);
+    }
+}
+
+/**
+ * Create feedback element for client form
+ * @returns {HTMLElement} The created feedback element
+ */
+function createFeedbackElement() {
+    const formContainer = document.querySelector('#addClientModal .modal-body');
+    if (!formContainer) return null;
+    
+    const feedbackEl = document.createElement('div');
+    feedbackEl.id = 'clientFormFeedback';
+    feedbackEl.className = 'alert mt-3';
+    feedbackEl.style.display = 'none';
+    formContainer.appendChild(feedbackEl);
+    
+    return feedbackEl;
+}
+
+/**
+ * Generate a unique invoice number
+ * @returns {string} The generated invoice number
+ */
+function generateInvoiceNumber() {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const random = Math.floor(1000 + Math.random() * 9000);
+    
+    return `INV-${year}${month}${day}-${random}`;
+}
+
+/**
+ * Set up client quick actions
+ */
+function setupClientQuickActions() {
+    // Add event listener for the Add Client modal events
+    const addClientModal = document.getElementById('addClientModal');
+    if (addClientModal) {
+        // Reset form and update UI when modal is hidden
+        addClientModal.addEventListener('hidden.bs.modal', function() {
+            // Reset the form
+            const addClientForm = document.getElementById('addClientForm');
+            if (addClientForm) {
+                addClientForm.reset();
+            }
+            
+            // Reset the modal title
+            const modalTitle = addClientModal.querySelector('.modal-title');
+            if (modalTitle) {
+                modalTitle.innerHTML = '<i class="fas fa-user-plus me-2"></i> إضافة عميل جديد';
+            }
+            
+            // Reset the save button
+            const saveButton = document.getElementById('saveClientBtn');
+            if (saveButton) {
+                saveButton.innerHTML = '<i class="fas fa-save me-2"></i> حفظ العميل';
+            }
+            
+            // Remove client ID if it exists
+            const client_idField = document.getElementById('client_id');
+            if (client_idField) {
+                client_idField.remove();
+            }
+            
+            // Clear validation states
+            const invalidFields = addClientForm.querySelectorAll('.is-invalid');
+            invalidFields.forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            
+            // Hide any feedback messages
+            const feedback = document.getElementById('clientFormFeedback');
+            if (feedback) {
+                feedback.style.display = 'none';
+            }
+        });
+        
+        // Set up event listeners for modal shown event
+        addClientModal.addEventListener('shown.bs.modal', function() {
+            // Focus on the first input field
+            const firstInput = addClientModal.querySelector('input[type="text"]');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        });
+    }
+    
+    // Add event listener for the edit selected client button
+    const editSelectedClientBtn = document.getElementById('editSelectedClient');
+    if (editSelectedClientBtn) {
+        editSelectedClientBtn.addEventListener('click', function() {
+            // Get client from global client details
+            if (window.globalClientDetails && window.globalClientDetails.client_id) {
+                const selectedClient = clientsData.find(client => client.id == window.globalClientDetails.client_id);
+                if (selectedClient) {
+                    openEditClientModal(selectedClient);
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Set up test screenshot URL functionality for Step 2
+ */
+function setupTestScreenshotFunctionality() {
+    // Set up event listeners for adding test screenshot URLs
+    const addScreenshotButtons = document.querySelectorAll('.add-screenshot-url-btn');
+    addScreenshotButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const component = this.getAttribute('data-component');
+            const input = document.getElementById(targetId);
+            
+            if (input && component) {
+                const url = input.value.trim();
+                
+                if (!url) {
+                    alert('الرجاء إدخال رابط صورة');
+                    return;
+                }
+                
+                if (addTestScreenshotPreview(url, component)) {
+                    // Clear input after successful addition
+                    input.value = '';
+                }
+            }
+        });
+    });
+    
+    // Add Enter key press event for test screenshot URL inputs with improved reliability
+    const testScreenshotInputs = document.querySelectorAll('.test-screenshot-url');
+    testScreenshotInputs.forEach(input => {
+        // Use both keypress and keydown to ensure cross-browser compatibility
+        ['keypress', 'keydown'].forEach(eventType => {
+            input.addEventListener(eventType, function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // Prevent form submission
+                    e.stopPropagation(); // Stop event bubbling
+                    
+                    // Get the component name from data attribute
+                    const component = this.getAttribute('data-component');
+                    
+                    // Find the corresponding add button
+                    const button = document.querySelector(`.add-screenshot-url-btn[data-component="${component}"]`);
+                    if (button) {
+                        console.log(`Enter key pressed in ${component} input - triggering add button`);
+                        button.click();
+                    }
+                }
+            });
+        });
+    });
+    
+    // Ensure all inputs with URL type also have Enter key functionality
+    document.querySelectorAll('input[type="url"]').forEach(input => {
+        if (!input.classList.contains('test-screenshot-url')) { // Avoid duplicate handlers
+            ['keypress', 'keydown'].forEach(eventType => {
+                input.addEventListener(eventType, function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Find the closest button that might be the add button
+                        const parentGroup = this.closest('.input-group');
+                        if (parentGroup) {
+                            const addBtn = parentGroup.querySelector('button');
+                            if (addBtn) {
+                                console.log('Enter key pressed in URL input - triggering closest button');
+                                addBtn.click();
+                            }
+                        }
+                    }
+                });
+            });
+        }
+    });
+}
+
+/**
+ * Open edit client modal with client data
+ * @param {Object} client - The client object to edit
+ */
+function openEditClientModal(client) {
+    if (!client) return;
+    
+    // Get the modal element
+    const modal = document.getElementById('addClientModal');
+    if (!modal) return;
+    
+    // Update modal title to indicate editing
+    const modalTitle = modal.querySelector('.modal-title');
+    if (modalTitle) {
+        modalTitle.innerHTML = `<i class="fas fa-edit me-2"></i> تعديل بيانات العميل: ${client.name}`;
+    }
+    
+    // Fill form fields with client data
+    document.getElementById('clientName').value = client.name || '';
+    document.getElementById('clientPhone').value = client.phone || '';
+    document.getElementById('clientEmail').value = client.email || '';
+    
+    if (document.getElementById('clientAddress')) {
+        document.getElementById('clientAddress').value = client.address || '';
+    }
+    
+    document.getElementById('clientOrderCode').value = client.orderCode || '';
+    
+    // Set client status radio button
+    const statusRadios = document.querySelectorAll('input[name="clientStatus"]');
+    statusRadios.forEach(radio => {
+        if (radio.value === client.status) {
+            radio.checked = true;
+        }
+    });
+    
+    // Store client ID in a hidden field or data attribute for reference
+    const client_idField = document.getElementById('client_id');
+    if (client_idField) {
+        client_idField.value = client.id;
+    } else {
+        // If no hidden field exists, create one
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.id = 'client_id';
+        hiddenField.name = 'client_id';
+        hiddenField.value = client.id;
+        document.getElementById('addClientForm').appendChild(hiddenField);
+    }
+    
+    // Update save button text
+    const saveButton = document.getElementById('saveClientBtn');
+    if (saveButton) {
+        saveButton.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التغييرات';
+    }
+    
+    // Show the modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
 } 
