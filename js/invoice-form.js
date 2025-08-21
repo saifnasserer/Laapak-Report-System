@@ -5,6 +5,101 @@
  * Focused on laptop sales with additional items
  */
 
+/**
+ * Collect invoice data for submission
+ * @returns {Object} Invoice data object
+ */
+function collectInvoiceData() {
+    // Collect laptops data
+    const laptops = [];
+    const laptopRows = document.querySelectorAll('.laptop-row');
+    
+    laptopRows.forEach(row => {
+        const nameInput = row.querySelector('.laptop-name');
+        const serialInput = row.querySelector('.laptop-serial');
+        const priceInput = row.querySelector('.laptop-price');
+        const qtyInput = row.querySelector('.laptop-qty');
+        
+        if (nameInput && nameInput.value.trim() !== '' && 
+            priceInput && parseFloat(priceInput.value) > 0) {
+            
+            const laptopName = nameInput.value.trim();
+            const serialNumber = serialInput ? serialInput.value.trim() : '';
+            const price = parseFloat(priceInput.value) || 0;
+            const qty = parseInt(qtyInput?.value) || 1;
+            
+            // Collect additional serial numbers if quantity > 1
+            const additionalSerials = [];
+            if (qty > 1) {
+                const serialsContainer = row.querySelector('.additional-serials-container');
+                if (serialsContainer) {
+                    const serialInputs = serialsContainer.querySelectorAll('.additional-serial');
+                    serialInputs.forEach(input => {
+                        additionalSerials.push(input.value.trim());
+                    });
+                }
+            }
+            
+            laptops.push({
+                name: laptopName,
+                serial: serialNumber,
+                additionalSerials: additionalSerials,
+                price: price,
+                quantity: qty,
+                totalPrice: price * qty
+            });
+        }
+    });
+    
+    // Collect additional items data
+    const items = [];
+    const itemRows = document.querySelectorAll('.item-row');
+    
+    itemRows.forEach(row => {
+        const nameInput = row.querySelector('.item-name');
+        const priceInput = row.querySelector('.item-price');
+        const qtyInput = row.querySelector('.item-qty');
+        
+        if (nameInput && nameInput.value.trim() !== '' && 
+            priceInput && parseFloat(priceInput.value) > 0) {
+            
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value) || 0;
+            const qty = parseInt(qtyInput?.value) || 1;
+            
+            items.push({
+                name: name,
+                price: price,
+                quantity: qty,
+                totalPrice: price * qty
+            });
+        }
+    });
+    
+    // Get other invoice data
+    const taxRate = document.getElementById('taxRate');
+    const discount = document.getElementById('discount');
+    const subtotalDisplay = document.getElementById('subtotalDisplay');
+    const taxDisplay = document.getElementById('taxDisplay');
+    const totalDisplay = document.getElementById('totalDisplay');
+    
+    const invoiceData = {
+        // diagnosticFee: parseFloat(diagnosticFee?.value) || 0,
+        // laborFee: parseFloat(laborFee?.value) || 0,
+        laptops: laptops,
+        additionalItems: items,
+        taxRate: parseFloat(taxRate?.value) || 0,
+        discount: parseFloat(discount?.value) || 0,
+        paymentStatus: document.getElementById('paymentStatus')?.value || 'unpaid',
+        paymentMethod: document.getElementById('paymentMethod')?.value || '',
+        subtotal: parseFloat(subtotalDisplay?.textContent) || 0,
+        tax: parseFloat(taxDisplay?.textContent) || 0,
+        total: parseFloat(totalDisplay?.textContent) || 0
+    };
+    
+    return invoiceData;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Elements
     const laptopsContainer = document.getElementById('laptopsContainer');
@@ -309,95 +404,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update invoice summary
         updateInvoiceSummary();
-    }
-    
-    /**
-     * Collect invoice data for submission
-     * @returns {Object} Invoice data object
-     */
-    function collectInvoiceData() {
-        // Collect laptops data
-        const laptops = [];
-        const laptopRows = document.querySelectorAll('.laptop-row');
-        
-        laptopRows.forEach(row => {
-            const nameInput = row.querySelector('.laptop-name');
-            const serialInput = row.querySelector('.laptop-serial');
-            const priceInput = row.querySelector('.laptop-price');
-            const qtyInput = row.querySelector('.laptop-qty');
-            
-            if (nameInput && nameInput.value.trim() !== '' && 
-                priceInput && parseFloat(priceInput.value) > 0) {
-                
-                const laptopName = nameInput.value.trim();
-                const serialNumber = serialInput ? serialInput.value.trim() : '';
-                const price = parseFloat(priceInput.value) || 0;
-                const qty = parseInt(qtyInput?.value) || 1;
-                
-                // Collect additional serial numbers if quantity > 1
-                const additionalSerials = [];
-                if (qty > 1) {
-                    const serialsContainer = row.querySelector('.additional-serials-container');
-                    if (serialsContainer) {
-                        const serialInputs = serialsContainer.querySelectorAll('.additional-serial');
-                        serialInputs.forEach(input => {
-                            additionalSerials.push(input.value.trim());
-                        });
-                    }
-                }
-                
-                laptops.push({
-                    name: laptopName,
-                    serial: serialNumber,
-                    additionalSerials: additionalSerials,
-                    price: price,
-                    quantity: qty,
-                    totalPrice: price * qty
-                });
-            }
-        });
-        
-        // Collect additional items data
-        const items = [];
-        const itemRows = document.querySelectorAll('.item-row');
-        
-        itemRows.forEach(row => {
-            const nameInput = row.querySelector('.item-name');
-            const priceInput = row.querySelector('.item-price');
-            const qtyInput = row.querySelector('.item-qty');
-            
-            if (nameInput && nameInput.value.trim() !== '' && 
-                priceInput && parseFloat(priceInput.value) > 0) {
-                
-                const name = nameInput.value.trim();
-                const price = parseFloat(priceInput.value) || 0;
-                const qty = parseInt(qtyInput?.value) || 1;
-                
-                items.push({
-                    name: name,
-                    price: price,
-                    quantity: qty,
-                    totalPrice: price * qty
-                });
-            }
-        });
-        
-        // Get other invoice data
-        const invoiceData = {
-            // diagnosticFee: parseFloat(diagnosticFee?.value) || 0,
-            // laborFee: parseFloat(laborFee?.value) || 0,
-            laptops: laptops,
-            additionalItems: items,
-            taxRate: parseFloat(taxRate?.value) || 0,
-            discount: parseFloat(discount?.value) || 0,
-            paymentStatus: document.getElementById('paymentStatus')?.value || 'unpaid',
-            paymentMethod: document.getElementById('paymentMethod')?.value || '',
-            subtotal: parseFloat(subtotalDisplay?.textContent) || 0,
-            tax: parseFloat(taxDisplay?.textContent) || 0,
-            total: parseFloat(totalDisplay?.textContent) || 0
-        };
-        
-        return invoiceData;
     }
     
     // Form submission handler

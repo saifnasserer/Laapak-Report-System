@@ -94,15 +94,21 @@ function initializeCreateMode() {
  */
 async function initializeEditMode() {
     console.log('Initializing edit mode...');
+    console.log('Report ID:', reportMode.reportId);
     
     try {
         showLoading(true);
         
         // First, ensure clients are loaded
+        console.log('Loading clients...');
         await loadClients();
+        console.log('Clients loaded, count:', clientsData ? clientsData.length : 0);
         
         // Load existing report data
+        console.log('Loading report data...');
         const report = await loadExistingReport(reportMode.reportId);
+        console.log('Report loaded:', report);
+        
         if (!report) {
             throw new Error('Report not found');
         }
@@ -111,16 +117,20 @@ async function initializeEditMode() {
         reportMode.originalData = JSON.parse(JSON.stringify(report));
         
         // Transform and populate form data
+        console.log('Transforming and populating report data...');
         transformAndPopulateReportData(report);
         
         // Set up form for editing
+        console.log('Setting up form for editing...');
         setupFormForEdit();
         
         // Initialize all form components
+        console.log('Initializing form components...');
         initializeFormComponents();
         
         // Mark as initialized
         reportMode.isInitialized = true;
+        console.log('Edit mode initialization complete');
         
         showLoading(false);
         
@@ -130,6 +140,7 @@ async function initializeEditMode() {
         showLoading(false);
         
         // Fallback to create mode
+        console.log('Falling back to create mode');
         reportMode.mode = 'create';
         initializeCreateMode();
     }
@@ -184,29 +195,44 @@ async function loadExistingReport(reportId) {
 }
 
 /**
- * Transform and populate report data into form
+ * Transform and populate report data into the form
  * @param {Object} report - The report data
  */
 function transformAndPopulateReportData(report) {
-    console.log('Transforming and populating report data:', report);
+    console.log('Starting data transformation and population...');
+    console.log('Report data received:', report);
     
-    // Populate general information
-    populateGeneralInformation(report);
-    
-    // Populate technical tests
-    populateTechnicalTests(report);
-    
-    // Populate external inspection
-    populateExternalInspection(report);
-    
-    // Populate notes
-    populateNotes(report);
-    
-    // Populate invoice data
-    populateInvoiceData(report);
-    
-    // Update page title and UI for edit mode
-    updatePageForEditMode();
+    try {
+        // Populate general information (client and device details)
+        console.log('Populating general information...');
+        populateGeneralInformation(report);
+        
+        // Populate technical tests (hardware status and test screenshots)
+        console.log('Populating technical tests...');
+        populateTechnicalTests(report);
+        
+        // Populate external inspection (images and videos)
+        console.log('Populating external inspection...');
+        populateExternalInspection(report);
+        
+        // Populate notes
+        console.log('Populating notes...');
+        populateNotes(report);
+        
+        // Populate invoice data
+        console.log('Populating invoice data...');
+        populateInvoiceData(report);
+        
+        // Update page UI for edit mode
+        console.log('Updating page UI for edit mode...');
+        updatePageForEditMode();
+        
+        console.log('Data transformation and population complete');
+        
+    } catch (error) {
+        console.error('Error in transformAndPopulateReportData:', error);
+        throw error;
+    }
 }
 
 /**
@@ -354,8 +380,8 @@ function populateHardwareStatus(hardwareStatus) {
         'card': 'card_reader_status',
         'audio_jack': 'audio_jack_status',
         'DisplayPort': 'display_ports_status',
-        'Bluetooth': 'bluetooth_status',
-        'touchscreen': 'touchscreen_status'
+        'bluetooth_status': 'Bluetooth',
+        'touchscreen_status': 'touchscreen'
     };
     
     hardwareStatus.forEach(component => {
@@ -508,27 +534,145 @@ function populateInvoiceData(report) {
  */
 function updatePageForEditMode() {
     // Update page title
-    document.title = 'تعديل التقرير - Laapak Reports';
+    document.title = 'تعديل التقرير - Laapak Report System';
     
     // Update main heading
     const mainHeading = document.querySelector('h1, .main-heading');
     if (mainHeading) {
-        mainHeading.innerHTML = '<i class="fas fa-edit me-2"></i> تعديل التقرير';
+        mainHeading.textContent = 'تعديل التقرير';
     }
     
-    // Update submit button
-    const submitButton = document.querySelector('button[type="submit"]');
-    if (submitButton) {
-        submitButton.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التغييرات';
+    // Update submit button text
+    const submitBtn = document.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التغييرات';
     }
     
-    // Update step buttons
-    const stepButtons = document.querySelectorAll('.btn-next-step');
-    stepButtons.forEach(button => {
-        if (button.textContent.includes('التالي')) {
-            button.innerHTML = '<i class="fas fa-arrow-left ms-2"></i>التالي';
+    // Add invoice management section if billing is enabled
+    addInvoiceManagementSection();
+}
+
+/**
+ * Add invoice management section for edit mode
+ */
+function addInvoiceManagementSection() {
+    const billingSection = document.getElementById('billingSection');
+    if (!billingSection) return;
+    
+    // Check if billing is enabled
+    const enableBillingCheckbox = document.getElementById('enableBilling');
+    if (!enableBillingCheckbox || !enableBillingCheckbox.checked) return;
+    
+    // Create invoice management section
+    const invoiceManagementDiv = document.createElement('div');
+    invoiceManagementDiv.className = 'card mt-3 border-info';
+    invoiceManagementDiv.innerHTML = `
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-file-invoice me-2"></i>إدارة الفواتير
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="checkAndManageInvoice()">
+                        <i class="fas fa-search me-1"></i>البحث عن الفواتير المرتبطة
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="createNewInvoiceForReport()">
+                        <i class="fas fa-plus me-1"></i>إنشاء فاتورة جديدة
+                    </button>
+                </div>
+            </div>
+            <div id="invoiceStatusDisplay" class="mt-2"></div>
+        </div>
+    `;
+    
+    // Insert after billing section
+    billingSection.parentNode.insertBefore(invoiceManagementDiv, billingSection.nextSibling);
+}
+
+/**
+ * Check and manage invoice for current report
+ */
+async function checkAndManageInvoice() {
+    try {
+        const reportId = reportMode.reportId;
+        if (!reportId) {
+            showToast('معرف التقرير غير متوفر', 'error');
+            return;
         }
-    });
+        
+        const existingInvoice = await checkExistingInvoice(reportId);
+        const statusDisplay = document.getElementById('invoiceStatusDisplay');
+        
+        if (existingInvoice) {
+            statusDisplay.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>تم العثور على فاتورة:</strong> ${existingInvoice.id}
+                    <div class="mt-2">
+                        <a href="edit-invoice.html?id=${existingInvoice.id}" class="btn btn-sm btn-primary me-2">
+                            <i class="fas fa-edit me-1"></i>تعديل الفاتورة
+                        </a>
+                        <a href="view-invoice.html?id=${existingInvoice.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>عرض الفاتورة
+                        </a>
+                    </div>
+                </div>
+            `;
+        } else {
+            statusDisplay.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>لا توجد فواتير مرتبطة بهذا التقرير</strong>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-success" onclick="createNewInvoiceForReport()">
+                            <i class="fas fa-plus me-1"></i>إنشاء فاتورة جديدة
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error checking invoice:', error);
+        showToast('حدث خطأ أثناء البحث عن الفواتير', 'error');
+    }
+}
+
+/**
+ * Create new invoice for current report
+ */
+function createNewInvoiceForReport() {
+    const reportId = reportMode.reportId;
+    if (!reportId) {
+        showToast('معرف التقرير غير متوفر', 'error');
+        return;
+    }
+    
+    // Prepare invoice data
+    const invoiceData = {
+        client_id: window.globalClientDetails?.client_id,
+        report_id: reportId,
+        date: new Date().toISOString().split('T')[0],
+        paymentStatus: 'unpaid',
+        paymentMethod: '',
+        discount: parseFloat(document.getElementById('discount')?.value || 0),
+        taxRate: parseFloat(document.getElementById('taxRate')?.value || 0),
+        items: [{
+            description: `فحص وإصلاح ${document.getElementById('deviceModel')?.value || 'جهاز'}`,
+            quantity: 1,
+            amount: parseFloat(document.getElementById('devicePrice')?.value || 0),
+            type: 'service'
+        }]
+    };
+    
+    // Store data for new invoice page
+    localStorage.setItem('lpk_new_invoice_data', JSON.stringify(invoiceData));
+    
+    // Redirect to new invoice page
+    window.open('edit-invoice.html?new=true', '_blank');
 }
 
 /**
@@ -1214,13 +1358,25 @@ function setupFormSubmission() {
             // Submit using unified API method
             const response = await apiService.saveReport(formData, reportMode.mode);
             
-            // If billing is enabled, create invoice automatically
-            if (formData.billing_enabled && formData.amount > 0) {
+            // Only create invoice automatically in CREATE mode when billing is enabled
+            if (reportMode.mode === 'create' && formData.billing_enabled && formData.amount > 0) {
                 try {
                     await createInvoiceForReport(response, formData);
                 } catch (invoiceError) {
                     console.error('Error creating invoice for report:', invoiceError);
                     showToast('تم إنشاء التقرير بنجاح، لكن حدث خطأ في إنشاء الفاتورة', 'warning');
+                }
+            } else if (reportMode.mode === 'edit' && formData.billing_enabled && formData.amount > 0) {
+                // In edit mode, check if invoice already exists and provide guidance
+                try {
+                    const existingInvoice = await checkExistingInvoice(formData.reportId);
+                    if (existingInvoice) {
+                        showToast('التقرير يحتوي على فاتورة موجودة. يمكنك تعديل الفاتورة من صفحة الفواتير.', 'info');
+                    } else {
+                        showToast('يمكنك إنشاء فاتورة للتقرير من صفحة الفواتير.', 'info');
+                    }
+                } catch (error) {
+                    console.log('Could not check existing invoice:', error);
                 }
             }
             
@@ -1493,10 +1649,10 @@ function collectInvoiceData() {
                     quantity: quantity,
                     unitPrice: unitPrice,
                     totalPrice: quantity * unitPrice
-                });
-            }
-        });
-        
+            });
+        }
+    });
+    
         invoiceData.additional_items = additionalItems;
     } else {
         invoiceData.amount = 0;
@@ -1672,17 +1828,21 @@ function showSuccessMessage(response, billingEnabled = false, mode = 'create') {
     }
     
     if (mode === 'edit') {
-        // For edit mode, show simple success message and redirect
-        showToast('تم تحديث التقرير بنجاح', 'success');
+        // For edit mode, show success message with invoice guidance
+        let message = 'تم تحديث التقرير بنجاح';
+        if (billingEnabled) {
+            message += '. يمكنك إدارة الفواتير من صفحة الفواتير.';
+        }
+        showToast(message, 'success');
         
         // Redirect to reports page after a short delay
         setTimeout(() => {
             window.location.href = 'reports.html';
         }, 2000);
         
-        return;
-    }
-    
+            return;
+        }
+        
     // For create mode, show the success modal
     const successModal = document.getElementById('reportCreatedModal');
     
@@ -1721,7 +1881,7 @@ function showSuccessMessage(response, billingEnabled = false, mode = 'create') {
             if (copyBtn) {
                 copyBtn.addEventListener('click', function() {
                     navigator.clipboard.writeText(reportUrl).then(() => {
-                        // Show success message
+            // Show success message
                         const successMsg = document.querySelector('.copy-success-message');
                         if (successMsg) {
                             successMsg.style.display = 'block';
@@ -1790,7 +1950,7 @@ function showLoading(show) {
         }
         if (prevBtn) prevBtn.disabled = true;
         if (nextBtn) nextBtn.disabled = true;
-    } else {
+            } else {
         if (submitBtn) {
             submitBtn.disabled = false;
             const mode = reportMode.mode;
@@ -1845,9 +2005,9 @@ function setupTestScreenshotFunctionality() {
                         button.click();
                     }
                 }
+                });
             });
         });
-    });
 }
 
 /**
@@ -2000,74 +2160,107 @@ function resetForm() {
 }
 
 /**
- * Create invoice for a report automatically
- * @param {Object} reportResponse - The created report response
- * @param {Object} reportData - The original report data
- * @returns {Promise<Object>} The created invoice
+ * Check if a report already has an associated invoice
+ * @param {string} reportId - The report ID to check
+ * @returns {Promise<Object|null>} The existing invoice or null
  */
-async function createInvoiceForReport(reportResponse, reportData) {
+async function checkExistingInvoice(reportId) {
     try {
-        // Generate unique invoice ID
-        const invoiceId = 'INV' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000);
+        if (!reportId) return null;
         
-        // Get billing data from form
-        const taxRate = parseFloat(document.getElementById('taxRate')?.value || 0);
-        const discount = parseFloat(document.getElementById('discount')?.value || 0);
-        const paymentStatus = document.getElementById('paymentStatus')?.value || 'unpaid';
-        const paymentMethod = document.getElementById('paymentMethod')?.value || '';
-        
-        // Calculate amounts
-        const subtotal = reportData.amount;
-        const taxAmount = (subtotal * taxRate) / 100;
-        const totalAmount = subtotal + taxAmount - discount;
-        
-        // Prepare invoice data
-        const invoiceData = {
-            id: invoiceId,
-            client_id: reportData.client_id,
-            report_ids: [reportResponse.id], // Link to the created report
-            date: new Date().toISOString(),
-            subtotal: subtotal,
-            taxRate: taxRate,
-            tax: taxAmount,
-            discount: discount,
-            total: totalAmount,
-            paymentStatus: paymentStatus,
-            paymentMethod: paymentMethod,
-            notes: `فاتورة تلقائية للتقرير ${reportData.order_number}`,
-            status: 'draft',
-            items: [
-                {
-                    description: `فحص وإصلاح ${reportData.device_model}`,
-                    quantity: 1,
-                    unitPrice: subtotal,
-                    totalPrice: subtotal,
-                    type: 'service'
-                }
-            ]
-        };
-        
-        console.log('Creating invoice for report:', invoiceData);
-        
-        // Create invoice via API
-        if (typeof apiService !== 'undefined' && typeof apiService.createInvoice === 'function') {
-            const invoiceResponse = await apiService.createInvoice(invoiceData);
-            console.log('Invoice created successfully:', invoiceResponse);
-            
-            // Show success message for invoice creation
-            showToast('تم إنشاء الفاتورة تلقائياً للتقرير', 'success');
-            
-            return invoiceResponse;
-        } else {
-            throw new Error('API service not available for invoice creation');
+        // Try to get invoice data for this report
+        if (typeof apiService !== 'undefined' && typeof apiService.getInvoices === 'function') {
+            const invoices = await apiService.getInvoices({ report_id: reportId });
+            return invoices && invoices.length > 0 ? invoices[0] : null;
         }
+        
+        return null;
     } catch (error) {
-        console.error('Error creating invoice for report:', error);
-        throw error;
+        console.log('Error checking existing invoice:', error);
+        return null;
     }
 }
-
-/**
+    
+    /**
+     * Create invoice for a report automatically
+     * @param {Object} reportResponse - The created report response
+     * @param {Object} reportData - The original report data
+     * @returns {Promise<Object>} The created invoice
+     */
+    async function createInvoiceForReport(reportResponse, reportData) {
+        try {
+        console.log('Creating invoice for report:', reportResponse);
+        
+            // Generate unique invoice ID
+            const invoiceId = 'INV' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000);
+            
+            // Get billing data from form
+            const taxRate = parseFloat(document.getElementById('taxRate')?.value || 0);
+            const discount = parseFloat(document.getElementById('discount')?.value || 0);
+            const paymentStatus = document.getElementById('paymentStatus')?.value || 'unpaid';
+            const paymentMethod = document.getElementById('paymentMethod')?.value || '';
+            
+            // Calculate amounts
+        const subtotal = reportData.amount || 0;
+            const taxAmount = (subtotal * taxRate) / 100;
+            const totalAmount = subtotal + taxAmount - discount;
+        
+        // Ensure report ID is valid
+        const reportId = reportResponse.id || reportResponse.reportId || reportData.reportId;
+        if (!reportId) {
+            throw new Error('Invalid report ID for invoice creation');
+        }
+            
+            // Prepare invoice data
+            const invoiceData = {
+                id: invoiceId,
+                client_id: reportData.client_id,
+            report_ids: [reportId], // Link to the created report
+                date: new Date().toISOString(),
+                subtotal: subtotal,
+                taxRate: taxRate,
+                tax: taxAmount,
+                discount: discount,
+                total: totalAmount,
+                paymentStatus: paymentStatus,
+                paymentMethod: paymentMethod,
+            notes: `فاتورة تلقائية للتقرير ${reportData.order_number || 'غير محدد'}`,
+                status: 'draft',
+                items: [
+                    {
+                    description: `فحص وإصلاح ${reportData.device_model || 'جهاز'}`,
+                        quantity: 1,
+                        unitPrice: subtotal,
+                        totalPrice: subtotal,
+                        type: 'service'
+                    }
+                ]
+            };
+            
+        console.log('Prepared invoice data:', invoiceData);
+            
+            // Create invoice via API
+            if (typeof apiService !== 'undefined' && typeof apiService.createInvoice === 'function') {
+                const invoiceResponse = await apiService.createInvoice(invoiceData);
+                console.log('Invoice created successfully:', invoiceResponse);
+                
+                // Show success message for invoice creation
+                showToast('تم إنشاء الفاتورة تلقائياً للتقرير', 'success');
+                
+                return invoiceResponse;
+            } else {
+                throw new Error('API service not available for invoice creation');
+            }
+        } catch (error) {
+            console.error('Error creating invoice for report:', error);
+        // Don't throw the error, just log it and continue
+        // This prevents the entire report save from failing due to invoice creation issues
+        showToast('تم إنشاء التقرير بنجاح، لكن حدث خطأ في إنشاء الفاتورة', 'warning');
+        return null;
+        }
+    }
+    
+    /**
  * Set up billing toggle functionality
  */
 function setupBillingToggle() {
@@ -2116,3 +2309,305 @@ function setupBillingToggle() {
     // Make updateBillingUI globally available
     window.updateBillingUI = updateBillingUI;
 }
+
+/**
+ * Load clients from API or localStorage
+ */
+async function loadClients() {
+    try {
+        console.log('Loading clients...');
+        
+        // Try to get clients from API
+        let clients = [];
+                try {
+                    // Check if apiService is defined and has getClients method
+                    if (typeof apiService !== 'undefined' && typeof apiService.getClients === 'function') {
+                // Use ApiService to fetch clients
+                clients = await apiService.getClients();
+                console.log('Clients loaded from API:', clients.length);
+                
+                            // Cache clients in localStorage for offline use
+                            localStorage.setItem('lpk_clients', JSON.stringify(clients));
+                    } else {
+                        throw new Error('API service not available');
+                    }
+                } catch (apiError) {
+            console.warn('Error fetching clients from API, falling back to localStorage:', apiError);
+                    // Fall back to localStorage if API fails
+                    const storedClients = localStorage.getItem('lpk_clients');
+            clients = storedClients ? JSON.parse(storedClients) : [];
+            console.log('Clients loaded from localStorage:', clients.length);
+            }
+            
+            // Store clients data globally
+        window.clientsData = clients;
+            clientsData = clients;
+            
+        console.log('Clients loaded successfully:', clients.length);
+            return clients;
+            
+        } catch (error) {
+        console.error('Error loading clients:', error);
+            return [];
+        }
+    }
+    
+    /**
+ * Show toast notification
+ * @param {string} message - Message to display
+ * @param {string} type - Type of toast (success, error, warning, info)
+ */
+function showToast(message, type = 'info') {
+    // Check if toastr is available
+    if (typeof toastr !== 'undefined') {
+        toastr[type](message);
+            } else {
+        // Fallback to alert
+        alert(message);
+    }
+}
+
+/**
+ * Update client info display
+ * @param {Object} client - Client data
+ */
+function updateClientInfoDisplay(client) {
+    const clientInfoContainer = document.getElementById('clientInfoContainer');
+    if (!clientInfoContainer || !client) return;
+    
+    clientInfoContainer.innerHTML = `
+        <div class="card border-success">
+            <div class="card-body p-3">
+                <h6 class="card-title text-success mb-2">
+                    <i class="fas fa-user-check me-2"></i>معلومات العميل
+                </h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>الاسم:</strong> ${client.name || ''}</p>
+                        <p class="mb-1"><strong>الهاتف:</strong> ${client.phone || ''}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>البريد الإلكتروني:</strong> ${client.email || ''}</p>
+                        <p class="mb-0"><strong>العنوان:</strong> ${client.address || ''}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    clientInfoContainer.style.display = 'block';
+    }
+    
+    /**
+     * Set up client search functionality
+     */
+    function setupClientSearch() {
+    const clientSearchInput = document.getElementById('clientSearchInput');
+    const clientDropdown = document.getElementById('clientDropdown');
+    
+    if (!clientSearchInput || !clientDropdown) {
+        console.warn('Client search setup failed: Required elements not found', {
+            clientSearchInput: !!clientSearchInput,
+            clientDropdown: !!clientDropdown
+        });
+                return;
+            }
+            
+    clientSearchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        if (!clientsData) return;
+        
+        // Filter clients based on search term
+        const filteredClients = clientsData.filter(client => 
+            client.name.toLowerCase().includes(searchTerm) ||
+            client.phone.includes(searchTerm) ||
+            (client.email && client.email.toLowerCase().includes(searchTerm))
+        );
+        
+        // Update dropdown
+        clientDropdown.innerHTML = '';
+        filteredClients.forEach(client => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-item';
+            option.textContent = `${client.name} (${client.phone})`;
+            option.addEventListener('click', () => {
+                clientSearchInput.value = client.name;
+                clientSelectionChanged(client);
+                clientDropdown.style.display = 'none';
+            });
+            clientDropdown.appendChild(option);
+        });
+        
+        clientDropdown.style.display = filteredClients.length > 0 ? 'block' : 'none';
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!clientSearchInput.contains(e.target) && !clientDropdown.contains(e.target)) {
+            clientDropdown.style.display = 'none';
+                }
+            });
+        }
+        
+/**
+ * Handle client selection change
+ * @param {Object} client - Selected client data
+ */
+function clientSelectionChanged(client) {
+    if (!client) return;
+    
+                // Update global client details
+                window.globalClientDetails = {
+        client_id: client.id,
+        clientName: client.name,
+        clientPhone: client.phone,
+        clientEmail: client.email || '',
+        clientAddress: client.address || ''
+    };
+                
+                // Update client info display
+    updateClientInfoDisplay(client);
+    }
+    
+    /**
+     * Set up client quick actions
+     */
+    function setupClientQuickActions() {
+    // Set up event listeners for client quick action buttons
+    const addClientBtn = document.getElementById('addClientBtn');
+    const editClientBtn = document.getElementById('editClientBtn');
+    const viewHistoryBtn = document.getElementById('viewHistoryBtn');
+    
+    if (addClientBtn) {
+        addClientBtn.addEventListener('click', function() {
+            openEditClientModal();
+        });
+    }
+    
+    if (editClientBtn) {
+        editClientBtn.addEventListener('click', function() {
+            if (window.globalClientDetails && window.globalClientDetails.client_id) {
+                const client = clientsData.find(c => c.id == window.globalClientDetails.client_id);
+                if (client) {
+                    openEditClientModal(client);
+                }
+            }
+        });
+    }
+    
+    if (viewHistoryBtn) {
+        viewHistoryBtn.addEventListener('click', function() {
+                if (window.globalClientDetails && window.globalClientDetails.client_id) {
+                viewClientHistory(window.globalClientDetails.client_id);
+                }
+            });
+        }
+    }
+    
+    /**
+ * Open edit client modal
+ * @param {Object} client - Client data to edit (optional)
+ */
+function openEditClientModal(client = null) {
+    const modal = document.getElementById('addClientModal');
+    if (!modal) return;
+    
+    const modalTitle = modal.querySelector('.modal-title');
+    const clientNameInput = document.getElementById('clientName');
+    const clientPhoneInput = document.getElementById('clientPhone');
+    const clientEmailInput = document.getElementById('clientEmail');
+    const clientAddressInput = document.getElementById('clientAddress');
+    
+    if (client) {
+        // Edit mode
+        modalTitle.textContent = 'تعديل العميل';
+        clientNameInput.value = client.name || '';
+        clientPhoneInput.value = client.phone || '';
+        clientEmailInput.value = client.email || '';
+        clientAddressInput.value = client.address || '';
+    } else {
+        // Add mode
+        modalTitle.textContent = 'إضافة عميل جديد';
+        clientNameInput.value = '';
+        clientPhoneInput.value = '';
+        clientEmailInput.value = '';
+        clientAddressInput.value = '';
+    }
+    
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+}
+
+/**
+ * View client history
+ * @param {string} clientId - Client ID
+ */
+function viewClientHistory(clientId) {
+    // Implementation for viewing client history
+    console.log('Viewing client history for ID:', clientId);
+    // This could open a modal or navigate to a history page
+}
+
+/**
+ * Save new client
+     */
+    async function saveNewClient() {
+    try {
+        const clientName = document.getElementById('clientName').value.trim();
+        const clientPhone = document.getElementById('clientPhone').value.trim();
+        const clientEmail = document.getElementById('clientEmail').value.trim();
+        const clientAddress = document.getElementById('clientAddress').value.trim();
+        
+        if (!clientName || !clientPhone) {
+            showToast('يرجى إدخال اسم العميل ورقم الهاتف', 'error');
+            return;
+        }
+        
+            const clientData = {
+                name: clientName,
+                phone: clientPhone,
+            email: clientEmail,
+            address: clientAddress
+        };
+        
+        // Save client using API
+                        if (typeof apiService !== 'undefined' && typeof apiService.createClient === 'function') {
+            const newClient = await apiService.createClient(clientData);
+            
+            // Add to local clients data
+            clientsData.push(newClient);
+            window.clientsData = clientsData;
+            
+            // Update client selection
+            clientSelectionChanged(newClient);
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addClientModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            showToast('تم حفظ العميل بنجاح', 'success');
+            } else {
+            throw new Error('API service not available');
+        }
+        
+        } catch (error) {
+            console.error('Error saving client:', error);
+        showToast('فشل في حفظ العميل', 'error');
+        }
+    }
+    
+    /**
+ * Collect report data (compatibility function for form-steps.js)
+ * @returns {Object} The collected report data
+ */
+function collectReportData() {
+    console.log('collectReportData called - using unified data collection');
+    return collectUnifiedReportData();
+}
+
+// Make invoice management functions globally accessible
+window.checkAndManageInvoice = checkAndManageInvoice;
+window.createNewInvoiceForReport = createNewInvoiceForReport;
