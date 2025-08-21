@@ -552,6 +552,13 @@
                                         <i class="fas fa-plus"></i>
                                     </a>
                                 </li>
+                                <li class="nav-item mx-2">
+                                    <a href="money-management.html" class="nav-link rounded-circle d-flex align-items-center justify-content-center" 
+                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="إدارة الأموال">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -729,6 +736,46 @@
             </div>
         </div>
 
+        <!-- Money Locations Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="chart-container">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title">
+                            <i class="fas fa-money-bill-wave text-primary me-2"></i>
+                            مواقع الأموال والأرصدة
+                        </h5>
+                        <a href="money-management.html" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>
+                            إدارة الأموال
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="moneyLocationsContainer">
+                            <div class="col-12 text-center">
+                                <div class="loading-spinner mx-auto"></div>
+                                <p class="text-muted mt-2">جاري تحميل مواقع الأموال...</p>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h4 class="text-primary mb-1" id="totalCashBalance">0 ج.م</h4>
+                                    <small class="text-muted">إجمالي الأرصدة النقدية</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h4 class="text-success mb-1" id="totalDigitalBalance">0 ج.م</h4>
+                                    <small class="text-muted">إجمالي الأرصدة الرقمية</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Alerts Section -->
         <div class="row">
             <div class="col-12">
@@ -781,6 +828,137 @@
         // Format percentage
         function formatPercentage(percentage) {
             return percentage.toFixed(1) + '%';
+        }
+
+        // Load money locations data
+        async function loadMoneyLocations() {
+            try {
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                
+                // Try to use AuthMiddleware if available
+                let token = adminInfo.token || '';
+                if (typeof AuthMiddleware !== 'undefined') {
+                    try {
+                        const authMiddleware = new AuthMiddleware();
+                        token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                    } catch (error) {
+                        console.log('AuthMiddleware not available, using fallback');
+                    }
+                }
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+
+                const response = await fetch(`${baseUrl}/api/money/locations`, {
+                    headers: { 'x-auth-token': token }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const locations = data.data.locations || [];
+                    
+                    // Display money locations
+                    displayMoneyLocations(locations);
+                    
+                    // Calculate and display totals
+                    calculateMoneyTotals(locations);
+                } else {
+                    console.log('Money locations API not available, skipping...');
+                    document.getElementById('moneyLocationsContainer').innerHTML = `
+                        <div class="col-12 text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>
+                            بيانات الأموال غير متاحة حالياً
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.log('Error loading money locations (service may not be available):', error.message);
+                document.getElementById('moneyLocationsContainer').innerHTML = `
+                    <div class="col-12 text-center text-muted">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        خطأ في تحميل بيانات الأموال
+                    </div>
+                `;
+            }
+        }
+
+        // Display money locations
+        function displayMoneyLocations(locations) {
+            const container = document.getElementById('moneyLocationsContainer');
+            
+            if (locations.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-muted">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        لا توجد مواقع أموال
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = locations.map(location => `
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="d-flex align-items-center p-3 border rounded">
+                        <div class="location-icon me-3">
+                            <i class="fas ${getLocationIcon(location.type)} text-${getLocationColor(location.type)}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${location.name_ar}</h6>
+                            <p class="mb-0 text-muted small">${getLocationTypeName(location.type)}</p>
+                            <h5 class="mb-0 text-${getLocationColor(location.type)}">${formatCurrency(location.balance)}</h5>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Calculate money totals
+        function calculateMoneyTotals(locations) {
+            let cashBalance = 0;
+            let digitalBalance = 0;
+
+            locations.forEach(location => {
+                const balance = parseFloat(location.balance || 0);
+                if (location.type === 'cash') {
+                    cashBalance += balance;
+                } else {
+                    digitalBalance += balance;
+                }
+            });
+
+            document.getElementById('totalCashBalance').textContent = formatCurrency(cashBalance);
+            document.getElementById('totalDigitalBalance').textContent = formatCurrency(digitalBalance);
+        }
+
+        // Get location icon based on type
+        function getLocationIcon(type) {
+            const icons = {
+                'cash': 'fa-money-bill-wave',
+                'digital_wallet': 'fa-mobile-alt',
+                'bank_account': 'fa-university',
+                'other': 'fa-ellipsis-h'
+            };
+            return icons[type] || 'fa-map-marker-alt';
+        }
+
+        // Get location color based on type
+        function getLocationColor(type) {
+            const colors = {
+                'cash': 'success',
+                'digital_wallet': 'primary',
+                'bank_account': 'info',
+                'other': 'warning'
+            };
+            return colors[type] || 'secondary';
+        }
+
+        // Get location type name in Arabic
+        function getLocationTypeName(type) {
+            const names = {
+                'cash': 'نقدي',
+                'digital_wallet': 'محفظة رقمية',
+                'bank_account': 'حساب بنكي',
+                'other': 'أخرى'
+            };
+            return names[type] || 'غير محدد';
         }
 
         // Load dashboard data
@@ -883,6 +1061,9 @@
                 
                 // Display alerts
                 displayAlerts(data.alerts || []);
+                
+                // Load money locations data
+                await loadMoneyLocations();
 
             } catch (error) {
                 console.error('Dashboard error:', error);

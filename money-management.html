@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الأموال والتحويلات - نظام تقارير لاباك</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="img/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        .location-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .location-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+        }
+        
+        .location-icon.cash { background: #198754; }
+        .location-icon.digital_wallet { background: #007553; }
+        .location-icon.bank_account { background: #0dcaf0; }
+        
+        .movement-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .movement-amount.positive { color: #198754; }
+        .movement-amount.negative { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Navigation Bar -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 12px;">
+                    <div class="container py-2">
+                        <div class="d-flex justify-content-center align-items-center w-100">
+                            <!-- Navigation items in center -->
+                            <ul class="navbar-nav d-flex flex-row align-items-center justify-content-center">
+                                <li class="nav-item mx-2">
+                                    <a href="financial-dashboard.html" class="nav-link rounded-circle d-flex align-items-center justify-content-center" 
+                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="لوحة التحكم المالية">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </a>
+                                </li>
+                                <li class="nav-item mx-2">
+                                    <a href="financial-profit-management.html" class="nav-link rounded-circle d-flex align-items-center justify-content-center" 
+                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="إدارة الأرباح">
+                                        <i class="fas fa-coins"></i>
+                                    </a>
+                                </li>
+                                <li class="nav-item mx-2">
+                                    <a href="financial-add-expense.html" class="nav-link rounded-circle d-flex align-items-center justify-content-center" 
+                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="إضافة مصروف">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                </li>
+                                <li class="nav-item mx-2">
+                                    <a href="money-management.html" class="nav-link active fw-bold rounded-circle d-flex align-items-center justify-content-center" 
+                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.3s ease;" 
+                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="إدارة الأموال">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1><i class="fas fa-money-bill-wave text-primary me-2"></i>إدارة الأموال والتحويلات</h1>
+                <p class="text-muted">تتبع الأموال والتحويلات بين المواقع المختلفة</p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <button class="btn btn-primary me-2" onclick="showTransferModal()">
+                    <i class="fas fa-exchange-alt me-1"></i>تحويل
+                </button>
+                <button class="btn btn-success me-2" onclick="showDepositModal()">
+                    <i class="fas fa-plus me-1"></i>إيداع
+                </button>
+                <button class="btn btn-danger" onclick="showWithdrawalModal()">
+                    <i class="fas fa-minus me-1"></i>سحب
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 id="totalBalance">0</h3>
+                        <p class="text-muted">إجمالي الرصيد</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 id="totalLocations">0</h3>
+                        <p class="text-muted">عدد المواقع</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 id="totalMovements">0</h3>
+                        <p class="text-muted">إجمالي الحركات</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 id="todayMovements">0</h3>
+                        <p class="text-muted">حركات اليوم</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Locations and Movements -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-map-marker-alt me-2"></i>مواقع الأموال</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="locationsContainer">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">جاري التحميل...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-history me-2"></i>الحركات الأخيرة</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="movementsContainer">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">جاري التحميل...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Modal -->
+    <div class="modal fade" id="transferModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تحويل أموال</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="transferForm">
+                        <div class="mb-3">
+                            <label class="form-label">من موقع</label>
+                            <select class="form-select" id="fromLocation" required>
+                                <option value="">اختر الموقع المصدر</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">إلى موقع</label>
+                            <select class="form-select" id="toLocation" required>
+                                <option value="">اختر الموقع الهدف</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">المبلغ</label>
+                            <input type="number" class="form-control" id="transferAmount" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">الوصف</label>
+                            <textarea class="form-control" id="transferDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="executeTransfer()">تنفيذ التحويل</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposit Modal -->
+    <div class="modal fade" id="depositModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">إيداع أموال</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="depositForm">
+                        <div class="mb-3">
+                            <label class="form-label">إلى موقع</label>
+                            <select class="form-select" id="depositLocation" required>
+                                <option value="">اختر الموقع</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">المبلغ</label>
+                            <input type="number" class="form-control" id="depositAmount" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">الوصف</label>
+                            <textarea class="form-control" id="depositDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-success" onclick="executeDeposit()">تنفيذ الإيداع</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdrawal Modal -->
+    <div class="modal fade" id="withdrawalModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">سحب أموال</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="withdrawalForm">
+                        <div class="mb-3">
+                            <label class="form-label">من موقع</label>
+                            <select class="form-select" id="withdrawalLocation" required>
+                                <option value="">اختر الموقع</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">المبلغ</label>
+                            <input type="number" class="form-control" id="withdrawalAmount" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">الوصف</label>
+                            <textarea class="form-control" id="withdrawalDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-danger" onclick="executeWithdrawal()">تنفيذ السحب</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/header-component.js"></script>
+    <script src="js/auth-middleware.js"></script>
+    <script src="js/money-management.js"></script>
+</body>
+</html>
+

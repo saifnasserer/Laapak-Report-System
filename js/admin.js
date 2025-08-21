@@ -201,7 +201,7 @@ function loadRecentReports() {
                         <a href="view-report.html?id=${report.id}" class="btn btn-sm btn-outline-primary me-1">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a href="edit-report.html?id=${report.id}" class="btn btn-sm btn-outline-success me-1">
+                        <a href="create-report.html?id=${report.id}" class="btn btn-sm btn-outline-success me-1">
                             <i class="fas fa-edit"></i>
                         </a>
                     </td>

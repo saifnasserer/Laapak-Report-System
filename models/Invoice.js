@@ -61,6 +61,12 @@ const Invoice = sequelize.define('Invoice', {
         type: DataTypes.DATE,
         allowNull: true
     },
+    money_location_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'money_location_id',
+        references: { model: 'money_locations', key: 'id' }
+    },
     // Add metadata for better tracking
     created_from_report: {
         type: DataTypes.BOOLEAN,

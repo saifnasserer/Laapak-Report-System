@@ -13,6 +13,8 @@ const ExpenseCategory = require('./ExpenseCategory');
 const Expense = require('./Expense');
 const ProductCost = require('./ProductCost');
 const FinancialSummary = require('./FinancialSummary');
+const MoneyLocation = require('./MoneyLocation');
+const MoneyMovement = require('./MoneyMovement');
 
 // Import the sequelize instance from the config/db.js file
 const { sequelize } = require('../config/db');
@@ -32,6 +34,22 @@ Admin.hasMany(ProductCost, { foreignKey: 'created_by', as: 'createdProductCosts'
 Admin.hasMany(ProductCost, { foreignKey: 'updated_by', as: 'updatedProductCosts' });
 ProductCost.belongsTo(Admin, { foreignKey: 'created_by', as: 'creator' });
 ProductCost.belongsTo(Admin, { foreignKey: 'updated_by', as: 'updater' });
+
+// Money Location and Movement associations
+Admin.hasMany(MoneyMovement, { foreignKey: 'created_by', as: 'createdMoneyMovements' });
+MoneyMovement.belongsTo(Admin, { foreignKey: 'created_by', as: 'creator' });
+
+MoneyLocation.hasMany(MoneyMovement, { foreignKey: 'from_location_id', as: 'outgoingMovements' });
+MoneyLocation.hasMany(MoneyMovement, { foreignKey: 'to_location_id', as: 'incomingMovements' });
+MoneyMovement.belongsTo(MoneyLocation, { foreignKey: 'from_location_id', as: 'fromLocation' });
+MoneyMovement.belongsTo(MoneyLocation, { foreignKey: 'to_location_id', as: 'toLocation' });
+
+// Invoice and Expense associations with Money Location
+Invoice.belongsTo(MoneyLocation, { foreignKey: 'money_location_id', as: 'moneyLocation' });
+MoneyLocation.hasMany(Invoice, { foreignKey: 'money_location_id', as: 'invoices' });
+
+Expense.belongsTo(MoneyLocation, { foreignKey: 'money_location_id', as: 'moneyLocation' });
+MoneyLocation.hasMany(Expense, { foreignKey: 'money_location_id', as: 'expenses' });
 
 // Product Cost associations with Invoice Items (optional)
 ProductCost.hasMany(InvoiceItem, { foreignKey: 'product_cost_id', as: 'invoiceItems' });
@@ -77,5 +95,7 @@ module.exports = {
   Expense,
   ProductCost,
   FinancialSummary,
+  MoneyLocation,
+  MoneyMovement,
   sequelize, // Export the sequelize instance
 };

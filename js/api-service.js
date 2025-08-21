@@ -295,6 +295,196 @@ class ApiService {
     async getReport(id) {
         return this.request(`/api/reports/${id}`);
     }
+
+    /**
+     * Enhanced getReport method with optional related data
+     * @param {string} id - Report ID
+     * @param {boolean} includeRelated - Whether to include related data (client, invoice)
+     * @returns {Promise<Object>} Report data
+     */
+    async getReportEnhanced(id, includeRelated = true) {
+        try {
+            console.log(`Getting enhanced report data for ID: ${id}`);
+            
+            // Get basic report data
+            const report = await this.getReport(id);
+            
+            if (includeRelated) {
+                // Get client data if client_id exists
+                if (report.client_id) {
+                    try {
+                        const client = await this.getClient(report.client_id);
+                        report.client = client;
+                    } catch (error) {
+                        console.warn('Could not fetch client data:', error);
+                    }
+                }
+                
+                // Get invoice data if billing is enabled
+                if (report.billing_enabled) {
+                    try {
+                        const invoices = await this.getInvoices({ report_id: id });
+                        report.invoices = invoices;
+                    } catch (error) {
+                        console.warn('Could not fetch invoice data:', error);
+                    }
+                }
+            }
+            
+            return report;
+        } catch (error) {
+            console.error('Error getting enhanced report:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Unified saveReport method for both create and edit operations
+     * @param {Object} reportData - Report data
+     * @param {string} mode - 'create' or 'edit'
+     * @returns {Promise<Object>} Saved report
+     */
+    async saveReport(reportData, mode = 'create') {
+        try {
+            console.log(`Saving report in ${mode} mode:`, reportData);
+            
+            // Validate report data
+            const validationResult = await this.validateReport(reportData);
+            if (!validationResult.valid) {
+                throw new Error(`Report validation failed: ${validationResult.errors.join(', ')}`);
+            }
+            
+            // Prepare data for API
+            const apiData = this.prepareReportDataForAPI(reportData, mode);
+            
+            if (mode === 'create') {
+                return await this.createNewReport(apiData);
+            } else {
+                return await this.updateReport(reportData.reportId, apiData);
+            }
+        } catch (error) {
+            console.error(`Error saving report in ${mode} mode:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Validate report data before saving
+     * @param {Object} reportData - Report data to validate
+     * @returns {Promise<Object>} Validation result
+     */
+    async validateReport(reportData) {
+        const errors = [];
+        
+        // Basic validation
+        if (!reportData.client_id) {
+            errors.push('Client is required');
+        }
+        
+        if (!reportData.device_model) {
+            errors.push('Device model is required');
+        }
+        
+        if (!reportData.order_number) {
+            errors.push('Order number is required');
+        }
+        
+        if (!reportData.inspection_date) {
+            errors.push('Inspection date is required');
+        }
+        
+        // Technical tests validation
+        if (reportData.hardware_status) {
+            try {
+                const hardwareStatus = typeof reportData.hardware_status === 'string' 
+                    ? JSON.parse(reportData.hardware_status) 
+                    : reportData.hardware_status;
+                
+                if (!Array.isArray(hardwareStatus)) {
+                    errors.push('Hardware status must be an array');
+                }
+            } catch (error) {
+                errors.push('Invalid hardware status format');
+            }
+        }
+        
+        // External images validation
+        if (reportData.external_images) {
+            try {
+                const externalImages = typeof reportData.external_images === 'string' 
+                    ? JSON.parse(reportData.external_images) 
+                    : reportData.external_images;
+                
+                if (!Array.isArray(externalImages)) {
+                    errors.push('External images must be an array');
+                }
+            } catch (error) {
+                errors.push('Invalid external images format');
+            }
+        }
+        
+        return {
+            valid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    /**
+     * Prepare report data for API submission
+     * @param {Object} reportData - Raw report data
+     * @param {string} mode - 'create' or 'edit'
+     * @returns {Object} Prepared API data
+     */
+    prepareReportDataForAPI(reportData, mode) {
+        // Generate report ID for create mode
+        if (mode === 'create' && !reportData.id) {
+            reportData.id = 'RPT' + Date.now() + Math.floor(Math.random() * 1000);
+        }
+        
+        // Generate title if not provided
+        if (!reportData.title) {
+            reportData.title = `Report for ${reportData.device_model || reportData.deviceModel || ''} - ${reportData.client_name || reportData.clientName || 'Client'}`;
+        }
+        
+        // Prepare the API object
+        const apiData = {
+            // Fields required by the route handler
+            clientId: reportData.client_id || reportData.clientId,
+            title: reportData.title,
+            description: reportData.notes || '',
+            
+            // Database schema fields
+            id: reportData.id,
+            client_id: reportData.client_id || reportData.clientId,
+            client_name: reportData.client_name || reportData.clientName || '',
+            client_phone: reportData.client_phone || reportData.clientPhone || '',
+            client_email: (reportData.client_email || reportData.clientEmail || '').trim() === '' ? null : (reportData.client_email || reportData.clientEmail),
+            client_address: reportData.client_address || reportData.clientAddress || '',
+            order_number: reportData.order_number || reportData.orderNumber || '',
+            device_model: reportData.device_model || reportData.deviceModel || '',
+            serial_number: reportData.serial_number || reportData.serialNumber || '',
+            inspection_date: reportData.inspection_date instanceof Date ? 
+                reportData.inspection_date.toISOString() : 
+                new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),
+            hardware_status: reportData.hardware_status || '[]',
+            external_images: reportData.external_images || '[]',
+            notes: reportData.notes || '',
+            billing_enabled: Boolean(reportData.billing_enabled ?? reportData.billingEnabled ?? false),
+            amount: Number(reportData.amount || reportData.devicePrice || window.globalDeviceDetails?.devicePrice || 0),
+            status: reportData.status || 'active'
+        };
+        
+        // Ensure JSON fields are properly stringified
+        if (typeof apiData.hardware_status === 'object') {
+            apiData.hardware_status = JSON.stringify(apiData.hardware_status);
+        }
+        
+        if (typeof apiData.external_images === 'object') {
+            apiData.external_images = JSON.stringify(apiData.external_images);
+        }
+        
+        return apiData;
+    }
     
     async updateReport(reportId, updateData) {
         try {

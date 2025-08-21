@@ -14,7 +14,9 @@ const {
     Invoice,
     InvoiceItem,
     Admin,
-    Client
+    Client,
+    MoneyLocation,
+    MoneyMovement
 } = require('../models');
 const { Op } = require('sequelize');
 

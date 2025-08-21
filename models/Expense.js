@@ -81,6 +81,12 @@ const Expense = sequelize.define('Expense', {
         allowNull: true,
         field: 'approved_by',
         references: { model: 'admins', key: 'id' }
+    },
+    money_location_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'money_location_id',
+        references: { model: 'money_locations', key: 'id' }
     }
 }, {
     tableName: 'expenses',

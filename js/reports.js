@@ -545,7 +545,7 @@ function populateReportsTable(reports, updatePagination = true) {
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                         <li><a class="dropdown-item py-2" href="report.html?id=${mappedReport.id}"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
-                        <li><a class="dropdown-item py-2" href="edit-report.html?id=${mappedReport.id}"><i class="fas fa-edit me-2 text-success"></i> تعديل</a></li>
+                        <li><a class="dropdown-item py-2" href="create-report.html?id=${mappedReport.id}"><i class="fas fa-edit me-2 text-success"></i> تعديل</a></li>
                         <li><a class="dropdown-item py-2" href="#" onclick="shareReport('${mappedReport.id}'); return false;"><i class="fas fa-share-alt me-2 text-info"></i> مشاركة</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item py-2" href="#" onclick="deleteReport('${mappedReport.id}'); return false;"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
@@ -997,7 +997,7 @@ function deleteReport(reportId) {
 // Function to edit a report
 function editReport(reportId) {
     if (confirm('هل تريد تعديل هذا التقرير؟')) {
-        window.location.href = `edit-report.html?id=${reportId}`;
+        window.location.href = `create-report.html?id=${reportId}`;
     }
 }
 

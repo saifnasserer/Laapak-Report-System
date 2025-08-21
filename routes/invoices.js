@@ -8,6 +8,7 @@ const router = express.Router();
 const { Invoice, InvoiceItem, Report, Client, InvoiceReport, sequelize } = require('../models');
 const { auth, adminAuth, clientAuth } = require('../middleware/auth');
 const { Op } = require('sequelize');
+const { autoAssignMoneyLocation, updateInvoicePaymentStatus } = require('./invoice-hooks');
 
 // Get count of invoices
 router.get('/count', auth, async (req, res) => {
@@ -813,7 +814,7 @@ router.put('/:id', adminAuth, async (req, res) => {
 // Update invoice payment status
 router.put('/:id/payment', adminAuth, async (req, res) => {
     try {
-        const { paymentStatus, paymentMethod } = req.body;
+        const { paymentStatus, paymentMethod, money_location_id } = req.body;
         
         const invoice = await Invoice.findByPk(req.params.id);
         
@@ -821,12 +822,29 @@ router.put('/:id/payment', adminAuth, async (req, res) => {
             return res.status(404).json({ message: 'Invoice not found' });
         }
         
+        // Auto-assign money location based on payment method if not provided
+        let locationId = money_location_id;
+        if (!locationId && paymentMethod) {
+            const { getLocationIdByPaymentMethod } = require('./invoice-hooks');
+            locationId = await getLocationIdByPaymentMethod(paymentMethod);
+        }
+        
         // Update payment information
         await invoice.update({
             paymentStatus,
             paymentMethod,
-            paymentDate: paymentStatus === 'paid' ? new Date() : null
+            paymentDate: paymentStatus === 'paid' ? new Date() : null,
+            money_location_id: locationId
         });
+        
+        // Record money movement if payment is completed/paid
+        if (['completed', 'paid'].includes(paymentStatus) && locationId) {
+            await updateInvoicePaymentStatus(
+                req.params.id,
+                { paymentStatus, money_location_id: locationId, paymentMethod },
+                req.user.id
+            );
+        }
         
         res.json(invoice);
     } catch (error) {
