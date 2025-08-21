@@ -16,6 +16,23 @@ const {
 const { Op } = require('sequelize');
 
 // =============================================================================
+// TEST ROUTE
+// =============================================================================
+
+/**
+ * GET /api/money/test
+ * Test route to verify money routes are loaded
+ */
+router.get('/test', (req, res) => {
+    console.log('Money test route accessed');
+    res.json({
+        success: true,
+        message: 'Money management routes are working',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// =============================================================================
 // MONEY LOCATIONS ROUTES
 // =============================================================================
 
@@ -26,10 +43,23 @@ const { Op } = require('sequelize');
  */
 router.get('/locations', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
+        console.log('Money locations route accessed');
+        
+        // Test if MoneyLocation model is available
+        if (!MoneyLocation) {
+            console.error('MoneyLocation model not found');
+            return res.status(500).json({
+                success: false,
+                message: 'MoneyLocation model not available'
+            });
+        }
+        
         const locations = await MoneyLocation.findAll({
             where: { is_active: true },
             order: [['name', 'ASC']]
         });
+
+        console.log('Found locations:', locations.length);
 
         // Calculate total balance
         const totalBalance = await MoneyLocation.getTotalBalance();

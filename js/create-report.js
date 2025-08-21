@@ -98,6 +98,9 @@ async function initializeEditMode() {
     try {
         showLoading(true);
         
+        // First, ensure clients are loaded
+        await loadClients();
+        
         // Load existing report data
         const report = await loadExistingReport(reportMode.reportId);
         if (!report) {
@@ -141,11 +144,38 @@ async function loadExistingReport(reportId) {
     try {
         console.log(`Loading existing report: ${reportId}`);
         
-        // Use enhanced API method to get report with related data
-        const report = await apiService.getReportEnhanced(reportId, true);
+        // Use the basic getReport method first to get the correct structure
+        const response = await apiService.getReport(reportId);
+        console.log('API response:', response);
         
-        console.log('Loaded report data:', report);
-        return report;
+        // Handle different response formats
+        let reportData;
+        if (response.success && response.report) {
+            // If response has success and report properties
+            reportData = response.report;
+        } else if (response.report) {
+            // If response has a report property
+            reportData = response.report;
+        } else if (response.id) {
+            // If response is the report object directly
+            reportData = response;
+        } else {
+            throw new Error('Invalid report data format');
+        }
+        
+        console.log('Extracted report data:', reportData);
+        
+        // If we need client data and it's not included, fetch it separately
+        if (reportData.client_id && !reportData.client) {
+            try {
+                const client = await apiService.getClient(reportData.client_id);
+                reportData.client = client;
+            } catch (error) {
+                console.warn('Could not fetch client data:', error);
+            }
+        }
+        
+        return reportData;
         
     } catch (error) {
         console.error('Error loading existing report:', error);
@@ -185,9 +215,13 @@ function transformAndPopulateReportData(report) {
  */
 function populateGeneralInformation(report) {
     console.log('Populating general information:', report);
+    console.log('Report client data:', report.client);
+    console.log('Report client_id:', report.client_id);
+    console.log('Available clients data:', clientsData);
     
     // Client information
     if (report.client) {
+        console.log('Using report.client data');
         // Update global client details
         window.globalClientDetails = {
             client_id: report.client.id,
@@ -205,32 +239,71 @@ function populateGeneralInformation(report) {
         
         // Update client info display
         updateClientInfoDisplay(report.client);
+    } else if (report.client_id) {
+        console.log('Looking for client in clientsData with ID:', report.client_id);
+        // If we have client_id but no client object, try to find client in loaded data
+        const client = clientsData.find(c => c.id == report.client_id);
+        if (client) {
+            console.log('Found client in clientsData:', client);
+            window.globalClientDetails = {
+                client_id: client.id,
+                clientName: client.name || '',
+                clientPhone: client.phone || '',
+                clientEmail: client.email || '',
+                clientAddress: client.address || ''
+            };
+            
+            const clientSearchInput = document.getElementById('clientSearchInput');
+            if (clientSearchInput) {
+                clientSearchInput.value = client.name || '';
+            }
+            
+            updateClientInfoDisplay(client);
+        } else {
+            console.warn('Client not found in clientsData for ID:', report.client_id);
+        }
     }
     
-    // Device information
+    // Device information - handle both database field names and form field names
+    console.log('Setting device information:');
+    console.log('- order_number:', report.order_number);
+    console.log('- device_model:', report.device_model);
+    console.log('- serial_number:', report.serial_number);
+    console.log('- inspection_date:', report.inspection_date);
+    
     const orderNumberInput = document.getElementById('orderNumber');
     if (orderNumberInput) {
         orderNumberInput.value = report.order_number || '';
+        console.log('Set orderNumberInput value to:', orderNumberInput.value);
     }
     
     const inspectionDateInput = document.getElementById('inspectionDate');
     if (inspectionDateInput) {
-        const inspectionDate = new Date(report.inspection_date);
-        if (!isNaN(inspectionDate.getTime())) {
+        let inspectionDate;
+        if (report.inspection_date) {
+            inspectionDate = new Date(report.inspection_date);
+        } else if (report.inspectionDate) {
+            inspectionDate = new Date(report.inspectionDate);
+        }
+        
+        if (inspectionDate && !isNaN(inspectionDate.getTime())) {
             inspectionDateInput.value = inspectionDate.toISOString().split('T')[0];
         } else {
             inspectionDateInput.value = new Date().toISOString().split('T')[0];
         }
+        console.log('Set inspectionDateInput value to:', inspectionDateInput.value);
     }
     
     const deviceModelInput = document.getElementById('deviceModel');
     if (deviceModelInput) {
-        deviceModelInput.value = report.device_model || '';
+        deviceModelInput.value = report.device_model || report.deviceModel || '';
+        console.log('Set deviceModelInput value to:', deviceModelInput.value);
     }
     
     const serialNumberInput = document.getElementById('serialNumber');
     if (serialNumberInput) {
-        serialNumberInput.value = report.serial_number || '';
+        serialNumberInput.value = report.serial_number || report.serialNumber || '';
+        console.log('Set serialNumberInput value to:', serialNumberInput.value);
     }
     
     // Update global device details
@@ -415,14 +488,19 @@ function populateInvoiceData(report) {
         enableBillingCheckbox.checked = report.billing_enabled || false;
     }
     
-    // Set device price
+    // Set device price - handle both amount and devicePrice fields
     const devicePriceInput = document.getElementById('devicePrice');
     if (devicePriceInput) {
-        devicePriceInput.value = report.amount || 250;
+        devicePriceInput.value = report.amount || report.devicePrice || 250;
     }
     
     // Update tax display
     updateTaxDisplay();
+    
+    // Update billing UI to reflect the current state
+    if (typeof updateBillingUI === 'function') {
+        updateBillingUI();
+    }
 }
 
 /**
@@ -550,8 +628,10 @@ function initializeFormComponents() {
     // Initial update of global device details
     updateGlobalDeviceDetails();
     
-    // Load clients for the search
-    loadClients();
+    // Load clients for the search (only if not already loaded)
+    if (!clientsData || clientsData.length === 0) {
+        loadClients();
+    }
     
     // Set up event listener for adding a new client
     const saveClientBtn = document.getElementById('saveClientBtn');
@@ -1171,6 +1251,8 @@ function setupFormSubmission() {
  */
 function collectUnifiedReportData() {
     console.log('Collecting unified report data...');
+    console.log('Current mode:', reportMode.mode);
+    console.log('Report ID:', reportMode.reportId);
     
     // Base data with mode information
     const formData = {
@@ -1983,4 +2065,54 @@ async function createInvoiceForReport(reportResponse, reportData) {
         console.error('Error creating invoice for report:', error);
         throw error;
     }
+}
+
+/**
+ * Set up billing toggle functionality
+ */
+function setupBillingToggle() {
+    const enableBillingCheckbox = document.getElementById('enableBilling');
+    const invoiceFieldsContainer = document.getElementById('invoiceFieldsContainer');
+    const submitButton = document.getElementById('submitReportBtn');
+    const billingStatusText = document.getElementById('billingStatusText');
+    
+    if (!enableBillingCheckbox || !invoiceFieldsContainer || !submitButton) {
+        console.warn('Billing toggle setup failed: Required elements not found', {
+            enableBillingCheckbox: !!enableBillingCheckbox,
+            invoiceFieldsContainer: !!invoiceFieldsContainer,
+            submitButton: !!submitButton
+        });
+        return;
+    }
+    
+    // Function to update UI based on checkbox state
+    function updateBillingUI() {
+        const isEnabled = enableBillingCheckbox.checked;
+        
+        // Update invoice fields container visibility
+        invoiceFieldsContainer.style.display = isEnabled ? 'block' : 'none';
+        
+        // Update billing status text if it exists
+        if (billingStatusText) {
+            billingStatusText.textContent = isEnabled ? 'الفاتورة مفعلة' : 'الفاتورة غير مفعلة';
+            billingStatusText.style.color = isEnabled ? 'var(--primary-color)' : '#dc3545';
+        }
+        
+        // Update submit button text
+        const mode = reportMode.mode;
+        if (mode === 'edit') {
+            submitButton.textContent = isEnabled ? 'حفظ التقرير والفاتورة' : 'حفظ التقرير';
+        } else {
+            submitButton.textContent = isEnabled ? 'إنشاء التقرير والفاتورة' : 'إنشاء التقرير';
+        }
+    }
+    
+    // Set initial state
+    updateBillingUI();
+    
+    // Add event listener for checkbox changes
+    enableBillingCheckbox.addEventListener('change', updateBillingUI);
+    
+    // Make updateBillingUI globally available
+    window.updateBillingUI = updateBillingUI;
 }

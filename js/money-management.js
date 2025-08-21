@@ -111,6 +111,9 @@ class MoneyApiService {
             if (response.status === 404) {
                 throw new Error('Money management API not available on this server');
             }
+            if (response.status === 401) {
+                throw new Error('Authentication required. Please log in again.');
+            }
             const error = await response.json().catch(() => ({ message: 'Network error' }));
             throw new Error(error.message || 'API request failed');
         }
@@ -705,6 +708,8 @@ class MoneyDataLoader {
             // Check if it's a 404 error (API not available)
             if (error.message.includes('not available')) {
                 this.showApiNotAvailableMessage();
+            } else if (error.message.includes('Authentication required')) {
+                this.showAuthenticationError();
             } else {
                 MoneyNotifications.error('خطأ في تحميل البيانات');
             }
@@ -784,6 +789,40 @@ class MoneyDataLoader {
             button.classList.remove('btn-primary', 'btn-success', 'btn-danger');
             button.title = 'الميزة غير متاحة حالياً';
         });
+    }
+    
+    // Show authentication error
+    static showAuthenticationError() {
+        const locationsContainer = document.getElementById('locationsContainer');
+        const movementsContainer = document.getElementById('movementsContainer');
+        
+        if (locationsContainer) {
+            locationsContainer.innerHTML = `
+                <div class="col-12 text-center">
+                    <i class="fas fa-lock text-warning" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-muted">مطلوب تسجيل الدخول</h5>
+                    <p class="text-muted">يرجى تسجيل الدخول مرة أخرى للوصول لنظام إدارة الأموال</p>
+                    <div class="mt-3">
+                        <a href="admin-login.html" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            تسجيل الدخول
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (movementsContainer) {
+            movementsContainer.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-lock text-warning" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">مطلوب تسجيل الدخول</p>
+                </div>
+            `;
+        }
+        
+        // Disable action buttons
+        this.disableActionButtons();
     }
 }
 
