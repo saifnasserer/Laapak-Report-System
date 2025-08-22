@@ -730,9 +730,9 @@
         </div>
 
         <!-- Main Content -->
-        <div class="row">
+        <div class="row justify-content-center">
             <!-- Form Section -->
-            <div class="col-lg-8 mb-4">
+            <div class="col-lg-8 col-xl-6 mb-4">
                 <div class="main-card">
                     <div class="card-header">
                         <h5 class="card-title">
@@ -903,18 +903,29 @@
                                     <i class="fas fa-save me-2"></i>
                                     حفظ التسجيل
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
-                                    <i class="fas fa-undo me-2"></i>
-                                    إعادة تعيين
-                                </button>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="resetForm()">
+                                            <i class="fas fa-undo me-2"></i> إعادة تعيين
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="cancelEdit()" id="cancelEditBtn" style="display: none;">
+                                            <i class="fas fa-times me-2"></i> إلغاء التعديل
+                                        </a></li>
+                                    </ul>
+                                </div>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Recent Records Section -->
-            <div class="col-lg-4 mb-4">
+        <!-- Recent Records Section -->
+        <div class="row justify-content-center">
+            <div class="col-lg-10 col-xl-8">
                 <div class="recent-card">
                     <div class="card-header">
                         <h5 class="card-title">
@@ -1176,18 +1187,32 @@
                         <i class="fas ${record.type === 'expense' ? 'fa-minus' : 'fa-plus'}"></i>
                     </div>
                     <div class="recent-item-content" onclick="fillFromRecent('${record.id}')" style="cursor: pointer;">
-                        <div class="recent-item-name">${record.name}</div>
-                        <div class="recent-item-description" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        <div class="recent-item-name">
                             ${record.notes || 'لا يوجد وصف'}
+                            ${record.updated_at && record.updated_at !== record.created_at ? 
+                                '<span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;"><i class="fas fa-edit me-1"></i>معدل</span>' : 
+                                ''
+                            }
+                        </div>
+                        <div class="recent-item-description" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                            ${record.name}
                         </div>
                         <div class="recent-item-date">
                             ${new Date(record.date).toLocaleDateString('ar-EG')}
+                            ${record.updated_at && record.updated_at !== record.created_at ? 
+                                `<br><small class="text-muted">آخر تعديل: ${new Date(record.updated_at).toLocaleDateString('ar-EG')}</small>` : 
+                                ''
+                            }
                         </div>
                     </div>
                     <div class="recent-item-amount ${record.type}">
                         ${record.type === 'expense' ? '-' : '+'}${formatCurrency(record.amount)}
                     </div>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord('${record.id}', '${record.name}')" 
+                    <button class="btn btn-sm btn-outline-primary" onclick="editRecord('${record.id}')" 
+                            style="margin-right: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord('${record.id}', '${record.notes || record.name}')" 
                             style="margin-right: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -1195,9 +1220,123 @@
             `).join('');
         }
 
+        // Global variable to track if we're editing
+        let isEditing = false;
+        let editingRecordId = null;
+
         // Fill form from recent record
         function fillFromRecent(recordId) {
             showNotification('تم تعبئة النموذج من التسجيل السابق', 'info');
+        }
+
+        // Edit record - load data into form
+        async function editRecord(recordId) {
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/records/${recordId}`, {
+                    method: 'GET',
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch record');
+                }
+
+                const result = await response.json();
+                const record = result.data.record;
+
+                // Set editing mode
+                isEditing = true;
+                editingRecordId = recordId;
+
+                // Update form title
+                document.querySelector('.card-header h5').textContent = 'تعديل التسجيل المالي';
+                document.querySelector('.card-header p').textContent = 'قم بتعديل بيانات التسجيل المالي';
+
+                // Fill form with record data
+                document.getElementById('recordAmount').value = record.amount;
+                document.getElementById('recordDate').value = record.date.split('T')[0];
+                document.getElementById('recordDescription').value = record.description || '';
+
+                // Set type selection
+                const recordType = record.type === 'fixed' ? 'profit' : 'expense';
+                selectedType = recordType;
+                document.querySelectorAll('.type-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                document.querySelector(`[data-type="${recordType}"]`).classList.add('active');
+
+                // Set category selection
+                if (record.category_id) {
+                    document.getElementById('recordCategory').value = record.category_id;
+                    // Select the category card
+                    document.querySelectorAll('.category-card').forEach(card => {
+                        card.classList.remove('selected');
+                        if (card.dataset.categoryId == record.category_id) {
+                            card.classList.add('selected');
+                        }
+                    });
+                }
+
+                // Set payment method (default to cash if not available)
+                const paymentMethod = record.payment_method || 'cash';
+                document.getElementById('paymentMethod').value = paymentMethod;
+                // Select the payment method card
+                document.querySelectorAll('.payment-method-card').forEach(card => {
+                    card.classList.remove('selected');
+                    if (card.dataset.method === paymentMethod) {
+                        card.classList.add('selected');
+                    }
+                });
+
+                // Update submit button
+                const submitBtn = document.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التعديلات';
+                submitBtn.className = 'btn btn-warning';
+                
+                // Show cancel button in dropdown
+                document.getElementById('cancelEditBtn').style.display = 'block';
+
+                // Scroll to form
+                document.getElementById('recordForm').scrollIntoView({ behavior: 'smooth' });
+
+                showNotification('تم تحميل بيانات التسجيل للتعديل', 'info');
+
+            } catch (error) {
+                console.error('Edit record error:', error);
+                showNotification('خطأ في تحميل بيانات التسجيل', 'error');
+            }
+        }
+
+        // Cancel edit mode
+        function cancelEdit() {
+            isEditing = false;
+            editingRecordId = null;
+            
+            // Reset form title
+            document.querySelector('.card-header h5').textContent = 'تسجيل مصروف/ربح جديد';
+            document.querySelector('.card-header p').textContent = 'قم بإدخال بيانات المصروف أو الربح الجديد';
+            
+            // Reset submit button
+            const submitBtn = document.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التسجيل';
+            submitBtn.className = 'btn btn-primary';
+            
+            // Hide cancel button in dropdown
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            
+            // Reset form
+            resetForm();
         }
 
         // Delete record
@@ -1300,8 +1439,12 @@
                 // API base URL
                 const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
                 
-                const response = await fetch(`${baseUrl}/api/records`, {
-                    method: 'POST',
+                // Determine if we're creating or updating
+                const method = isEditing ? 'PUT' : 'POST';
+                const url = isEditing ? `${baseUrl}/api/records/${editingRecordId}` : `${baseUrl}/api/records`;
+                
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'x-auth-token': token,
                         'Content-Type': 'application/json'
@@ -1312,6 +1455,9 @@
                 if (!response.ok) {
                     throw new Error('Failed to save record');
                 }
+
+                // Parse the response
+                const result = await response.json();
 
                 // Update success modal text
                 document.getElementById('recordTypeText').textContent = 
@@ -1324,8 +1470,13 @@
                 // Add success animation
                 addSuccessAnimation();
                 
-                // Reset form
-                resetForm();
+                // Reset edit mode if we were editing
+                if (isEditing) {
+                    cancelEdit();
+                } else {
+                    // Reset form only if we were creating
+                    resetForm();
+                }
                 
                 // Reload recent records
                 loadRecentRecords();

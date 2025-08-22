@@ -46,7 +46,9 @@ router.get('/recent', adminRoleAuth(['superadmin']), async (req, res) => {
             type: expense.type === 'profit' ? 'profit' : 'expense',
             date: expense.date,
             notes: expense.description,
-            category: expense.category
+            category: expense.category,
+            created_at: expense.created_at,
+            updated_at: expense.updated_at
         }));
 
         res.json({
@@ -314,7 +316,8 @@ router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
             notes: record.description,
             category: record.category,
             creator: record.creator,
-            created_at: record.created_at
+            created_at: record.created_at,
+            updated_at: record.updated_at
         }));
 
         res.json({
@@ -341,6 +344,46 @@ router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
 });
 
 /**
+ * GET /api/records/:id
+ * Get a single financial record by ID
+ */
+router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const record = await Expense.findByPk(id, {
+            include: [
+                {
+                    model: ExpenseCategory,
+                    as: 'category',
+                    attributes: ['id', 'name', 'name_ar', 'color']
+                }
+            ]
+        });
+
+        if (!record) {
+            return res.status(404).json({
+                success: false,
+                message: 'التسجيل غير موجود'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: { record }
+        });
+
+    } catch (error) {
+        console.error('Get record error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'خطأ في تحميل التسجيل',
+            error: error.message 
+        });
+    }
+});
+
+/**
  * PUT /api/records/:id
  * Update a financial record
  */
@@ -348,12 +391,37 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { id } = req.params;
         const {
-            name,
+            category_id,
             amount,
             type,
             date,
-            notes
+            description,
+            paymentMethod = 'cash'
         } = req.body;
+
+        // Validate required fields
+        if (!category_id || !amount || !type || !date || !description) {
+            return res.status(400).json({
+                success: false,
+                message: 'جميع الحقول المطلوبة يجب ملؤها'
+            });
+        }
+
+        // Validate amount
+        if (isNaN(amount) || amount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'المبلغ يجب أن يكون رقم موجب'
+            });
+        }
+
+        // Validate type
+        if (!['expense', 'profit'].includes(type)) {
+            return res.status(400).json({
+                success: false,
+                message: 'نوع التسجيل غير صحيح'
+            });
+        }
 
         // Find the record
         const record = await Expense.findByPk(id);
@@ -364,32 +432,53 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             });
         }
 
-        // Update the record
-        await record.update({
-            name: name || record.name,
-            name_ar: name || record.name_ar,
-            amount: amount || record.amount,
-            type: type === 'profit' ? 'profit' : 'variable',
-            date: date || record.date,
-            description: notes || record.description
-        });
+        // Start transaction to ensure data consistency
+        const transaction = await Expense.sequelize.transaction();
 
-        // Get updated record with category
-        const updatedRecord = await Expense.findByPk(id, {
-            include: [
-                {
-                    model: ExpenseCategory,
-                    as: 'category',
-                    attributes: ['name', 'name_ar', 'color']
-                }
-            ]
-        });
+        try {
+            // Get category name for the record
+            const category = await ExpenseCategory.findByPk(category_id, { transaction });
+            if (!category) {
+                throw new Error('Category not found');
+            }
 
-        res.json({
-            success: true,
-            message: 'تم تحديث التسجيل بنجاح',
-            data: { record: updatedRecord }
-        });
+            // Update the expense record
+            await record.update({
+                name: category.name,
+                name_ar: category.name_ar,
+                amount: amount,
+                category_id: category_id,
+                type: type === 'profit' ? 'fixed' : 'variable',
+                date: date,
+                description: description
+            }, { transaction });
+
+            // Commit transaction
+            await transaction.commit();
+
+            // Get updated record with category
+            const updatedRecord = await Expense.findByPk(id, {
+                include: [
+                    {
+                        model: ExpenseCategory,
+                        as: 'category',
+                        attributes: ['name', 'name_ar', 'color']
+                    }
+                ]
+            });
+
+            res.json({
+                success: true,
+                message: 'تم تحديث التسجيل بنجاح',
+                data: { record: updatedRecord }
+            });
+
+        } catch (error) {
+            // Rollback transaction on error
+            console.error('Error in transaction, rolling back:', error);
+            await transaction.rollback();
+            throw error;
+        }
 
     } catch (error) {
         console.error('Update record error:', error);
