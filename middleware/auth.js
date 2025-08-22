@@ -128,6 +128,11 @@ const adminRoleAuth = (roles = []) => {
             
             // If roles are specified, check if admin has required role
             if (roles.length && !roles.includes(decoded.role)) {
+                console.log('Role check failed:', { 
+                    required: roles, 
+                    actual: decoded.role,
+                    decoded: decoded 
+                });
                 return res.status(403).json({ 
                     message: `Access denied. Required role: ${roles.join(' or ')}`
                 });

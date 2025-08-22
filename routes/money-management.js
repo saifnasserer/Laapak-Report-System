@@ -249,7 +249,7 @@ router.get('/movements', adminRoleAuth(['superadmin']), async (req, res) => {
 router.post('/transfer', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { fromLocationId, toLocationId, amount, description } = req.body;
-        const adminId = req.admin.id;
+        const adminId = req.user.id;
 
         if (!toLocationId || !amount || amount <= 0) {
             return res.status(400).json({
@@ -288,8 +288,9 @@ router.post('/transfer', adminRoleAuth(['superadmin']), async (req, res) => {
  */
 router.post('/deposit', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
+        console.log('Deposit request received:', { body: req.body, user: req.user });
         const { toLocationId, amount, description } = req.body;
-        const adminId = req.admin.id;
+        const adminId = req.user.id;
 
         if (!toLocationId || !amount || amount <= 0) {
             return res.status(400).json({
@@ -328,8 +329,9 @@ router.post('/deposit', adminRoleAuth(['superadmin']), async (req, res) => {
  */
 router.post('/withdrawal', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
+        console.log('Withdrawal request received:', { body: req.body, user: req.user });
         const { fromLocationId, amount, description } = req.body;
-        const adminId = req.admin.id;
+        const adminId = req.user.id;
 
         if (!fromLocationId || !amount || amount <= 0) {
             return res.status(400).json({
