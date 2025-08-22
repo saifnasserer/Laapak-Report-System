@@ -76,7 +76,6 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             type,
             date,
             description,
-            notes,
             paymentMethod = 'cash' // Default payment method
         } = req.body;
 
@@ -109,7 +108,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
 
         try {
             console.log('Starting transaction for record creation:', {
-                name, amount, type, date, notes, paymentMethod
+                category_id, amount, type, date, description, paymentMethod
             });
             // Get category name for the record
             const category = await ExpenseCategory.findByPk(category_id, { transaction });

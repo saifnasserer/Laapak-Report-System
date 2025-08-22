@@ -133,6 +133,315 @@
             color: var(--danger-color) !important;
         }
 
+        /* Category Cards Styling */
+        .category-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .category-card {
+            background: var(--white);
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            border-color: var(--primary-color);
+        }
+
+        .category-card.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(0, 117, 83, 0.05) 0%, rgba(0, 166, 122, 0.05) 100%);
+            box-shadow: 0 8px 32px rgba(0, 117, 83, 0.15);
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-color);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .category-card.selected::before {
+            transform: scaleX(1);
+        }
+
+        .category-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+            background: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0, 117, 83, 0.2);
+        }
+
+        .category-card:nth-child(1) .category-icon {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .category-card:nth-child(2) .category-icon {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .category-card:nth-child(3) .category-icon {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+
+        .category-card:nth-child(4) .category-icon {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .category-content {
+            flex: 1;
+        }
+
+        .category-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 0.5rem 0;
+            line-height: 1.2;
+        }
+
+        .category-description {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .category-check {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+
+        .category-card.selected .category-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        @media (max-width: 768px) {
+            .category-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            
+            .category-card {
+                padding: 1.25rem;
+            }
+            
+            .category-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 1.25rem;
+            }
+            
+            .category-name {
+                font-size: 1rem;
+            }
+        }
+
+        /* Success Animation */
+        .success-animation {
+            animation: successPulse 2s ease-in-out;
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(25, 135, 84, 0.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* Enhanced form styling */
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
+            outline: none;
+        }
+
+        .form-control.is-valid {
+            border-color: var(--success-color);
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15);
+        }
+
+        .form-control.is-invalid {
+            border-color: var(--danger-color);
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
+        }
+
+        /* Payment Method Cards Styling */
+        .payment-methods-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .payment-method-card {
+            background: var(--white);
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            padding: 0.6rem 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .payment-method-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .payment-method-card.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(0, 117, 83, 0.05) 0%, rgba(0, 166, 122, 0.05) 100%);
+            box-shadow: 0 6px 20px rgba(0, 117, 83, 0.15);
+        }
+
+        .payment-method-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary-color);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .payment-method-card.selected::before {
+            transform: scaleX(1);
+        }
+
+        .payment-method-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .payment-method-card[data-method="cash"] .payment-method-icon {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .payment-method-card[data-method="instapay"] .payment-method-icon {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .payment-method-card[data-method="wallet"] .payment-method-icon {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        }
+
+        .payment-method-card[data-method="bank"] .payment-method-icon {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .payment-method-content {
+            flex: 1;
+        }
+
+        .payment-method-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .payment-method-check {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .payment-method-card.selected .payment-method-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        @media (max-width: 768px) {
+            .payment-methods-grid {
+                gap: 0.4rem;
+            }
+            
+            .payment-method-card {
+                padding: 0.5rem 0.6rem;
+                gap: 0.4rem;
+            }
+            
+            .payment-method-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 0.8rem;
+            }
+            
+            .payment-method-name {
+                font-size: 0.8rem;
+            }
+            
+            .payment-method-check {
+                width: 14px;
+                height: 14px;
+                font-size: 0.5rem;
+            }
+        }
+
         .form-control {
             border: 2px solid rgba(0, 0, 0, 0.1);
             border-radius: 8px;
@@ -153,15 +462,31 @@
         }
 
         /* Amount Input Styling */
+        .amount-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
         .amount-input {
             font-size: 1.25rem;
             font-weight: 600;
             text-align: center;
             color: var(--primary-color);
+            padding-right: 3rem;
         }
 
         .amount-input:focus {
             color: var(--primary-dark);
+        }
+
+        .amount-currency {
+            position: absolute;
+            right: 1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            pointer-events: none;
         }
 
         /* Buttons */
@@ -433,23 +758,73 @@
                                 </div>
                             </div>
 
-                            <!-- Category Selection -->
+                            <!-- Category Selection Cards -->
                             <div class="mb-4">
-                                <label class="form-label">الفئة</label>
-                                <select class="form-control" id="recordCategory" required>
-                                    <option value="">اختر فئة المصروف</option>
-                                    <option value="1">مصاريف المكتب</option>
-                                    <option value="2">مرتبات</option>
-                                    <option value="3">مصاريف شخصية</option>
-                                    <option value="4">تكاليف الشغل</option>
-                                </select>
+                                <label class="form-label">اختر فئة المصروف <span class="text-danger">*</span></label>
+                                <div class="category-cards-grid" id="categoryCards">
+                                    <div class="category-card" data-category-id="1" data-category-name="مصاريف المكتب">
+                                        <div class="category-icon">
+                                            <i class="fas fa-building"></i>
+                                        </div>
+                                        <div class="category-content">
+                                            <h6 class="category-name">مصاريف المكتب</h6>
+                                            <p class="category-description">إيجار، مرافق، مستلزمات</p>
+                                        </div>
+                                        <div class="category-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="category-card" data-category-id="2" data-category-name="مرتبات">
+                                        <div class="category-icon">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="category-content">
+                                            <h6 class="category-name">مرتبات</h6>
+                                            <p class="category-description">رواتب الموظفين والأجور</p>
+                                        </div>
+                                        <div class="category-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="category-card" data-category-id="3" data-category-name="مصاريف شخصية">
+                                        <div class="category-icon">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="category-content">
+                                            <h6 class="category-name">مصاريف شخصية</h6>
+                                            <p class="category-description">مصاريف شخصية للعمل</p>
+                                        </div>
+                                        <div class="category-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="category-card" data-category-id="4" data-category-name="تكاليف الشغل">
+                                        <div class="category-icon">
+                                            <i class="fas fa-tools"></i>
+                                        </div>
+                                        <div class="category-content">
+                                            <h6 class="category-name">تكاليف الشغل</h6>
+                                            <p class="category-description">مواد وأدوات العمل</p>
+                                        </div>
+                                        <div class="category-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="recordCategory" required>
                             </div>
 
                             <!-- Amount Input -->
                             <div class="mb-4">
-                                <label class="form-label">المبلغ (جنيه مصري)</label>
-                                <input type="number" class="form-control amount-input" id="recordAmount" 
-                                       placeholder="0" step="0.01" min="0" required>
+                                <label class="form-label">المبلغ (جنيه مصري) <span class="text-danger">*</span></label>
+                                <div class="amount-input-container">
+                                    <input type="number" class="form-control amount-input" id="recordAmount" 
+                                           placeholder="0" step="0.01" min="0" required>
+                                    <div class="amount-currency">ج.م</div>
+                                </div>
                             </div>
 
                             <!-- Date Input -->
@@ -458,16 +833,59 @@
                                 <input type="date" class="form-control" id="recordDate" required>
                             </div>
 
-                            <!-- Payment Method Input -->
+                            <!-- Payment Method Selection -->
                             <div class="mb-4">
-                                <label class="form-label">طريقة الدفع</label>
-                                <select class="form-control" id="paymentMethod" required>
-                                    <option value="">اختر طريقة الدفع</option>
-                                    <option value="cash">نقداً</option>
-                                    <option value="instapay">Instapay</option>
-                                    <option value="wallet">محفظة رقمية</option>
-                                    <option value="bank">حساب بنكي</option>
-                                </select>
+                                <label class="form-label">طريقة الدفع <span class="text-danger">*</span></label>
+                                <div class="payment-methods-grid" id="paymentMethodsGrid">
+                                    <div class="payment-method-card" data-method="cash">
+                                        <div class="payment-method-icon">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </div>
+                                        <div class="payment-method-content">
+                                            <h6 class="payment-method-name">نقداً</h6>
+                                        </div>
+                                        <div class="payment-method-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-method-card" data-method="instapay">
+                                        <div class="payment-method-icon">
+                                            <i class="fas fa-mobile-alt"></i>
+                                        </div>
+                                        <div class="payment-method-content">
+                                            <h6 class="payment-method-name">Instapay</h6>
+                                        </div>
+                                        <div class="payment-method-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-method-card" data-method="wallet">
+                                        <div class="payment-method-icon">
+                                            <i class="fas fa-wallet"></i>
+                                        </div>
+                                        <div class="payment-method-content">
+                                            <h6 class="payment-method-name">محفظة رقمية</h6>
+                                        </div>
+                                        <div class="payment-method-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-method-card" data-method="bank">
+                                        <div class="payment-method-icon">
+                                            <i class="fas fa-university"></i>
+                                        </div>
+                                        <div class="payment-method-content">
+                                            <h6 class="payment-method-name">حساب بنكي</h6>
+                                        </div>
+                                        <div class="payment-method-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="paymentMethod" required>
                             </div>
 
                             <!-- Description Input -->
@@ -477,12 +895,7 @@
                                           placeholder="وصف تفصيلي للمعاملة..." required></textarea>
                             </div>
 
-                            <!-- Notes Input -->
-                            <div class="mb-4">
-                                <label class="form-label">ملاحظات إضافية (اختياري)</label>
-                                <textarea class="form-control" id="recordNotes" rows="2" 
-                                          placeholder="ملاحظات إضافية..."></textarea>
-                            </div>
+
 
                             <!-- Action Buttons -->
                             <div class="d-flex gap-3">
@@ -601,12 +1014,12 @@
                 }
 
                 const result = await response.json();
-                populateCategorySelect(result.data.categories || []);
+                populateCategoryCards(result.data.categories || []);
 
             } catch (error) {
                 console.error('Categories error:', error);
                 // Use default categories if API fails
-                populateCategorySelect([
+                populateCategoryCards([
                     { id: 1, name_ar: 'مصاريف المكتب' },
                     { id: 2, name_ar: 'مرتبات' },
                     { id: 3, name_ar: 'مصاريف شخصية' },
@@ -615,7 +1028,94 @@
             }
         }
 
-        // Populate category select
+        // Populate category cards
+        function populateCategoryCards(categories) {
+            const container = document.getElementById('categoryCards');
+            if (!container) return;
+            
+            container.innerHTML = categories.map(category => `
+                <div class="category-card" data-category-id="${category.id}" data-category-name="${category.name_ar}">
+                    <div class="category-icon">
+                        <i class="fas ${getCategoryIcon(category.id)}"></i>
+                    </div>
+                    <div class="category-content">
+                        <h6 class="category-name">${category.name_ar}</h6>
+                        <p class="category-description">${getCategoryDescription(category.id)}</p>
+                    </div>
+                    <div class="category-check">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Add click event listeners
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectCategory(this);
+                });
+            });
+
+            // Add click event listeners for payment method cards
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectPaymentMethod(this);
+                });
+            });
+        }
+
+        // Get category icon based on ID
+        function getCategoryIcon(categoryId) {
+            const icons = {
+                1: 'fa-building',
+                2: 'fa-users',
+                3: 'fa-user',
+                4: 'fa-tools'
+            };
+            return icons[categoryId] || 'fa-tag';
+        }
+
+        // Get category description based on ID
+        function getCategoryDescription(categoryId) {
+            const descriptions = {
+                1: 'إيجار، مرافق، مستلزمات',
+                2: 'رواتب الموظفين والأجور',
+                3: 'مصاريف شخصية للعمل',
+                4: 'مواد وأدوات العمل'
+            };
+            return descriptions[categoryId] || 'فئة مصروفات';
+        }
+
+        // Select category function
+        function selectCategory(selectedCard) {
+            // Remove selection from all cards
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            selectedCard.classList.add('selected');
+            
+            // Update hidden input
+            const categoryId = selectedCard.dataset.categoryId;
+            document.getElementById('recordCategory').value = categoryId;
+        }
+
+        // Select payment method function
+        function selectPaymentMethod(selectedCard) {
+            // Remove selection from all cards
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            selectedCard.classList.add('selected');
+            
+            // Update hidden input
+            const method = selectedCard.dataset.method;
+            document.getElementById('paymentMethod').value = method;
+        }
+
+        // Populate category select (fallback)
         function populateCategorySelect(categories) {
             const select = document.getElementById('recordCategory');
             select.innerHTML = '<option value="">اختر فئة المصروف</option>';
@@ -782,7 +1282,6 @@
                 type: selectedType,
                 date: document.getElementById('recordDate').value,
                 description: document.getElementById('recordDescription').value,
-                notes: document.getElementById('recordNotes').value,
                 paymentMethod: document.getElementById('paymentMethod').value
             };
 
@@ -821,6 +1320,9 @@
                 // Show success modal
                 const successModal = new bootstrap.Modal(document.getElementById('successModal'));
                 successModal.show();
+                
+                // Add success animation
+                addSuccessAnimation();
                 
                 // Reset form
                 resetForm();
@@ -868,9 +1370,25 @@
             // Set default payment method
             document.getElementById('paymentMethod').value = 'cash';
             
+            // Select default payment method card
+            const defaultPaymentCard = document.querySelector('.payment-method-card[data-method="cash"]');
+            if (defaultPaymentCard) {
+                selectPaymentMethod(defaultPaymentCard);
+            }
+            
             // Clear category and description
             document.getElementById('recordCategory').value = '';
             document.getElementById('recordDescription').value = '';
+            
+            // Clear category selection
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Clear payment method selection
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.classList.remove('selected');
+            });
         }
 
         // Show notification
@@ -878,11 +1396,16 @@
             const toast = document.createElement('div');
             toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'primary'} border-0`;
             toast.setAttribute('role', 'alert');
-            toast.style.cssText = 'position: fixed; top: 2rem; left: 2rem; z-index: 10000;';
+            toast.style.cssText = 'position: fixed; top: 2rem; left: 2rem; z-index: 10000; min-width: 300px;';
+            
+            const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
             
             toast.innerHTML = `
                 <div class="d-flex">
-                    <div class="toast-body">${message}</div>
+                    <div class="toast-body d-flex align-items-center">
+                        <i class="fas ${icon} me-2"></i>
+                        ${message}
+                    </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                 </div>
             `;
@@ -892,6 +1415,15 @@
             bsToast.show();
             
             setTimeout(() => toast.remove(), 5000);
+        }
+
+        // Add success animation to form
+        function addSuccessAnimation() {
+            const form = document.getElementById('recordForm');
+            form.classList.add('success-animation');
+            setTimeout(() => {
+                form.classList.remove('success-animation');
+            }, 2000);
         }
 
         // Show recent records error
@@ -937,7 +1469,58 @@
                 selectedType = 'profit';
                 document.getElementById('recordAmount').style.color = 'var(--success-color)';
             }
+
+            // Add real-time validation
+            setupRealTimeValidation();
         });
+
+        // Setup real-time validation
+        function setupRealTimeValidation() {
+            const amountInput = document.getElementById('recordAmount');
+            const descriptionInput = document.getElementById('recordDescription');
+            const categoryInput = document.getElementById('recordCategory');
+            const paymentMethodInput = document.getElementById('paymentMethod');
+
+            // Amount validation
+            amountInput.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                if (value > 0) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+
+            // Description validation
+            descriptionInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value.length >= 3) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+
+            // Category validation
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    categoryInput.classList.remove('is-invalid');
+                    categoryInput.classList.add('is-valid');
+                });
+            });
+
+            // Payment method validation
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    paymentMethodInput.classList.remove('is-invalid');
+                    paymentMethodInput.classList.add('is-valid');
+                });
+            });
+        }
 
         // Setup navigation interactions
         function setupNavigationInteractions() {
