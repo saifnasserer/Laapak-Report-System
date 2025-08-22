@@ -107,6 +107,9 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
         const transaction = await Expense.sequelize.transaction();
 
         try {
+            console.log('Starting transaction for record creation:', {
+                name, amount, type, date, notes, paymentMethod
+            });
             // Create the expense record
             const record = await Expense.create({
                 name: name,
@@ -121,6 +124,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             }, { transaction });
 
             // Find or create money location based on payment method
+            console.log('Looking for money location with payment method:', paymentMethod);
             let moneyLocation = await MoneyLocation.findOne({
                 where: {
                     [Op.or]: [
@@ -130,37 +134,71 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 },
                 transaction
             });
+            
+            console.log('Found money location:', moneyLocation ? moneyLocation.id : 'Not found');
 
             // If no location found, create a default one
             if (!moneyLocation) {
+                console.log('Creating new money location for payment method:', paymentMethod);
                 moneyLocation = await MoneyLocation.create({
+                    name: paymentMethod === 'cash' ? 'Cash' : 
+                          paymentMethod === 'instapay' ? 'Instapay' :
+                          paymentMethod === 'wallet' ? 'Digital Wallet' : 'Bank Account',
                     name_ar: paymentMethod === 'cash' ? 'نقداً' : 
                             paymentMethod === 'instapay' ? 'Instapay' :
                             paymentMethod === 'wallet' ? 'محفظة رقمية' : 'حساب بنكي',
                     type: mapPaymentMethodToLocationType(paymentMethod),
                     balance: 0
                 }, { transaction });
+                console.log('Created money location with ID:', moneyLocation.id);
             }
 
             // Create money movement
             const movementType = type === 'expense' ? 'expense_paid' : 'payment_received';
-            const movementAmount = type === 'expense' ? -amount : amount;
+            const referenceType = type === 'expense' ? 'expense' : 'manual';
+
+            console.log('Creating money movement:', {
+                amount: Math.abs(amount),
+                movement_type: movementType,
+                reference_type: referenceType,
+                reference_id: record.id.toString(),
+                from_location_id: type === 'expense' ? moneyLocation.id : null,
+                to_location_id: type === 'profit' ? moneyLocation.id : null,
+                created_by: req.user.id
+            });
+
+            // Ensure we have at least one location set
+            if (type === 'expense' && !moneyLocation.id) {
+                throw new Error('Money location is required for expenses');
+            }
+            if (type === 'profit' && !moneyLocation.id) {
+                throw new Error('Money location is required for profits');
+            }
 
             await MoneyMovement.create({
                 amount: Math.abs(amount),
                 movement_type: movementType,
-                movement_date: date,
+                reference_type: referenceType,
+                reference_id: record.id.toString(), // Convert to string as per database schema
                 description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${name}`,
                 from_location_id: type === 'expense' ? moneyLocation.id : null,
                 to_location_id: type === 'profit' ? moneyLocation.id : null,
-                created_by: req.user.id,
-                related_expense_id: record.id
+                movement_date: date,
+                created_by: req.user.id
             }, { transaction });
 
             // Update money location balance
             const balanceChange = type === 'expense' ? -amount : amount;
+            const newBalance = parseFloat(moneyLocation.balance || 0) + balanceChange;
+            console.log('Updating money location balance:', {
+                locationId: moneyLocation.id,
+                currentBalance: moneyLocation.balance,
+                balanceChange,
+                newBalance
+            });
+            
             await moneyLocation.update({
-                balance: parseFloat(moneyLocation.balance || 0) + balanceChange
+                balance: newBalance
             }, { transaction });
 
             // Commit transaction
@@ -194,6 +232,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
 
         } catch (error) {
             // Rollback transaction on error
+            console.error('Error in transaction, rolling back:', error);
             await transaction.rollback();
             throw error;
         }
@@ -380,7 +419,10 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Find associated money movement
             const moneyMovement = await MoneyMovement.findOne({
-                where: { related_expense_id: id },
+                where: { 
+                    reference_type: 'expense',
+                    reference_id: id.toString()
+                },
                 transaction
             });
 
