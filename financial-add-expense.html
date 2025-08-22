@@ -129,6 +129,10 @@
             font-size: 1rem;
         }
 
+        .form-label .text-danger {
+            color: var(--danger-color) !important;
+        }
+
         .form-control {
             border: 2px solid rgba(0, 0, 0, 0.1);
             border-radius: 8px;
@@ -410,6 +414,7 @@
                             <i class="fas fa-edit me-2"></i>
                             تسجيل مصروف أو ربح جديد
                         </h5>
+                        <p class="text-white-50 mb-0">اختر الفئة وأدخل تفاصيل المعاملة</p>
                     </div>
                     <div class="card-body">
                         <form id="recordForm">
@@ -428,11 +433,16 @@
                                 </div>
                             </div>
 
-                            <!-- Name Input -->
+                            <!-- Category Selection -->
                             <div class="mb-4">
-                                <label class="form-label">الاسم</label>
-                                <input type="text" class="form-control" id="recordName" 
-                                       placeholder="مثال: إيجار المكتب، مبيعات اليوم، صيانة المعدات..." required>
+                                <label class="form-label">الفئة</label>
+                                <select class="form-control" id="recordCategory" required>
+                                    <option value="">اختر فئة المصروف</option>
+                                    <option value="1">مصاريف المكتب</option>
+                                    <option value="2">مرتبات</option>
+                                    <option value="3">مصاريف شخصية</option>
+                                    <option value="4">تكاليف الشغل</option>
+                                </select>
                             </div>
 
                             <!-- Amount Input -->
@@ -460,11 +470,18 @@
                                 </select>
                             </div>
 
+                            <!-- Description Input -->
+                            <div class="mb-4">
+                                <label class="form-label">وصف المعاملة <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="recordDescription" rows="3" 
+                                          placeholder="وصف تفصيلي للمعاملة..." required></textarea>
+                            </div>
+
                             <!-- Notes Input -->
                             <div class="mb-4">
-                                <label class="form-label">ملاحظات (اختياري)</label>
-                                <textarea class="form-control" id="recordNotes" rows="3" 
-                                          placeholder="تفاصيل إضافية..."></textarea>
+                                <label class="form-label">ملاحظات إضافية (اختياري)</label>
+                                <textarea class="form-control" id="recordNotes" rows="2" 
+                                          placeholder="ملاحظات إضافية..."></textarea>
                             </div>
 
                             <!-- Action Buttons -->
@@ -561,6 +578,53 @@
             }
         });
 
+        // Load categories
+        async function loadCategories() {
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/records/categories`, {
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load categories');
+                }
+
+                const result = await response.json();
+                populateCategorySelect(result.data.categories || []);
+
+            } catch (error) {
+                console.error('Categories error:', error);
+                // Use default categories if API fails
+                populateCategorySelect([
+                    { id: 1, name_ar: 'مصاريف المكتب' },
+                    { id: 2, name_ar: 'مرتبات' },
+                    { id: 3, name_ar: 'مصاريف شخصية' },
+                    { id: 4, name_ar: 'تكاليف الشغل' }
+                ]);
+            }
+        }
+
+        // Populate category select
+        function populateCategorySelect(categories) {
+            const select = document.getElementById('recordCategory');
+            select.innerHTML = '<option value="">اختر فئة المصروف</option>';
+            
+            categories.forEach(category => {
+                select.innerHTML += `<option value="${category.id}">${category.name_ar}</option>`;
+            });
+        }
+
         // Load recent records
         async function loadRecentRecords() {
             try {
@@ -613,6 +677,9 @@
                     </div>
                     <div class="recent-item-content" onclick="fillFromRecent('${record.id}')" style="cursor: pointer;">
                         <div class="recent-item-name">${record.name}</div>
+                        <div class="recent-item-description" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                            ${record.notes || 'لا يوجد وصف'}
+                        </div>
                         <div class="recent-item-date">
                             ${new Date(record.date).toLocaleDateString('ar-EG')}
                         </div>
@@ -677,11 +744,44 @@
         document.getElementById('recordForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // Validate required fields
+            const category = document.getElementById('recordCategory').value;
+            const description = document.getElementById('recordDescription').value.trim();
+            const amount = document.getElementById('recordAmount').value;
+            const date = document.getElementById('recordDate').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+
+            if (!category) {
+                showNotification('يرجى اختيار فئة المصروف', 'error');
+                return;
+            }
+
+            if (!description) {
+                showNotification('يرجى إدخال وصف المعاملة', 'error');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showNotification('يرجى إدخال مبلغ صحيح', 'error');
+                return;
+            }
+
+            if (!date) {
+                showNotification('يرجى إدخال التاريخ', 'error');
+                return;
+            }
+
+            if (!paymentMethod) {
+                showNotification('يرجى اختيار طريقة الدفع', 'error');
+                return;
+            }
+
             const formData = {
-                name: document.getElementById('recordName').value,
+                category_id: parseInt(document.getElementById('recordCategory').value),
                 amount: parseFloat(document.getElementById('recordAmount').value),
                 type: selectedType,
                 date: document.getElementById('recordDate').value,
+                description: document.getElementById('recordDescription').value,
                 notes: document.getElementById('recordNotes').value,
                 paymentMethod: document.getElementById('paymentMethod').value
             };
@@ -767,6 +867,10 @@
             
             // Set default payment method
             document.getElementById('paymentMethod').value = 'cash';
+            
+            // Clear category and description
+            document.getElementById('recordCategory').value = '';
+            document.getElementById('recordDescription').value = '';
         }
 
         // Show notification
@@ -812,6 +916,7 @@
             // Setup navigation interactions
             setupNavigationInteractions();
             
+            loadCategories();
             loadRecentRecords();
 
             // Set today's date as default

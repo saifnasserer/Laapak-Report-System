@@ -71,19 +71,20 @@ router.get('/recent', adminRoleAuth(['superadmin']), async (req, res) => {
 router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const {
-            name,
+            category_id,
             amount,
             type,
             date,
+            description,
             notes,
             paymentMethod = 'cash' // Default payment method
         } = req.body;
 
         // Validate required fields
-        if (!name || !amount || !type || !date) {
+        if (!category_id || !amount || !type || !date || !description) {
             return res.status(400).json({
                 success: false,
-                message: 'جميع الحقول مطلوبة'
+                message: 'جميع الحقول المطلوبة يجب ملؤها'
             });
         }
 
@@ -110,15 +111,21 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             console.log('Starting transaction for record creation:', {
                 name, amount, type, date, notes, paymentMethod
             });
+            // Get category name for the record
+            const category = await ExpenseCategory.findByPk(category_id, { transaction });
+            if (!category) {
+                throw new Error('Category not found');
+            }
+
             // Create the expense record
             const record = await Expense.create({
-                name: name,
-                name_ar: name, // Use the same name for both fields
+                name: category.name,
+                name_ar: category.name_ar,
                 amount: amount,
-                category_id: 1, // Default category (you might want to make this configurable)
+                category_id: category_id,
                 type: type === 'profit' ? 'fixed' : 'variable', // Use 'fixed' for profits, 'variable' for expenses
                 date: date,
-                description: notes || '',
+                description: description,
                 created_by: req.user.id,
                 status: 'approved'
             }, { transaction });
@@ -180,7 +187,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 movement_type: movementType,
                 reference_type: referenceType,
                 reference_id: record.id.toString(), // Convert to string as per database schema
-                description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${name}`,
+                description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
                 from_location_id: type === 'expense' ? moneyLocation.id : null,
                 to_location_id: type === 'profit' ? moneyLocation.id : null,
                 movement_date: date,
@@ -464,6 +471,32 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'خطأ في حذف التسجيل',
+            error: error.message 
+        });
+    }
+});
+
+/**
+ * GET /api/records/categories
+ * Get all expense categories
+ */
+router.get('/categories', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const categories = await ExpenseCategory.findAll({
+            where: { is_active: true },
+            order: [['name_ar', 'ASC']]
+        });
+
+        res.json({
+            success: true,
+            data: { categories: categories }
+        });
+
+    } catch (error) {
+        console.error('Get categories error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'خطأ في تحميل الفئات',
             error: error.message 
         });
     }
