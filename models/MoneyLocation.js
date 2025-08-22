@@ -33,10 +33,7 @@ const MoneyLocation = sequelize.define('MoneyLocation', {
     },
     balance: {
         type: DataTypes.DECIMAL(12, 2),
-        defaultValue: 0.00,
-        validate: {
-            min: 0
-        }
+        defaultValue: 0.00
     },
     currency: {
         type: DataTypes.STRING(3),
