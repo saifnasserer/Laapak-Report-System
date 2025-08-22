@@ -448,6 +448,18 @@
                                 <input type="date" class="form-control" id="recordDate" required>
                             </div>
 
+                            <!-- Payment Method Input -->
+                            <div class="mb-4">
+                                <label class="form-label">طريقة الدفع</label>
+                                <select class="form-control" id="paymentMethod" required>
+                                    <option value="">اختر طريقة الدفع</option>
+                                    <option value="cash">نقداً</option>
+                                    <option value="instapay">Instapay</option>
+                                    <option value="wallet">محفظة رقمية</option>
+                                    <option value="bank">حساب بنكي</option>
+                                </select>
+                            </div>
+
                             <!-- Notes Input -->
                             <div class="mb-4">
                                 <label class="form-label">ملاحظات (اختياري)</label>
@@ -670,7 +682,8 @@
                 amount: parseFloat(document.getElementById('recordAmount').value),
                 type: selectedType,
                 date: document.getElementById('recordDate').value,
-                notes: document.getElementById('recordNotes').value
+                notes: document.getElementById('recordNotes').value,
+                paymentMethod: document.getElementById('paymentMethod').value
             };
 
             // Show loading state
@@ -714,6 +727,17 @@
                 
                 // Reload recent records
                 loadRecentRecords();
+                
+                // Show money movement notification if available
+                if (result.data && result.data.moneyMovement) {
+                    const movement = result.data.moneyMovement;
+                    const movementType = selectedType === 'expense' ? 'مصروف' : 'ربح';
+                    const balanceChange = movement.balanceChange > 0 ? '+' : '';
+                    showNotification(
+                        `${movementType} تم تسجيله بنجاح. تغيير الرصيد: ${balanceChange}${formatCurrency(movement.balanceChange)}`,
+                        'success'
+                    );
+                }
 
             } catch (error) {
                 console.error('Save record error:', error);
@@ -740,6 +764,9 @@
             
             // Reset amount input color
             document.getElementById('recordAmount').style.color = 'var(--danger-color)';
+            
+            // Set default payment method
+            document.getElementById('paymentMethod').value = 'cash';
         }
 
         // Show notification
@@ -792,6 +819,19 @@
             
             // Set initial amount input color
             document.getElementById('recordAmount').style.color = 'var(--danger-color)';
+            
+            // Handle type parameter from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const typeParam = urlParams.get('type');
+            if (typeParam === 'profit') {
+                // Switch to profit type
+                document.querySelectorAll('.type-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                document.querySelector('[data-type="profit"]').classList.add('active');
+                selectedType = 'profit';
+                document.getElementById('recordAmount').style.color = 'var(--success-color)';
+            }
         });
 
         // Setup navigation interactions

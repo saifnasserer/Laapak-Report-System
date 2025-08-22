@@ -81,6 +81,9 @@ class MoneyState {
 // Global state instance
 const moneyState = new MoneyState();
 
+// Global flag to track if balances have been initialized
+let balancesInitialized = false;
+
 // =============================================================================
 // 2. API SERVICE LAYER
 // =============================================================================
@@ -232,6 +235,29 @@ class MoneyApiService {
             headers: this.getHeaders()
         });
         return this.handleResponse(response);
+    }
+
+    // Get expense/profit statistics
+    async getExpenseStats(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        try {
+            const response = await fetch(`${this.baseUrl}/api/records/stats?${queryString}`, {
+                headers: this.getHeaders()
+            });
+            return this.handleResponse(response);
+        } catch (error) {
+            console.log('Expense stats API not available, using fallback data');
+            return {
+                success: true,
+                data: {
+                    totalExpenses: 0,
+                    totalProfits: 0,
+                    netAmount: 0,
+                    expenseCount: 0,
+                    profitCount: 0
+                }
+            };
+        }
     }
 }
 
@@ -406,6 +432,26 @@ class MoneyUIRenderer {
             return;
         }
 
+        // Add quick action buttons for expense/profit recording
+        const quickActionsHtml = `
+            <div class="quick-actions mb-4">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <a href="financial-add-expense.html" class="btn btn-success w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            تسجيل مصروف جديد
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <a href="financial-add-expense.html?type=profit" class="btn btn-primary w-100">
+                            <i class="fas fa-coins me-2"></i>
+                            تسجيل ربح جديد
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+
         // Define payment methods with their configurations
         const paymentMethods = {
             cash: { 
@@ -446,11 +492,17 @@ class MoneyUIRenderer {
         let combinedData = [];
         
         Object.entries(paymentMethods).forEach(([key, method]) => {
+            console.log(`\nProcessing payment method: ${method.name} (${method.apiName})`);
+            
             // Find matching locations
-            const matchingLocations = moneyState.locations.filter(loc => 
-                method.locationTypes.includes(loc.type) || 
-                loc.name_ar.toLowerCase().includes(method.nameEn.toLowerCase())
-            );
+            const matchingLocations = moneyState.locations.filter(loc => {
+                const typeMatch = method.locationTypes.includes(loc.type);
+                const nameMatch = loc.name_ar.toLowerCase().includes(method.nameEn.toLowerCase());
+                
+                console.log(`  Checking location ${loc.name_ar}: typeMatch=${typeMatch}, nameMatch=${nameMatch}`);
+                
+                return typeMatch || nameMatch;
+            });
             
             // Get invoice statistics using the correct API name
             const invoiceStats = moneyState.invoiceStats?.byPaymentMethod?.[method.apiName] || {
@@ -471,9 +523,8 @@ class MoneyUIRenderer {
                 sum + parseFloat(loc.balance || 0), 0
             );
             
-            // Initialize current balance to invoice total + transaction balance
-            // This ensures balance starts with invoice amount and then applies transactions
-            const currentBalance = invoiceStats.amount + transactionBalance;
+            // Current balance is simply the transaction balance since locations are initialized with invoice totals
+            const currentBalance = transactionBalance;
             
             console.log(`${method.name} final calculation:`, {
                 invoiceAmount: invoiceStats.amount,
@@ -515,6 +566,7 @@ class MoneyUIRenderer {
         console.log('Final combinedData before rendering:', combinedData);
         
         const htmlContent = `
+            ${quickActionsHtml}
             <div class="payment-methods-grid">
                 ${combinedData.map(item => {
                     console.log(`Rendering ${item.method.name}:`, {
@@ -545,7 +597,7 @@ class MoneyUIRenderer {
                             </div>
                             <div class="balance-breakdown-item">
                                 <span class="balance-breakdown-label">من المعاملات:</span>
-                                <span class="balance-breakdown-value">${this.formatCurrency(item.currentBalance - item.invoiceStats.amount)}</span>
+                                <span class="balance-breakdown-value">${this.formatCurrency(Math.max(0, item.currentBalance - item.invoiceStats.amount))}</span>
                             </div>
                         </div>
                     </div>
@@ -1042,6 +1094,17 @@ class MoneyActions {
         await MoneyDataLoader.loadAll();
         MoneyNotifications.success('تم تحديث البيانات');
     }
+    
+    // Refresh movements specifically
+    static async refreshMovements() {
+        try {
+            const movementsData = await moneyApi.getMovements({ limit: 50 });
+            moneyState.setMovements(movementsData.data.movements || []);
+            MoneyNotifications.success('تم تحديث الحركات');
+        } catch (error) {
+            MoneyNotifications.error('خطأ في تحديث الحركات');
+        }
+    }
 }
 
 // =============================================================================
@@ -1056,15 +1119,20 @@ class MoneyDataLoader {
 
             console.log('Loading money management data...');
 
-            const [locationsData, movementsData, invoiceStatsData] = await Promise.all([
+            const [locationsData, movementsData, invoiceStatsData, expenseStatsData] = await Promise.all([
                 moneyApi.getLocations(),
                 moneyApi.getMovements({ limit: 50 }),
-                moneyApi.getInvoiceStats()
+                moneyApi.getInvoiceStats(),
+                moneyApi.getExpenseStats()
             ]);
 
             console.log('Locations data:', locationsData);
             console.log('Movements data:', movementsData);
             console.log('Invoice stats data:', invoiceStatsData);
+            console.log('Expense stats data:', expenseStatsData);
+
+            // Initialize location balances with invoice totals if needed
+            await this.initializeLocationBalances(locationsData.data.locations || [], invoiceStatsData.data || {});
 
             console.log('Setting locations:', locationsData.data.locations || []);
             moneyState.setLocations(locationsData.data.locations || []);
@@ -1072,6 +1140,10 @@ class MoneyDataLoader {
             moneyState.setMovements(movementsData.data.movements || []);
             console.log('Setting invoice stats:', invoiceStatsData.data || {});
             moneyState.setInvoiceStats(invoiceStatsData.data || {});
+            
+            // Store expense stats for potential use
+            moneyState.expenseStats = expenseStatsData.data || {};
+            console.log('Setting expense stats:', expenseStatsData.data || {});
 
             console.log('State updated:', {
                 locations: moneyState.locations.length,
@@ -1118,6 +1190,87 @@ class MoneyDataLoader {
     // Hide loading states
     static hideLoadingStates() {
         // Loading states will be replaced by actual content through state observers
+    }
+
+    // Initialize location balances with invoice totals
+    static async initializeLocationBalances(locations, invoiceStats) {
+        try {
+            // Check if already initialized
+            if (balancesInitialized) {
+                console.log('Balances already initialized, skipping...');
+                return;
+            }
+            
+            console.log('Initializing location balances with invoice totals...');
+            
+            // Define payment method mapping
+            const paymentMethodMapping = {
+                'cash': { locationTypes: ['cash'], apiName: 'cash' },
+                'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay' },
+                'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay' },
+                'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة' },
+                'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' }
+            };
+            
+            // Check each location and initialize balance if needed
+            for (const location of locations) {
+                console.log(`Checking location: ${location.name_ar} (type: ${location.type})`);
+                
+                // Find matching payment method
+                let matchingMethod = null;
+                for (const [methodName, config] of Object.entries(paymentMethodMapping)) {
+                    const typeMatch = config.locationTypes.includes(location.type);
+                    const nameMatch = location.name_ar.toLowerCase().includes(methodName.toLowerCase());
+                    
+                    console.log(`  Checking against ${methodName}: typeMatch=${typeMatch}, nameMatch=${nameMatch}`);
+                    
+                    if (typeMatch || nameMatch) {
+                        matchingMethod = config;
+                        console.log(`  Matched with ${methodName}`);
+                        break;
+                    }
+                }
+                
+                if (matchingMethod) {
+                    const invoiceAmount = invoiceStats.byPaymentMethod?.[matchingMethod.apiName]?.amount || 0;
+                    const currentBalance = parseFloat(location.balance || 0);
+                    
+                    console.log(`Location ${location.name_ar}:`, {
+                        currentBalance,
+                        invoiceAmount,
+                        matchingMethod: matchingMethod.apiName
+                    });
+                    
+                    // If location has no balance but there are invoices, initialize it
+                    if (currentBalance === 0 && invoiceAmount > 0) {
+                        console.log(`Initializing ${location.name_ar} with invoice amount: ${invoiceAmount}`);
+                        
+                        // Create an initialization deposit
+                        const depositData = {
+                            toLocationId: location.id,
+                            amount: invoiceAmount,
+                            description: `تهيئة الرصيد من الفواتير - ${location.name_ar}`
+                        };
+                        
+                        try {
+                            await moneyApi.createDeposit(depositData);
+                            console.log(`Successfully initialized ${location.name_ar} balance`);
+                            
+                            // Update the location balance in our local data
+                            location.balance = invoiceAmount;
+                        } catch (error) {
+                            console.error(`Failed to initialize ${location.name_ar} balance:`, error);
+                        }
+                    }
+                }
+            }
+            
+            // Mark as initialized
+            balancesInitialized = true;
+            console.log('Location balances initialization completed');
+        } catch (error) {
+            console.error('Error initializing location balances:', error);
+        }
     }
 
     // Show API not available message
@@ -1276,6 +1429,7 @@ class MoneyManager {
         window.showMethodDetails = (methodKey) => MoneyActions.showMethodDetails(methodKey);
         window.refreshPaymentMethods = () => MoneyDataLoader.loadAll();
         window.showUnifiedTransferModal = () => MoneyActions.showUnifiedTransferModal();
+        window.refreshMovements = () => MoneyActions.refreshMovements();
 
         // Set up form validation
         this.setupFormValidation();
@@ -1285,6 +1439,48 @@ class MoneyManager {
 
         // Load initial data
         MoneyDataLoader.loadAll();
+        
+        // Setup navigation interactions
+        this.setupNavigationInteractions();
+    }
+    
+    static setupNavigationInteractions() {
+        const navLinks = document.querySelectorAll('.navbar .nav-link');
+        
+        // Apply consistent inactive style to all links first
+        navLinks.forEach(link => {
+            link.style.backgroundColor = 'rgba(255,255,255,0.15)';
+            link.style.boxShadow = '';
+            link.classList.remove('active', 'fw-bold');
+        });
+        
+        // Set active state for current page
+        const currentPage = window.location.pathname.split('/').pop();
+        if (currentPage === 'money-management.html') {
+            const moneyLink = document.querySelector('a[href="money-management.html"]');
+            if (moneyLink) {
+                moneyLink.classList.add('active', 'fw-bold');
+                moneyLink.style.backgroundColor = 'rgba(255,255,255,0.3)';
+                moneyLink.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+            }
+        }
+        
+        // Add click event listeners
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                // Remove active class from all links
+                navLinks.forEach(l => {
+                    l.classList.remove('active', 'fw-bold');
+                    l.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                    l.style.boxShadow = '';
+                });
+                
+                // Add active class to clicked link
+                link.classList.add('active', 'fw-bold');
+                link.style.backgroundColor = 'rgba(255,255,255,0.3)';
+                link.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+            });
+        });
     }
 
     static setupFormValidation() {

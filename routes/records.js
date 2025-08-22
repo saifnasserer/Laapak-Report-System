@@ -2,7 +2,22 @@ const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
 const { adminRoleAuth } = require('../middleware/auth');
-const { Expense, ExpenseCategory, Admin } = require('../models');
+const { Expense, ExpenseCategory, Admin, MoneyMovement, MoneyLocation } = require('../models');
+
+/**
+ * Helper function to map payment method to money location type
+ */
+function mapPaymentMethodToLocationType(paymentMethod) {
+    const mapping = {
+        'cash': 'cash',
+        'instapay': 'digital_wallet',
+        'wallet': 'digital_wallet',
+        'محفظة': 'digital_wallet',
+        'بنك': 'bank_account',
+        'bank': 'bank_account'
+    };
+    return mapping[paymentMethod] || 'cash';
+}
 
 /**
  * GET /api/records/recent
@@ -51,7 +66,7 @@ router.get('/recent', adminRoleAuth(['superadmin']), async (req, res) => {
 
 /**
  * POST /api/records
- * Create a new financial record (expense or profit)
+ * Create a new financial record (expense or profit) and automatically create money movement
  */
 router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
@@ -60,7 +75,8 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             amount,
             type,
             date,
-            notes
+            notes,
+            paymentMethod = 'cash' // Default payment method
         } = req.body;
 
         // Validate required fields
@@ -87,37 +103,100 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             });
         }
 
-        // Create the record
-        const record = await Expense.create({
-            name: name,
-            name_ar: name, // Use the same name for both fields
-            amount: amount,
-            category_id: 1, // Default category (you might want to make this configurable)
-            type: type === 'profit' ? 'fixed' : 'variable', // Use 'fixed' for profits, 'variable' for expenses
-            date: date,
-            description: notes || '',
-            created_by: req.user.id,
-            status: 'approved'
-        });
+        // Start transaction to ensure data consistency
+        const transaction = await Expense.sequelize.transaction();
 
-        // Get the record with category information
-        const recordWithCategory = await Expense.findByPk(record.id, {
-            include: [
-                {
-                    model: ExpenseCategory,
-                    as: 'category',
-                    attributes: ['name', 'name_ar', 'color']
+        try {
+            // Create the expense record
+            const record = await Expense.create({
+                name: name,
+                name_ar: name, // Use the same name for both fields
+                amount: amount,
+                category_id: 1, // Default category (you might want to make this configurable)
+                type: type === 'profit' ? 'fixed' : 'variable', // Use 'fixed' for profits, 'variable' for expenses
+                date: date,
+                description: notes || '',
+                created_by: req.user.id,
+                status: 'approved'
+            }, { transaction });
+
+            // Find or create money location based on payment method
+            let moneyLocation = await MoneyLocation.findOne({
+                where: {
+                    [Op.or]: [
+                        { name_ar: { [Op.like]: `%${paymentMethod}%` } },
+                        { type: mapPaymentMethodToLocationType(paymentMethod) }
+                    ]
+                },
+                transaction
+            });
+
+            // If no location found, create a default one
+            if (!moneyLocation) {
+                moneyLocation = await MoneyLocation.create({
+                    name_ar: paymentMethod === 'cash' ? 'نقداً' : 
+                            paymentMethod === 'instapay' ? 'Instapay' :
+                            paymentMethod === 'wallet' ? 'محفظة رقمية' : 'حساب بنكي',
+                    type: mapPaymentMethodToLocationType(paymentMethod),
+                    balance: 0
+                }, { transaction });
+            }
+
+            // Create money movement
+            const movementType = type === 'expense' ? 'expense_paid' : 'payment_received';
+            const movementAmount = type === 'expense' ? -amount : amount;
+
+            await MoneyMovement.create({
+                amount: Math.abs(amount),
+                movement_type: movementType,
+                movement_date: date,
+                description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${name}`,
+                from_location_id: type === 'expense' ? moneyLocation.id : null,
+                to_location_id: type === 'profit' ? moneyLocation.id : null,
+                created_by: req.user.id,
+                related_expense_id: record.id
+            }, { transaction });
+
+            // Update money location balance
+            const balanceChange = type === 'expense' ? -amount : amount;
+            await moneyLocation.update({
+                balance: parseFloat(moneyLocation.balance || 0) + balanceChange
+            }, { transaction });
+
+            // Commit transaction
+            await transaction.commit();
+
+            // Get the record with category information
+            const recordWithCategory = await Expense.findByPk(record.id, {
+                include: [
+                    {
+                        model: ExpenseCategory,
+                        as: 'category',
+                        attributes: ['name', 'name_ar', 'color']
+                    }
+                ]
+            });
+
+            const message = type === 'expense' ? 'تم حفظ المصروف بنجاح' : 'تم حفظ الربح بنجاح';
+
+            res.json({
+                success: true,
+                message: message,
+                data: { 
+                    record: recordWithCategory,
+                    moneyMovement: {
+                        locationId: moneyLocation.id,
+                        balanceChange: balanceChange,
+                        newBalance: parseFloat(moneyLocation.balance || 0) + balanceChange
+                    }
                 }
-            ]
-        });
+            });
 
-        const message = type === 'expense' ? 'تم حفظ المصروف بنجاح' : 'تم حفظ الربح بنجاح';
-
-        res.json({
-            success: true,
-            message: message,
-            data: { record: recordWithCategory }
-        });
+        } catch (error) {
+            // Rollback transaction on error
+            await transaction.rollback();
+            throw error;
+        }
 
     } catch (error) {
         console.error('Create record error:', error);
@@ -279,28 +358,64 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
 /**
  * DELETE /api/records/:id
- * Delete a financial record
+ * Delete a financial record and reverse money movement
  */
 router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Find the record
-        const record = await Expense.findByPk(id);
-        if (!record) {
-            return res.status(404).json({
-                success: false,
-                message: 'التسجيل غير موجود'
+        // Start transaction
+        const transaction = await Expense.sequelize.transaction();
+
+        try {
+            // Find the record
+            const record = await Expense.findByPk(id, { transaction });
+            if (!record) {
+                await transaction.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: 'التسجيل غير موجود'
+                });
+            }
+
+            // Find associated money movement
+            const moneyMovement = await MoneyMovement.findOne({
+                where: { related_expense_id: id },
+                transaction
             });
+
+            if (moneyMovement) {
+                // Reverse the money location balance
+                const locationId = moneyMovement.from_location_id || moneyMovement.to_location_id;
+                if (locationId) {
+                    const moneyLocation = await MoneyLocation.findByPk(locationId, { transaction });
+                    if (moneyLocation) {
+                        const balanceChange = record.type === 'profit' ? -record.amount : record.amount;
+                        await moneyLocation.update({
+                            balance: parseFloat(moneyLocation.balance || 0) + balanceChange
+                        }, { transaction });
+                    }
+                }
+
+                // Delete the money movement
+                await moneyMovement.destroy({ transaction });
+            }
+
+            // Delete the record
+            await record.destroy({ transaction });
+
+            // Commit transaction
+            await transaction.commit();
+
+            res.json({
+                success: true,
+                message: 'تم حذف التسجيل بنجاح'
+            });
+
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
         }
-
-        // Delete the record
-        await record.destroy();
-
-        res.json({
-            success: true,
-            message: 'تم حذف التسجيل بنجاح'
-        });
 
     } catch (error) {
         console.error('Delete record error:', error);
