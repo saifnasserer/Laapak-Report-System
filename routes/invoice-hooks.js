@@ -73,7 +73,8 @@ async function handleInvoicePaymentStatusChange(invoice, oldStatus, newStatus) {
             toLocationId: location.id,
             description: `دفعة مستلمة من فاتورة ${invoice.id}`,
             movement_date: invoice.paymentDate || new Date(),
-            created_by: 1 // Default admin ID, should be passed from context
+            reference_type: 'invoice',
+            created_by: 10 // Superadmin ID, should be passed from context
         };
 
         const movement = await MoneyMovement.create(movementData);
