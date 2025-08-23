@@ -9,10 +9,10 @@ const { Op } = require('sequelize');
 // Payment method to location type mapping
 const PAYMENT_METHOD_MAPPING = {
     'cash': { locationTypes: ['cash'], apiName: 'cash' },
-    'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay' },
-    'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay' },
-    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة' },
-    'محفظة رقمية': { locationTypes: ['digital_wallet'], apiName: 'محفظة' },
+    'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
+    'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
+    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
+    'محفظة رقمية': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
     'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' },
     'حساب بنكي': { locationTypes: ['bank_account'], apiName: 'بنك' }
 };
@@ -120,14 +120,28 @@ async function findLocationForPaymentMethod(paymentMethod) {
                 return null;
     }
 
-    // Find location with matching type
-    const location = await MoneyLocation.findOne({
-        where: {
-            type: {
-                [Op.in]: matchingConfig.locationTypes
+    // Find location with matching type and name (if specified)
+    let location;
+    if (matchingConfig.locationName) {
+        // Use specific location name for digital wallets
+        location = await MoneyLocation.findOne({
+            where: {
+                type: {
+                    [Op.in]: matchingConfig.locationTypes
+                },
+                name_ar: matchingConfig.locationName
             }
-        }
-    });
+        });
+    } else {
+        // Fallback to type-only matching
+        location = await MoneyLocation.findOne({
+            where: {
+                type: {
+                    [Op.in]: matchingConfig.locationTypes
+                }
+            }
+        });
+    }
 
     if (!location) {
         console.log(`No location found for types: ${matchingConfig.locationTypes.join(', ')}`);

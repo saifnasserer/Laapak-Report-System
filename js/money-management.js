@@ -468,7 +468,8 @@ class MoneyUIRenderer {
                 apiName: 'instapay',
                 icon: 'fa-mobile-alt', 
                 cssClass: 'instapay',
-                locationTypes: ['digital_wallet']
+                locationTypes: ['digital_wallet'],
+                locationName: 'محفظة انستاباي'
             },
             wallet: { 
                 name: 'محفظة رقمية', 
@@ -476,7 +477,8 @@ class MoneyUIRenderer {
                 apiName: 'محفظة',
                 icon: 'fa-wallet', 
                 cssClass: 'wallet',
-                locationTypes: ['digital_wallet']
+                locationTypes: ['digital_wallet'],
+                locationName: 'محفظة رقمية'
             },
             bank: { 
                 name: 'بنك', 
@@ -494,9 +496,20 @@ class MoneyUIRenderer {
         Object.entries(paymentMethods).forEach(([key, method]) => {
             console.log(`\nProcessing payment method: ${method.name} (${method.apiName})`);
             
-            // Find matching locations
+            // Find matching locations with specific name matching for digital wallets
             const matchingLocations = moneyState.locations.filter(loc => {
                 const typeMatch = method.locationTypes.includes(loc.type);
+                
+                // For digital wallets, use specific name matching
+                if (method.locationTypes.includes('digital_wallet')) {
+                    if (method.apiName === 'instapay') {
+                        return typeMatch && loc.name_ar === 'محفظة انستاباي';
+                    } else if (method.apiName === 'محفظة') {
+                        return typeMatch && loc.name_ar === 'محفظة رقمية';
+                    }
+                }
+                
+                // For other types, use general matching
                 const nameMatch = loc.name_ar.toLowerCase().includes(method.nameEn.toLowerCase());
                 
                 console.log(`  Checking location ${loc.name_ar}: typeMatch=${typeMatch}, nameMatch=${nameMatch}`);
