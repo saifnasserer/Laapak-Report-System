@@ -344,6 +344,67 @@ router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
 });
 
 /**
+ * GET /api/records/stats
+ * Get financial statistics
+ */
+router.get('/stats', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        let whereClause = {};
+
+        // Filter by date range if provided
+        if (startDate && endDate) {
+            whereClause.date = {
+                [Op.between]: [startDate, endDate]
+            };
+        }
+
+        // Get expenses
+        const expenses = await Expense.findAll({
+            where: {
+                ...whereClause,
+                type: { [Op.ne]: 'profit' }
+            },
+            attributes: ['amount']
+        });
+
+        // Get profits
+        const profits = await Expense.findAll({
+            where: {
+                ...whereClause,
+                type: 'profit'
+            },
+            attributes: ['amount']
+        });
+
+        // Calculate totals
+        const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+        const totalProfits = profits.reduce((sum, profit) => sum + parseFloat(profit.amount), 0);
+        const netAmount = totalProfits - totalExpenses;
+
+        res.json({
+            success: true,
+            data: {
+                totalExpenses,
+                totalProfits,
+                netAmount,
+                expenseCount: expenses.length,
+                profitCount: profits.length
+            }
+        });
+
+    } catch (error) {
+        console.error('Get stats error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'خطأ في تحميل الإحصائيات',
+            error: error.message 
+        });
+    }
+});
+
+/**
  * GET /api/records/:id
  * Get a single financial record by ID
  */
@@ -585,67 +646,6 @@ router.get('/categories', adminRoleAuth(['superadmin']), async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'خطأ في تحميل الفئات',
-            error: error.message 
-        });
-    }
-});
-
-/**
- * GET /api/records/stats
- * Get financial statistics
- */
-router.get('/stats', adminRoleAuth(['superadmin']), async (req, res) => {
-    try {
-        const { startDate, endDate } = req.query;
-
-        let whereClause = {};
-
-        // Filter by date range if provided
-        if (startDate && endDate) {
-            whereClause.date = {
-                [Op.between]: [startDate, endDate]
-            };
-        }
-
-        // Get expenses
-        const expenses = await Expense.findAll({
-            where: {
-                ...whereClause,
-                type: { [Op.ne]: 'profit' }
-            },
-            attributes: ['amount']
-        });
-
-        // Get profits
-        const profits = await Expense.findAll({
-            where: {
-                ...whereClause,
-                type: 'profit'
-            },
-            attributes: ['amount']
-        });
-
-        // Calculate totals
-        const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
-        const totalProfits = profits.reduce((sum, profit) => sum + parseFloat(profit.amount), 0);
-        const netAmount = totalProfits - totalExpenses;
-
-        res.json({
-            success: true,
-            data: {
-                totalExpenses,
-                totalProfits,
-                netAmount,
-                expenseCount: expenses.length,
-                profitCount: profits.length
-            }
-        });
-
-    } catch (error) {
-        console.error('Get stats error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'خطأ في تحميل الإحصائيات',
             error: error.message 
         });
     }
