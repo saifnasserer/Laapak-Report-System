@@ -5,18 +5,71 @@ const { adminRoleAuth } = require('../middleware/auth');
 const { Expense, ExpenseCategory, Admin, MoneyMovement, MoneyLocation } = require('../models');
 
 /**
- * Helper function to map payment method to money location type
+ * Helper function to find money location for payment method
  */
-function mapPaymentMethodToLocationType(paymentMethod) {
-    const mapping = {
-        'cash': 'cash',
-        'instapay': 'digital_wallet',
-        'wallet': 'digital_wallet',
-        'محفظة': 'digital_wallet',
-        'بنك': 'bank_account',
-        'bank': 'bank_account'
+async function findLocationForPaymentMethod(paymentMethod) {
+    if (!paymentMethod) {
+        console.log('No payment method provided');
+        return null;
+    }
+
+    console.log(`Finding location for payment method: ${paymentMethod}`);
+
+    // Payment method to location mapping (same as in invoice-hooks.js)
+    const PAYMENT_METHOD_MAPPING = {
+        'cash': { locationTypes: ['cash'], apiName: 'cash' },
+        'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
+        'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
+        'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
+        'محفظة رقمية': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
+        'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' },
+        'حساب بنكي': { locationTypes: ['bank_account'], apiName: 'بنك' }
     };
-    return mapping[paymentMethod] || 'cash';
+
+    // Find matching payment method configuration
+    let matchingConfig = null;
+    for (const [methodName, config] of Object.entries(PAYMENT_METHOD_MAPPING)) {
+        if (paymentMethod.toLowerCase().includes(methodName.toLowerCase())) {
+            matchingConfig = config;
+            console.log(`Matched payment method "${paymentMethod}" with config "${methodName}"`);
+            break;
+        }
+    }
+
+    if (!matchingConfig) {
+        console.log(`No matching config found for payment method: ${paymentMethod}`);
+        return null;
+    }
+
+    // Find location with matching type and name (if specified)
+    let location;
+    if (matchingConfig.locationName) {
+        // Use specific location name for digital wallets
+        location = await MoneyLocation.findOne({
+            where: {
+                type: {
+                    [Op.in]: matchingConfig.locationTypes
+                },
+                name_ar: matchingConfig.locationName
+            }
+        });
+    } else {
+        // Fallback to type-only matching
+        location = await MoneyLocation.findOne({
+            where: {
+                type: {
+                    [Op.in]: matchingConfig.locationTypes
+                }
+            }
+        });
+    }
+
+    if (!location) {
+        console.log(`No location found for types: ${matchingConfig.locationTypes.join(', ')}`);
+        return null;
+    }
+
+    return location;
 }
 
 /**
@@ -131,34 +184,14 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 status: 'approved'
             }, { transaction });
 
-            // Find or create money location based on payment method
+            // Find money location based on payment method
             console.log('Looking for money location with payment method:', paymentMethod);
-            let moneyLocation = await MoneyLocation.findOne({
-                where: {
-                    [Op.or]: [
-                        { name_ar: { [Op.like]: `%${paymentMethod}%` } },
-                        { type: mapPaymentMethodToLocationType(paymentMethod) }
-                    ]
-                },
-                transaction
-            });
+            const moneyLocation = await findLocationForPaymentMethod(paymentMethod);
             
             console.log('Found money location:', moneyLocation ? moneyLocation.id : 'Not found');
 
-            // If no location found, create a default one
             if (!moneyLocation) {
-                console.log('Creating new money location for payment method:', paymentMethod);
-                moneyLocation = await MoneyLocation.create({
-                    name: paymentMethod === 'cash' ? 'Cash' : 
-                          paymentMethod === 'instapay' ? 'Instapay' :
-                          paymentMethod === 'wallet' ? 'Digital Wallet' : 'Bank Account',
-                    name_ar: paymentMethod === 'cash' ? 'نقداً' : 
-                            paymentMethod === 'instapay' ? 'Instapay' :
-                            paymentMethod === 'wallet' ? 'محفظة رقمية' : 'حساب بنكي',
-                    type: mapPaymentMethodToLocationType(paymentMethod),
-                    balance: 0
-                }, { transaction });
-                console.log('Created money location with ID:', moneyLocation.id);
+                throw new Error(`No money location found for payment method: ${paymentMethod}`);
             }
 
             // Create money movement
@@ -503,6 +536,36 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 throw new Error('Category not found');
             }
 
+            // Find existing money movement for this record
+            const existingMovement = await MoneyMovement.findOne({
+                where: { 
+                    reference_type: 'expense',
+                    reference_id: id.toString()
+                },
+                transaction
+            });
+
+            // Find new money location based on payment method
+            const newMoneyLocation = await findLocationForPaymentMethod(paymentMethod);
+            if (!newMoneyLocation) {
+                throw new Error(`No money location found for payment method: ${paymentMethod}`);
+            }
+
+            // If there's an existing movement, reverse it first
+            if (existingMovement) {
+                const oldLocationId = existingMovement.from_location_id || existingMovement.to_location_id;
+                if (oldLocationId) {
+                    const oldLocation = await MoneyLocation.findByPk(oldLocationId, { transaction });
+                    if (oldLocation) {
+                        // Reverse the old balance change
+                        const oldBalanceChange = record.type === 'profit' ? -record.amount : record.amount;
+                        const oldNewBalance = parseFloat(oldLocation.balance || 0) + oldBalanceChange;
+                        await oldLocation.update({ balance: oldNewBalance }, { transaction });
+                        console.log(`Reversed balance for old location ${oldLocation.name_ar}: ${oldLocation.balance} -> ${oldNewBalance}`);
+                    }
+                }
+            }
+
             // Update the expense record
             await record.update({
                 name: category.name,
@@ -513,6 +576,40 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 date: date,
                 description: description
             }, { transaction });
+
+            // Create new money movement or update existing one
+            const movementType = type === 'expense' ? 'expense_paid' : 'payment_received';
+            const balanceChange = type === 'expense' ? -amount : amount;
+
+            if (existingMovement) {
+                // Update existing movement
+                await existingMovement.update({
+                    amount: Math.abs(amount),
+                    movement_type: movementType,
+                    description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
+                    from_location_id: type === 'expense' ? newMoneyLocation.id : null,
+                    to_location_id: type === 'profit' ? newMoneyLocation.id : null,
+                    movement_date: date
+                }, { transaction });
+            } else {
+                // Create new movement
+                await MoneyMovement.create({
+                    amount: Math.abs(amount),
+                    movement_type: movementType,
+                    reference_type: 'expense',
+                    reference_id: id.toString(),
+                    description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
+                    from_location_id: type === 'expense' ? newMoneyLocation.id : null,
+                    to_location_id: type === 'profit' ? newMoneyLocation.id : null,
+                    movement_date: date,
+                    created_by: req.user.id
+                }, { transaction });
+            }
+
+            // Update new money location balance
+            const newBalance = parseFloat(newMoneyLocation.balance || 0) + balanceChange;
+            await newMoneyLocation.update({ balance: newBalance }, { transaction });
+            console.log(`Updated balance for new location ${newMoneyLocation.name_ar}: ${newMoneyLocation.balance} -> ${newBalance}`);
 
             // Commit transaction
             await transaction.commit();
@@ -588,10 +685,12 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 if (locationId) {
                     const moneyLocation = await MoneyLocation.findByPk(locationId, { transaction });
                     if (moneyLocation) {
-                        const balanceChange = record.type === 'profit' ? -record.amount : record.amount;
-                        await moneyLocation.update({
-                            balance: parseFloat(moneyLocation.balance || 0) + balanceChange
-                        }, { transaction });
+                        // For expenses: money was taken from location, so we add it back
+                        // For profits: money was added to location, so we subtract it
+                        const balanceChange = record.type === 'fixed' ? -record.amount : record.amount;
+                        const newBalance = parseFloat(moneyLocation.balance || 0) + balanceChange;
+                        await moneyLocation.update({ balance: newBalance }, { transaction });
+                        console.log(`Reversed balance for location ${moneyLocation.name_ar}: ${moneyLocation.balance} -> ${newBalance}`);
                     }
                 }
 
