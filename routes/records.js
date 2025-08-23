@@ -707,18 +707,22 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 });
             }
 
-            // Find associated money movement
+            // Find associated money movement (check both 'expense' and 'manual' reference types)
             const moneyMovement = await MoneyMovement.findOne({
                 where: { 
-                    reference_type: 'expense',
+                    reference_type: { [Op.in]: ['expense', 'manual'] },
                     reference_id: id.toString()
                 },
                 transaction
             });
 
+            console.log('Delete operation - Found money movement:', moneyMovement ? moneyMovement.id : 'None');
+
             if (moneyMovement) {
                 // Reverse the money location balance
                 const locationId = moneyMovement.from_location_id || moneyMovement.to_location_id;
+                console.log('Delete operation - Location ID for reversal:', locationId);
+                
                 if (locationId) {
                     const moneyLocation = await MoneyLocation.findByPk(locationId, { transaction });
                     if (moneyLocation) {
@@ -726,13 +730,29 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                         // For profits (fixed): money was added to location, so we subtract it
                         const balanceChange = record.type === 'fixed' ? -record.amount : record.amount;
                         const newBalance = parseFloat(moneyLocation.balance || 0) + balanceChange;
+                        
+                        console.log('Delete operation - Reversing balance:', {
+                            locationName: moneyLocation.name_ar,
+                            currentBalance: moneyLocation.balance,
+                            balanceChange,
+                            newBalance,
+                            recordType: record.type
+                        });
+                        
                         await moneyLocation.update({ balance: newBalance }, { transaction });
                         console.log(`Reversed balance for location ${moneyLocation.name_ar}: ${moneyLocation.balance} -> ${newBalance}`);
+                    } else {
+                        console.log('Delete operation - Money location not found for ID:', locationId);
                     }
+                } else {
+                    console.log('Delete operation - No location ID found in money movement');
                 }
 
                 // Delete the money movement
                 await moneyMovement.destroy({ transaction });
+                console.log('Delete operation - Money movement deleted successfully');
+            } else {
+                console.log('Delete operation - No money movement found for record ID:', id);
             }
 
             // Delete the record
