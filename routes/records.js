@@ -728,12 +728,28 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                     if (moneyLocation) {
                         // For expenses (variable): money was taken from location, so we add it back
                         // For profits (fixed): money was added to location, so we subtract it
-                        const balanceChange = record.type === 'fixed' ? -record.amount : record.amount;
-                        const newBalance = parseFloat(moneyLocation.balance || 0) + balanceChange;
+                        const recordAmount = parseFloat(record.amount);
+                        const balanceChange = record.type === 'fixed' ? -recordAmount : recordAmount;
+                        const currentBalance = parseFloat(moneyLocation.balance || 0);
+                        let newBalance = currentBalance + balanceChange;
+                        
+                        // Validate the new balance to prevent overflow
+                        if (newBalance < 0) {
+                            console.log('Warning: New balance would be negative, setting to 0');
+                            newBalance = 0;
+                        }
+                        
+                        // Check if the value is reasonable (less than 1 billion)
+                        if (newBalance > 1000000000) {
+                            console.log('Warning: New balance seems too large, capping at current balance');
+                            newBalance = currentBalance;
+                        }
                         
                         console.log('Delete operation - Reversing balance:', {
                             locationName: moneyLocation.name_ar,
                             currentBalance: moneyLocation.balance,
+                            recordAmount: record.amount,
+                            parsedRecordAmount: recordAmount,
                             balanceChange,
                             newBalance,
                             recordType: record.type
