@@ -7,7 +7,7 @@ const { Expense, ExpenseCategory, Admin, MoneyMovement, MoneyLocation } = requir
 /**
  * Helper function to find money location for payment method
  */
-async function findLocationForPaymentMethod(paymentMethod) {
+async function findLocationForPaymentMethod(paymentMethod, transaction = null) {
     if (!paymentMethod) {
         console.log('No payment method provided');
         return null;
@@ -51,7 +51,8 @@ async function findLocationForPaymentMethod(paymentMethod) {
                     [Op.in]: matchingConfig.locationTypes
                 },
                 name_ar: matchingConfig.locationName
-            }
+            },
+            ...(transaction && { transaction })
         });
     } else {
         // Fallback to type-only matching
@@ -60,7 +61,8 @@ async function findLocationForPaymentMethod(paymentMethod) {
                 type: {
                     [Op.in]: matchingConfig.locationTypes
                 }
-            }
+            },
+            ...(transaction && { transaction })
         });
     }
 
@@ -186,7 +188,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Find money location based on payment method
             console.log('Looking for money location with payment method:', paymentMethod);
-            const moneyLocation = await findLocationForPaymentMethod(paymentMethod);
+            const moneyLocation = await findLocationForPaymentMethod(paymentMethod, transaction);
             
             console.log('Found money location:', moneyLocation ? moneyLocation.id : 'Not found');
 
@@ -546,7 +548,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             });
 
             // Find new money location based on payment method
-            const newMoneyLocation = await findLocationForPaymentMethod(paymentMethod);
+            const newMoneyLocation = await findLocationForPaymentMethod(paymentMethod, transaction);
             if (!newMoneyLocation) {
                 throw new Error(`No money location found for payment method: ${paymentMethod}`);
             }
