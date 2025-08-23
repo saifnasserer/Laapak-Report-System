@@ -717,7 +717,7 @@ function initiateDirectInvoiceCreation() {
         report_ids: selectedReports, // Array of report IDs for bulk invoice
         date: today.toISOString().split('T')[0],
         paymentStatus: invoiceSettings.paymentStatus || 'unpaid', // Use the current payment status setting
-        paymentMethod: invoiceSettings.paymentMethod || 'bank_transfer',
+        paymentMethod: invoiceSettings.paymentMethod || 'cash',
         discount: parseFloat(invoiceSettings.discountRate) || 0,
         taxRate: parseFloat(invoiceSettings.taxRate) || 14,
         subtotal: totalAmount,
@@ -1454,9 +1454,9 @@ function generateInvoiceNumber() {
 function getPaymentMethodText(method) {
     const methods = {
         'cash': 'نقداً',
-        'card': 'بطاقة ائتمان',
-        'bank_transfer': 'تحويل بنكي',
-        'online': 'دفع إلكتروني'
+        'instapay': 'Instapay',
+        'محفظة': 'محفظة رقمية',
+        'بنك': 'حساب بنكي'
     };
     
     return methods[method] || method;

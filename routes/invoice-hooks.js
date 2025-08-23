@@ -84,7 +84,7 @@ async function handleInvoicePaymentStatusChange(invoice, oldStatus, newStatus) {
         await location.update({ balance: newBalance });
         
         console.log(`Updated location ${location.name_ar} balance: ${location.balance} -> ${newBalance}`);
-
+        
     } catch (error) {
         console.error('Error handling invoice payment status change:', error);
         // Don't throw error to avoid breaking the main invoice update process
@@ -110,13 +110,13 @@ async function findLocationForPaymentMethod(paymentMethod) {
         if (paymentMethod.toLowerCase().includes(methodName.toLowerCase())) {
             matchingConfig = config;
             console.log(`Matched payment method "${paymentMethod}" with config "${methodName}"`);
-            break;
+                break;
         }
     }
 
     if (!matchingConfig) {
         console.log(`No matching config found for payment method: ${paymentMethod}`);
-        return null;
+                return null;
     }
 
     // Find location with matching type

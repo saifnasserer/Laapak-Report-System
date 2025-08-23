@@ -299,14 +299,14 @@ function formatInvoiceForTable(invoice) {
                 case 'cash':
                     paymentMethodText = 'نقداً';
                     break;
-                case 'credit_card':
-                    paymentMethodText = 'بطاقة ائتمان';
+                case 'instapay':
+                    paymentMethodText = 'Instapay';
                     break;
-                case 'bank_transfer':
-                    paymentMethodText = 'تحويل بنكي';
+                case 'محفظة':
+                    paymentMethodText = 'محفظة رقمية';
                     break;
-                case 'other':
-                    paymentMethodText = 'أخرى';
+                case 'بنك':
+                    paymentMethodText = 'حساب بنكي';
                     break;
                 default:
                     paymentMethodText = invoice.paymentMethod;
@@ -1366,14 +1366,14 @@ async function viewInvoice(invoiceId) {
                 case 'cash':
                     paymentMethodText = 'نقداً';
                     break;
-                case 'credit_card':
-                    paymentMethodText = 'بطاقة ائتمان';
+                case 'instapay':
+                    paymentMethodText = 'Instapay';
                     break;
-                case 'bank_transfer':
-                    paymentMethodText = 'تحويل بنكي';
+                case 'محفظة':
+                    paymentMethodText = 'محفظة رقمية';
                     break;
-                case 'other':
-                    paymentMethodText = 'أخرى';
+                case 'بنك':
+                    paymentMethodText = 'حساب بنكي';
                     break;
                 default:
                     paymentMethodText = invoice.paymentMethod;
