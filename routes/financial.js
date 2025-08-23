@@ -321,11 +321,17 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             console.error('Error fetching upcoming expenses:', error);
         }
 
-        // Get 6-month trend data for charts
+        // Get trend data for charts based on the selected date range
         const trendData = [];
         try {
-            for (let i = 5; i >= 0; i--) {
-                const date = new Date(endDateObj.getFullYear(), endDateObj.getMonth() - i, 1);
+            // Calculate the number of months in the selected date range
+            const startMonth = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
+            const endMonth = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), 1);
+            const monthDiff = (endMonth.getFullYear() - startMonth.getFullYear()) * 12 + (endMonth.getMonth() - startMonth.getMonth()) + 1;
+            
+            // Generate monthly data points for the selected period
+            for (let i = 0; i < monthDiff; i++) {
+                const date = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
                 const trendStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
                 const trendEndDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
                 

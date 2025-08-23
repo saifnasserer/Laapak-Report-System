@@ -1209,54 +1209,16 @@
             let useKPIData = false;
             
             if (!trendData || trendData.length === 0) {
-                console.log('No trend data available, creating monthly breakdown from filtered data');
+                console.log('No trend data available, showing single period data');
                 useKPIData = true;
                 
                 if (kpisData) {
-                    // Get the date range from the filter inputs
-                    const startDate = document.getElementById('startDate').value;
-                    const endDate = document.getElementById('endDate').value;
-                    
-                    if (startDate && endDate) {
-                        // Create monthly breakdown from the filtered period
-                        const start = new Date(startDate);
-                        const end = new Date(endDate);
-                        const months = [];
-                        const expensesData = [];
-                        const profitData = [];
-                        
-                        // Generate monthly data points
-                        let currentDate = new Date(start.getFullYear(), start.getMonth(), 1);
-                        while (currentDate <= end) {
-                            const monthLabel = currentDate.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
-                            months.push(monthLabel);
-                            
-                            // For now, distribute the total evenly across months
-                            // In a real implementation, you'd want to get actual monthly data from the backend
-                            const monthCount = Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1);
-                            const monthlyExpenses = (parseFloat(kpisData.totalExpenses) || 0) / monthCount;
-                            const monthlyProfit = (parseFloat(kpisData.netProfit) || 0) / monthCount;
-                            
-                            expensesData.push(monthlyExpenses);
-                            profitData.push(monthlyProfit);
-                            
-                            // Move to next month
-                            currentDate.setMonth(currentDate.getMonth() + 1);
-                        }
-                        
-                        chartData = {
-                            labels: months,
-                            expenses: expensesData,
-                            profit: profitData
-                        };
-                    } else {
-                        // Fallback to single period if no date range
-                        chartData = {
-                            labels: ['الفترة المحددة'],
-                            expenses: [parseFloat(kpisData.totalExpenses) || 0],
-                            profit: [parseFloat(kpisData.netProfit) || 0]
-                        };
-                    }
+                    // Show single period data when no trend data is available
+                    chartData = {
+                        labels: ['الفترة المحددة'],
+                        expenses: [parseFloat(kpisData.totalExpenses) || 0],
+                        profit: [parseFloat(kpisData.netProfit) || 0]
+                    };
                 }
             } else {
                 // Use trend data if available - ensure it's monthly data, not cumulative
@@ -1325,18 +1287,22 @@
                 const titleElement = document.getElementById('trendChartTitle');
                 if (titleElement) {
                     if (useKPIData) {
+                        titleElement.textContent = 'المصروفات وصافي الربح (الفترة المحددة)';
+                    } else {
                         const startDate = document.getElementById('startDate').value;
                         const endDate = document.getElementById('endDate').value;
                         if (startDate && endDate) {
                             const start = new Date(startDate);
                             const end = new Date(endDate);
                             const monthCount = Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1);
-                            titleElement.textContent = `المصروفات وصافي الربح الشهري (${monthCount} شهر)`;
+                            if (monthCount === 1) {
+                                titleElement.textContent = 'المصروفات وصافي الربح (الشهر الحالي)';
+                            } else {
+                                titleElement.textContent = `تطور المصروفات وصافي الربح الشهري (${monthCount} شهر)`;
+                            }
                         } else {
-                            titleElement.textContent = 'المصروفات وصافي الربح (الفترة المحددة)';
+                            titleElement.textContent = 'تطور المصروفات وصافي الربح الشهري';
                         }
-                    } else {
-                        titleElement.textContent = 'تطور المصروفات وصافي الربح الشهري';
                     }
                 }
                 
