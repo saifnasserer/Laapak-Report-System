@@ -20,8 +20,10 @@ async function findLocationForPaymentMethod(paymentMethod, transaction = null) {
         'cash': { locationTypes: ['cash'], apiName: 'cash' },
         'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
         'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
+        'wallet': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
         'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
         'محفظة رقمية': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
+        'bank': { locationTypes: ['bank_account'], apiName: 'بنك' },
         'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' },
         'حساب بنكي': { locationTypes: ['bank_account'], apiName: 'بنك' }
     };
@@ -440,6 +442,32 @@ router.get('/stats', adminRoleAuth(['superadmin']), async (req, res) => {
 });
 
 /**
+ * GET /api/records/categories
+ * Get all expense categories
+ */
+router.get('/categories', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const categories = await ExpenseCategory.findAll({
+            where: { is_active: true },
+            order: [['name_ar', 'ASC']]
+        });
+
+        res.json({
+            success: true,
+            data: { categories: categories }
+        });
+
+    } catch (error) {
+        console.error('Get categories error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'خطأ في تحميل الفئات',
+            error: error.message 
+        });
+    }
+});
+
+/**
  * GET /api/records/:id
  * Get a single financial record by ID
  */
@@ -721,32 +749,6 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'خطأ في حذف التسجيل',
-            error: error.message 
-        });
-    }
-});
-
-/**
- * GET /api/records/categories
- * Get all expense categories
- */
-router.get('/categories', adminRoleAuth(['superadmin']), async (req, res) => {
-    try {
-        const categories = await ExpenseCategory.findAll({
-            where: { is_active: true },
-            order: [['name_ar', 'ASC']]
-        });
-
-        res.json({
-            success: true,
-            data: { categories: categories }
-        });
-
-    } catch (error) {
-        console.error('Get categories error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'خطأ في تحميل الفئات',
             error: error.message 
         });
     }
