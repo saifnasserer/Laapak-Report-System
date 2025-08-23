@@ -221,6 +221,18 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             }
 
             try {
+                console.log('About to create money movement with data:', {
+                    amount: Math.abs(amount),
+                    movement_type: movementType,
+                    reference_type: referenceType,
+                    reference_id: record.id.toString(),
+                    description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
+                    from_location_id: type === 'expense' ? moneyLocation.id : null,
+                    to_location_id: type === 'profit' ? moneyLocation.id : null,
+                    movement_date: date,
+                    created_by: req.user.id
+                });
+                
                 const movement = await MoneyMovement.create({
                     amount: Math.abs(amount),
                     movement_type: movementType,
@@ -234,8 +246,20 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 }, { transaction });
                 
                 console.log('Successfully created money movement:', movement.id);
+                console.log('Movement details:', {
+                    id: movement.id,
+                    amount: movement.amount,
+                    movement_type: movement.movement_type,
+                    reference_type: movement.reference_type,
+                    reference_id: movement.reference_id
+                });
             } catch (movementError) {
                 console.error('Error creating money movement:', movementError);
+                console.error('Error details:', {
+                    name: movementError.name,
+                    message: movementError.message,
+                    stack: movementError.stack
+                });
                 throw new Error(`Failed to create money movement: ${movementError.message}`);
             }
 
