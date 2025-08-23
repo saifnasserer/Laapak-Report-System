@@ -715,8 +715,8 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 if (locationId) {
                     const moneyLocation = await MoneyLocation.findByPk(locationId, { transaction });
                     if (moneyLocation) {
-                        // For expenses: money was taken from location, so we add it back
-                        // For profits: money was added to location, so we subtract it
+                        // For expenses (variable): money was taken from location, so we add it back
+                        // For profits (fixed): money was added to location, so we subtract it
                         const balanceChange = record.type === 'fixed' ? -record.amount : record.amount;
                         const newBalance = parseFloat(moneyLocation.balance || 0) + balanceChange;
                         await moneyLocation.update({ balance: newBalance }, { transaction });
