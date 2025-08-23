@@ -1,36 +1,13 @@
 /**
- * Laapak Report System - Money Management Routes
- * Handles money location tracking and movements between locations
+ * Laapak Report System - Money Management API Routes
+ * Handles money locations, movements, and financial tracking
  */
 
 const express = require('express');
 const router = express.Router();
-const { adminRoleAuth } = require('../middleware/auth');
-const { 
-    MoneyLocation, 
-    MoneyMovement, 
-    Invoice, 
-    Expense,
-    Admin 
-} = require('../models');
+const { adminAuth } = require('../middleware/auth');
+const { MoneyLocation, MoneyMovement, Invoice } = require('../models');
 const { Op } = require('sequelize');
-
-// =============================================================================
-// TEST ROUTE
-// =============================================================================
-
-/**
- * GET /api/money/test
- * Test route to verify money routes are loaded
- */
-router.get('/test', (req, res) => {
-    console.log('Money test route accessed');
-    res.json({
-        success: true,
-        message: 'Money management routes are working',
-        timestamp: new Date().toISOString()
-    });
-});
 
 // =============================================================================
 // MONEY LOCATIONS ROUTES
@@ -38,37 +15,19 @@ router.get('/test', (req, res) => {
 
 /**
  * GET /api/money/locations
- * Get all money locations with current balances
- * Access: Superadmin only
+ * Get all money locations with their current balances
  */
-router.get('/locations', adminRoleAuth(['superadmin']), async (req, res) => {
+router.get('/locations', adminAuth, async (req, res) => {
     try {
-        console.log('Money locations route accessed');
-        
-        // Test if MoneyLocation model is available
-        if (!MoneyLocation) {
-            console.error('MoneyLocation model not found');
-            return res.status(500).json({
-                success: false,
-                message: 'MoneyLocation model not available'
-            });
-        }
-        
         const locations = await MoneyLocation.findAll({
             where: { is_active: true },
-            order: [['name', 'ASC']]
+            order: [['created_at', 'ASC']]
         });
-
-        console.log('Found locations:', locations.length);
-
-        // Calculate total balance
-        const totalBalance = await MoneyLocation.getTotalBalance();
 
         res.json({
             success: true,
             data: {
-                locations,
-                totalBalance
+                locations: locations
             }
         });
     } catch (error) {
@@ -84,23 +43,34 @@ router.get('/locations', adminRoleAuth(['superadmin']), async (req, res) => {
 /**
  * POST /api/money/locations
  * Create a new money location
- * Access: Superadmin only
  */
-router.post('/locations', adminRoleAuth(['superadmin']), async (req, res) => {
+router.post('/locations', adminAuth, async (req, res) => {
     try {
-        const { name, name_ar, type, description } = req.body;
-        
+        const { name_ar, name_en, type, balance, description } = req.body;
+
+        // Validate required fields
+        if (!name_ar || !type) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name and type are required'
+            });
+        }
+
         const location = await MoneyLocation.create({
-            name,
             name_ar,
+            name_en: name_en || name_ar,
             type,
-            description,
-            balance: 0.00
+            balance: parseFloat(balance || 0),
+            description: description || '',
+            created_by: req.user.id,
+            is_active: true
         });
 
-        res.json({
+        res.status(201).json({
             success: true,
-            data: location
+            data: {
+                location: location
+            }
         });
     } catch (error) {
         console.error('Error creating money location:', error);
@@ -115,13 +85,12 @@ router.post('/locations', adminRoleAuth(['superadmin']), async (req, res) => {
 /**
  * PUT /api/money/locations/:id
  * Update a money location
- * Access: Superadmin only
  */
-router.put('/locations/:id', adminRoleAuth(['superadmin']), async (req, res) => {
+router.put('/locations/:id', adminAuth, async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, name_ar, type, description, is_active } = req.body;
-        
+        const { name_ar, name_en, type, balance, description, is_active } = req.body;
+
         const location = await MoneyLocation.findByPk(id);
         if (!location) {
             return res.status(404).json({
@@ -131,16 +100,20 @@ router.put('/locations/:id', adminRoleAuth(['superadmin']), async (req, res) => 
         }
 
         await location.update({
-            name,
-            name_ar,
-            type,
-            description,
-            is_active
+            name_ar: name_ar || location.name_ar,
+            name_en: name_en || location.name_en,
+            type: type || location.type,
+            balance: balance !== undefined ? parseFloat(balance) : location.balance,
+            description: description !== undefined ? description : location.description,
+            is_active: is_active !== undefined ? is_active : location.is_active,
+            updated_by: req.user.id
         });
 
         res.json({
             success: true,
-            data: location
+            data: {
+                location: location
+            }
         });
     } catch (error) {
         console.error('Error updating money location:', error);
@@ -158,60 +131,53 @@ router.put('/locations/:id', adminRoleAuth(['superadmin']), async (req, res) => 
 
 /**
  * GET /api/money/movements
- * Get money movements with filtering and pagination
- * Access: Superadmin only
+ * Get money movements with optional filters
  */
-router.get('/movements', adminRoleAuth(['superadmin']), async (req, res) => {
+router.get('/movements', adminAuth, async (req, res) => {
     try {
         const { 
-            page = 1, 
-            limit = 20, 
             startDate, 
             endDate, 
-            movementType,
-            locationId 
+            locationId, 
+            movementType, 
+            limit = 50,
+            offset = 0 
         } = req.query;
 
-        const offset = (page - 1) * limit;
-        const whereClause = {};
+        let whereClause = {};
 
-        // Date range filter
+        // Filter by date range
         if (startDate && endDate) {
             whereClause.movement_date = {
                 [Op.between]: [new Date(startDate), new Date(endDate)]
             };
         }
 
-        // Movement type filter
+        // Filter by location
+        if (locationId) {
+            whereClause[Op.or] = [
+                { fromLocationId: locationId },
+                { toLocationId: locationId }
+            ];
+        }
+
+        // Filter by movement type
         if (movementType) {
             whereClause.movement_type = movementType;
         }
 
-        // Location filter
-        if (locationId) {
-            whereClause[Op.or] = [
-                { from_location_id: locationId },
-                { to_location_id: locationId }
-            ];
-        }
-
-        const movements = await MoneyMovement.findAndCountAll({
+        const movements = await MoneyMovement.findAll({
             where: whereClause,
             include: [
                 {
                     model: MoneyLocation,
                     as: 'fromLocation',
-                    attributes: ['id', 'name', 'name_ar']
+                    attributes: ['id', 'name_ar', 'type']
                 },
                 {
                     model: MoneyLocation,
                     as: 'toLocation',
-                    attributes: ['id', 'name', 'name_ar']
-                },
-                {
-                    model: Admin,
-                    as: 'creator',
-                    attributes: ['id', 'name']
+                    attributes: ['id', 'name_ar', 'type']
                 }
             ],
             order: [['movement_date', 'DESC']],
@@ -219,15 +185,17 @@ router.get('/movements', adminRoleAuth(['superadmin']), async (req, res) => {
             offset: parseInt(offset)
         });
 
+        const totalCount = await MoneyMovement.count({ where: whereClause });
+
         res.json({
             success: true,
             data: {
-                movements: movements.rows,
+                movements: movements,
                 pagination: {
-                    page: parseInt(page),
+                    total: totalCount,
                     limit: parseInt(limit),
-                    total: movements.count,
-                    pages: Math.ceil(movements.count / limit)
+                    offset: parseInt(offset),
+                    hasMore: (parseInt(offset) + parseInt(limit)) < totalCount
                 }
             }
         });
@@ -243,35 +211,82 @@ router.get('/movements', adminRoleAuth(['superadmin']), async (req, res) => {
 
 /**
  * POST /api/money/transfer
- * Create a money transfer between locations
- * Access: Superadmin only
+ * Create a transfer between money locations
  */
-router.post('/transfer', adminRoleAuth(['superadmin']), async (req, res) => {
+router.post('/transfer', adminAuth, async (req, res) => {
+    const transaction = await require('../models').sequelize.transaction();
+    
     try {
         const { fromLocationId, toLocationId, amount, description } = req.body;
-        const adminId = req.user.id;
 
+        // Validate required fields
         if (!toLocationId || !amount || amount <= 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid transfer parameters'
+                message: 'Valid destination location and amount are required'
             });
         }
 
-        const movement = await MoneyMovement.createTransfer(
-            fromLocationId,
-            toLocationId,
-            parseFloat(amount),
-            description,
-            adminId
-        );
+        // Validate locations exist
+        const toLocation = await MoneyLocation.findByPk(toLocationId);
+        if (!toLocation) {
+            return res.status(404).json({
+                success: false,
+                message: 'Destination location not found'
+            });
+        }
 
-        res.json({
+        let fromLocation = null;
+        if (fromLocationId) {
+            fromLocation = await MoneyLocation.findByPk(fromLocationId);
+            if (!fromLocation) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Source location not found'
+                });
+            }
+
+            // Check if source location has sufficient balance
+            if (parseFloat(fromLocation.balance) < parseFloat(amount)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Insufficient balance in source location'
+                });
+            }
+        }
+
+        // Create movement record
+        const movement = await MoneyMovement.create({
+            movement_type: fromLocationId ? 'transfer' : 'deposit',
+            amount: parseFloat(amount),
+            fromLocationId: fromLocationId || null,
+            toLocationId: toLocationId,
+            description: description || (fromLocationId ? 'تحويل بين المواقع' : 'إيداع'),
+            movement_date: new Date(),
+            created_by: req.user.id
+        }, { transaction });
+
+        // Update location balances
+        if (fromLocation) {
+            await fromLocation.update({
+                balance: parseFloat(fromLocation.balance) - parseFloat(amount)
+            }, { transaction });
+        }
+
+        await toLocation.update({
+            balance: parseFloat(toLocation.balance) + parseFloat(amount)
+        }, { transaction });
+
+        await transaction.commit();
+
+        res.status(201).json({
             success: true,
-            data: movement,
-            message: 'Transfer completed successfully'
+            data: {
+                movement: movement
+            }
         });
     } catch (error) {
+        await transaction.rollback();
         console.error('Error creating transfer:', error);
         res.status(500).json({
             success: false,
@@ -283,36 +298,57 @@ router.post('/transfer', adminRoleAuth(['superadmin']), async (req, res) => {
 
 /**
  * POST /api/money/deposit
- * Add money to a location (external deposit)
- * Access: Superadmin only
+ * Create a deposit to a money location
  */
-router.post('/deposit', adminRoleAuth(['superadmin']), async (req, res) => {
+router.post('/deposit', adminAuth, async (req, res) => {
+    const transaction = await require('../models').sequelize.transaction();
+    
     try {
-        console.log('Deposit request received:', { body: req.body, user: req.user });
         const { toLocationId, amount, description } = req.body;
-        const adminId = req.user.id;
 
+        // Validate required fields
         if (!toLocationId || !amount || amount <= 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid deposit parameters'
+                message: 'Valid destination location and amount are required'
             });
         }
 
-        const movement = await MoneyMovement.createTransfer(
-            null, // No from location for external deposits
-            toLocationId,
-            parseFloat(amount),
-            description,
-            adminId
-        );
+        // Validate location exists
+        const toLocation = await MoneyLocation.findByPk(toLocationId);
+        if (!toLocation) {
+            return res.status(404).json({
+                success: false,
+                message: 'Destination location not found'
+            });
+        }
 
-        res.json({
+        // Create movement record
+        const movement = await MoneyMovement.create({
+            movement_type: 'deposit',
+            amount: parseFloat(amount),
+            fromLocationId: null,
+            toLocationId: toLocationId,
+            description: description || 'إيداع',
+            movement_date: new Date(),
+            created_by: req.user.id
+        }, { transaction });
+
+        // Update location balance
+        await toLocation.update({
+            balance: parseFloat(toLocation.balance) + parseFloat(amount)
+        }, { transaction });
+
+        await transaction.commit();
+
+        res.status(201).json({
             success: true,
-            data: movement,
-            message: 'Deposit completed successfully'
+            data: {
+                movement: movement
+            }
         });
     } catch (error) {
+        await transaction.rollback();
         console.error('Error creating deposit:', error);
         res.status(500).json({
             success: false,
@@ -324,52 +360,65 @@ router.post('/deposit', adminRoleAuth(['superadmin']), async (req, res) => {
 
 /**
  * POST /api/money/withdrawal
- * Remove money from a location (external withdrawal)
- * Access: Superadmin only
+ * Create a withdrawal from a money location
  */
-router.post('/withdrawal', adminRoleAuth(['superadmin']), async (req, res) => {
+router.post('/withdrawal', adminAuth, async (req, res) => {
+    const transaction = await require('../models').sequelize.transaction();
+    
     try {
-        console.log('Withdrawal request received:', { body: req.body, user: req.user });
         const { fromLocationId, amount, description } = req.body;
-        const adminId = req.user.id;
 
+        // Validate required fields
         if (!fromLocationId || !amount || amount <= 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid withdrawal parameters'
+                message: 'Valid source location and amount are required'
+            });
+        }
+
+        // Validate location exists
+        const fromLocation = await MoneyLocation.findByPk(fromLocationId);
+        if (!fromLocation) {
+            return res.status(404).json({
+                success: false,
+                message: 'Source location not found'
             });
         }
 
         // Check if location has sufficient balance
-        const location = await MoneyLocation.findByPk(fromLocationId);
-        if (!location) {
-            return res.status(404).json({
-                success: false,
-                message: 'Location not found'
-            });
-        }
-
-        if (parseFloat(location.balance) < parseFloat(amount)) {
+        if (parseFloat(fromLocation.balance) < parseFloat(amount)) {
             return res.status(400).json({
                 success: false,
-                message: 'Insufficient balance for withdrawal'
+                message: 'Insufficient balance in source location'
             });
         }
 
-        const movement = await MoneyMovement.createTransfer(
-            fromLocationId,
-            null, // No to location for external withdrawals
-            parseFloat(amount),
-            description,
-            adminId
-        );
+        // Create movement record
+        const movement = await MoneyMovement.create({
+            movement_type: 'withdrawal',
+            amount: parseFloat(amount),
+            fromLocationId: fromLocationId,
+            toLocationId: null,
+            description: description || 'سحب',
+            movement_date: new Date(),
+            created_by: req.user.id
+        }, { transaction });
 
-        res.json({
+        // Update location balance
+        await fromLocation.update({
+            balance: parseFloat(fromLocation.balance) - parseFloat(amount)
+        }, { transaction });
+
+        await transaction.commit();
+
+        res.status(201).json({
             success: true,
-            data: movement,
-            message: 'Withdrawal completed successfully'
+            data: {
+                movement: movement
+            }
         });
     } catch (error) {
+        await transaction.rollback();
         console.error('Error creating withdrawal:', error);
         res.status(500).json({
             success: false,
@@ -386,155 +435,82 @@ router.post('/withdrawal', adminRoleAuth(['superadmin']), async (req, res) => {
 /**
  * GET /api/money/dashboard
  * Get money management dashboard data
- * Access: Superadmin only
  */
-router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
+router.get('/dashboard', adminAuth, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 
-        // Get all locations with balances
+        let whereClause = {};
+        if (startDate && endDate) {
+            whereClause.movement_date = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        }
+
+        // Get locations with balances
         const locations = await MoneyLocation.findAll({
             where: { is_active: true },
-            order: [['balance', 'DESC']]
+            order: [['created_at', 'ASC']]
         });
-
-        // Calculate total balance
-        const totalBalance = await MoneyLocation.getTotalBalance();
 
         // Get recent movements
         const recentMovements = await MoneyMovement.findAll({
+            where: whereClause,
             include: [
                 {
                     model: MoneyLocation,
                     as: 'fromLocation',
-                    attributes: ['id', 'name', 'name_ar']
+                    attributes: ['id', 'name_ar', 'type']
                 },
                 {
                     model: MoneyLocation,
                     as: 'toLocation',
-                    attributes: ['id', 'name', 'name_ar']
+                    attributes: ['id', 'name_ar', 'type']
                 }
             ],
             order: [['movement_date', 'DESC']],
             limit: 10
         });
 
-        // Get movement statistics for the period
-        let movementStats = {};
-        if (startDate && endDate) {
-            const movements = await MoneyMovement.findAll({
-                where: {
-                    movement_date: {
-                        [Op.between]: [new Date(startDate), new Date(endDate)]
-                    }
+        // Calculate statistics
+        const totalBalance = locations.reduce((sum, loc) => sum + parseFloat(loc.balance || 0), 0);
+        const totalMovements = await MoneyMovement.count({ where: whereClause });
+
+        // Get today's movements
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const todayMovements = await MoneyMovement.count({
+            where: {
+                movement_date: {
+                    [Op.between]: [today, tomorrow]
                 }
-            });
-
-            movementStats = {
-                totalMovements: movements.length,
-                totalAmount: movements.reduce((sum, m) => sum + parseFloat(m.amount), 0),
-                transfers: movements.filter(m => m.movement_type === 'transfer').length,
-                deposits: movements.filter(m => m.movement_type === 'deposit').length,
-                withdrawals: movements.filter(m => m.movement_type === 'withdrawal').length
-            };
-        }
-
-        // Get invoice statistics by payment method
-        const invoiceStats = await getInvoiceStatsByPaymentMethod(startDate, endDate);
+            }
+        });
 
         res.json({
             success: true,
             data: {
-                locations,
-                totalBalance,
-                recentMovements,
-                movementStats,
-                invoiceStats
+                locations: locations,
+                recentMovements: recentMovements,
+                statistics: {
+                    totalBalance: totalBalance,
+                    totalLocations: locations.length,
+                    totalMovements: totalMovements,
+                    todayMovements: todayMovements
+                }
             }
         });
     } catch (error) {
-        console.error('Error fetching money dashboard:', error);
+        console.error('Error fetching dashboard data:', error);
         res.status(500).json({
             success: false,
-            message: 'Error fetching money dashboard',
+            message: 'Error fetching dashboard data',
             error: error.message
         });
     }
 });
-
-// Helper function to get invoice statistics by payment method
-async function getInvoiceStatsByPaymentMethod(startDate, endDate) {
-    const { Invoice } = require('../models');
-    const { Op } = require('sequelize');
-    
-    let whereClause = {};
-    
-    // Filter by date range if provided
-    if (startDate && endDate) {
-        whereClause.date = {
-            [Op.between]: [new Date(startDate), new Date(endDate)]
-        };
-    } else if (startDate) {
-        whereClause.date = {
-            [Op.gte]: new Date(startDate)
-        };
-    } else if (endDate) {
-        whereClause.date = {
-            [Op.lte]: new Date(endDate)
-        };
-    }
-    
-    // Get invoices with payment methods
-    const invoices = await Invoice.findAll({
-        where: whereClause,
-        attributes: ['paymentMethod', 'total', 'paymentStatus'],
-        order: [['date', 'DESC']]
-    });
-    
-    // Calculate statistics
-    const stats = {
-        totalInvoices: invoices.length,
-        totalAmount: 0,
-        byPaymentMethod: {
-            cash: { count: 0, amount: 0, paid: 0, pending: 0 },
-            instapay: { count: 0, amount: 0, paid: 0, pending: 0 },
-            محفظة: { count: 0, amount: 0, paid: 0, pending: 0 },
-            بنك: { count: 0, amount: 0, paid: 0, pending: 0 },
-            other: { count: 0, amount: 0, paid: 0, pending: 0 }
-        }
-    };
-    
-    invoices.forEach(invoice => {
-        const amount = parseFloat(invoice.total) || 0;
-        const method = invoice.paymentMethod || 'other';
-        const status = invoice.paymentStatus || 'pending';
-        
-        // Add to total
-        stats.totalAmount += amount;
-        
-        // Add to payment method stats
-        if (stats.byPaymentMethod.hasOwnProperty(method)) {
-            stats.byPaymentMethod[method].count++;
-            stats.byPaymentMethod[method].amount += amount;
-            
-            if (status === 'paid' || status === 'completed') {
-                stats.byPaymentMethod[method].paid += amount;
-            } else {
-                stats.byPaymentMethod[method].pending += amount;
-            }
-        } else {
-            stats.byPaymentMethod.other.count++;
-            stats.byPaymentMethod.other.amount += amount;
-            
-            if (status === 'paid' || status === 'completed') {
-                stats.byPaymentMethod.other.paid += amount;
-            } else {
-                stats.byPaymentMethod.other.pending += amount;
-            }
-        }
-    });
-    
-    return stats;
-}
 
 module.exports = router;
