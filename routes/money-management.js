@@ -46,7 +46,7 @@ router.get('/locations', adminAuth, async (req, res) => {
  */
 router.post('/locations', adminAuth, async (req, res) => {
     try {
-        const { name_ar, name_en, type, balance, description } = req.body;
+        const { name_ar, type, balance, description } = req.body;
 
         // Validate required fields
         if (!name_ar || !type) {
@@ -57,12 +57,11 @@ router.post('/locations', adminAuth, async (req, res) => {
         }
 
         const location = await MoneyLocation.create({
+            name: name_ar, // Use name_ar for both name and name_ar fields
             name_ar,
-            name_en: name_en || name_ar,
             type,
             balance: parseFloat(balance || 0),
             description: description || '',
-            created_by: req.user.id,
             is_active: true
         });
 
@@ -89,7 +88,7 @@ router.post('/locations', adminAuth, async (req, res) => {
 router.put('/locations/:id', adminAuth, async (req, res) => {
     try {
         const { id } = req.params;
-        const { name_ar, name_en, type, balance, description, is_active } = req.body;
+        const { name_ar, type, balance, description, is_active } = req.body;
 
         const location = await MoneyLocation.findByPk(id);
         if (!location) {
@@ -100,13 +99,12 @@ router.put('/locations/:id', adminAuth, async (req, res) => {
         }
 
         await location.update({
+            name: name_ar || location.name,
             name_ar: name_ar || location.name_ar,
-            name_en: name_en || location.name_en,
             type: type || location.type,
             balance: balance !== undefined ? parseFloat(balance) : location.balance,
             description: description !== undefined ? description : location.description,
-            is_active: is_active !== undefined ? is_active : location.is_active,
-            updated_by: req.user.id
+            is_active: is_active !== undefined ? is_active : location.is_active
         });
 
         res.json({
@@ -156,8 +154,8 @@ router.get('/movements', adminAuth, async (req, res) => {
         // Filter by location
         if (locationId) {
             whereClause[Op.or] = [
-                { fromLocationId: locationId },
-                { toLocationId: locationId }
+                { from_location_id: locationId },
+                { to_location_id: locationId }
             ];
         }
 
@@ -172,12 +170,14 @@ router.get('/movements', adminAuth, async (req, res) => {
                 {
                     model: MoneyLocation,
                     as: 'fromLocation',
-                    attributes: ['id', 'name_ar', 'type']
+                    attributes: ['id', 'name_ar', 'type'],
+                    foreignKey: 'from_location_id'
                 },
                 {
                     model: MoneyLocation,
                     as: 'toLocation',
-                    attributes: ['id', 'name_ar', 'type']
+                    attributes: ['id', 'name_ar', 'type'],
+                    foreignKey: 'to_location_id'
                 }
             ],
             order: [['movement_date', 'DESC']],
@@ -259,8 +259,9 @@ router.post('/transfer', adminAuth, async (req, res) => {
         const movement = await MoneyMovement.create({
             movement_type: fromLocationId ? 'transfer' : 'deposit',
             amount: parseFloat(amount),
-            fromLocationId: fromLocationId || null,
-            toLocationId: toLocationId,
+            from_location_id: fromLocationId || null,
+            to_location_id: toLocationId,
+            reference_type: 'manual',
             description: description || (fromLocationId ? 'تحويل بين المواقع' : 'إيداع'),
             movement_date: new Date(),
             created_by: req.user.id
@@ -327,8 +328,9 @@ router.post('/deposit', adminAuth, async (req, res) => {
         const movement = await MoneyMovement.create({
             movement_type: 'deposit',
             amount: parseFloat(amount),
-            fromLocationId: null,
-            toLocationId: toLocationId,
+            from_location_id: null,
+            to_location_id: toLocationId,
+            reference_type: 'manual',
             description: description || 'إيداع',
             movement_date: new Date(),
             created_by: req.user.id
@@ -397,8 +399,9 @@ router.post('/withdrawal', adminAuth, async (req, res) => {
         const movement = await MoneyMovement.create({
             movement_type: 'withdrawal',
             amount: parseFloat(amount),
-            fromLocationId: fromLocationId,
-            toLocationId: null,
+            from_location_id: fromLocationId,
+            to_location_id: null,
+            reference_type: 'manual',
             description: description || 'سحب',
             movement_date: new Date(),
             created_by: req.user.id
@@ -460,12 +463,14 @@ router.get('/dashboard', adminAuth, async (req, res) => {
                 {
                     model: MoneyLocation,
                     as: 'fromLocation',
-                    attributes: ['id', 'name_ar', 'type']
+                    attributes: ['id', 'name_ar', 'type'],
+                    foreignKey: 'from_location_id'
                 },
                 {
                     model: MoneyLocation,
                     as: 'toLocation',
-                    attributes: ['id', 'name_ar', 'type']
+                    attributes: ['id', 'name_ar', 'type'],
+                    foreignKey: 'to_location_id'
                 }
             ],
             order: [['movement_date', 'DESC']],
