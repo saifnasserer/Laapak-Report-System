@@ -279,6 +279,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Commit transaction
             await transaction.commit();
+            console.log('Transaction committed successfully');
 
             // Get the record with category information
             const recordWithCategory = await Expense.findByPk(record.id, {
@@ -309,6 +310,9 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
         } catch (error) {
             // Rollback transaction on error
             console.error('Error in transaction, rolling back:', error);
+            console.error('Error stack:', error.stack);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
             await transaction.rollback();
             throw error;
         }
