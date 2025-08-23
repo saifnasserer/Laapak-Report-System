@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const taxAmountEl = document.getElementById('taxAmount');
     const totalAmountEl = document.getElementById('totalAmount');
     const paymentMethodEl = document.getElementById('paymentMethod');
-    const paymentDateEl = document.getElementById('paymentDate');
+    // const paymentDateEl = document.getElementById('paymentDate'); // Removed payment date field
 
     const printInvoiceBtn = document.getElementById('printInvoiceBtn');
     const downloadPdfBtn = document.getElementById('downloadPdfBtn');
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     totalAmountEl.textContent = formatCurrency(get(invoice, 'total'));
         paymentMethodEl.textContent = get(invoice, 'paymentMethod', 'غير محدد');
-        paymentDateEl.textContent = formatDate(get(invoice, 'paymentDate'));
+        // paymentDateEl.textContent = formatDate(get(invoice, 'paymentDate')); // Removed payment date field
     }
 
     // Print Invoice

@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const invoiceDateInput = document.getElementById('invoiceDate');
     const paymentStatusSelect = document.getElementById('paymentStatus');
     const paymentMethodSelect = document.getElementById('paymentMethod');
-    const paymentDateInput = document.getElementById('paymentDate');
+    // const paymentDateInput = document.getElementById('paymentDate'); // Removed payment date field
     const invoiceItemsContainer = document.getElementById('invoiceItemsContainer');
     const addItemBtn = document.getElementById('addItemBtn');
     const subtotalAmountDisplay = document.getElementById('subtotalAmount');
@@ -162,10 +162,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
             
-            invoiceDateInput.value = invoice.date ? invoice.date.split('T')[0] : '';
+            // Handle date formatting - check for different date formats
+            let formattedDate = '';
+            if (invoice.date) {
+                if (typeof invoice.date === 'string') {
+                    // Handle ISO date string
+                    if (invoice.date.includes('T')) {
+                        formattedDate = invoice.date.split('T')[0];
+                    } else if (invoice.date.includes(' ')) {
+                        // Handle date with time but no T
+                        formattedDate = invoice.date.split(' ')[0];
+                    } else {
+                        // Assume it's already in YYYY-MM-DD format
+                        formattedDate = invoice.date;
+                    }
+                } else {
+                    // Handle Date object
+                    const date = new Date(invoice.date);
+                    formattedDate = date.toISOString().split('T')[0];
+                }
+            }
+            invoiceDateInput.value = formattedDate;
             paymentStatusSelect.value = invoice.paymentStatus || 'pending';
             paymentMethodSelect.value = invoice.paymentMethod || '';
-            paymentDateInput.value = invoice.paymentDate ? invoice.paymentDate.split('T')[0] : '';
+            // paymentDateInput.value = invoice.paymentDate ? invoice.paymentDate.split('T')[0] : ''; // Removed payment date field
             discountInput.value = parseFloat(invoice.discount || 0).toFixed(2);
             taxRateInput.value = parseFloat(invoice.taxRate || 14.00).toFixed(2);
 
@@ -344,6 +364,18 @@ document.addEventListener('DOMContentLoaded', function () {
     addItemBtn.addEventListener('click', () => addInvoiceItemRow());
     discountInput.addEventListener('input', calculateTotals);
     taxRateInput.addEventListener('input', calculateTotals);
+    
+    // Add event listener for date input to ensure it's properly handled
+    invoiceDateInput.addEventListener('change', function() {
+        console.log('Date input changed to:', this.value);
+        console.log('Date input type:', typeof this.value);
+        console.log('Date input validity:', this.validity.valid);
+    });
+    
+    // Also listen for input events to catch all changes
+    invoiceDateInput.addEventListener('input', function() {
+        console.log('Date input event - value:', this.value);
+    });
 
     editInvoiceForm.addEventListener('submit', async function (event) {
         event.preventDefault();
@@ -356,14 +388,31 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedReportId = reportIdInput.value;
         }
 
+        // Ensure date is properly formatted
+        let formattedInvoiceDate = '';
+        if (invoiceDateInput.value && invoiceDateInput.value.trim() !== '') {
+            const date = new Date(invoiceDateInput.value);
+            if (!isNaN(date.getTime())) {
+                formattedInvoiceDate = date.toISOString().split('T')[0];
+            } else {
+                // If invalid date, use current date as fallback
+                formattedInvoiceDate = new Date().toISOString().split('T')[0];
+                console.warn('Invalid date provided, using current date as fallback');
+            }
+        } else {
+            // If no date provided, use current date
+            formattedInvoiceDate = new Date().toISOString().split('T')[0];
+            console.warn('No date provided, using current date as fallback');
+        }
+
         const invoiceData = {
             id: document.getElementById('invoiceId').value,
             client_id: clientIdSelect.value,
             report_id: selectedReportId, // Use the selected report ID
-            date: invoiceDateInput.value,
+            date: formattedInvoiceDate,
             paymentStatus: paymentStatusSelect.value,
             paymentMethod: paymentMethodSelect.value || null,
-            paymentDate: paymentDateInput.value || null,
+            paymentDate: null, // Removed payment date field - always null
             discount: parseFloat(discountInput.value).toFixed(2),
             taxRate: parseFloat(taxRateInput.value).toFixed(2),
             items: []
@@ -406,6 +455,11 @@ document.addEventListener('DOMContentLoaded', function () {
         invoiceData.total = (subtotalAfterDiscount + currentTax).toFixed(2);
 
         try {
+            // Debug: Log the invoice data being sent
+            console.log('Invoice data being sent:', invoiceData);
+            console.log('Original date input value:', invoiceDateInput.value);
+            console.log('Formatted date:', formattedInvoiceDate);
+            
             // Get the admin or client token based on which one is available
             const token = localStorage.getItem('adminToken') || 
                          sessionStorage.getItem('adminToken') || 
@@ -437,6 +491,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 url = `https://reports.laapak.com/api/invoices/${invoiceData.id}`;
                 method = 'PUT';
             }
+            
+            // Debug: Log the final request data
+            console.log('Final request URL:', url);
+            console.log('Final request method:', method);
+            console.log('Final request body:', JSON.stringify(invoiceData, null, 2));
             
             const response = await fetch(url, {
                 method: method,

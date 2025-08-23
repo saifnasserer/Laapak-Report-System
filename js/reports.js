@@ -1,6 +1,13 @@
 /**
  * Laapak Report System - Reports List Page JavaScript
  * Handles functionality for the reports listing page
+ * 
+ * Features:
+ * - Reports are automatically sorted by inspection date (newest first)
+ * - Real-time search and filtering
+ * - Pagination support
+ * - Status management with dropdown
+ * - Invoice integration
  */
 
 // Pagination settings
@@ -273,6 +280,28 @@ function getInvoiceStatusBadge(status) {
 }
 
 /**
+ * Sort reports by date (newest first)
+ * @param {Array} reports - Array of report objects
+ * @returns {Array} Sorted array of reports
+ */
+function sortReportsByDate(reports) {
+    if (!Array.isArray(reports)) return [];
+    
+    return reports.sort((a, b) => {
+        // Get inspection dates from both reports
+        const dateA = a.inspection_date || a.inspectionDate || a.created_at || a.createdAt || new Date(0);
+        const dateB = b.inspection_date || b.inspectionDate || b.created_at || b.createdAt || new Date(0);
+        
+        // Convert to Date objects if they're strings
+        const dateObjA = new Date(dateA);
+        const dateObjB = new Date(dateB);
+        
+        // Sort by newest first (descending order)
+        return dateObjB - dateObjA;
+    });
+}
+
+/**
  * Initialize reports listing functionality
  */
 function initReports() {
@@ -294,6 +323,38 @@ function initReports() {
             
             // If connected, fetch reports from API
             return apiService.getReports({ fetch_mode: 'all_reports' });
+        })
+        .catch(error => {
+            // If server connection fails, try to load from cache first
+            console.log('Server connection failed, attempting to load from cache...');
+            const cachedReports = localStorage.getItem('cachedReports');
+            if (cachedReports) {
+                try {
+                    const reports = JSON.parse(cachedReports);
+                    console.log('Loaded reports from cache:', reports.length);
+                    
+                    // Hide loading indicator
+                    if (loadingIndicator) {
+                        loadingIndicator.classList.add('d-none');
+                    }
+                    
+                    // Show offline notification
+                    const offlineAlert = document.getElementById('offlineAlert');
+                    if (offlineAlert) {
+                        offlineAlert.classList.add('show');
+                        offlineAlert.innerHTML = 'أنت تعمل في وضع عدم الاتصال. البيانات المعروضة من التخزين المحلي.';
+                    }
+                    
+                    // Populate table with cached data
+                    populateReportsTable(reports);
+                    return; // Exit early
+                } catch (cacheError) {
+                    console.error('Error loading from cache:', cacheError);
+                }
+            }
+            
+            // If cache loading fails or no cache available, re-throw the original error
+            throw error;
         })
         .then(data => {
             // Hide loading indicator
@@ -359,20 +420,33 @@ function initReports() {
             
             // Display more detailed error information
             let errorMsg = 'حدث خطأ أثناء تحميل التقارير: ';
+            let showRetryButton = false;
             
             // Check if this is a database connection error
             if (error.message && (error.message.includes('database') || error.message.includes('connection'))) {
                 errorMsg += 'لا يمكن الاتصال بقاعدة البيانات. يرجى التأكد من تشغيل خدمة MySQL.';
+                showRetryButton = true;
             } else if (error.message && error.message.includes('NetworkError')) {
                 errorMsg += 'لا يمكن الاتصال بالخادم. يرجى التأكد من تشغيل خادم Node.js على المنفذ 3001.';
+                showRetryButton = true;
+            } else if (error.message && error.message.includes('timeout')) {
+                errorMsg += 'انتهت مهلة الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
+                showRetryButton = true;
             } else if (error.message) {
                 errorMsg += error.message;
+                showRetryButton = true;
             } else {
                 errorMsg += 'خطأ غير معروف';
+                showRetryButton = true;
             }
             
             if (errorContainer) {
-                errorContainer.innerHTML = errorMsg;
+                errorContainer.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>${errorMsg}</span>
+                        ${showRetryButton ? '<button class="btn btn-sm btn-outline-primary" onclick="initReports()">إعادة المحاولة</button>' : ''}
+                    </div>
+                `;
                 errorContainer.classList.remove('d-none');
             }
             
@@ -389,7 +463,7 @@ async function checkServerConnection() {
     try {
         // Try to connect to the server with a timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
         // Try to get apiService from different sources
         const service = typeof apiService !== 'undefined' ? apiService : 
@@ -400,19 +474,43 @@ async function checkServerConnection() {
                       (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
                       'https://reports.laapak.com';
         
-        // Try to connect to the server - use /api/reports since we know that endpoint exists
-        const response = await fetch(`${baseUrl}/api/reports`, {
-            method: 'GET',
-            signal: controller.signal,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        console.log('Attempting to connect to:', baseUrl);
+        
+        // Try to connect to the server - use /api/health first, then fallback to /api/reports
+        let response;
+        try {
+            response = await fetch(`${baseUrl}/api/health`, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        } catch (healthError) {
+            console.log('Health endpoint failed, trying reports endpoint...');
+            // Fallback to reports endpoint
+            response = await fetch(`${baseUrl}/api/reports`, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
         
         clearTimeout(timeoutId);
+        console.log('Server connection successful:', response.status);
         return response.ok;
     } catch (error) {
         console.error('Server connection check failed:', error);
+        
+        // Provide more specific error information
+        if (error.name === 'AbortError') {
+            console.log('Connection timed out after 10 seconds');
+        } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            console.log('Network error - server may be offline');
+        }
+        
         return false;
     }
 }
@@ -427,10 +525,13 @@ function populateReportsTable(reports, updatePagination = true) {
     
     if (!reportsTableBody) return;
     
+    // Sort reports by date (newest first)
+    const sortedReports = sortReportsByDate(reports);
+    
     // Store all reports for pagination
     if (updatePagination) {
-        allReports = reports;
-        totalReports = reports.length;
+        allReports = sortedReports;
+        totalReports = sortedReports.length;
         // Reset to first page when new data is loaded
         currentPage = 1;
     }
@@ -717,6 +818,9 @@ function filterReportsBySearch(searchTerm) {
         });
     }
     
+    // Sort filtered reports by date
+    filteredReports = sortReportsByDate(filteredReports);
+    
     // Reset to first page when filtering
     currentPage = 1;
     
@@ -872,7 +976,9 @@ function loadReportsFromCache() {
         if (cachedReports) {
             try {
                 const reports = JSON.parse(cachedReports);
-                populateReportsTable(reports);
+                // Sort cached reports by date
+                const sortedReports = sortReportsByDate(reports);
+                populateReportsTable(sortedReports);
                 
                 // Show offline notification
                 const offlineAlert = document.getElementById('offlineAlert');

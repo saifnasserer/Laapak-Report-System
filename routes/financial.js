@@ -398,7 +398,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
         // Get expense breakdown by category
         let expenseBreakdown = [];
         try {
-            // Get all expenses for the date range
+            // Get all expenses for the date range with category information
             const expenses = await Expense.findAll({
                 where: {
                     date: {
@@ -406,31 +406,45 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                     },
                     status: ['approved', 'paid'],
                     type: 'variable' // Only get variable expenses, not fixed profits
-                }
+                },
+                include: [{
+                    model: ExpenseCategory,
+                    as: 'category',
+                    attributes: ['id', 'name_ar', 'name', 'color']
+                }]
             });
 
-            // Group expenses by name (simple grouping instead of categories)
+            // Group expenses by category
             const expenseGroups = {};
             
             for (const expense of expenses) {
-                const expenseName = expense.name_ar || expense.name || 'مصروفات أخرى';
+                const categoryId = expense.category_id;
+                const categoryName = expense.category ? expense.category.name_ar : 'غير محدد';
+                const categoryColor = expense.category ? expense.category.color : '#6c757d';
                 const amount = parseFloat(expense.amount) || 0;
                 
-                if (expenseGroups[expenseName]) {
-                    expenseGroups[expenseName] += amount;
+                if (expenseGroups[categoryId]) {
+                    expenseGroups[categoryId].total += amount;
                 } else {
-                    expenseGroups[expenseName] = amount;
+                    expenseGroups[categoryId] = {
+                        category_id: categoryId,
+                        category_name: categoryName,
+                        category_color: categoryColor,
+                        total: amount
+                    };
                 }
             }
 
             // Convert to chart format
-            expenseBreakdown = Object.entries(expenseGroups).map(([name, total], index) => ({
-                category_name: name,
-                total: total,
-                color: getExpenseColor(index) // Generate colors dynamically
+            expenseBreakdown = Object.values(expenseGroups).map((group, index) => ({
+                category_id: group.category_id,
+                category_name: group.category_name,
+                category_color: group.category_color,
+                total: group.total,
+                color: group.category_color || getExpenseColor(index) // Use category color or generate dynamically
             }));
 
-            console.log('Expense breakdown:', expenseBreakdown);
+            console.log('Expense breakdown by categories:', expenseBreakdown);
             
         } catch (error) {
             console.error('Error fetching expense breakdown:', error);

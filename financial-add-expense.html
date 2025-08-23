@@ -1072,6 +1072,18 @@
                     selectPaymentMethod(this);
                 });
             });
+
+            // Add click event listeners for edit buttons
+            document.querySelectorAll('.edit-record-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const recordId = this.getAttribute('data-record-id');
+                    if (recordId) {
+                        editRecord(recordId);
+                    }
+                });
+            });
         }
 
         // Get category icon based on ID
@@ -1208,7 +1220,8 @@
                     <div class="recent-item-amount ${record.type}">
                         ${record.type === 'expense' ? '-' : '+'}${formatCurrency(record.amount)}
                     </div>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editRecord('${record.id}')" 
+                    <button class="btn btn-sm btn-outline-primary edit-record-btn" 
+                            data-record-id="${record.id}"
                             style="margin-right: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
                         <i class="fas fa-edit"></i>
                     </button>
@@ -1231,14 +1244,27 @@
 
         // Edit record - load data into form
         async function editRecord(recordId) {
+            console.log('Edit record called with ID:', recordId);
             try {
                 // Get admin info from localStorage
                 const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-                const authMiddleware = new AuthMiddleware();
-                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                console.log('Admin info:', adminInfo);
+                
+                // Try to get token from AuthMiddleware or fallback to adminInfo
+                let token = '';
+                try {
+                    const authMiddleware = new AuthMiddleware();
+                    token = authMiddleware.getAdminToken();
+                } catch (e) {
+                    console.log('AuthMiddleware not available, using adminInfo token');
+                    token = adminInfo.token || '';
+                }
+                
+                console.log('Token:', token ? 'Present' : 'Missing');
                 
                 // API base URL
                 const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                console.log('API URL:', `${baseUrl}/api/records/${recordId}`);
                 
                 const response = await fetch(`${baseUrl}/api/records/${recordId}`, {
                     method: 'GET',
@@ -1247,6 +1273,8 @@
                         'Content-Type': 'application/json'
                     }
                 });
+                
+                console.log('Response status:', response.status);
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch record');

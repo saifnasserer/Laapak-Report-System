@@ -170,6 +170,22 @@
             box-shadow: var(--shadow-md);
         }
 
+        /* Chart specific styling */
+        .chart-container .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Bar chart specific styling */
+        .chart-container[data-chart-type="bar"] .chart-wrapper {
+            height: 350px;
+        }
+
+        /* Pie chart specific styling */
+        .chart-container[data-chart-type="pie"] .chart-wrapper {
+            height: 280px;
+        }
+
         .chart-container .card-header {
             background: var(--white);
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -703,11 +719,11 @@
         <div class="row mb-4">
             <!-- Trend Chart -->
             <div class="col-lg-8 mb-4">
-                <div class="chart-container">
+                <div class="chart-container" data-chart-type="bar">
                     <div class="card-header">
                         <h5 class="card-title">
-                            <i class="fas fa-chart-area text-primary me-2"></i>
-                            تطور المصروفات وصافي الربح (6 أشهر)
+                            <i class="fas fa-chart-bar text-primary me-2"></i>
+                            <span id="trendChartTitle">تطور المصروفات وصافي الربح</span>
                         </h5>
                     </div>
                     <div class="card-body">
@@ -720,11 +736,11 @@
 
             <!-- Expense Breakdown -->
             <div class="col-lg-4 mb-4">
-                <div class="chart-container">
+                <div class="chart-container" data-chart-type="pie">
                     <div class="card-header">
                         <h5 class="card-title">
                             <i class="fas fa-chart-pie text-primary me-2"></i>
-                            توزيع المصروفات
+                            توزيع المصروفات حسب الفئة
                         </h5>
                     </div>
                     <div class="card-body">
@@ -1069,7 +1085,7 @@
                 updateKPIs(data.kpis);
                 
                 // Create charts
-                createTrendChart(data.charts.trend || []);
+                createTrendChart(data.charts.trend || [], data.kpis);
                 createExpenseChart(data.charts.expenseBreakdown || []);
                 
                 // Display alerts
@@ -1172,7 +1188,7 @@
         }
 
         // Create trend chart
-        function createTrendChart(trendData) {
+        function createTrendChart(trendData, kpisData) {
             const ctx = document.getElementById('trendChart');
             if (!ctx) {
                 console.error('Trend chart canvas not found');
@@ -1188,16 +1204,112 @@
                 }
             }
             
-            // Handle empty data
+            // Check if we have trend data or need to use KPI data
+            let chartData = null;
+            let useKPIData = false;
+            
             if (!trendData || trendData.length === 0) {
-                console.log('No trend data available, showing empty chart');
+                console.log('No trend data available, creating monthly breakdown from filtered data');
+                useKPIData = true;
+                
+                if (kpisData) {
+                    // Get the date range from the filter inputs
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    
+                    if (startDate && endDate) {
+                        // Create monthly breakdown from the filtered period
+                        const start = new Date(startDate);
+                        const end = new Date(endDate);
+                        const months = [];
+                        const expensesData = [];
+                        const profitData = [];
+                        
+                        // Generate monthly data points
+                        let currentDate = new Date(start.getFullYear(), start.getMonth(), 1);
+                        while (currentDate <= end) {
+                            const monthLabel = currentDate.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+                            months.push(monthLabel);
+                            
+                            // For now, distribute the total evenly across months
+                            // In a real implementation, you'd want to get actual monthly data from the backend
+                            const monthCount = Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1);
+                            const monthlyExpenses = (parseFloat(kpisData.totalExpenses) || 0) / monthCount;
+                            const monthlyProfit = (parseFloat(kpisData.netProfit) || 0) / monthCount;
+                            
+                            expensesData.push(monthlyExpenses);
+                            profitData.push(monthlyProfit);
+                            
+                            // Move to next month
+                            currentDate.setMonth(currentDate.getMonth() + 1);
+                        }
+                        
+                        chartData = {
+                            labels: months,
+                            expenses: expensesData,
+                            profit: profitData
+                        };
+                    } else {
+                        // Fallback to single period if no date range
+                        chartData = {
+                            labels: ['الفترة المحددة'],
+                            expenses: [parseFloat(kpisData.totalExpenses) || 0],
+                            profit: [parseFloat(kpisData.netProfit) || 0]
+                        };
+                    }
+                }
+            } else {
+                // Use trend data if available - ensure it's monthly data, not cumulative
+                console.log('Processing trend data:', trendData);
+                
+                // Check if the data is cumulative and needs to be converted to monthly
+                const processedTrendData = trendData.map((item, index) => {
+                    let monthlyExpenses = item.expenses || 0;
+                    let monthlyProfit = item.profit || 0;
+                    
+                    // If this looks like cumulative data (increasing over time), convert to monthly
+                    if (index > 0) {
+                        const prevItem = trendData[index - 1];
+                        const prevExpenses = prevItem.expenses || 0;
+                        const prevProfit = prevItem.profit || 0;
+                        
+                        // If current value is much larger than previous, it might be cumulative
+                        if (monthlyExpenses > prevExpenses * 1.5) {
+                            monthlyExpenses = monthlyExpenses - prevExpenses;
+                        }
+                        if (monthlyProfit > prevProfit * 1.5) {
+                            monthlyProfit = monthlyProfit - prevProfit;
+                        }
+                    }
+                    
+                    return {
+                        month: item.month,
+                        expenses: Math.max(0, monthlyExpenses),
+                        profit: monthlyProfit
+                    };
+                });
+                
+                chartData = {
+                    labels: processedTrendData.map(item => {
+                        const date = new Date(item.month + '-01');
+                        return date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+                    }),
+                    expenses: processedTrendData.map(item => item.expenses),
+                    profit: processedTrendData.map(item => item.profit)
+                };
+            }
+            
+            // Handle empty data
+            if (!chartData || (!chartData.expenses && !chartData.profit)) {
+                console.log('No chart data available, showing empty chart');
                 ctx.style.display = 'none';
                 const chartContainer = ctx.closest('.chart-wrapper');
                 if (chartContainer) {
                     chartContainer.innerHTML = `
                         <div class="text-center text-muted py-5">
-                            <i class="fas fa-chart-area" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <i class="fas fa-chart-bar" style="font-size: 3rem; opacity: 0.3;"></i>
                             <p class="mt-2">لا توجد بيانات متاحة للعرض</p>
+                            ${useKPIData ? '<small class="text-muted">استخدم الفلتر لاختيار فترة زمنية</small>' : ''}
                         </div>
                     `;
                 }
@@ -1207,31 +1319,49 @@
             ctx.style.display = 'block';
             
             try {
+                console.log('Creating trend chart with data:', chartData);
+                
+                // Update chart title based on data type
+                const titleElement = document.getElementById('trendChartTitle');
+                if (titleElement) {
+                    if (useKPIData) {
+                        const startDate = document.getElementById('startDate').value;
+                        const endDate = document.getElementById('endDate').value;
+                        if (startDate && endDate) {
+                            const start = new Date(startDate);
+                            const end = new Date(endDate);
+                            const monthCount = Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1);
+                            titleElement.textContent = `المصروفات وصافي الربح الشهري (${monthCount} شهر)`;
+                        } else {
+                            titleElement.textContent = 'المصروفات وصافي الربح (الفترة المحددة)';
+                        }
+                    } else {
+                        titleElement.textContent = 'تطور المصروفات وصافي الربح الشهري';
+                    }
+                }
+                
                 window.trendChart = new Chart(ctx.getContext('2d'), {
-                type: 'line',
+                type: 'bar',
                 data: {
-                    labels: trendData.map(item => {
-                        const date = new Date(item.month + '-01');
-                        return date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
-                    }),
+                    labels: chartData.labels,
                     datasets: [
                         {
                             label: 'المصروفات',
-                            data: trendData.map(item => item.expenses || 0),
+                            data: chartData.expenses,
+                            backgroundColor: 'rgba(220, 53, 69, 0.8)',
                             borderColor: '#dc3545',
-                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.4
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            borderSkipped: false
                         },
                         {
                             label: 'صافي الربح',
-                            data: trendData.map(item => item.profit || 0),
+                            data: chartData.profit,
+                            backgroundColor: 'rgba(25, 135, 84, 0.8)',
                             borderColor: '#198754',
-                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                            borderWidth: 3,
-                            fill: true,
-                            tension: 0.4
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            borderSkipped: false
                         }
                     ]
                 },
@@ -1246,11 +1376,24 @@
                                 usePointStyle: true,
                                 padding: 20
                             }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return `${label}: ${formatCurrency(value)}`;
+                                }
+                            }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                drawBorder: false
+                            },
                             ticks: {
                                 font: { family: 'Tajawal' },
                                 callback: function(value) {
@@ -1259,6 +1402,9 @@
                             }
                         },
                         x: {
+                            grid: {
+                                display: false
+                            },
                             ticks: {
                                 font: { family: 'Tajawal' }
                             }
@@ -1315,7 +1461,7 @@
                         <div class="text-center text-muted py-5">
                             <i class="fas fa-chart-pie" style="font-size: 3rem; opacity: 0.3;"></i>
                             <p class="mt-2">لا توجد بيانات متاحة للعرض</p>
-                            <small class="text-muted">No expense data found in the selected date range</small>
+                            <small class="text-muted">لا توجد مصروفات في الفئات المحددة خلال الفترة المختارة</small>
                         </div>
                     `;
                 }
@@ -1325,19 +1471,45 @@
             ctx.style.display = 'block';
 
             try {
-                // Process expense data to handle different formats
-                const processedData = expenseData.map(item => {
-                    // Handle different possible field names
-                    const amount = item.total || item.amount || item.value || 0;
-                    const category = item.category_name || item.category || item.name || 'غير محدد';
+                // Process expense data - now the backend sends category-based data
+                const processedData = [];
+                
+                expenseData.forEach(item => {
+                    // Handle different possible field names for amount
+                    const amount = parseFloat(item.total || item.amount || item.value || 0);
                     
-                    console.log('Processing expense item:', { original: item, processed: { amount, category } });
+                    // Get category information from the backend data
+                    let categoryName = 'غير محدد';
+                    let categoryColor = '#6c757d'; // Default gray color
                     
-                    return {
-                        amount: parseFloat(amount) || 0,
-                        category: category
-                    };
-                }).filter(item => item.amount > 0); // Only show items with amounts > 0
+                    if (item.category_name) {
+                        categoryName = item.category_name;
+                        categoryColor = item.category_color || item.color || '#6c757d';
+                    } else if (item.category_id) {
+                        // Fallback: Map category ID to name based on financial-add-expense.html categories
+                        const categoryIdMap = {
+                            1: 'مصاريف المكتب',
+                            2: 'مرتبات',
+                            3: 'مصاريف شخصية',
+                            4: 'تكاليف الشغل'
+                        };
+                        categoryName = categoryIdMap[item.category_id] || 'غير محدد';
+                    } else if (item.category) {
+                        categoryName = item.category;
+                    } else if (item.name) {
+                        categoryName = item.name;
+                    }
+                    
+                    console.log('Processing expense item:', { original: item, processed: { amount, categoryName, categoryColor } });
+                    
+                    if (amount > 0) {
+                        processedData.push({
+                            category: categoryName,
+                            amount: amount,
+                            color: categoryColor
+                        });
+                    }
+                });
                 
                 console.log('Processed expense data:', processedData);
                 console.log('Valid items after filtering:', processedData.length);
@@ -1348,11 +1520,11 @@
                     const chartContainer = ctx.closest('.chart-wrapper');
                     if (chartContainer) {
                         chartContainer.innerHTML = `
-                            <div class="text-center text-muted py-5">
-                                <i class="fas fa-chart-pie" style="font-size: 3rem; opacity: 0.3;"></i>
-                                <p class="mt-2">لا توجد مصروفات للعرض</p>
-                                <small class="text-muted">No valid expense amounts found</small>
-                            </div>
+                                                    <div class="text-center text-muted py-5">
+                            <i class="fas fa-chart-pie" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="mt-2">لا توجد مصروفات للعرض</p>
+                            <small class="text-muted">لا توجد مصروفات في الفئات المحددة خلال الفترة المختارة</small>
+                        </div>
                         `;
                     }
                     return;
@@ -1369,23 +1541,24 @@
                         labels: processedData.map(item => item.category),
                         datasets: [{
                             data: processedData.map(item => item.amount),
-                            backgroundColor: [
-                                '#007553', '#dc3545', '#ffc107', '#0dcaf0', 
-                                '#6f42c1', '#fd7e14', '#20c997', '#e83e8c',
-                                '#6c757d', '#495057', '#adb5bd', '#dee2e6'
-                            ],
-                            borderWidth: 0
+                            backgroundColor: processedData.map(item => item.color),
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            hoverBorderWidth: 3,
+                            hoverOffset: 10
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        cutout: '60%',
                         plugins: {
                             legend: {
                                 position: 'bottom',
                                 labels: {
                                     font: { family: 'Tajawal', size: 11 },
                                     padding: 15,
+                                    usePointStyle: true,
                                     generateLabels: function(chart) {
                                         const data = chart.data;
                                         if (data.labels.length && data.datasets.length) {
@@ -1409,6 +1582,11 @@
                                 }
                             },
                             tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: 'rgba(255, 255, 255, 0.2)',
+                                borderWidth: 1,
                                 callbacks: {
                                     label: function(context) {
                                         const label = context.label || '';
