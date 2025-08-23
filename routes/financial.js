@@ -329,6 +329,8 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             const endMonth = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), 1);
             const monthDiff = (endMonth.getFullYear() - startMonth.getFullYear()) * 12 + (endMonth.getMonth() - startMonth.getMonth()) + 1;
             
+            console.log(`Generating trend data for ${monthDiff} months from ${startMonth.toISOString()} to ${endMonth.toISOString()}`);
+            
             // Generate monthly data points for the selected period
             for (let i = 0; i < monthDiff; i++) {
                 const date = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
