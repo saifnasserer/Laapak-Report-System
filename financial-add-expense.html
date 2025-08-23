@@ -1509,6 +1509,19 @@
                 // Reload recent records
                 loadRecentRecords();
                 
+                // Notify money management page to refresh (if it's open)
+                if (window.opener && window.opener.location.href.includes('money-management.html')) {
+                    window.opener.postMessage({ type: 'REFRESH_MONEY_DATA' }, '*');
+                }
+                
+                // Also try to refresh if we're in the same window
+                if (window.location.href.includes('money-management.html')) {
+                    // If we're on the money management page, refresh the data
+                    if (typeof MoneyDataLoader !== 'undefined') {
+                        MoneyDataLoader.loadAll();
+                    }
+                }
+                
                 // Show money movement notification if available
                 if (result.data && result.data.moneyMovement) {
                     const movement = result.data.moneyMovement;

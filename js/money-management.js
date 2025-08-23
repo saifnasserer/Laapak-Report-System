@@ -1522,3 +1522,13 @@ setInterval(() => {
         MoneyDataLoader.loadAll();
     }
 }, 5 * 60 * 1000);
+
+// Listen for refresh messages from other pages
+window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'REFRESH_MONEY_DATA') {
+        console.log('Received refresh message from expense page');
+        if (!moneyState.isLoading) {
+            MoneyDataLoader.loadAll();
+        }
+    }
+});

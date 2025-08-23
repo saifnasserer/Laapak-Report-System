@@ -220,17 +220,24 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 throw new Error('Money location is required for profits');
             }
 
-            await MoneyMovement.create({
-                amount: Math.abs(amount),
-                movement_type: movementType,
-                reference_type: referenceType,
-                reference_id: record.id.toString(), // Convert to string as per database schema
-                description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
-                from_location_id: type === 'expense' ? moneyLocation.id : null,
-                to_location_id: type === 'profit' ? moneyLocation.id : null,
-                movement_date: date,
-                created_by: req.user.id
-            }, { transaction });
+            try {
+                const movement = await MoneyMovement.create({
+                    amount: Math.abs(amount),
+                    movement_type: movementType,
+                    reference_type: referenceType,
+                    reference_id: record.id.toString(), // Convert to string as per database schema
+                    description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
+                    from_location_id: type === 'expense' ? moneyLocation.id : null,
+                    to_location_id: type === 'profit' ? moneyLocation.id : null,
+                    movement_date: date,
+                    created_by: req.user.id
+                }, { transaction });
+                
+                console.log('Successfully created money movement:', movement.id);
+            } catch (movementError) {
+                console.error('Error creating money movement:', movementError);
+                throw new Error(`Failed to create money movement: ${movementError.message}`);
+            }
 
             // Update money location balance
             const balanceChange = type === 'expense' ? -amount : amount;

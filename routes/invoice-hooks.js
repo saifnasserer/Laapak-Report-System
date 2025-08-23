@@ -118,7 +118,7 @@ async function findLocationForPaymentMethod(paymentMethod) {
     if (!matchingConfig) {
         console.log(`No matching config found for payment method: ${paymentMethod}`);
                 return null;
-    }
+        }
 
     // Find location with matching type and name (if specified)
     let location;
