@@ -8,7 +8,7 @@ const router = express.Router();
 const { Invoice, InvoiceItem, Report, Client, InvoiceReport, sequelize } = require('../models');
 const { auth, adminAuth, clientAuth } = require('../middleware/auth');
 const { Op } = require('sequelize');
-const { autoAssignMoneyLocation, updateInvoicePaymentStatus } = require('./invoice-hooks');
+const { handleInvoiceCreation, handleInvoicePaymentStatusChange, handleInvoiceDeletion } = require('./invoice-hooks');
 
 // Get invoice statistics by payment method
 router.get('/stats/payment-methods', adminAuth, async (req, res) => {
@@ -713,6 +713,14 @@ router.post('/', adminAuth, async (req, res) => {
         
         await transaction.commit();
         
+        // Handle invoice creation hook for money management
+        try {
+            await handleInvoiceCreation(invoice);
+        } catch (hookError) {
+            console.error('Error in invoice creation hook:', hookError);
+            // Don't fail the request if the hook fails
+        }
+        
         // Fetch the complete invoice with all associations
         const completeInvoice = await Invoice.findByPk(invoice.id, {
             include: [
@@ -946,6 +954,18 @@ router.put('/:id', adminAuth, async (req, res) => {
         
         await transaction.commit();
         
+        // Handle payment status change hook for money management
+        try {
+            const oldStatus = invoice.paymentStatus;
+            const newStatus = paymentStatus || invoice.paymentStatus;
+            if (oldStatus !== newStatus) {
+                await handleInvoicePaymentStatusChange(invoice, oldStatus, newStatus);
+            }
+        } catch (hookError) {
+            console.error('Error in payment status change hook:', hookError);
+            // Don't fail the request if the hook fails
+        }
+        
         // Fetch the updated invoice with all related data
         const updatedInvoice = await Invoice.findByPk(invoice.id, {
             include: [
@@ -998,7 +1018,7 @@ router.put('/:id', adminAuth, async (req, res) => {
 // Update invoice payment status
 router.put('/:id/payment', adminAuth, async (req, res) => {
     try {
-        const { paymentStatus, paymentMethod, money_location_id } = req.body;
+        const { paymentStatus, paymentMethod } = req.body;
         
         const invoice = await Invoice.findByPk(req.params.id);
         
@@ -1006,28 +1026,22 @@ router.put('/:id/payment', adminAuth, async (req, res) => {
             return res.status(404).json({ message: 'Invoice not found' });
         }
         
-        // Auto-assign money location based on payment method if not provided
-        let locationId = money_location_id;
-        if (!locationId && paymentMethod) {
-            const { getLocationIdByPaymentMethod } = require('./invoice-hooks');
-            locationId = await getLocationIdByPaymentMethod(paymentMethod);
-        }
+        // Store old status for comparison
+        const oldStatus = invoice.paymentStatus;
         
         // Update payment information
         await invoice.update({
             paymentStatus,
             paymentMethod,
-            paymentDate: paymentStatus === 'paid' ? new Date() : null,
-            money_location_id: locationId
+            paymentDate: paymentStatus === 'paid' ? new Date() : null
         });
         
-        // Record money movement if payment is completed/paid
-        if (['completed', 'paid'].includes(paymentStatus) && locationId) {
-            await updateInvoicePaymentStatus(
-                req.params.id,
-                { paymentStatus, money_location_id: locationId, paymentMethod },
-                req.user.id
-            );
+        // Handle payment status change hook for money management
+        try {
+            await handleInvoicePaymentStatusChange(invoice, oldStatus, paymentStatus);
+        } catch (hookError) {
+            console.error('Error in payment status change hook:', hookError);
+            // Don't fail the request if the hook fails
         }
         
         res.json(invoice);
@@ -1074,10 +1088,21 @@ router.delete('/:id', adminAuth, async (req, res) => {
             transaction
         });
         
+        // Store invoice data before deletion for hook
+        const invoiceData = invoice.toJSON();
+        
         // Delete the invoice
         await invoice.destroy({ transaction });
         
         await transaction.commit();
+        
+        // Handle invoice deletion hook for money management
+        try {
+            await handleInvoiceDeletion(invoiceData);
+        } catch (hookError) {
+            console.error('Error in invoice deletion hook:', hookError);
+            // Don't fail the request if the hook fails
+        }
         
         res.json({ message: 'Invoice deleted successfully' });
     } catch (error) {

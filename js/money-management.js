@@ -518,12 +518,12 @@ class MoneyUIRenderer {
                 foundInvoiceData: moneyState.invoiceStats?.byPaymentMethod?.[method.apiName]
             });
             
-            // Calculate balance from locations (transactions)
+            // Calculate balance from locations (transactions only)
             const transactionBalance = matchingLocations.reduce((sum, loc) => 
                 sum + parseFloat(loc.balance || 0), 0
             );
             
-            // Current balance is simply the transaction balance since locations are initialized with invoice totals
+            // Current balance is the transaction balance (no automatic invoice initialization)
             const currentBalance = transactionBalance;
             
             console.log(`${method.name} final calculation:`, {
@@ -592,12 +592,12 @@ class MoneyUIRenderer {
                         
                         <div class="balance-breakdown">
                             <div class="balance-breakdown-item">
-                                <span class="balance-breakdown-label">من الفواتير:</span>
-                                <span class="balance-breakdown-value">${this.formatCurrency(item.invoiceStats.amount)}</span>
+                                <span class="balance-breakdown-label">الرصيد الحالي:</span>
+                                <span class="balance-breakdown-value">${this.formatCurrency(item.currentBalance)}</span>
                             </div>
                             <div class="balance-breakdown-item">
-                                <span class="balance-breakdown-label">من المعاملات:</span>
-                                <span class="balance-breakdown-value">${this.formatCurrency(Math.max(0, item.currentBalance - item.invoiceStats.amount))}</span>
+                                <span class="balance-breakdown-label">إجمالي الفواتير:</span>
+                                <span class="balance-breakdown-value">${this.formatCurrency(item.invoiceStats.amount)}</span>
                             </div>
                         </div>
                     </div>
@@ -1192,7 +1192,7 @@ class MoneyDataLoader {
         // Loading states will be replaced by actual content through state observers
     }
 
-    // Initialize location balances with invoice totals
+    // Initialize location balances with zeros (no automatic invoice initialization)
     static async initializeLocationBalances(locations, invoiceStats) {
         try {
             // Check if already initialized
@@ -1201,9 +1201,9 @@ class MoneyDataLoader {
                 return;
             }
             
-            console.log('Initializing location balances with invoice totals...');
+            console.log('Initializing location balances with zeros...');
             
-            // Define payment method mapping
+            // Define payment method mapping for reference only
             const paymentMethodMapping = {
                 'cash': { locationTypes: ['cash'], apiName: 'cash' },
                 'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay' },
@@ -1212,62 +1212,27 @@ class MoneyDataLoader {
                 'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' }
             };
             
-            // Check each location and initialize balance if needed
+            // Check each location and ensure it has a balance (initialize to 0 if null/undefined)
             for (const location of locations) {
                 console.log(`Checking location: ${location.name_ar} (type: ${location.type})`);
                 
-                // Find matching payment method
-                let matchingMethod = null;
-                for (const [methodName, config] of Object.entries(paymentMethodMapping)) {
-                    const typeMatch = config.locationTypes.includes(location.type);
-                    const nameMatch = location.name_ar.toLowerCase().includes(methodName.toLowerCase());
-                    
-                    console.log(`  Checking against ${methodName}: typeMatch=${typeMatch}, nameMatch=${nameMatch}`);
-                    
-                    if (typeMatch || nameMatch) {
-                        matchingMethod = config;
-                        console.log(`  Matched with ${methodName}`);
-                        break;
-                    }
-                }
+                const currentBalance = parseFloat(location.balance || 0);
                 
-                if (matchingMethod) {
-                    const invoiceAmount = invoiceStats.byPaymentMethod?.[matchingMethod.apiName]?.amount || 0;
-                    const currentBalance = parseFloat(location.balance || 0);
-                    
-                    console.log(`Location ${location.name_ar}:`, {
-                        currentBalance,
-                        invoiceAmount,
-                        matchingMethod: matchingMethod.apiName
-                    });
-                    
-                    // If location has no balance but there are invoices, initialize it
-                    if (currentBalance === 0 && invoiceAmount > 0) {
-                        console.log(`Initializing ${location.name_ar} with invoice amount: ${invoiceAmount}`);
-                        
-                        // Create an initialization deposit
-                        const depositData = {
-                            toLocationId: location.id,
-                            amount: invoiceAmount,
-                            description: `تهيئة الرصيد من الفواتير - ${location.name_ar}`
-                        };
-                        
-                        try {
-                            await moneyApi.createDeposit(depositData);
-                            console.log(`Successfully initialized ${location.name_ar} balance`);
-                            
-                            // Update the location balance in our local data
-                            location.balance = invoiceAmount;
-                        } catch (error) {
-                            console.error(`Failed to initialize ${location.name_ar} balance:`, error);
-                        }
-                    }
+                console.log(`Location ${location.name_ar}:`, {
+                    currentBalance,
+                    balanceType: typeof location.balance
+                });
+                
+                // If location has no balance set, ensure it's 0 (but don't create deposits)
+                if (location.balance === null || location.balance === undefined) {
+                    console.log(`Setting ${location.name_ar} balance to 0`);
+                    location.balance = 0;
                 }
             }
             
             // Mark as initialized
             balancesInitialized = true;
-            console.log('Location balances initialization completed');
+            console.log('Location balances initialization completed - all balances set to 0 or existing values');
         } catch (error) {
             console.error('Error initializing location balances:', error);
         }
