@@ -234,16 +234,16 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 });
                 
                 const movement = await MoneyMovement.create({
-                    amount: Math.abs(amount),
-                    movement_type: movementType,
-                    reference_type: referenceType,
-                    reference_id: record.id.toString(), // Convert to string as per database schema
-                    description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
-                    from_location_id: type === 'expense' ? moneyLocation.id : null,
-                    to_location_id: type === 'profit' ? moneyLocation.id : null,
-                    movement_date: date,
-                    created_by: req.user.id
-                }, { transaction });
+                amount: Math.abs(amount),
+                movement_type: movementType,
+                reference_type: referenceType,
+                reference_id: record.id.toString(), // Convert to string as per database schema
+                description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
+                from_location_id: type === 'expense' ? moneyLocation.id : null,
+                to_location_id: type === 'profit' ? moneyLocation.id : null,
+                movement_date: date,
+                created_by: req.user.id
+            }, { transaction });
                 
                 console.log('Successfully created money movement:', movement.id);
                 console.log('Movement details:', {

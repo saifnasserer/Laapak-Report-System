@@ -119,9 +119,11 @@ class MoneyApiService {
     }
 
     getHeaders() {
+        // Always get a fresh token
+        const freshToken = this.getAuthToken();
         return {
             'Content-Type': 'application/json',
-            'x-auth-token': this.token
+            'x-auth-token': freshToken
         };
     }
 
@@ -172,13 +174,25 @@ class MoneyApiService {
     // Get money movements with filters
     async getMovements(params = {}) {
         const queryString = new URLSearchParams(params).toString();
+        const url = `${this.baseUrl}/api/money/movements?${queryString}`;
+        console.log('Making movements request to:', url);
+        console.log('Headers:', this.getHeaders());
+        
         try {
-            const response = await fetch(`${this.baseUrl}/api/money/movements?${queryString}`, {
+            const response = await fetch(url, {
                 headers: this.getHeaders()
             });
+            console.log('Movements response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Movements API error:', response.status, errorText);
+                throw new Error(`Movements API error: ${response.status} - ${errorText}`);
+            }
+            
             return this.handleResponse(response);
         } catch (error) {
-            console.log('Money movements API not available, using fallback data');
+            console.error('Money movements API error:', error);
             // Return fallback data if API is not available
             return {
                 success: true,
