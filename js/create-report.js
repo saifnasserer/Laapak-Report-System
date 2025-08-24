@@ -783,6 +783,15 @@ function initializeFormComponents() {
         saveClientBtn.addEventListener('click', saveNewClient);
     }
     
+    // Prevent form submission for addClientForm
+    const addClientForm = document.getElementById('addClientForm');
+    if (addClientForm) {
+        addClientForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveNewClient();
+        });
+    }
+    
     // Set up client search functionality
     setupClientSearch();
     
@@ -2399,19 +2408,19 @@ function updateClientInfoDisplay(client) {
     }
     
     /**
-     * Set up client search functionality
-     */
-    function setupClientSearch() {
+ * Set up client search functionality
+ */
+function setupClientSearch() {
     const clientSearchInput = document.getElementById('clientSearchInput');
-    const clientDropdown = document.getElementById('clientDropdown');
+    const clientSearchResults = document.getElementById('clientSearchResults');
     
-    if (!clientSearchInput || !clientDropdown) {
+    if (!clientSearchInput || !clientSearchResults) {
         console.warn('Client search setup failed: Required elements not found', {
             clientSearchInput: !!clientSearchInput,
-            clientDropdown: !!clientDropdown
+            clientSearchResults: !!clientSearchResults
         });
-                return;
-            }
+        return;
+    }
             
     clientSearchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
@@ -2426,29 +2435,58 @@ function updateClientInfoDisplay(client) {
         );
         
         // Update dropdown
-        clientDropdown.innerHTML = '';
+        clientSearchResults.innerHTML = '';
         filteredClients.forEach(client => {
             const option = document.createElement('div');
-            option.className = 'dropdown-item';
-            option.textContent = `${client.name} (${client.phone})`;
+            option.className = 'dropdown-item p-3 border-bottom';
+            option.style.cursor = 'pointer';
+            option.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="client-avatar d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success" style="width: 40px; height: 40px;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="fw-bold">${client.name}</div>
+                        <div class="text-muted small">
+                            <i class="fas fa-phone me-1"></i>${client.phone}
+                            ${client.email ? `<br><i class="fas fa-envelope me-1"></i>${client.email}` : ''}
+                        </div>
+                    </div>
+                    <div class="ms-auto">
+                        <span class="badge bg-info">${client.orderCode || 'N/A'}</span>
+                    </div>
+                </div>
+            `;
             option.addEventListener('click', () => {
                 clientSearchInput.value = client.name;
                 clientSelectionChanged(client);
-                clientDropdown.style.display = 'none';
+                clientSearchResults.style.display = 'none';
             });
-            clientDropdown.appendChild(option);
+            clientSearchResults.appendChild(option);
         });
         
-        clientDropdown.style.display = filteredClients.length > 0 ? 'block' : 'none';
+        clientSearchResults.style.display = filteredClients.length > 0 ? 'block' : 'none';
     });
     
     // Hide dropdown when clicking outside
     document.addEventListener('click', function(e) {
-        if (!clientSearchInput.contains(e.target) && !clientDropdown.contains(e.target)) {
-            clientDropdown.style.display = 'none';
-                }
-            });
+        if (!clientSearchInput.contains(e.target) && !clientSearchResults.contains(e.target)) {
+            clientSearchResults.style.display = 'none';
         }
+    });
+    
+    // Show dropdown when clicking on search icon
+    const clientSearchIcon = document.getElementById('clientSearchIcon');
+    if (clientSearchIcon) {
+        clientSearchIcon.addEventListener('click', function() {
+            if (clientsData && clientsData.length > 0) {
+                clientSearchResults.style.display = clientSearchResults.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+    }
+}
         
 /**
  * Handle client selection change
@@ -2457,18 +2495,43 @@ function updateClientInfoDisplay(client) {
 function clientSelectionChanged(client) {
     if (!client) return;
     
-                // Update global client details
-                window.globalClientDetails = {
+    // Update global client details
+    window.globalClientDetails = {
         client_id: client.id,
         clientName: client.name,
         clientPhone: client.phone,
         clientEmail: client.email || '',
         clientAddress: client.address || ''
     };
-                
-                // Update client info display
+    
+    // Update client info display
     updateClientInfoDisplay(client);
+    
+    // Show selected client info container
+    const selectedClientInfo = document.getElementById('selectedClientInfo');
+    if (selectedClientInfo) {
+        selectedClientInfo.style.display = 'block';
+        
+        // Update client details in the display
+        const selectedClientName = document.getElementById('selectedClientName');
+        const selectedClientPhone = document.getElementById('selectedClientPhone');
+        const selectedClientEmail = document.getElementById('selectedClientEmail');
+        const selectedClientOrderCode = document.getElementById('selectedClientOrderCode');
+        const selectedClientStatus = document.getElementById('selectedClientStatus');
+        
+        if (selectedClientName) selectedClientName.textContent = client.name;
+        if (selectedClientPhone) selectedClientPhone.innerHTML = `<i class="fas fa-phone me-1"></i>${client.phone}`;
+        if (selectedClientEmail) selectedClientEmail.innerHTML = `<i class="fas fa-envelope me-1"></i>${client.email || 'غير محدد'}`;
+        if (selectedClientOrderCode) selectedClientOrderCode.textContent = client.orderCode || 'غير محدد';
+        if (selectedClientStatus) selectedClientStatus.textContent = client.status === 'active' ? 'نشط' : 'غير نشط';
     }
+    
+    // Hide search results
+    const clientSearchResults = document.getElementById('clientSearchResults');
+    if (clientSearchResults) {
+        clientSearchResults.style.display = 'none';
+    }
+}
     
     /**
      * Set up client quick actions
@@ -2551,28 +2614,43 @@ function viewClientHistory(clientId) {
 
 /**
  * Save new client
-     */
-    async function saveNewClient() {
+ */
+async function saveNewClient() {
     try {
         const clientName = document.getElementById('clientName').value.trim();
         const clientPhone = document.getElementById('clientPhone').value.trim();
         const clientEmail = document.getElementById('clientEmail').value.trim();
         const clientAddress = document.getElementById('clientAddress').value.trim();
+        const clientOrderCode = document.getElementById('clientOrderCode').value.trim();
+        const clientStatus = document.querySelector('input[name="clientStatus"]:checked')?.value || 'active';
         
-        if (!clientName || !clientPhone) {
-            showToast('يرجى إدخال اسم العميل ورقم الهاتف', 'error');
+        // Debug logging
+        console.log('Form field values:');
+        console.log('- clientName:', clientName);
+        console.log('- clientPhone:', clientPhone);
+        console.log('- clientEmail:', clientEmail);
+        console.log('- clientAddress:', clientAddress);
+        console.log('- clientOrderCode:', clientOrderCode);
+        console.log('- clientStatus:', clientStatus);
+        
+        if (!clientName || !clientPhone || !clientOrderCode) {
+            showToast('يرجى إدخال اسم العميل ورقم الهاتف ورقم الطلب', 'error');
             return;
         }
         
-            const clientData = {
-                name: clientName,
-                phone: clientPhone,
-            email: clientEmail,
-            address: clientAddress
+        const clientData = {
+            name: clientName,
+            phone: clientPhone,
+            email: clientEmail && clientEmail.trim() !== '' ? clientEmail : null,
+            address: clientAddress && clientAddress.trim() !== '' ? clientAddress : null,
+            orderCode: clientOrderCode,
+            status: clientStatus
         };
         
+        console.log('Creating client with data:', clientData);
+        
         // Save client using API
-                        if (typeof apiService !== 'undefined' && typeof apiService.createClient === 'function') {
+        if (typeof apiService !== 'undefined' && typeof apiService.createClient === 'function') {
             const newClient = await apiService.createClient(clientData);
             
             // Add to local clients data
@@ -2588,16 +2666,19 @@ function viewClientHistory(clientId) {
                 modal.hide();
             }
             
+            // Reset form
+            document.getElementById('addClientForm').reset();
+            
             showToast('تم حفظ العميل بنجاح', 'success');
-            } else {
+        } else {
             throw new Error('API service not available');
         }
         
-        } catch (error) {
-            console.error('Error saving client:', error);
-        showToast('فشل في حفظ العميل', 'error');
-        }
+    } catch (error) {
+        console.error('Error saving client:', error);
+        showToast('فشل في حفظ العميل: ' + error.message, 'error');
     }
+}
     
     /**
  * Collect report data (compatibility function for form-steps.js)

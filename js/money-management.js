@@ -143,14 +143,15 @@ class MoneyApiService {
 
     // Get all money locations
     async getLocations() {
-        const url = `${this.baseUrl}/api/money/locations`;
+        const url = `${this.baseUrl}/api/money/locations?_t=${Date.now()}`;
         const headers = this.getHeaders();
         console.log('Making request to:', url);
         console.log('Headers:', headers);
         
         try {
             const response = await fetch(url, {
-                headers: headers
+                headers: headers,
+                cache: 'no-cache' // Force fresh request
             });
             console.log('Response status:', response.status);
             return this.handleResponse(response);
@@ -173,6 +174,8 @@ class MoneyApiService {
 
     // Get money movements with filters
     async getMovements(params = {}) {
+        // Add cache-busting parameter to force fresh data
+        params._t = Date.now();
         const queryString = new URLSearchParams(params).toString();
         const url = `${this.baseUrl}/api/money/movements?${queryString}`;
         console.log('Making movements request to:', url);
@@ -180,7 +183,8 @@ class MoneyApiService {
         
         try {
             const response = await fetch(url, {
-                headers: this.getHeaders()
+                headers: this.getHeaders(),
+                cache: 'no-cache' // Force fresh request
             });
             console.log('Movements response status:', response.status);
             
@@ -450,17 +454,23 @@ class MoneyUIRenderer {
         const quickActionsHtml = `
             <div class="quick-actions mb-4">
                 <div class="row">
-                    <div class="col-md-6 mb-2">
+                    <div class="col-md-4 mb-2">
                         <a href="financial-add-expense.html" class="btn btn-success w-100">
                             <i class="fas fa-plus-circle me-2"></i>
                             تسجيل مصروف جديد
                         </a>
                     </div>
-                    <div class="col-md-6 mb-2">
+                    <div class="col-md-4 mb-2">
                         <a href="financial-add-expense.html?type=profit" class="btn btn-primary w-100">
                             <i class="fas fa-coins me-2"></i>
                             تسجيل ربح جديد
                         </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button onclick="MoneyDataLoader.loadAll()" class="btn btn-info w-100">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            تحديث البيانات
+                        </button>
                     </div>
                 </div>
             </div>

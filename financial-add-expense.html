@@ -1509,6 +1509,11 @@
                 const successModal = new bootstrap.Modal(document.getElementById('successModal'));
                 successModal.show();
                 
+                // Show additional notification about money management
+                setTimeout(() => {
+                    showNotification('تم تحديث رصيد الموقع المالي. يرجى تحديث صفحة إدارة الأموال لرؤية الحركة الجديدة.', 'info');
+                }, 2000);
+                
                 // Add success animation
                 addSuccessAnimation();
                 

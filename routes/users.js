@@ -189,13 +189,13 @@ router.post('/clients', adminAuth, async (req, res) => {
             return res.status(400).json({ message: 'Phone number already exists' });
         }
         
-        // Create new client
+        // Create new client - handle empty email and address
         const newClient = await Client.create({
             name,
             phone,
             orderCode,
-            email,
-            address
+            email: email && email.trim() !== '' ? email : null,
+            address: address && address.trim() !== '' ? address : null
         });
         
         res.status(201).json(newClient);

@@ -24,7 +24,16 @@ const Client = sequelize.define('Client', {
     email: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: { isEmail: true }
+        validate: {
+            isEmail: function(value) {
+                if (value && value.trim() !== '') {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(value)) {
+                        throw new Error('Invalid email format');
+                    }
+                }
+            }
+        }
     },
     address: {
         type: DataTypes.TEXT,

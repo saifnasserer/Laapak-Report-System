@@ -178,10 +178,6 @@ class ApiService {
         return this.request(`/api/clients/${client_id}`);
     }
     
-    async createClient(clientData) {
-        return this.request('/api/clients', 'POST', clientData);
-    }
-    
     async updateClient(client_id, clientData) {
         return this.request(`/api/clients/${client_id}`, 'PUT', clientData);
     }
