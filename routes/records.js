@@ -292,6 +292,22 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 ]
             });
 
+            // Verify that the money movement was created
+            const verificationMovement = await MoneyMovement.findOne({
+                where: { 
+                    reference_type: { [Op.in]: ['expense', 'manual'] },
+                    reference_id: record.id.toString()
+                }
+            });
+
+            console.log('Create verification - Movement found:', verificationMovement ? {
+                id: verificationMovement.id,
+                movement_type: verificationMovement.movement_type,
+                reference_type: verificationMovement.reference_type,
+                reference_id: verificationMovement.reference_id,
+                amount: verificationMovement.amount
+            } : 'None');
+
             const message = type === 'expense' ? 'تم حفظ المصروف بنجاح' : 'تم حفظ الربح بنجاح';
 
             res.json({
@@ -299,6 +315,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 message: message,
                 data: { 
                     record: recordWithCategory,
+                    movement_created: !!verificationMovement,
                     moneyMovement: {
                         locationId: moneyLocation.id,
                         balanceChange: balanceChange,
@@ -613,7 +630,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 throw new Error('Category not found');
             }
 
-            // Find existing money movement for this record
+            // Find existing money movement for this record (check both 'expense' and 'manual' reference types)
             console.log('About to query MoneyMovement with:', { 
                 recordId, 
                 recordIdType: typeof recordId
@@ -621,11 +638,13 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             
             const existingMovement = await MoneyMovement.findOne({
                 where: { 
-                    reference_type: 'expense',
+                    reference_type: { [Op.in]: ['expense', 'manual'] },
                     reference_id: recordId
                 },
                 transaction
             });
+            
+            console.log('Existing movement found:', existingMovement ? existingMovement.id : 'None');
 
             // Find new money location based on payment method
             const newMoneyLocation = await findLocationForPaymentMethod(paymentMethod, transaction);
@@ -662,24 +681,37 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Create new money movement or update existing one
             const movementType = type === 'expense' ? 'expense_paid' : 'payment_received';
+            const referenceType = type === 'expense' ? 'expense' : 'manual';
             const balanceChange = type === 'expense' ? -amount : amount;
+
+            console.log('Creating/updating money movement:', {
+                amount: Math.abs(amount),
+                movement_type: movementType,
+                reference_type: referenceType,
+                reference_id: recordId,
+                from_location_id: type === 'expense' ? newMoneyLocation.id : null,
+                to_location_id: type === 'profit' ? newMoneyLocation.id : null,
+                created_by: req.user.id
+            });
 
             if (existingMovement) {
                 // Update existing movement
                 await existingMovement.update({
                     amount: Math.abs(amount),
                     movement_type: movementType,
+                    reference_type: referenceType,
                     description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
                     from_location_id: type === 'expense' ? newMoneyLocation.id : null,
                     to_location_id: type === 'profit' ? newMoneyLocation.id : null,
                     movement_date: date
                 }, { transaction });
+                console.log('Updated existing money movement:', existingMovement.id);
             } else {
                 // Create new movement
-                await MoneyMovement.create({
+                const newMovement = await MoneyMovement.create({
                     amount: Math.abs(amount),
                     movement_type: movementType,
-                    reference_type: 'expense',
+                    reference_type: referenceType,
                     reference_id: recordId,
                     description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
                     from_location_id: type === 'expense' ? newMoneyLocation.id : null,
@@ -687,6 +719,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                     movement_date: date,
                     created_by: req.user.id
                 }, { transaction });
+                console.log('Created new money movement:', newMovement.id);
             }
 
             // Update new money location balance
@@ -696,6 +729,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Commit transaction
             await transaction.commit();
+            console.log('Update transaction committed successfully');
 
             // Get updated record with category
             const updatedRecord = await Expense.findByPk(recordId, {
@@ -708,10 +742,31 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 ]
             });
 
+            // Verify that the money movement was created/updated
+            const verificationMovement = await MoneyMovement.findOne({
+                where: { 
+                    reference_type: { [Op.in]: ['expense', 'manual'] },
+                    reference_id: recordId
+                }
+            });
+
+            console.log('Update verification - Movement found:', verificationMovement ? {
+                id: verificationMovement.id,
+                movement_type: verificationMovement.movement_type,
+                reference_type: verificationMovement.reference_type,
+                reference_id: verificationMovement.reference_id,
+                amount: verificationMovement.amount
+            } : 'None');
+
+            const message = type === 'expense' ? 'تم تحديث المصروف بنجاح' : 'تم تحديث الربح بنجاح';
+
             res.json({
                 success: true,
-                message: 'تم تحديث التسجيل بنجاح',
-                data: { record: updatedRecord }
+                message: message,
+                data: { 
+                    record: updatedRecord,
+                    movement_created: !!verificationMovement
+                }
             });
 
         } catch (error) {
@@ -721,14 +776,25 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             throw error;
         }
 
-    } catch (error) {
-        console.error('Update record error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'خطأ في تحديث التسجيل',
-            error: error.message 
-        });
-    }
+        } catch (error) {
+            console.error('Update record error:', error);
+            
+            // Rollback transaction if it exists
+            if (transaction) {
+                try {
+                    await transaction.rollback();
+                    console.log('Transaction rolled back due to error');
+                } catch (rollbackError) {
+                    console.error('Error rolling back transaction:', rollbackError);
+                }
+            }
+            
+            res.status(500).json({ 
+                success: false, 
+                message: 'خطأ في تحديث التسجيل',
+                error: error.message 
+            });
+        }
 });
 
 /**

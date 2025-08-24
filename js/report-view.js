@@ -1641,11 +1641,18 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         
         // Update mobile step indicator
         const totalStepsElement = document.querySelector('.total-steps');
+        const currentStepNumberElement = document.querySelector('.current-step-number');
+        
         if (totalStepsElement) {
             totalStepsElement.textContent = totalSteps;
         }
         
-        console.log('Navigation updated - current step:', currentStep, 'total steps:', totalSteps, 'has notes:', hasNotes);
+        if (currentStepNumberElement) {
+            currentStepNumberElement.textContent = currentStep;
+        }
+        
+        console.log('🎯 Navigation updated - current step:', currentStep, 'total steps:', totalSteps, 'has notes:', hasNotes);
+        console.log('📱 Mobile indicator updated - current:', currentStep, 'total:', totalSteps);
     }
 
     nextBtn.addEventListener('click', () => {
@@ -1684,6 +1691,29 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             }
         });
     });
+    
+    // Set up mobile navigation buttons
+    const mobilePrevBtn = document.querySelector('.prev-step');
+    const mobileNextBtn = document.querySelector('.next-step');
+    
+    if (mobilePrevBtn) {
+        mobilePrevBtn.addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateSteps();
+            }
+        });
+    }
+    
+    if (mobileNextBtn) {
+        mobileNextBtn.addEventListener('click', () => {
+            const totalSteps = hasNotes ? 6 : 5;
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateSteps();
+            }
+        });
+    }
 
     // Set up standalone fullscreen button
     if (standaloneFullscreenBtn) {
