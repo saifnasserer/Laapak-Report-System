@@ -440,9 +440,7 @@ class MoneyUIRenderer {
                             `<button class="btn btn-sm btn-outline-danger rounded-circle" onclick="revertMovement(${movement.id})" title="إلغاء الحركة">
                                 <i class="fas fa-undo"></i>
                             </button>` :
-                            `<button class="btn btn-sm btn-outline-secondary rounded-circle" title="لا يمكن إلغاء هذه الحركة" disabled>
-                                <i class="fas fa-lock"></i>
-                            </button>`
+                            this.getLockedButtonTooltip(movement)
                         }
                     </div>
                 </div>
@@ -740,9 +738,41 @@ class MoneyUIRenderer {
 
     // Check if a movement can be reverted
     static canRevertMovement(movement) {
-        // Only allow reverting manual movements (transfers, deposits, withdrawals)
+        // Only allow reverting pure manual movements (transfers, deposits, withdrawals)
         // Don't allow reverting expense/income movements that are linked to records
-        return movement.reference_type === 'manual';
+        
+        // Expense movements cannot be reverted
+        if (movement.reference_type === 'expense') {
+            return false;
+        }
+        
+        // Manual movements with reference_id are linked to financial records (profits)
+        // These cannot be reverted - must delete the financial record instead
+        if (movement.reference_type === 'manual' && movement.reference_id) {
+            return false;
+        }
+        
+        // Only pure manual movements (transfers, deposits, withdrawals) can be reverted
+        // These have reference_type: 'manual' and no reference_id
+        return movement.reference_type === 'manual' && !movement.reference_id;
+    }
+
+    // Get appropriate tooltip for locked button based on movement type
+    static getLockedButtonTooltip(movement) {
+        let tooltip = 'لا يمكن إلغاء هذه الحركة';
+        let icon = 'fa-lock';
+        
+        if (movement.reference_type === 'expense') {
+            tooltip = 'حركة مصروف - احذف المصروف من صفحة المصروفات';
+            icon = 'fa-file-invoice-dollar';
+        } else if (movement.reference_type === 'manual' && movement.reference_id) {
+            tooltip = 'حركة ربح - احذف الربح من صفحة المصروفات';
+            icon = 'fa-coins';
+        }
+        
+        return `<button class="btn btn-sm btn-outline-secondary rounded-circle" title="${tooltip}" disabled>
+            <i class="fas ${icon}"></i>
+        </button>`;
     }
 
     // Map our method names to API method names
@@ -968,9 +998,29 @@ class MoneyActions {
             return;
         }
 
+        console.log('Movement details for revert:', {
+            id: movement.id,
+            movement_type: movement.movement_type,
+            reference_type: movement.reference_type,
+            reference_id: movement.reference_id,
+            amount: movement.amount,
+            description: movement.description,
+            canRevert: MoneyUIRenderer.canRevertMovement(movement)
+        });
+
         // Check if movement can be reverted
         if (!MoneyUIRenderer.canRevertMovement(movement)) {
-            MoneyNotifications.error('لا يمكن إلغاء هذه الحركة');
+            let errorMessage = 'لا يمكن إلغاء هذه الحركة';
+            
+            if (movement.reference_type === 'expense') {
+                errorMessage = 'لا يمكن إلغاء حركة مصروف. يرجى حذف المصروف من صفحة المصروفات بدلاً من ذلك.';
+            } else if (movement.reference_type === 'manual' && movement.reference_id) {
+                errorMessage = 'لا يمكن إلغاء حركة ربح. يرجى حذف الربح من صفحة المصروفات بدلاً من ذلك.';
+            } else {
+                errorMessage = 'لا يمكن إلغاء هذا النوع من الحركات.';
+            }
+            
+            MoneyNotifications.error(errorMessage);
             return;
         }
 

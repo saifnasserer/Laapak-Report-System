@@ -563,16 +563,44 @@ router.delete('/movements/:id', adminAuth, async (req, res) => {
             from_location_id: movement.from_location_id,
             to_location_id: movement.to_location_id,
             reference_type: movement.reference_type,
-            reference_id: movement.reference_id
+            reference_id: movement.reference_id,
+            canRevert: movement.reference_type === 'manual' && !movement.reference_id
         });
 
         // Check if this movement can be reverted
-        // Don't allow reverting expense/income movements that are linked to records
-        if (movement.reference_type === 'expense' || movement.reference_type === 'manual') {
+        // Only allow reverting pure manual movements (transfers, deposits, withdrawals)
+        // These have reference_type: 'manual' and no reference_id
+        
+        console.log('Checking if movement can be reverted:', {
+            reference_type: movement.reference_type,
+            reference_id: movement.reference_id,
+            isExpense: movement.reference_type === 'expense',
+            isManualWithReference: movement.reference_type === 'manual' && movement.reference_id,
+            isPureManual: movement.reference_type === 'manual' && !movement.reference_id
+        });
+        
+        if (movement.reference_type === 'expense') {
             await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'لا يمكن إلغاء حركة مرتبطة بتسجيل مالي. يرجى حذف التسجيل المالي بدلاً من ذلك.'
+                message: 'لا يمكن إلغاء حركة مصروف. يرجى حذف المصروف من صفحة المصروفات بدلاً من ذلك.'
+            });
+        }
+        
+        if (movement.reference_type === 'manual' && movement.reference_id) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'لا يمكن إلغاء حركة ربح. يرجى حذف الربح من صفحة المصروفات بدلاً من ذلك.'
+            });
+        }
+        
+        // Only pure manual movements (reference_type: 'manual' and no reference_id) can be reverted
+        if (movement.reference_type !== 'manual' || movement.reference_id) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'لا يمكن إلغاء هذا النوع من الحركات.'
             });
         }
 
