@@ -537,22 +537,32 @@
     
     <!-- Authentication Redirect Check -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔍 Checking authentication status on index.html...');
+            
             // Check if user is already authenticated and redirect accordingly
             if (typeof authMiddleware !== 'undefined') {
-                // Check if admin is logged in
-                if (authMiddleware.isAdminLoggedIn()) {
-                    console.log('Admin already authenticated, redirecting to admin dashboard');
+                console.log('✅ Auth middleware loaded successfully');
+                
+                // Quick check first (client-side only)
+                const adminLoggedIn = authMiddleware.isAdminLoggedIn();
+                const clientLoggedIn = authMiddleware.isClientLoggedIn();
+                
+                if (adminLoggedIn) {
+                    console.log('👤 Admin token found, redirecting to admin dashboard');
                     window.location.href = 'admin.html';
                     return;
                 }
                 
-                // Check if client is logged in
-                if (authMiddleware.isClientLoggedIn()) {
-                    console.log('Client already authenticated, redirecting to client dashboard');
+                if (clientLoggedIn) {
+                    console.log('👤 Client token found, redirecting to client dashboard');
                     window.location.href = 'client-dashboard.html';
                     return;
                 }
+                
+                console.log('❌ No active session found, staying on login page');
+            } else {
+                console.error('❌ Auth middleware not loaded!');
             }
         });
     </script>

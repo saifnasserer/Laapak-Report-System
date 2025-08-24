@@ -22,12 +22,56 @@ class AuthMiddleware {
 
     // Check if admin is logged in
     isAdminLoggedIn() {
-        return !!this.getAdminToken();
+        const token = this.getAdminToken();
+        if (!token) {
+            console.log('🔍 No admin token found');
+            return false;
+        }
+        
+        // Basic token validation (check if it's not empty and has reasonable length)
+        if (token.length < 10) {
+            console.log('🔍 Admin token too short, clearing invalid token');
+            this.clearAdminTokens();
+            return false;
+        }
+        
+        console.log('🔍 Admin token found and valid');
+        return true;
     }
 
     // Check if client is logged in
     isClientLoggedIn() {
-        return !!this.getClientToken();
+        const token = this.getClientToken();
+        if (!token) {
+            console.log('🔍 No client token found');
+            return false;
+        }
+        
+        // Basic token validation (check if it's not empty and has reasonable length)
+        if (token.length < 10) {
+            console.log('🔍 Client token too short, clearing invalid token');
+            this.clearClientTokens();
+            return false;
+        }
+        
+        console.log('🔍 Client token found and valid');
+        return true;
+    }
+    
+    // Clear admin tokens
+    clearAdminTokens() {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminInfo');
+        sessionStorage.removeItem('adminToken');
+        sessionStorage.removeItem('adminInfo');
+    }
+    
+    // Clear client tokens
+    clearClientTokens() {
+        localStorage.removeItem('clientToken');
+        localStorage.removeItem('clientInfo');
+        sessionStorage.removeItem('clientToken');
+        sessionStorage.removeItem('clientInfo');
     }
 
     // Get current user info
@@ -141,6 +185,78 @@ class AuthMiddleware {
         }
         
         return true;
+    }
+
+    // Validate token with server
+    async validateToken(token, userType = 'admin') {
+        if (!token) {
+            return false;
+        }
+        
+        try {
+            const response = await fetch(this.ME_URL, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                }
+            });
+            
+            if (response.ok) {
+                console.log(`✅ ${userType} token validated successfully`);
+                return true;
+            } else {
+                console.log(`❌ ${userType} token validation failed:`, response.status);
+                return false;
+            }
+        } catch (error) {
+            console.error(`❌ Error validating ${userType} token:`, error);
+            return false;
+        }
+    }
+
+    // Check if admin is logged in with server validation
+    async isAdminLoggedInWithValidation() {
+        const token = this.getAdminToken();
+        if (!token) {
+            return false;
+        }
+        
+        // Basic token validation
+        if (token.length < 10) {
+            this.clearAdminTokens();
+            return false;
+        }
+        
+        // Validate with server
+        const isValid = await this.validateToken(token, 'admin');
+        if (!isValid) {
+            this.clearAdminTokens();
+        }
+        
+        return isValid;
+    }
+
+    // Check if client is logged in with server validation
+    async isClientLoggedInWithValidation() {
+        const token = this.getClientToken();
+        if (!token) {
+            return false;
+        }
+        
+        // Basic token validation
+        if (token.length < 10) {
+            this.clearClientTokens();
+            return false;
+        }
+        
+        // Validate with server
+        const isValid = await this.validateToken(token, 'client');
+        if (!isValid) {
+            this.clearClientTokens();
+        }
+        
+        return isValid;
     }
 }
 

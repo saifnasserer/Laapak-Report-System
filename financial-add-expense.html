@@ -693,41 +693,8 @@
 </head>
 <body>
     <div class="container-fluid py-4 px-4">
-        <!-- Navigation Bar -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #0d964e 0%, #0a572b 100%); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: var(--border-radius);">
-                    <div class="container py-2">
-                        <div class="d-flex justify-content-center align-items-center w-100">
-                            <!-- Navigation items in center -->
-                            <ul class="navbar-nav d-flex flex-row align-items-center justify-content-center">
-                                <li class="nav-item mx-2">
-                                    <a href="financial-dashboard.html" class="nav-link rounded-circle d-flex align-items-center justify-content-center" 
-                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease;" 
-                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="لوحة التحكم">
-                                        <i class="fas fa-tachometer-alt"></i>
-                                    </a>
-                                </li>
-                                <li class="nav-item mx-2">
-                                    <a href="financial-profit-management.html" class="nav-link rounded-circle d-flex align-items-center justify-content-center" 
-                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.15); transition: all 0.3s ease;" 
-                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="إدارة الأرباح">
-                                        <i class="fas fa-coins"></i>
-                                    </a>
-                                </li>
-                                <li class="nav-item mx-2">
-                                    <a href="financial-add-expense.html" class="nav-link active fw-bold rounded-circle d-flex align-items-center justify-content-center" 
-                                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.3s ease;" 
-                                       data-bs-toggle="tooltip" data-bs-placement="bottom" title="تسجيل المصروفات">
-                                        <i class="fas fa-plus"></i>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </nav>
-            </div>
-        </div>
+        <!-- Finance Header -->
+        <div class="finance-header-container"></div>
 
         <!-- Main Content -->
         <div class="row justify-content-center">
@@ -968,8 +935,8 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Header Component -->
-    <script src="js/header-component.js"></script>
+    <!-- Finance Header Component -->
+    <script src="js/finance-header-component.js"></script>
 
     <script>
         let selectedType = 'expense';
@@ -1733,44 +1700,10 @@
             });
         }
 
-        // Setup navigation interactions
+        // Setup navigation interactions (now handled by finance header component)
         function setupNavigationInteractions() {
-            const navLinks = document.querySelectorAll('.navbar .nav-link');
-            
-            // Apply consistent inactive style to all links first
-            navLinks.forEach(link => {
-                link.style.backgroundColor = 'rgba(255,255,255,0.15)';
-                link.style.boxShadow = '';
-                link.classList.remove('active', 'fw-bold');
-            });
-            
-            // Set active state for current page
-            const currentPage = window.location.pathname.split('/').pop();
-            if (currentPage === 'financial-add-expense.html') {
-                const expenseLink = document.querySelector('a[href="financial-add-expense.html"]');
-                if (expenseLink) {
-                    expenseLink.classList.add('active', 'fw-bold');
-                    expenseLink.style.backgroundColor = 'rgba(255,255,255,0.3)';
-                    expenseLink.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-                }
-            }
-            
-            // Add click event listeners
-            navLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    // Remove active class from all links
-                    navLinks.forEach(l => {
-                        l.classList.remove('active', 'fw-bold');
-                        l.style.backgroundColor = 'rgba(255,255,255,0.15)';
-                        l.style.boxShadow = '';
-                    });
-                    
-                    // Add active class to clicked link
-                    link.classList.add('active', 'fw-bold');
-                    link.style.backgroundColor = 'rgba(255,255,255,0.3)';
-                    link.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-                });
-            });
+            // Navigation interactions are now handled by the FinanceHeaderComponent
+            console.log('Navigation interactions handled by FinanceHeaderComponent');
         }
     </script>
     
