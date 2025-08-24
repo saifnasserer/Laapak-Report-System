@@ -518,4 +518,146 @@ router.get('/dashboard', adminAuth, async (req, res) => {
     }
 });
 
+/**
+ * DELETE /api/money/movements/:id
+ * Revert a money movement by reversing the balance changes
+ */
+router.delete('/movements/:id', adminAuth, async (req, res) => {
+    const transaction = await require('../models').sequelize.transaction();
+    
+    try {
+        const { id } = req.params;
+        console.log('Reverting money movement:', id);
+
+        // Find the movement
+        const movement = await MoneyMovement.findByPk(id, {
+            include: [
+                {
+                    model: MoneyLocation,
+                    as: 'fromLocation',
+                    attributes: ['id', 'name_ar', 'balance', 'type'],
+                    foreignKey: 'from_location_id'
+                },
+                {
+                    model: MoneyLocation,
+                    as: 'toLocation',
+                    attributes: ['id', 'name_ar', 'balance', 'type'],
+                    foreignKey: 'to_location_id'
+                }
+            ],
+            transaction
+        });
+
+        if (!movement) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'Money movement not found'
+            });
+        }
+
+        console.log('Found movement to revert:', {
+            id: movement.id,
+            movement_type: movement.movement_type,
+            amount: movement.amount,
+            from_location_id: movement.from_location_id,
+            to_location_id: movement.to_location_id,
+            reference_type: movement.reference_type,
+            reference_id: movement.reference_id
+        });
+
+        // Check if this movement can be reverted
+        // Don't allow reverting expense/income movements that are linked to records
+        if (movement.reference_type === 'expense' || movement.reference_type === 'manual') {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'لا يمكن إلغاء حركة مرتبطة بتسجيل مالي. يرجى حذف التسجيل المالي بدلاً من ذلك.'
+            });
+        }
+
+        // Reverse the balance changes
+        let balanceChanges = [];
+
+        // Handle from location (money was taken from here)
+        if (movement.fromLocation) {
+            const currentBalance = parseFloat(movement.fromLocation.balance || 0);
+            const newBalance = currentBalance + parseFloat(movement.amount);
+            
+            console.log(`Reverting from location ${movement.fromLocation.name_ar}:`, {
+                currentBalance,
+                amount: movement.amount,
+                newBalance
+            });
+
+            await movement.fromLocation.update({
+                balance: newBalance
+            }, { transaction });
+
+            balanceChanges.push({
+                location: movement.fromLocation.name_ar,
+                oldBalance: currentBalance,
+                newBalance: newBalance,
+                change: `+${movement.amount}`
+            });
+        }
+
+        // Handle to location (money was added here)
+        if (movement.toLocation) {
+            const currentBalance = parseFloat(movement.toLocation.balance || 0);
+            const newBalance = currentBalance - parseFloat(movement.amount);
+            
+            // Prevent negative balance
+            const finalBalance = Math.max(0, newBalance);
+            
+            console.log(`Reverting to location ${movement.toLocation.name_ar}:`, {
+                currentBalance,
+                amount: movement.amount,
+                newBalance,
+                finalBalance
+            });
+
+            await movement.toLocation.update({
+                balance: finalBalance
+            }, { transaction });
+
+            balanceChanges.push({
+                location: movement.toLocation.name_ar,
+                oldBalance: currentBalance,
+                newBalance: finalBalance,
+                change: `-${movement.amount}`
+            });
+        }
+
+        // Delete the movement
+        await movement.destroy({ transaction });
+
+        // Commit transaction
+        await transaction.commit();
+
+        console.log('Successfully reverted money movement:', {
+            movementId: id,
+            balanceChanges
+        });
+
+        res.json({
+            success: true,
+            message: 'تم إلغاء الحركة بنجاح',
+            data: {
+                revertedMovementId: id,
+                balanceChanges
+            }
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error reverting money movement:', error);
+        res.status(500).json({
+            success: false,
+            message: 'خطأ في إلغاء الحركة',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

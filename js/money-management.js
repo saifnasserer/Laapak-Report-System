@@ -277,6 +277,15 @@ class MoneyApiService {
             };
         }
     }
+
+    // Revert money movement
+    async revertMovement(movementId) {
+        const response = await fetch(`${this.baseUrl}/api/money/movements/${movementId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    }
 }
 
 // Global API service instance
@@ -427,9 +436,14 @@ class MoneyUIRenderer {
                         </div>
                     </div>
                     <div class="col-md-1">
-                        <button class="btn btn-sm btn-outline-primary rounded-circle" onclick="MoneyActions.showMovementDetails(${movement.id})" title="عرض التفاصيل">
-                            <i class="fas fa-eye"></i>
-                        </button>
+                        ${this.canRevertMovement(movement) ? 
+                            `<button class="btn btn-sm btn-outline-danger rounded-circle" onclick="revertMovement(${movement.id})" title="إلغاء الحركة">
+                                <i class="fas fa-undo"></i>
+                            </button>` :
+                            `<button class="btn btn-sm btn-outline-secondary rounded-circle" title="لا يمكن إلغاء هذه الحركة" disabled>
+                                <i class="fas fa-lock"></i>
+                            </button>`
+                        }
                     </div>
                 </div>
             </div>
@@ -724,6 +738,13 @@ class MoneyUIRenderer {
         return icons[type] || 'fa-circle';
     }
 
+    // Check if a movement can be reverted
+    static canRevertMovement(movement) {
+        // Only allow reverting manual movements (transfers, deposits, withdrawals)
+        // Don't allow reverting expense/income movements that are linked to records
+        return movement.reference_type === 'manual';
+    }
+
     // Map our method names to API method names
     static mapMethodNameToAPI(methodName) {
         const mapping = {
@@ -936,6 +957,47 @@ class MoneyActions {
         if (movement) {
             // Implementation for showing movement details
             MoneyNotifications.info('تفاصيل الحركة');
+        }
+    }
+
+    // Revert money movement
+    static async revertMovement(movementId) {
+        const movement = moneyState.movements.find(m => m.id === movementId);
+        if (!movement) {
+            MoneyNotifications.error('الحركة غير موجودة');
+            return;
+        }
+
+        // Check if movement can be reverted
+        if (!MoneyUIRenderer.canRevertMovement(movement)) {
+            MoneyNotifications.error('لا يمكن إلغاء هذه الحركة');
+            return;
+        }
+
+        // Show confirmation dialog
+        const confirmed = confirm(`هل أنت متأكد من إلغاء هذه الحركة؟\n\n${movement.description || 'حركة مالية'}\nالمبلغ: ${MoneyUIRenderer.formatCurrency(movement.amount)}`);
+        
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            console.log('Reverting movement:', movementId);
+            
+            const result = await moneyApi.revertMovement(movementId);
+            
+            if (result.success) {
+                MoneyNotifications.success('تم إلغاء الحركة بنجاح');
+                console.log('Movement reverted successfully:', result.data);
+                
+                // Refresh data to show updated balances and movements
+                await MoneyDataLoader.loadAll();
+            } else {
+                MoneyNotifications.error(`خطأ في إلغاء الحركة: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('Error reverting movement:', error);
+            MoneyNotifications.error(`خطأ في إلغاء الحركة: ${error.message}`);
         }
     }
 
@@ -1375,23 +1437,61 @@ class MoneyDataLoader {
 }
 
 // =============================================================================
-// 7. SIMPLE NOTIFICATION SYSTEM
+// 7. ENHANCED NOTIFICATION SYSTEM
 // =============================================================================
 class MoneyNotifications {
+    static showNotification(message, type = 'info', duration = 5000) {
+        // Create notification container if it doesn't exist
+        let container = document.getElementById('money-notifications');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'money-notifications';
+            container.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                max-width: 400px;
+            `;
+            document.body.appendChild(container);
+        }
+
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show`;
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        // Add to container
+        container.appendChild(notification);
+
+        // Auto-remove after duration
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, duration);
+
+        // Also log to console
+        console.log(`${type.toUpperCase()}:`, message);
+    }
+
     static success(message) {
-        console.log('Success:', message);
+        this.showNotification(message, 'success');
     }
 
     static error(message) {
-        console.error('Error:', message);
+        this.showNotification(message, 'danger');
     }
 
     static info(message) {
-        console.log('Info:', message);
+        this.showNotification(message, 'info');
     }
 
     static warning(message) {
-        console.warn('Warning:', message);
+        this.showNotification(message, 'warning');
     }
 }
 
@@ -1423,6 +1523,7 @@ class MoneyManager {
         window.executeDeposit = MoneyActions.executeDeposit;
         window.executeWithdrawal = MoneyActions.executeWithdrawal;
         window.MoneyActions = MoneyActions;
+        window.revertMovement = (movementId) => MoneyActions.revertMovement(movementId);
         
         // Bind unified payment method functions
         window.showDepositToMethod = (methodKey) => MoneyActions.showDepositToMethod(methodKey);
