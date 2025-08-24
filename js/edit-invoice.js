@@ -283,14 +283,68 @@ document.addEventListener('DOMContentLoaded', function () {
         const itemTypeSelect = itemRow.querySelector('.item-type');
         const reportIdInput = itemRow.querySelector('.item-report-id');
         
+        // Trigger initial visibility setup for existing items
+        console.log('Setting up item row for type:', itemTypeSelect.value, 'with report_id:', item.report_id);
+        
+        // Add a small delay to ensure DOM is fully rendered
+        setTimeout(() => {
+            if (itemTypeSelect.value === 'report') {
+                console.log('Item type is report, showing report ID field');
+                reportIdInput.style.display = 'block';
+                reportIdInput.parentElement.style.display = 'block';
+                reportIdInput.required = false;
+                
+                // Add visual indicator if there's an existing report_id
+                if (item.report_id) {
+                    console.log('Found existing report_id:', item.report_id);
+                    const existingReportIndicator = document.createElement('div');
+                    existingReportIndicator.className = 'mt-1';
+                    existingReportIndicator.innerHTML = `
+                        <small class="text-success">
+                            <i class="fas fa-check-circle me-1"></i>تم اختيار تقرير: ${item.report_id}
+                        </small>
+                    `;
+                    reportIdInput.parentElement.appendChild(existingReportIndicator);
+                    
+                    // Add change report button
+                    const changeReportBtn = document.createElement('button');
+                    changeReportBtn.type = 'button';
+                    changeReportBtn.className = 'btn btn-sm btn-outline-warning mt-1 change-report-btn';
+                    changeReportBtn.innerHTML = '<i class="fas fa-edit me-1"></i>تغيير التقرير';
+                    changeReportBtn.addEventListener('click', function() {
+                        showReportSelectionModal(itemRow);
+                    });
+                    reportIdInput.parentElement.appendChild(changeReportBtn);
+                } else {
+                    console.log('No existing report_id, adding select button');
+                    // Only add select report button if there's no existing report_id
+                    if (!itemRow.querySelector('.select-report-btn')) {
+                        const selectReportBtn = document.createElement('button');
+                        selectReportBtn.type = 'button';
+                        selectReportBtn.className = 'btn btn-sm btn-outline-info mt-1 select-report-btn';
+                        selectReportBtn.innerHTML = '<i class="fas fa-search me-1"></i>اختيار تقرير';
+                        selectReportBtn.addEventListener('click', function() {
+                            showReportSelectionModal(itemRow);
+                        });
+                        reportIdInput.parentElement.appendChild(selectReportBtn);
+                    }
+                }
+            } else {
+                console.log('Item type is not report, hiding report ID field');
+                // Only hide the input field, not the parent container
+                reportIdInput.style.display = 'none';
+                reportIdInput.required = false;
+            }
+        }, 100);
+        
         itemTypeSelect.addEventListener('change', function() {
             if (this.value === 'report') {
                 reportIdInput.style.display = 'block';
                 reportIdInput.parentElement.style.display = 'block';
-                reportIdInput.required = true;
+                reportIdInput.required = false;
                 
-                // Add a button to help select reports
-                if (!itemRow.querySelector('.select-report-btn')) {
+                // Only add select report button if there's no existing report_id
+                if (!itemRow.querySelector('.select-report-btn') && !item.report_id) {
                     const selectReportBtn = document.createElement('button');
                     selectReportBtn.type = 'button';
                     selectReportBtn.className = 'btn btn-sm btn-outline-info mt-1 select-report-btn';
@@ -302,7 +356,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else {
                 reportIdInput.style.display = 'none';
-                reportIdInput.parentElement.style.display = 'none';
                 reportIdInput.required = false;
                 reportIdInput.value = '';
                 
@@ -311,31 +364,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (selectReportBtn) {
                     selectReportBtn.remove();
                 }
+                
+                // Remove the change report button
+                const changeReportBtn = itemRow.querySelector('.change-report-btn');
+                if (changeReportBtn) {
+                    changeReportBtn.remove();
+                }
+                
+                // Remove the existing report indicator
+                const existingIndicator = itemRow.querySelector('.text-success');
+                if (existingIndicator) {
+                    existingIndicator.remove();
+                }
             }
         });
-
-        // Initialize visibility based on current type
-        if (itemTypeSelect.value === 'report') {
-            reportIdInput.style.display = 'block';
-            reportIdInput.parentElement.style.display = 'block';
-            reportIdInput.required = true;
-            
-            // Add select report button for existing report items
-            if (!itemRow.querySelector('.select-report-btn')) {
-                const selectReportBtn = document.createElement('button');
-                selectReportBtn.type = 'button';
-                selectReportBtn.className = 'btn btn-sm btn-outline-info mt-1 select-report-btn';
-                selectReportBtn.innerHTML = '<i class="fas fa-search me-1"></i>اختيار تقرير';
-                selectReportBtn.addEventListener('click', function() {
-                    showReportSelectionModal(itemRow);
-                });
-                reportIdInput.parentElement.appendChild(selectReportBtn);
-            }
-        } else {
-            reportIdInput.style.display = 'none';
-            reportIdInput.parentElement.style.display = 'none';
-            reportIdInput.required = false;
-        }
 
         calculateTotals(); // Initial calculation for new row
     }
@@ -675,7 +717,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td>
                         <button type="button" class="btn btn-sm btn-primary select-report-btn" 
                                 data-report-id="${report.id}" 
-                                data-report-description="تقرير فحص - ${report.device_model || 'جهاز'} (${report.id})"
+                                data-report-description="${report.device_model || 'جهاز'} (${report.id})"
                                 data-report-amount="${report.amount || 0}">
                             اختيار
                         </button>

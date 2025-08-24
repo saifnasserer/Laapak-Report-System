@@ -603,13 +603,7 @@ router.post('/', adminAuth, async (req, res) => {
             });
         }
         
-        // Validate that a report ID is provided
-        if (!report_id && (!report_ids || !Array.isArray(report_ids) || report_ids.length === 0)) {
-            return res.status(400).json({
-                message: 'معرف التقرير مطلوب',
-                error: 'report_id or report_ids is required'
-            });
-        }
+        // Report ID validation removed - no longer required
         
         // Validate client_id is a number
         const client_idNum = Number(client_id);

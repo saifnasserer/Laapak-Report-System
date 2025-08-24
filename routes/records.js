@@ -605,7 +605,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             const existingMovement = await MoneyMovement.findOne({
                 where: { 
                     reference_type: 'expense',
-                    reference_id: id.toString()
+                    reference_id: id.toString
                 },
                 transaction
             });
