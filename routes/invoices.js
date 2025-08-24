@@ -576,6 +576,7 @@ router.post('/', adminAuth, async (req, res) => {
         // Extract data from request body
         const { 
             date, // Added date here
+            report_id, // Single report ID
             report_ids, // Changed from report_id to report_ids (array)
             client_id: client_id, 
             client_name: clientName, 
@@ -599,6 +600,14 @@ router.post('/', adminAuth, async (req, res) => {
             return res.status(400).json({
                 message: 'معرف العميل مطلوب',
                 error: 'client_id is required'
+            });
+        }
+        
+        // Validate that a report ID is provided
+        if (!report_id && (!report_ids || !Array.isArray(report_ids) || report_ids.length === 0)) {
+            return res.status(400).json({
+                message: 'معرف التقرير مطلوب',
+                error: 'report_id or report_ids is required'
             });
         }
         
@@ -637,7 +646,7 @@ router.post('/', adminAuth, async (req, res) => {
         // Log the data just before creating the invoice
         const invoiceDataToCreate = {
             id: invoiceNumber, // This is the PK for the 'invoices' table (varchar)
-            // report_id: reportId || null, // Removed: report_id is no longer in invoices table
+            reportId: report_id || (report_ids && report_ids.length > 0 ? report_ids[0] : null), // Use report_id or first report from report_ids
             client_id: client_idNum, // Parsed from req.body.client_id
             date: dateObjectForSequelize, // Use the Date object here
             subtotal: Number(subtotal || 0),
