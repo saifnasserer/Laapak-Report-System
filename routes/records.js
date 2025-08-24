@@ -100,7 +100,7 @@ router.get('/recent', adminRoleAuth(['superadmin']), async (req, res) => {
             id: expense.id,
             name: expense.name_ar || expense.name,
             amount: expense.amount,
-            type: expense.type === 'profit' ? 'profit' : 'expense',
+            type: expense.type === 'fixed' ? 'profit' : 'expense', // 'fixed' = profit, 'variable' = expense
             date: expense.date,
             notes: expense.description,
             category: expense.category,
@@ -340,7 +340,7 @@ router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
 
         // Filter by type
         if (type && ['expense', 'profit'].includes(type)) {
-            whereClause.type = type === 'profit' ? 'profit' : { [Op.ne]: 'profit' };
+            whereClause.type = type === 'profit' ? 'fixed' : 'variable'; // 'fixed' = profit, 'variable' = expense
         }
 
         // Filter by search term
@@ -383,7 +383,7 @@ router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
             id: record.id,
             name: record.name_ar || record.name,
             amount: record.amount,
-            type: record.type === 'profit' ? 'profit' : 'expense',
+            type: record.type === 'fixed' ? 'profit' : 'expense', // 'fixed' = profit, 'variable' = expense
             date: record.date,
             notes: record.description,
             category: record.category,
@@ -436,7 +436,7 @@ router.get('/stats', adminRoleAuth(['superadmin']), async (req, res) => {
         const expenses = await Expense.findAll({
             where: {
                 ...whereClause,
-                type: { [Op.ne]: 'profit' }
+                type: 'variable' // 'variable' = expenses
             },
             attributes: ['amount']
         });
@@ -445,7 +445,7 @@ router.get('/stats', adminRoleAuth(['superadmin']), async (req, res) => {
         const profits = await Expense.findAll({
             where: {
                 ...whereClause,
-                type: 'profit'
+                type: 'fixed' // 'fixed' = profits
             },
             attributes: ['amount']
         });
@@ -509,8 +509,10 @@ router.get('/categories', adminRoleAuth(['superadmin']), async (req, res) => {
 router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { id } = req.params;
+        // Ensure id is a string and not a function
+        const recordId = String(id);
 
-        const record = await Expense.findByPk(id, {
+        const record = await Expense.findByPk(recordId, {
             include: [
                 {
                     model: ExpenseCategory,
@@ -547,16 +549,26 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
  * Update a financial record
  */
 router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
-    try {
-        const { id } = req.params;
-        const {
-            category_id,
-            amount,
-            type,
-            date,
-            description,
-            paymentMethod = 'cash'
-        } = req.body;
+            try {
+            const { id } = req.params;
+            // Ensure id is a string and not a function
+            const recordId = String(id);
+            console.log('Update record - ID type and value:', { 
+                originalId: id, 
+                originalType: typeof id, 
+                recordId: recordId,
+                recordIdType: typeof recordId,
+                isFunction: typeof id === 'function' 
+            });
+            
+            const {
+                category_id,
+                amount,
+                type,
+                date,
+                description,
+                paymentMethod = 'cash'
+            } = req.body;
 
         // Validate required fields
         if (!category_id || !amount || !type || !date || !description) {
@@ -583,7 +595,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
         }
 
         // Find the record
-        const record = await Expense.findByPk(id);
+        const record = await Expense.findByPk(recordId);
         if (!record) {
             return res.status(404).json({
                 success: false,
@@ -602,10 +614,15 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             }
 
             // Find existing money movement for this record
+            console.log('About to query MoneyMovement with:', { 
+                recordId, 
+                recordIdType: typeof recordId
+            });
+            
             const existingMovement = await MoneyMovement.findOne({
                 where: { 
                     reference_type: 'expense',
-                    reference_id: id.toString
+                    reference_id: recordId
                 },
                 transaction
             });
@@ -623,7 +640,8 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                     const oldLocation = await MoneyLocation.findByPk(oldLocationId, { transaction });
                     if (oldLocation) {
                         // Reverse the old balance change
-                        const oldBalanceChange = record.type === 'profit' ? -record.amount : record.amount;
+                        // record.type is 'fixed' for profits, 'variable' for expenses
+                        const oldBalanceChange = record.type === 'fixed' ? -record.amount : record.amount;
                         const oldNewBalance = parseFloat(oldLocation.balance || 0) + oldBalanceChange;
                         await oldLocation.update({ balance: oldNewBalance }, { transaction });
                         console.log(`Reversed balance for old location ${oldLocation.name_ar}: ${oldLocation.balance} -> ${oldNewBalance}`);
@@ -662,7 +680,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                     amount: Math.abs(amount),
                     movement_type: movementType,
                     reference_type: 'expense',
-                    reference_id: id.toString(),
+                    reference_id: recordId,
                     description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
                     from_location_id: type === 'expense' ? newMoneyLocation.id : null,
                     to_location_id: type === 'profit' ? newMoneyLocation.id : null,
@@ -680,7 +698,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             await transaction.commit();
 
             // Get updated record with category
-            const updatedRecord = await Expense.findByPk(id, {
+            const updatedRecord = await Expense.findByPk(recordId, {
                 include: [
                     {
                         model: ExpenseCategory,
@@ -720,13 +738,15 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { id } = req.params;
+        // Ensure id is a string and not a function
+        const recordId = String(id);
 
         // Start transaction
         const transaction = await Expense.sequelize.transaction();
 
         try {
             // Find the record
-            const record = await Expense.findByPk(id, { transaction });
+            const record = await Expense.findByPk(recordId, { transaction });
             if (!record) {
                 await transaction.rollback();
                 return res.status(404).json({
@@ -739,7 +759,7 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             const moneyMovement = await MoneyMovement.findOne({
                 where: { 
                     reference_type: { [Op.in]: ['expense', 'manual'] },
-                    reference_id: id.toString()
+                    reference_id: recordId
                 },
                 transaction
             });
@@ -796,7 +816,7 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 await moneyMovement.destroy({ transaction });
                 console.log('Delete operation - Money movement deleted successfully');
             } else {
-                console.log('Delete operation - No money movement found for record ID:', id);
+                console.log('Delete operation - No money movement found for record ID:', recordId);
             }
 
             // Delete the record

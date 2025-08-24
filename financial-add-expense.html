@@ -993,6 +993,9 @@
 
                 const result = await response.json();
                 populateCategoryCards(result.data.categories || []);
+                
+                // Setup payment method cards after categories are loaded
+                setupPaymentMethodCards();
 
             } catch (error) {
                 console.error('Categories error:', error);
@@ -1003,6 +1006,9 @@
                     { id: 3, name_ar: 'مصاريف شخصية' },
                     { id: 4, name_ar: 'تكاليف الشغل' }
                 ]);
+                
+                // Setup payment method cards after categories are loaded
+                setupPaymentMethodCards();
             }
         }
 
@@ -1037,18 +1043,6 @@
             document.querySelectorAll('.payment-method-card').forEach(card => {
                 card.addEventListener('click', function() {
                     selectPaymentMethod(this);
-                });
-            });
-
-            // Add click event listeners for edit buttons
-            document.querySelectorAll('.edit-record-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const recordId = this.getAttribute('data-record-id');
-                    if (recordId) {
-                        editRecord(recordId);
-                    }
                 });
             });
         }
@@ -1198,6 +1192,18 @@
                     </button>
                 </div>
             `).join('');
+            
+            // Add click event listeners for edit buttons after rendering
+            document.querySelectorAll('.edit-record-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const recordId = this.getAttribute('data-record-id');
+                    if (recordId) {
+                        editRecord(recordId);
+                    }
+                });
+            });
         }
 
         // Global variable to track if we're editing
@@ -1244,36 +1250,75 @@
                 console.log('Response status:', response.status);
 
                 if (!response.ok) {
-                    throw new Error('Failed to fetch record');
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error(`Failed to fetch record: ${response.status} - ${errorText}`);
                 }
 
                 const result = await response.json();
+                console.log('API Response:', result);
+                
+                if (!result.success || !result.data || !result.data.record) {
+                    throw new Error('Invalid response format from API');
+                }
+                
                 const record = result.data.record;
+                console.log('Record data:', record);
+                console.log('Available record fields:', Object.keys(record));
+                console.log('Record values:', {
+                    id: record.id,
+                    amount: record.amount,
+                    type: record.type,
+                    date: record.date,
+                    description: record.description,
+                    notes: record.notes,
+                    category_id: record.category_id,
+                    payment_method: record.payment_method
+                });
 
                 // Set editing mode
                 isEditing = true;
                 editingRecordId = recordId;
 
                 // Update form title
-                document.querySelector('.card-header h5').textContent = 'تعديل التسجيل المالي';
-                document.querySelector('.card-header p').textContent = 'قم بتعديل بيانات التسجيل المالي';
+                const titleElement = document.querySelector('.card-header h5');
+                const subtitleElement = document.querySelector('.card-header p');
+                if (titleElement) {
+                    titleElement.textContent = 'تعديل التسجيل المالي';
+                }
+                if (subtitleElement) {
+                    subtitleElement.textContent = 'قم بتعديل بيانات التسجيل المالي';
+                }
 
                 // Fill form with record data
                 document.getElementById('recordAmount').value = record.amount;
                 document.getElementById('recordDate').value = record.date.split('T')[0];
-                document.getElementById('recordDescription').value = record.description || '';
+                document.getElementById('recordDescription').value = record.description || record.notes || '';
 
                 // Set type selection
                 const recordType = record.type === 'fixed' ? 'profit' : 'expense';
+                console.log('Record type mapping:', { dbType: record.type, uiType: recordType });
                 selectedType = recordType;
                 document.querySelectorAll('.type-option').forEach(option => {
                     option.classList.remove('active');
                 });
-                document.querySelector(`[data-type="${recordType}"]`).classList.add('active');
+                const typeOption = document.querySelector(`[data-type="${recordType}"]`);
+                if (typeOption) {
+                    typeOption.classList.add('active');
+                }
+                
+                // Update amount input color based on type
+                const amountInput = document.getElementById('recordAmount');
+                if (amountInput) {
+                    amountInput.style.color = recordType === 'expense' ? 'var(--danger-color)' : 'var(--success-color)';
+                }
 
                 // Set category selection
                 if (record.category_id) {
-                    document.getElementById('recordCategory').value = record.category_id;
+                    const categoryInput = document.getElementById('recordCategory');
+                    if (categoryInput) {
+                        categoryInput.value = record.category_id;
+                    }
                     // Select the category card
                     document.querySelectorAll('.category-card').forEach(card => {
                         card.classList.remove('selected');
@@ -1285,7 +1330,10 @@
 
                 // Set payment method (default to cash if not available)
                 const paymentMethod = record.payment_method || 'cash';
-                document.getElementById('paymentMethod').value = paymentMethod;
+                const paymentMethodInput = document.getElementById('paymentMethod');
+                if (paymentMethodInput) {
+                    paymentMethodInput.value = paymentMethod;
+                }
                 // Select the payment method card
                 document.querySelectorAll('.payment-method-card').forEach(card => {
                     card.classList.remove('selected');
@@ -1296,14 +1344,22 @@
 
                 // Update submit button
                 const submitBtn = document.querySelector('button[type="submit"]');
-                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التعديلات';
-                submitBtn.className = 'btn btn-warning';
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التعديلات';
+                    submitBtn.className = 'btn btn-warning';
+                }
                 
                 // Show cancel button in dropdown
-                document.getElementById('cancelEditBtn').style.display = 'block';
+                const cancelEditBtn = document.getElementById('cancelEditBtn');
+                if (cancelEditBtn) {
+                    cancelEditBtn.style.display = 'block';
+                }
 
                 // Scroll to form
-                document.getElementById('recordForm').scrollIntoView({ behavior: 'smooth' });
+                const formElement = document.getElementById('recordForm');
+                if (formElement) {
+                    formElement.scrollIntoView({ behavior: 'smooth' });
+                }
 
                 showNotification('تم تحميل بيانات التسجيل للتعديل', 'info');
 
@@ -1319,16 +1375,27 @@
             editingRecordId = null;
             
             // Reset form title
-            document.querySelector('.card-header h5').textContent = 'تسجيل مصروف/ربح جديد';
-            document.querySelector('.card-header p').textContent = 'قم بإدخال بيانات المصروف أو الربح الجديد';
+            const titleElement = document.querySelector('.card-header h5');
+            const subtitleElement = document.querySelector('.card-header p');
+            if (titleElement) {
+                titleElement.textContent = 'تسجيل مصروف/ربح جديد';
+            }
+            if (subtitleElement) {
+                subtitleElement.textContent = 'قم بإدخال بيانات المصروف أو الربح الجديد';
+            }
             
             // Reset submit button
             const submitBtn = document.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التسجيل';
-            submitBtn.className = 'btn btn-primary';
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التسجيل';
+                submitBtn.className = 'btn btn-primary';
+            }
             
             // Hide cancel button in dropdown
-            document.getElementById('cancelEditBtn').style.display = 'none';
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            if (cancelEditBtn) {
+                cancelEditBtn.style.display = 'none';
+            }
             
             // Reset form
             resetForm();
@@ -1626,6 +1693,9 @@
             // Setup navigation interactions
             setupNavigationInteractions();
             
+            // Setup payment method cards
+            setupPaymentMethodCards();
+            
             loadCategories();
             loadRecentRecords();
 
@@ -1704,6 +1774,15 @@
         function setupNavigationInteractions() {
             // Navigation interactions are now handled by the FinanceHeaderComponent
             console.log('Navigation interactions handled by FinanceHeaderComponent');
+        }
+
+        // Setup payment method card event listeners
+        function setupPaymentMethodCards() {
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectPaymentMethod(this);
+                });
+            });
         }
     </script>
     

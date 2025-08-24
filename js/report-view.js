@@ -129,6 +129,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusText = get(report, 'status');
         reportStatus.textContent = translateStatus(statusText);
         reportStatus.className = `badge ${getStatusBadgeClass(statusText)}`;
+        
+        // Add enhanced styling to information items
+        enhanceInformationDisplay();
 
         // Step 2: External Inspection
         const externalImagesData = safeJsonParse(report.external_images, []);
@@ -1688,6 +1691,436 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             console.log('Standalone fullscreen button clicked');
             toggleFullscreen();
         });
+    }
+    
+    /**
+     * Add enhanced CSS styles for step buttons and overall report view
+     */
+    function addEnhancedStepStyles() {
+        if (!document.getElementById('enhanced-step-styles')) {
+            const style = document.createElement('style');
+            style.id = 'enhanced-step-styles';
+            style.textContent = `
+                /* Enhanced Step Buttons */
+                .step-button {
+                    position: relative !important;
+                    overflow: hidden !important;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    backdrop-filter: blur(10px) !important;
+                }
+                
+                .step-button::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                    transition: left 0.5s ease;
+                    z-index: 1;
+                }
+                
+                .step-button:hover::before {
+                    left: 100%;
+                }
+                
+                .step-button:hover {
+                    transform: translateY(-2px) scale(1.05) !important;
+                    box-shadow: 0 6px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+                }
+                
+                .step-item.active .step-button {
+                    animation: activeStepPulse 2s ease-in-out infinite !important;
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                }
+                
+                .step-item.completed .step-button {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                }
+                
+                .step-item:not(.active):not(.completed) .step-button {
+                    background: rgba(255,255,255,0.1) !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+                    border: 1px solid rgba(255,255,255,0.1) !important;
+                }
+                
+                @keyframes activeStepPulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.02); }
+                }
+                
+                /* Enhanced Steps Container */
+                .steps-container {
+                    position: relative;
+                    z-index: 1000;
+                    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,255,245,0.95) 100%) !important;
+                    backdrop-filter: blur(20px) !important;
+                    border: 1px solid rgba(255,255,255,0.2) !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+                }
+                
+                .steps-container::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+                    pointer-events: none;
+                    z-index: 1;
+                }
+                
+                .steps-slider {
+                    position: relative;
+                    z-index: 2;
+                }
+                
+                .step-item {
+                    position: relative;
+                    z-index: 3;
+                }
+                
+                /* Enhanced Progress Bar */
+                .steps-progress-bar {
+                    background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+                    border-radius: 2px !important;
+                }
+                
+                /* Enhanced Progress Line */
+                .steps-progress-line {
+                    background: linear-gradient(90deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 100%) !important;
+                    border-radius: 2px !important;
+                }
+                
+                /* Enhanced Navigation Buttons */
+                .step-nav-btn {
+                    position: relative !important;
+                    overflow: hidden !important;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    backdrop-filter: blur(10px) !important;
+                }
+                
+                .step-nav-btn::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                    transition: left 0.5s ease;
+                    z-index: 1;
+                }
+                
+                .step-nav-btn:hover::before {
+                    left: 100%;
+                }
+                
+                .step-nav-btn:hover {
+                    transform: translateY(-1px) scale(1.05) !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                    background: rgba(255,255,255,0.2) !important;
+                }
+                
+                /* Enhanced Step Indicator */
+                .step-indicator {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%) !important;
+                    backdrop-filter: blur(10px) !important;
+                    border: 1px solid rgba(255,255,255,0.2) !important;
+                    border-radius: 20px !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+                }
+                
+                /* Enhanced Report Cards */
+                .card {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,255,250,0.95) 100%) !important;
+                    backdrop-filter: blur(20px) !important;
+                    border: 1px solid rgba(255,255,255,0.2) !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.08) !important;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                }
+                
+                .card:hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 12px 40px rgba(0,0,0,0.12) !important;
+                }
+                
+                /* Enhanced Card Headers */
+                .card-header {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(240,255,245,0.1) 100%) !important;
+                    border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+                    backdrop-filter: blur(10px) !important;
+                }
+                
+                /* Enhanced Form Steps */
+                .form-step {
+                    animation: fadeInUp 0.5s ease-out !important;
+                }
+                
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                /* Enhanced Information Display */
+                .info-item {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(248,255,250,0.5) 100%) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    border-radius: 12px !important;
+                    padding: 1rem !important;
+                    margin-bottom: 0.5rem !important;
+                    transition: all 0.3s ease !important;
+                    backdrop-filter: blur(10px) !important;
+                }
+                
+                .info-item:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+                    background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(248,255,250,0.7) 100%) !important;
+                }
+                
+                /* Enhanced Status Badges */
+                .badge {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+                    border: 1px solid rgba(255,255,255,0.2) !important;
+                    backdrop-filter: blur(10px) !important;
+                }
+                
+                /* Enhanced Tables */
+                .table {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(248,255,250,0.8) 100%) !important;
+                    backdrop-filter: blur(10px) !important;
+                    border-radius: 12px !important;
+                    overflow: hidden !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                }
+                
+                .table thead th {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(240,255,245,0.1) 100%) !important;
+                    border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+                    backdrop-filter: blur(10px) !important;
+                }
+                
+                /* Enhanced Gallery Items */
+                .gallery-item .card {
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    overflow: hidden !important;
+                }
+                
+                .gallery-item .card:hover {
+                    transform: translateY(-4px) scale(1.02) !important;
+                    box-shadow: 0 16px 48px rgba(0,0,0,0.15) !important;
+                }
+                
+                /* Enhanced Video Container */
+                #deviceVideoContainer {
+                    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 100%) !important;
+                    border-radius: 16px !important;
+                    overflow: hidden !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+                }
+                
+                /* Enhanced Test Screenshot Sections */
+                .test-screenshot-section .card {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,255,250,0.95) 100%) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+                }
+                
+                .test-screenshot-section .card-header {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(240,255,245,0.1) 100%) !important;
+                    border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+                }
+                
+                /* Enhanced Mobile Step Titles */
+                .mobile-step-title {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(240,255,245,0.1) 100%) !important;
+                    backdrop-filter: blur(10px) !important;
+                    border: 1px solid rgba(255,255,255,0.2) !important;
+                    border-radius: 12px !important;
+                    padding: 1rem !important;
+                    margin-bottom: 1.5rem !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                }
+                
+                /* Enhanced Alerts */
+                .alert {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,255,250,0.9) 100%) !important;
+                    backdrop-filter: blur(10px) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    border-radius: 12px !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                }
+                
+                /* Enhanced Buttons */
+                .btn {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                    border: 1px solid rgba(255,255,255,0.2) !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                    backdrop-filter: blur(10px) !important;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                }
+                
+                .btn:hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
+                }
+                
+                .btn-outline-primary {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,255,250,0.1) 100%) !important;
+                    border: 1px solid var(--primary-color) !important;
+                    color: var(--primary-color) !important;
+                }
+                
+                .btn-outline-primary:hover {
+                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                    color: white !important;
+                }
+                
+                /* Enhanced Progress Indicators */
+                .progress {
+                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,255,250,0.1) 100%) !important;
+                    backdrop-filter: blur(10px) !important;
+                    border: 1px solid rgba(255,255,255,0.2) !important;
+                    border-radius: 10px !important;
+                    overflow: hidden !important;
+                }
+                
+                .progress-bar {
+                    background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+                }
+                
+                /* Enhanced Loading States */
+                .loading-placeholder {
+                    background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 75%) !important;
+                    background-size: 200% 100% !important;
+                    animation: loadingShimmer 1.5s infinite !important;
+                }
+                
+                @keyframes loadingShimmer {
+                    0% { background-position: -200% 0; }
+                    100% { background-position: 200% 0; }
+                }
+                
+                /* Enhanced Responsive Design */
+                @media (max-width: 768px) {
+                    .step-button {
+                        width: 45px !important;
+                        height: 45px !important;
+                        font-size: 1rem !important;
+                    }
+                    
+                    .step-button:hover {
+                        transform: translateY(-1px) scale(1.03) !important;
+                    }
+                    
+                    .step-nav-btn {
+                        width: 38px !important;
+                        height: 38px !important;
+                        font-size: 0.9rem !important;
+                    }
+                    
+                    .card {
+                        margin-bottom: 1rem !important;
+                    }
+                    
+                    .info-item {
+                        padding: 0.75rem !important;
+                    }
+                }
+                
+                @media (max-width: 576px) {
+                    .step-button {
+                        width: 40px !important;
+                        height: 40px !important;
+                        font-size: 0.9rem !important;
+                    }
+                    
+                    .step-button:hover {
+                        transform: translateY(-1px) scale(1.02) !important;
+                    }
+                    
+                    .step-nav-btn {
+                        width: 34px !important;
+                        height: 34px !important;
+                        font-size: 0.8rem !important;
+                    }
+                    
+                    .mobile-step-title {
+                        padding: 0.75rem !important;
+                        font-size: 1.1rem !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    // Add enhanced step button styles
+    addEnhancedStepStyles();
+    
+    /**
+     * Enhance information display with modern styling
+     */
+    function enhanceInformationDisplay() {
+        // Add info-item class to all information paragraphs
+        const infoParagraphs = document.querySelectorAll('#step1 p');
+        infoParagraphs.forEach(p => {
+            p.classList.add('info-item');
+            
+            // Add icons to information items
+            const strong = p.querySelector('strong');
+            if (strong) {
+                const text = strong.textContent;
+                let icon = 'fas fa-info-circle';
+                
+                if (text.includes('اسم العميل')) icon = 'fas fa-user';
+                else if (text.includes('رقم الهاتف')) icon = 'fas fa-phone';
+                else if (text.includes('البريد الإلكتروني')) icon = 'fas fa-envelope';
+                else if (text.includes('عنوان العميل')) icon = 'fas fa-map-marker-alt';
+                else if (text.includes('رقم الطلب')) icon = 'fas fa-hashtag';
+                else if (text.includes('طراز الجهاز')) icon = 'fas fa-laptop';
+                else if (text.includes('الرقم التسلسلي')) icon = 'fas fa-barcode';
+                else if (text.includes('تاريخ الفحص')) icon = 'fas fa-calendar-alt';
+                else if (text.includes('حالة التقرير')) icon = 'fas fa-clipboard-check';
+                
+                const iconElement = document.createElement('i');
+                iconElement.className = `${icon} me-2 text-primary`;
+                strong.insertBefore(iconElement, strong.firstChild);
+            }
+        });
+        
+        // Add enhanced styling to status badge
+        const statusBadge = document.getElementById('reportStatus');
+        if (statusBadge) {
+            statusBadge.style.fontSize = '0.9rem';
+            statusBadge.style.padding = '0.5rem 1rem';
+            statusBadge.style.borderRadius = '20px';
+        }
+        
+        // Add enhanced styling to mobile step titles
+        const mobileTitles = document.querySelectorAll('.mobile-step-title');
+        mobileTitles.forEach(title => {
+            title.style.fontWeight = '600';
+            title.style.color = 'var(--primary-color)';
+        });
+        
+        console.log('🎨 Enhanced information display styling applied');
     }
     
     // Initial setup

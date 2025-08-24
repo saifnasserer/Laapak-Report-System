@@ -39,26 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let detectedLoginType = null; // 'client' or 'employee'
     
-    // Check if user is already logged in
-    const checkExistingLogin = () => {
-        const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
-        const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
-        
-        if (adminToken) {
-            window.location.href = 'admin.html';
-            return true;
-        } else if (clientToken) {
-            window.location.href = 'client-dashboard.html';
-            return true;
-        }
-        
-        return false;
-    };
-    
-    // Check for existing login on page load
-    if (checkExistingLogin()) {
-        return;
-    }
+    // Session checking is now handled by index.html to avoid conflicts
+    // Removed checkExistingLogin() function and its call
     
     // Smart detection functions
     const detectLoginType = (identifier, credential) => {
