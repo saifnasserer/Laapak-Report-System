@@ -1526,8 +1526,8 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             
             if (stepId === 'step1') stepNumber = 1;
             else if (stepId === 'step2') stepNumber = 2;
-            else if (stepId === 'step4') stepNumber = 3; // Test screenshots
-            else if (stepId === 'step3') stepNumber = 4; // Hardware tests
+            else if (stepId === 'step3') stepNumber = 3; // Hardware tests
+            else if (stepId === 'step4') stepNumber = 4; // Test screenshots
             else if (stepId === 'step5') stepNumber = 5; // Notes
             else if (stepId === 'step6') stepNumber = 6; // Next steps
             else stepNumber = index + 1; // Fallback
@@ -1574,11 +1574,14 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             let actualStepNumber;
             if (stepNumber === 1) actualStepNumber = 1; // General Information
             else if (stepNumber === 2) actualStepNumber = 2; // External Inspection
-            else if (stepNumber === 3) actualStepNumber = 4; // Internal Inspection (Hardware Tests) - this is step 4 content
-            else if (stepNumber === 4) actualStepNumber = 3; // Basic Components (Test Screenshots) - this is step 3 content
+            else if (stepNumber === 3) actualStepNumber = 3; // Internal Inspection (Hardware Tests) - this is step 3 content
+            else if (stepNumber === 4) actualStepNumber = 4; // Basic Components (Test Screenshots) - this is step 4 content
             else if (stepNumber === 5) actualStepNumber = 5; // Notes
             else if (stepNumber === 6) actualStepNumber = 6; // Next Steps
             else actualStepNumber = stepNumber; // Fallback
+            
+            console.log('🔍 Processing step item - data-step:', stepNumber, 'index:', index);
+            console.log('🔄 Step mapping in updateSteps - data-step:', stepNumber, 'actualStepNumber:', actualStepNumber, 'currentStep:', currentStep);
             
             // If notes are hidden, adjust the step numbers and update button text
             if (!hasNotes) {
@@ -1615,7 +1618,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 item.classList.add('active');
                 button.classList.remove('btn-outline-primary');
                 button.classList.add('btn-primary');
-                console.log('Activated step item:', actualStepNumber, 'for navigation item:', stepNumber);
+                console.log('✅ ACTIVATED step item:', actualStepNumber, 'for navigation item:', stepNumber, 'button text:', button.textContent);
             } else if (actualStepNumber < currentStep) {
                 item.classList.add('completed');
                 item.classList.remove('active');
@@ -1653,6 +1656,13 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         
         console.log('🎯 Navigation updated - current step:', currentStep, 'total steps:', totalSteps, 'has notes:', hasNotes);
         console.log('📱 Mobile indicator updated - current:', currentStep, 'total:', totalSteps);
+        console.log('🔍 Step mapping summary:');
+        console.log('   - Step 1: General Information (data-step="1")');
+        console.log('   - Step 2: External Inspection (data-step="2")');
+        console.log('   - Step 3: Internal Inspection - Hardware Tests (data-step="3")');
+        console.log('   - Step 4: Basic Components - Test Screenshots (data-step="4")');
+        console.log('   - Step 5: Notes (data-step="5")');
+        console.log('   - Step 6: Next Steps (data-step="6")');
     }
 
     nextBtn.addEventListener('click', () => {
@@ -1685,8 +1695,22 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             
             // Allow navigation by clicking step items if needed and if step is not disabled
             const stepNumber = parseInt(item.dataset.step);
+            console.log('🔍 Step item clicked - data-step:', stepNumber, 'item:', item);
+            
             if (stepNumber) {
-                currentStep = stepNumber;
+                // Map the step number to the correct content step
+                let mappedStep;
+                if (stepNumber === 1) mappedStep = 1; // General Information
+                else if (stepNumber === 2) mappedStep = 2; // External Inspection
+                else if (stepNumber === 3) mappedStep = 3; // Internal Inspection (Hardware Tests)
+                else if (stepNumber === 4) mappedStep = 4; // Basic Components (Test Screenshots)
+                else if (stepNumber === 5) mappedStep = 5; // Notes
+                else if (stepNumber === 6) mappedStep = 6; // Next Steps
+                else mappedStep = stepNumber;
+                
+                console.log('🔄 Step mapping - Original:', stepNumber, 'Mapped:', mappedStep);
+                currentStep = mappedStep;
+                console.log('📌 Setting currentStep to:', currentStep);
                 updateSteps();
             }
         });

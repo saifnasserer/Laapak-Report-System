@@ -39,11 +39,27 @@
         }
 
         body {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 30%, #dee2e6 70%, #f8f9fa 100%);
             background-attachment: fixed;
             font-family: 'Tajawal', sans-serif;
             color: var(--text-dark);
             line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Add subtle pattern overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0, 166, 122, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
         }
 
         /* Navigation Bar */
@@ -63,10 +79,13 @@
             border: 1px solid rgba(0, 0, 0, 0.05);
             box-shadow: var(--shadow-sm);
             transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
         }
 
         .main-card:hover {
             box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
         }
 
         .main-card .card-header {
@@ -136,8 +155,8 @@
         /* Category Cards Styling */
         .category-cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
             margin-top: 1rem;
         }
 
@@ -284,6 +303,63 @@
             100% { transform: scale(1); }
         }
 
+        /* Enhanced Hover Effects */
+        .category-card:hover,
+        .payment-method-card:hover,
+        .recent-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Smooth Transitions */
+        .category-card,
+        .payment-method-card,
+        .recent-item,
+        .btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Enhanced Form Styling */
+        .form-control {
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 117, 83, 0.15);
+        }
+
+        /* Loading State Enhancement */
+        .loading-spinner {
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 3px solid rgba(0, 117, 83, 0.1);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Enhanced Button Styling */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
         /* Enhanced form styling */
         .form-control:focus {
             border-color: var(--primary-color);
@@ -303,25 +379,25 @@
 
         /* Payment Method Cards Styling */
         .payment-methods-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
             margin-top: 1rem;
         }
 
         .payment-method-card {
             background: var(--white);
             border: 2px solid rgba(0, 0, 0, 0.08);
-            border-radius: 10px;
-            padding: 0.6rem 0.8rem;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            flex-shrink: 0;
+            gap: 0.75rem;
+            min-height: 60px;
         }
 
         .payment-method-card:hover {
@@ -353,16 +429,16 @@
         }
 
         .payment-method-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.9rem;
+            font-size: 1.1rem;
             color: white;
             flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
         }
 
         .payment-method-card[data-method="cash"] .payment-method-icon {
@@ -386,24 +462,23 @@
         }
 
         .payment-method-name {
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: var(--text-dark);
             margin: 0;
             line-height: 1.2;
-            white-space: nowrap;
         }
 
         .payment-method-check {
-            width: 16px;
-            height: 16px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             background: var(--primary-color);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.6rem;
+            font-size: 0.7rem;
             opacity: 0;
             transform: scale(0);
             transition: all 0.3s ease;
@@ -417,28 +492,30 @@
 
         @media (max-width: 768px) {
             .payment-methods-grid {
-                gap: 0.4rem;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 0.75rem;
             }
             
             .payment-method-card {
-                padding: 0.5rem 0.6rem;
-                gap: 0.4rem;
+                padding: 0.75rem 1rem;
+                gap: 0.5rem;
+                min-height: 50px;
             }
             
             .payment-method-icon {
-                width: 28px;
-                height: 28px;
-                font-size: 0.8rem;
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
             }
             
             .payment-method-name {
-                font-size: 0.8rem;
+                font-size: 0.85rem;
             }
             
             .payment-method-check {
-                width: 14px;
-                height: 14px;
-                font-size: 0.5rem;
+                width: 16px;
+                height: 16px;
+                font-size: 0.6rem;
             }
         }
 
@@ -528,6 +605,14 @@
             border-radius: var(--border-radius);
             border: 1px solid rgba(0, 0, 0, 0.05);
             box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            transition: all 0.3s ease;
+        }
+
+        .recent-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
         }
 
         .recent-card .card-header {
@@ -550,13 +635,14 @@
         .recent-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            border-radius: 8px;
+            gap: 1.25rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 12px;
             background: var(--light-bg);
             transition: all 0.3s ease;
             cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .recent-item:hover {
@@ -570,14 +656,15 @@
         }
 
         .recent-item-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--white);
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
         }
 
         .recent-item-icon.expense {
@@ -605,8 +692,13 @@
 
         .recent-item-amount {
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-family: 'Courier New', monospace;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            min-width: 120px;
+            text-align: center;
         }
 
         .recent-item-amount.expense {
@@ -683,6 +775,57 @@
                 padding: 0.875rem 1.5rem;
                 font-size: 0.95rem;
             }
+
+            .category-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .recent-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+
+            .recent-item-content {
+                order: 2;
+            }
+
+            .recent-item-amount {
+                order: 3;
+                min-width: auto;
+                width: 100%;
+            }
+
+            .recent-item .btn {
+                order: 4;
+                margin: 0.25rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container-fluid {
+                padding: 1rem;
+            }
+
+            .nav-bar {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .main-card .card-body {
+                padding: 1rem;
+            }
+
+            .type-toggle {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .type-option {
+                padding: 0.75rem 1rem;
+            }
         }
 
         /* Utility Classes */
@@ -699,7 +842,7 @@
         <!-- Main Content -->
         <div class="row justify-content-center">
             <!-- Form Section -->
-            <div class="col-lg-8 col-xl-6 mb-4">
+            <div class="col-lg-10 col-xl-8 mb-4">
                 <div class="main-card">
                     <div class="card-header">
                         <h5 class="card-title">
