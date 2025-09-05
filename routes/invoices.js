@@ -464,14 +464,19 @@ router.post('/bulk', adminAuth, async (req, res) => {
             
             try {
                 await Promise.all(items.map(item => {
+                    const quantity = Number(item.quantity || 1);
+                    const amount = Number(item.amount || 0);
+                    const totalAmount = quantity * amount;
+                    
                     const itemPayload = {
                         invoiceId: invoice.id,
                         description: item.description || '',
                         type: item.type || 'service',
-                        quantity: Number(item.quantity || 1),
-                        amount: Number(item.amount || 0),
-                        totalAmount: Number(item.totalAmount || (item.quantity * item.amount) || 0),
-                        serialNumber: item.serialNumber || null
+                        quantity: quantity,
+                        amount: amount,
+                        totalAmount: totalAmount,
+                        serialNumber: item.serialNumber || null,
+                        report_id: item.report_id || null
                     };
                     console.log('--- DEBUG: Payload for InvoiceItem.create:', JSON.stringify(itemPayload, null, 2));
                     return InvoiceItem.create(itemPayload, { transaction });

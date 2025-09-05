@@ -474,12 +474,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 quantity: parseInt(row.querySelector('.item-quantity').value),
                 amount: parseFloat(row.querySelector('.item-amount').value).toFixed(2),
                 serialNumber: row.querySelector('.item-serial').value || null,
-                type: itemType // Include the item type
+                type: itemType, // Include the item type
+                report_id: row.querySelector('.item-report-id').value || null
             };
-
-            if (itemType === 'report') {
-                itemData.report_id = row.querySelector('.item-report-id').value;
-            }
 
             invoiceData.items.push(itemData);
         });

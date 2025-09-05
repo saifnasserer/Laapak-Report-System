@@ -29,6 +29,12 @@ class FinanceHeaderComponent {
                 icon: 'fas fa-money-bill-wave',
                 title: 'إدارة الأموال',
                 key: 'money-management'
+            },
+            {
+                href: 'expected-money.html',
+                icon: 'fas fa-clock',
+                title: 'فلوسك بس مش معاك',
+                key: 'expected-money'
             }
         ];
     }
@@ -44,6 +50,7 @@ class FinanceHeaderComponent {
         if (filename === 'financial-profit-management.html') return 'profit-management';
         if (filename === 'financial-add-expense.html') return 'add-expense';
         if (filename === 'money-management.html') return 'money-management';
+        if (filename === 'expected-money.html') return 'expected-money';
         
         return 'dashboard'; // default
     }

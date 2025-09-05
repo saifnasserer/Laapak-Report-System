@@ -8,7 +8,7 @@ const Invoice = sequelize.define('Invoice', {
     },
     reportId: {
         type: DataTypes.STRING(50),
-        allowNull: false, // Make this required
+        allowNull: true, // Make this optional for bulk invoices
         field: 'reportId',
         references: { 
             model: 'reports', 

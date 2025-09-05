@@ -18,7 +18,7 @@ const InvoiceItem = sequelize.define('InvoiceItem', {
         allowNull: false
     },
     type: {
-        type: DataTypes.ENUM('laptop', 'item', 'service'),
+        type: DataTypes.ENUM('laptop', 'item', 'service', 'report', 'part', 'standard'),
         allowNull: false
     },
     amount: {
@@ -53,6 +53,11 @@ const InvoiceItem = sequelize.define('InvoiceItem', {
     profit_margin: {
         type: DataTypes.DECIMAL(5, 2),
         allowNull: true
+    },
+    report_id: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        references: { model: 'reports', key: 'id' }
     }
 }, {
     tableName: 'invoice_items',

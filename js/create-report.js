@@ -756,6 +756,14 @@ function clearFormData() {
  * Initialize all form components
  */
 function initializeFormComponents() {
+    // Check if already initialized to prevent duplicate event listeners
+    if (window.formComponentsInitialized) {
+        console.log('Form components already initialized, skipping...');
+        return;
+    }
+    
+    console.log('Initializing form components...');
+    
     // Add event listeners to update global device details when input values change
     const deviceInputs = ['orderNumber', 'inspectionDate', 'deviceModel', 'serialNumber'];
     deviceInputs.forEach(inputId => {
@@ -809,6 +817,10 @@ function initializeFormComponents() {
     
     // Set up form submission
     setupFormSubmission();
+    
+    // Mark as initialized
+    window.formComponentsInitialized = true;
+    console.log('Form components initialization complete');
 }
 
 /**
@@ -1324,6 +1336,17 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupFormSubmission() {
     const form = document.getElementById('reportForm');
     if (!form) return;
+    
+    // Check if form submission is already set up to prevent duplicates
+    if (form.hasAttribute('data-submission-setup')) {
+        console.log('Form submission already set up, skipping...');
+        return;
+    }
+    
+    console.log('Setting up form submission...');
+    
+    // Mark form as having submission set up
+    form.setAttribute('data-submission-setup', 'true');
     
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -2220,11 +2243,11 @@ async function checkExistingInvoice(reportId) {
             throw new Error('Invalid report ID for invoice creation');
         }
             
-            // Prepare invoice data
+            // Prepare invoice data with correct field names and structure
             const invoiceData = {
                 id: invoiceId,
-                client_id: reportData.client_id,
-            report_ids: [reportId], // Link to the created report
+                client_id: Number(reportData.client_id), // Ensure client_id is a number
+                report_id: reportId, // Use report_id (string) instead of report_ids (array)
                 date: new Date().toISOString(),
                 subtotal: subtotal,
                 taxRate: taxRate,
@@ -2233,15 +2256,17 @@ async function checkExistingInvoice(reportId) {
                 total: totalAmount,
                 paymentStatus: paymentStatus,
                 paymentMethod: paymentMethod,
-            notes: `فاتورة تلقائية للتقرير ${reportData.order_number || 'غير محدد'}`,
+                notes: `فاتورة تلقائية للتقرير ${reportData.order_number || 'غير محدد'}`,
                 status: 'draft',
                 items: [
                     {
-                    description: `فحص وإصلاح ${reportData.device_model || 'جهاز'}`,
+                        invoiceId: invoiceId, // Link item to invoice
+                        description: `فحص وإصلاح ${reportData.device_model || 'جهاز'}`,
                         quantity: 1,
-                        unitPrice: subtotal,
-                        totalPrice: subtotal,
-                        type: 'service'
+                        amount: subtotal, // Use 'amount' instead of 'unitPrice'
+                        totalAmount: subtotal, // Use 'totalAmount' instead of 'totalPrice'
+                        type: 'service',
+                        serialNumber: reportData.serial_number || null
                     }
                 ]
             };
@@ -2264,7 +2289,7 @@ async function checkExistingInvoice(reportId) {
             console.error('Error creating invoice for report:', error);
         // Don't throw the error, just log it and continue
         // This prevents the entire report save from failing due to invoice creation issues
-        showToast('تم إنشاء التقرير بنجاح، لكن حدث خطأ في إنشاء الفاتورة', 'warning');
+        showToast('تم إنشاء التقرير بنجاح، لكن حدث خطأ في إنشاء الفاتورة: ' + error.message, 'warning');
         return null;
         }
     }
@@ -2273,6 +2298,12 @@ async function checkExistingInvoice(reportId) {
  * Set up billing toggle functionality
  */
 function setupBillingToggle() {
+    // Check if already set up to prevent duplicates
+    if (window.billingToggleSetup) {
+        console.log('Billing toggle already set up, skipping...');
+        return;
+    }
+    
     const enableBillingCheckbox = document.getElementById('enableBilling');
     const invoiceFieldsContainer = document.getElementById('invoiceFieldsContainer');
     const submitButton = document.getElementById('submitReportBtn');
@@ -2317,6 +2348,9 @@ function setupBillingToggle() {
     
     // Make updateBillingUI globally available
     window.updateBillingUI = updateBillingUI;
+    
+    // Mark as set up
+    window.billingToggleSetup = true;
 }
 
 /**
@@ -2411,6 +2445,12 @@ function updateClientInfoDisplay(client) {
  * Set up client search functionality
  */
 function setupClientSearch() {
+    // Check if already set up to prevent duplicates
+    if (window.clientSearchSetup) {
+        console.log('Client search already set up, skipping...');
+        return;
+    }
+    
     const clientSearchInput = document.getElementById('clientSearchInput');
     const clientSearchResults = document.getElementById('clientSearchResults');
     
@@ -2486,6 +2526,9 @@ function setupClientSearch() {
             }
         });
     }
+    
+    // Mark as set up
+    window.clientSearchSetup = true;
 }
         
 /**
@@ -2537,6 +2580,12 @@ function clientSelectionChanged(client) {
      * Set up client quick actions
      */
     function setupClientQuickActions() {
+    // Check if already set up to prevent duplicates
+    if (window.clientQuickActionsSetup) {
+        console.log('Client quick actions already set up, skipping...');
+        return;
+    }
+    
     // Set up event listeners for client quick action buttons
     const addClientBtn = document.getElementById('addClientBtn');
     const editClientBtn = document.getElementById('editClientBtn');
@@ -2567,6 +2616,9 @@ function clientSelectionChanged(client) {
             });
         }
     }
+    
+    // Mark as set up
+    window.clientQuickActionsSetup = true;
     
     /**
  * Open edit client modal
