@@ -751,7 +751,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Handle form submission for the final step
-    document.getElementById('reportForm').addEventListener('submit', async function(e) {
+    // Form submission is now handled by create-report.js to prevent duplication
+    // document.getElementById('reportForm').addEventListener('submit', async function(e) {
+    /* Commented out to prevent duplicate form submission
         e.preventDefault();
         if (validateStep(currentStep)) {
             // Use the collectReportData function from create-report.js
@@ -1050,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('خطأ في معالجة البيانات. الرجاء المحاولة مرة أخرى.');
             }
         }
-    });
+    }); */
     
     /**
      * Save report data to storage
