@@ -443,6 +443,7 @@ router.post('/bulk', adminAuth, async (req, res) => {
         // Create the invoice
         const invoiceDataToCreate = {
             id: invoiceNumber,
+            reportId: null, // Set to null for bulk invoices since they use the InvoiceReport junction table
             client_id: client_idNum,
             date: dateObjectForSequelize,
             subtotal: Number(subtotal || 0),
@@ -471,7 +472,7 @@ router.post('/bulk', adminAuth, async (req, res) => {
                     const itemPayload = {
                         invoiceId: invoice.id,
                         description: item.description || '',
-                        type: item.type || 'service',
+                        type: item.type || 'report',
                         quantity: quantity,
                         amount: amount,
                         totalAmount: totalAmount,
