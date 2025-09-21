@@ -128,8 +128,8 @@ router.get('/clients/:id/reports', apiKeyAuth, async (req, res) => {
         
         const reports = await Report.findAll({
             where: { client_id: clientId },
-            attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'createdAt'],
-            order: [['createdAt', 'DESC']]
+            attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'created_at'],
+            order: [['created_at', 'DESC']]
         });
         
         res.json({
@@ -156,8 +156,8 @@ router.get('/clients/:id/invoices', apiKeyAuth, async (req, res) => {
         
         const invoices = await Invoice.findAll({
             where: { client_id: clientId },
-            attributes: ['id', 'total', 'paymentStatus', 'date', 'createdAt'],
-            order: [['createdAt', 'DESC']]
+            attributes: ['id', 'total', 'paymentStatus', 'date', 'created_at'],
+            order: [['created_at', 'DESC']]
         });
         
         res.json({
