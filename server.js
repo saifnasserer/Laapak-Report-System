@@ -33,13 +33,45 @@ const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// CORS Middleware - Handle both domains
+app.use((req, res, next) => {
+    // Allow all domains
+    const allowedOrigins = [
+        'https://laapak.com',
+        'https://www.laapak.com',
+        'https://slategrey-cod-346409.hostingersite.com',
+        'https://reports.laapak.com',
+        'https://www.reports.laapak.com',
+        'http://localhost:3001',
+        'http://localhost:3000'
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    
+    res.header('Access-Control-Allow-Headers', 'Content-Type, x-api-key, Authorization, x-auth-token');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+    } else {
+        next();
+    }
+});
+
+// Additional CORS middleware for fallback
 app.use(cors({
     origin: [
-        'http://localhost:3001',
-        'http://localhost:3000',
+        'https://laapak.com',
+        'https://www.laapak.com',
+        'https://slategrey-cod-346409.hostingersite.com',
         'https://reports.laapak.com',
-        'https://www.reports.laapak.com'
+        'https://www.reports.laapak.com',
+        'http://localhost:3001',
+        'http://localhost:3000'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
