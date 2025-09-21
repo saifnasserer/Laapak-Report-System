@@ -26,6 +26,7 @@ const goalsRoutes = require('./routes/goals');
 const financialRoutes = require('./routes/financial');
 const moneyRoutes = require('./routes/money-management');
 const recordsRoutes = require('./routes/records');
+const apiKeysRoutes = require('./routes/api-keys');
 const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
@@ -42,7 +43,7 @@ app.use(cors({
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'x-api-key']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -62,6 +63,7 @@ app.use('/api/goals', goalsRoutes);
 app.use('/api/financial', financialRoutes);
 app.use('/api/money', moneyRoutes);
 app.use('/api/records', recordsRoutes);
+app.use('/api/external', apiKeysRoutes);
 
 // Protected routes examples
 app.get('/api/protected', auth, (req, res) => {
