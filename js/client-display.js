@@ -135,7 +135,7 @@ function displayReports(reports) {
         }
         
         // Create simplified premium report card
-        col.innerHTML = `
+        oncol.innerHTML = `
             <div class="card h-100 border-0 ${isNewest ? 'shadow-lg' : 'shadow-sm'}">
                 <div class="card-body p-4">
                     ${isNewest ? '<div class="position-absolute end-0 top-0 mt-2 me-3"><i class="fas fa-circle text-warning"></i></div>' : ''}
