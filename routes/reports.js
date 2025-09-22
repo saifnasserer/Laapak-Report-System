@@ -372,15 +372,26 @@ router.get('/search', async (req, res) => {
 
   try {
     console.log(`Searching reports with query: ${q}`);
+    
+    // Build the search query
+    let whereClause = {
+      [Op.or]: [
+        { client_name: { [Op.like]: `%${q}%` } },
+        { order_number: { [Op.like]: `%${q}%` } },
+        { device_model: { [Op.like]: `%${q}%` } },
+        { serial_number: { [Op.like]: `%${q}%` } }
+      ],
+    };
+
+    // If client_id is provided in headers (for API key authentication)
+    const clientId = req.headers['x-client-id'];
+    if (clientId) {
+      whereClause.client_id = clientId;
+      console.log(`Filtering by client ID: ${clientId}`);
+    }
+
     const reports = await Report.findAll({
-      where: {
-        [Op.or]: [
-          { client_name: { [Op.like]: `%${q}%` } },
-          { order_number: { [Op.like]: `%${q}%` } },
-          { device_model: { [Op.like]: `%${q}%` } },
-          { serial_number: { [Op.like]: `%${q}%` } }
-        ],
-      },
+      where: whereClause,
       include: {
         model: Client,
         attributes: ['id', 'name', 'phone', 'email'],
@@ -395,6 +406,7 @@ router.get('/search', async (req, res) => {
       },
       order: [['created_at', 'DESC']],
     });
+    
     console.log(`Found ${reports.length} reports matching query: ${q}`);
     res.json(reports);
   } catch (error) {
