@@ -810,11 +810,17 @@ function filterReportsBySearch(searchTerm) {
             const serialNumber = (report.serial_number || report.serialNumber || '').toLowerCase();
             const status = (report.status || '').toLowerCase();
             
+            // Search in client phone number
+            const clientPhone = (report.client && report.client.phone) ? report.client.phone.toLowerCase() : '';
+            const clientEmail = (report.client && report.client.email) ? report.client.email.toLowerCase() : '';
+            
             return orderNumber.includes(searchLower) ||
                    clientName.includes(searchLower) ||
                    deviceModel.includes(searchLower) ||
                    serialNumber.includes(searchLower) ||
-                   status.includes(searchLower);
+                   status.includes(searchLower) ||
+                   clientPhone.includes(searchLower) ||
+                   clientEmail.includes(searchLower);
         });
     }
     

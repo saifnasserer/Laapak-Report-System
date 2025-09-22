@@ -363,7 +363,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// GET /reports/search?q=term - search reports by client name, order number, or device model
+// GET /reports/search?q=term - search reports by client name, order number, device model, or phone number
 router.get('/search', async (req, res) => {
   const { q } = req.query;
   if (!q) {
@@ -384,6 +384,14 @@ router.get('/search', async (req, res) => {
       include: {
         model: Client,
         attributes: ['id', 'name', 'phone', 'email'],
+        where: {
+          [Op.or]: [
+            { phone: { [Op.like]: `%${q}%` } },
+            { name: { [Op.like]: `%${q}%` } },
+            { email: { [Op.like]: `%${q}%` } }
+          ]
+        },
+        required: false // Left join to include reports even if client search doesn't match
       },
       order: [['created_at', 'DESC']],
     });

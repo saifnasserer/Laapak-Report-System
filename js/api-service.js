@@ -940,7 +940,7 @@ class ApiService {
     }
     
     async searchReports(query) {
-        return this.request(`/api/reports/search/${query}`);
+        return this.request(`/api/reports/search?q=${encodeURIComponent(query)}`);
     }
 
     /**
