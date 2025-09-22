@@ -4,6 +4,41 @@
  */
 
 /**
+ * Search reports by various criteria including phone number
+ * @param {Array} reports - Array of reports to search
+ * @param {string} searchTerm - Search term
+ * @returns {Array} Filtered reports
+ */
+function searchReports(reports, searchTerm) {
+    if (!searchTerm || searchTerm.trim() === '') {
+        return reports;
+    }
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    return reports.filter(report => {
+        // Search in report fields
+        const orderNumber = (report.order_number || '').toLowerCase();
+        const deviceModel = (report.device_model || '').toLowerCase();
+        const serialNumber = (report.serial_number || '').toLowerCase();
+        const status = (report.status || '').toLowerCase();
+        const clientName = (report.client_name || '').toLowerCase();
+        
+        // Search in client information
+        const clientPhone = (report.client && report.client.phone) ? report.client.phone.toLowerCase() : '';
+        const clientEmail = (report.client && report.client.email) ? report.client.email.toLowerCase() : '';
+        
+        return orderNumber.includes(searchLower) ||
+               deviceModel.includes(searchLower) ||
+               serialNumber.includes(searchLower) ||
+               status.includes(searchLower) ||
+               clientName.includes(searchLower) ||
+               clientPhone.includes(searchLower) ||
+               clientEmail.includes(searchLower);
+    });
+}
+
+/**
  * Display client reports
  */
 function displayReports(reports) {
