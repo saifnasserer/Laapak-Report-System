@@ -9,13 +9,13 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "img/cropped-Logo-mark.png.png",
+      "src": "assets/images/cropped-Logo-mark.png.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "img/cropped-Logo-mark.png.png",
+      "src": "assets/images/cropped-Logo-mark.png.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

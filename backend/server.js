@@ -89,6 +89,22 @@ app.get('/', (req, res) => {
     res.sendFile(indexPath);
 });
 
+// Serve admin pages
+app.get('/admin.html', (req, res) => {
+    const adminPath = path.join(__dirname, '../frontend/public/pages/admin/admin.html');
+    console.log('Serving admin.html from:', adminPath);
+    console.log('File exists:', require('fs').existsSync(adminPath));
+    res.sendFile(adminPath);
+});
+
+// Serve client pages
+app.get('/client-dashboard.html', (req, res) => {
+    const clientPath = path.join(__dirname, '../frontend/public/pages/client/client-dashboard.html');
+    console.log('Serving client-dashboard.html from:', clientPath);
+    console.log('File exists:', require('fs').existsSync(clientPath));
+    res.sendFile(clientPath);
+});
+
 // Serve static files from the frontend directory
 app.use(express.static(path.join(__dirname, '../frontend/public')));
 

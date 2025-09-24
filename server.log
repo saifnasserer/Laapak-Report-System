@@ -795,3 +795,97 @@ File exists: true
 [0mGET /admin.html [33m404[0m 1.976 ms - 149[0m
 [0mGET /assets/images/cropped-Logo-mark.png.png [36m304[0m 3.713 ms - -[0m
 [0mGET /img/cropped-Logo-mark.png.png [33m404[0m 4.570 ms - 168[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mGET / [36m304[0m 5.395 ms - -[0m
+[0mGET /.well-known/appspecific/com.chrome.devtools.json [33m404[0m 1.833 ms - 187[0m
+[0mGET /styles/base/styles.css [33m404[0m 3.039 ms - 161[0m
+[0mGET /scripts/config.js [33m404[0m 3.807 ms - 156[0m
+[0mGET /assets/images/logo.png [36m304[0m 2.267 ms - -[0m
+[0mGET /scripts/auth-middleware.js [33m404[0m 1.954 ms - 165[0m
+[0mGET /styles/base/styles.css [33m404[0m 1.846 ms - 161[0m
+[0mGET /scripts/auth-check.js [33m404[0m 1.670 ms - 160[0m
+[0mGET /scripts/login.js [33m404[0m 2.307 ms - 155[0m
+[0mGET /scripts/main.js [33m404[0m 6.735 ms - 154[0m
+[0mGET /service-worker.js [36m304[0m 2.150 ms - -[0m
+[0mGET /manifest.json [36m304[0m 2.034 ms - -[0m
+[0mGET /assets/images/cropped-Logo-mark.png.png [36m304[0m 2.888 ms - -[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mGET / [36m304[0m 6.653 ms - -[0m
+[0mGET /index.html [33m404[0m 6.048 ms - 149[0m
+[0mGET /report.html [33m404[0m 6.347 ms - 150[0m
+[0mGET /admin.html [33m404[0m 1.993 ms - 149[0m
+[0mGET /assets/images/cropped-Logo-mark.png.png [36m304[0m 1.400 ms - -[0m
+[0mGET /img/cropped-Logo-mark.png.png [33m404[0m 1.500 ms - 168[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mHEAD / [32m200[0m 2.827 ms - 23457[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mHEAD / [32m200[0m 3.274 ms - 23439[0m
+[0mHEAD /styles/base/styles.css [33m404[0m 2.153 ms - 162[0m
+[0mHEAD /styles/base/styles.css [32m200[0m 1.415 ms - 4846[0m
+[0mHEAD /scripts/config.js [33m404[0m 1.222 ms - 157[0m
+[0mHEAD /scripts/core/config.js [32m200[0m 1.424 ms - 718[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mGET / [32m200[0m 5.275 ms - 23464[0m
+[0mGET /styles/base/styles.css [32m200[0m 6.416 ms - 4846[0m
+[0mGET /scripts/core/config.js [32m200[0m 7.936 ms - 718[0m
+[0mGET /assets/images/logo.png [32m200[0m 7.828 ms - 104999[0m
+[0mGET /scripts/core/auth-middleware.js [32m200[0m 8.031 ms - 8814[0m
+[0mGET /scripts/core/auth-check.js [32m200[0m 8.774 ms - 11432[0m
+[0mGET /scripts/core/main.js [32m200[0m 10.315 ms - 3315[0m
+[0mGET /scripts/core/login.js [32m200[0m 14.829 ms - 20666[0m
+[0mGET /manifest.json [32m200[0m 3.647 ms - 1031[0m
+[0mGET /assets/images/cropped-Logo-mark.png.png [32m200[0m 5.111 ms - 14625[0m
+[0mGET /img/cropped-Logo-mark.png.png [33m404[0m 1.886 ms - 168[0m
+[0mGET /service-worker.js [32m200[0m 2.161 ms - 5303[0m
+[0mGET /assets/images/cropped-Logo-mark.png.png [36m304[0m 1.540 ms - -[0m
+[0mGET /index.html [33m404[0m 3.654 ms - 149[0m
+[0mGET /report.html [33m404[0m 4.655 ms - 150[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mGET / [36m304[0m 5.976 ms - -[0m
+[0mGET /admin.html [33m404[0m 1.977 ms - 149[0m
+[0mGET /invoices.html [33m404[0m 1.788 ms - 152[0m
+[0mGET /styles/base/styles.css [36m304[0m 2.470 ms - -[0m
+[0mGET /manifest.json [32m200[0m 3.560 ms - 1051[0m
+[0mGET /.well-known/appspecific/com.chrome.devtools.json [33m404[0m 2.495 ms - 187[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mGET / [36m304[0m 5.203 ms - -[0m
+[0mGET /styles/base/styles.css [36m304[0m 4.680 ms - -[0m
+[0mGET /assets/images/logo.png [36m304[0m 5.290 ms - -[0m
+[0mGET /scripts/core/config.js [36m304[0m 6.821 ms - -[0m
+[0mGET /scripts/core/auth-middleware.js [36m304[0m 8.193 ms - -[0m
+[0mGET /scripts/core/auth-check.js [36m304[0m 4.554 ms - -[0m
+[0mGET /scripts/core/main.js [36m304[0m 2.936 ms - -[0m
+[0mGET /scripts/core/login.js [36m304[0m 3.830 ms - -[0m
+[0mGET /.well-known/appspecific/com.chrome.devtools.json [33m404[0m 5.928 ms - 187[0m
+[0mGET /manifest.json [36m304[0m 1.829 ms - -[0m
+[0mGET /assets/images/cropped-Logo-mark.png.png [36m304[0m 4.016 ms - -[0m
+[0mGET /service-worker.js [36m304[0m 1.980 ms - -[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mGET /index.html [33m404[0m 7.721 ms - 149[0m
+[0mGET /report.html [33m404[0m 11.477 ms - 150[0m
+[0mGET / [36m304[0m 12.646 ms - -[0m
+[0mGET /admin.html [33m404[0m 3.764 ms - 149[0m
+[0mGET /admin.html [33m404[0m 2.438 ms - 149[0m
+[0mGET /.well-known/appspecific/com.chrome.devtools.json [33m404[0m 1.447 ms - 187[0m
+[0mGET /admin.html [33m404[0m 1.605 ms - 149[0m
+[0mGET /.well-known/appspecific/com.chrome.devtools.json [33m404[0m 1.598 ms - 187[0m
+[0mGET /admin.html [33m404[0m 1.572 ms - 149[0m
+[0mGET /.well-known/appspecific/com.chrome.devtools.json [33m404[0m 1.782 ms - 187[0m
+[0mGET /.well-known/appspecific/com.chrome.devtools.json [33m404[0m 2.333 ms - 187[0m
+[0mGET /admin.html [33m404[0m 2.356 ms - 149[0m
+[0mGET /manifest.json [36m304[0m 2.308 ms - -[0m
+[0mGET /.well-known/appspecific/com.chrome.devtools.json [33m404[0m 1.653 ms - 187[0m
+[0mHEAD /admin.html [33m404[0m 1.329 ms - 150[0m
+[0mGET /admin.html [33m404[0m 1.648 ms - 149[0m
+Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System/frontend/public/pages/index.html
+File exists: true
+[0mHEAD / [32m200[0m 3.255 ms - 23464[0m
+[0mHEAD /admin.html [33m404[0m 2.396 ms - 150[0m
