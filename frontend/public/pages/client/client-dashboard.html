@@ -16,8 +16,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="../../../styles/base/styles.css">
-    <link rel="stylesheet" href="../../../styles/custom-client.css">
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/custom-client.css">
     
     <!-- PWA manifest -->
     <link rel="manifest" href="../../manifest.json">
@@ -387,18 +387,18 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Configuration -->
-    <script src="../../../scripts/config.js"></script>
+    <script src="../../scripts/core/config.js"></script>
     
     <!-- Custom JS -->
-    <script src="../../../scripts/auth-middleware.js"></script> <!-- Defines how auth token is handled -->
-    <script src="../../../scripts/api-service.js"></script>    <!-- Defines ApiService, must be before scripts that use it -->
-    <script src="../../../scripts/auth-check.js"></script>      <!-- Performs auth checks, likely uses ApiService -->
-    <script src="../../../scripts/client-header-component.js"></script> <!-- UI component -->
-    <script src="../../../scripts/client-display.js"></script>   <!-- Functions to display reports/invoices -->
-    <script src="../../../scripts/client-warranty.js"></script>  <!-- Warranty related functions -->
-    <script src="../../../scripts/client-maintenance.js"></script> <!-- Maintenance related functions -->
-    <script src="../../../scripts/client-dashboard.js"></script>  <!-- Main logic for the dashboard, uses ApiService & display functions -->
-    <script src="../../../scripts/invoice-generator.js"></script> <!-- Other utilities -->
+    <script src="../../scripts/core/auth-middleware.js"></script> <!-- Defines how auth token is handled -->
+    <script src="../../scripts/core/api-service.js"></script>    <!-- Defines ApiService, must be before scripts that use it -->
+    <script src="../../scripts/core/auth-check.js"></script>      <!-- Performs auth checks, likely uses ApiService -->
+    <script src="../../scripts/components/client-header-component.js"></script> <!-- UI component -->
+    <script src="../../scripts/pages/client/client-display.js"></script>   <!-- Functions to display reports/invoices -->
+    <script src="../../scripts/pages/client/client-warranty.js"></script>  <!-- Warranty related functions -->
+    <script src="../../scripts/pages/client/client-maintenance.js"></script> <!-- Maintenance related functions -->
+    <script src="../../scripts/pages/client/client-dashboard.js"></script>  <!-- Main logic for the dashboard, uses ApiService & display functions -->
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script> <!-- Other utilities -->
 
     <!-- Authentication Check -->
     <script>

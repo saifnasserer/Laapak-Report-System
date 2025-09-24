@@ -889,3 +889,6 @@ Serving index.html from: /media/saif/brain/Laapak-Softwares/Laapak-Report-System
 File exists: true
 [0mHEAD / [32m200[0m 3.255 ms - 23464[0m
 [0mHEAD /admin.html [33m404[0m 2.396 ms - 150[0m
+[0mHEAD /admin.html [33m404[0m 2.262 ms - 150[0m
+[0mGET /admin.html [33m404[0m 1.364 ms - 149[0m
+[0mHEAD /admin.html [33m404[0m 1.772 ms - 150[0m
