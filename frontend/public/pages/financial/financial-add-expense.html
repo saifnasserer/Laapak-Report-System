@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل المصروفات والأرباح - نظام تقارير لاباك</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../../styles/base/styles.css">
+    
+    <style>
+        :root {
+            --primary-color: #007553;
+            --primary-light: #00a67a;
+            --primary-dark: #004d35;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #0dcaf0;
+            --light-bg: #f8f9fa;
+            --white: #ffffff;
+            --text-dark: #212529;
+            --text-muted: #6c757d;
+            --border-radius: 12px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 30%, #dee2e6 70%, #f8f9fa 100%);
+            background-attachment: fixed;
+            font-family: 'Tajawal', sans-serif;
+            color: var(--text-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Add subtle pattern overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(0, 117, 83, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0, 166, 122, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Main Card */
+        .main-card {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .main-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .main-card .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            padding: 1.5rem;
+        }
+
+        .main-card .card-title {
+            color: var(--white);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .main-card .card-body {
+            padding: 2rem;
+        }
+
+        /* Type Toggle */
+        .type-toggle {
+            display: flex;
+            background: var(--light-bg);
+            border-radius: var(--border-radius);
+            padding: 4px;
+            margin-bottom: 2rem;
+        }
+
+        .type-option {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            color: var(--text-muted);
+        }
+
+        .type-option.active {
+            background: var(--primary-color);
+            color: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .type-option:hover:not(.active) {
+            background: rgba(0, 117, 83, 0.1);
+            color: var(--primary-color);
+        }
+
+        /* Form Controls */
+        .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .form-label .text-danger {
+            color: var(--danger-color) !important;
+        }
+
+        /* Category Cards Styling */
+        .category-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .category-card {
+            background: var(--white);
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            border-color: var(--primary-color);
+        }
+
+        .category-card.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(0, 117, 83, 0.05) 0%, rgba(0, 166, 122, 0.05) 100%);
+            box-shadow: 0 8px 32px rgba(0, 117, 83, 0.15);
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-color);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .category-card.selected::before {
+            transform: scaleX(1);
+        }
+
+        .category-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+            background: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0, 117, 83, 0.2);
+        }
+
+        .category-card:nth-child(1) .category-icon {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .category-card:nth-child(2) .category-icon {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .category-card:nth-child(3) .category-icon {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+
+        .category-card:nth-child(4) .category-icon {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .category-content {
+            flex: 1;
+        }
+
+        .category-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 0.5rem 0;
+            line-height: 1.2;
+        }
+
+        .category-description {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .category-check {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+
+        .category-card.selected .category-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        @media (max-width: 768px) {
+            .category-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            
+            .category-card {
+                padding: 1.25rem;
+            }
+            
+            .category-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 1.25rem;
+            }
+            
+            .category-name {
+                font-size: 1rem;
+            }
+        }
+
+        /* Success Animation */
+        .success-animation {
+            animation: successPulse 2s ease-in-out;
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(25, 135, 84, 0.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* Enhanced Hover Effects */
+        .category-card:hover,
+        .payment-method-card:hover,
+        .recent-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Smooth Transitions */
+        .category-card,
+        .payment-method-card,
+        .recent-item,
+        .btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Enhanced Form Styling */
+        .form-control {
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 117, 83, 0.15);
+        }
+
+        /* Loading State Enhancement */
+        .loading-spinner {
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 3px solid rgba(0, 117, 83, 0.1);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Enhanced Button Styling */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        /* Enhanced form styling */
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
+            outline: none;
+        }
+
+        .form-control.is-valid {
+            border-color: var(--success-color);
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15);
+        }
+
+        .form-control.is-invalid {
+            border-color: var(--danger-color);
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
+        }
+
+        /* Payment Method Cards Styling */
+        .payment-methods-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .payment-method-card {
+            background: var(--white);
+            border: 2px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-height: 60px;
+        }
+
+        .payment-method-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .payment-method-card.selected {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(0, 117, 83, 0.05) 0%, rgba(0, 166, 122, 0.05) 100%);
+            box-shadow: 0 6px 20px rgba(0, 117, 83, 0.15);
+        }
+
+        .payment-method-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary-color);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .payment-method-card.selected::before {
+            transform: scaleX(1);
+        }
+
+        .payment-method-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .payment-method-card[data-method="cash"] .payment-method-icon {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        }
+
+        .payment-method-card[data-method="instapay"] .payment-method-icon {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .payment-method-card[data-method="wallet"] .payment-method-icon {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        }
+
+        .payment-method-card[data-method="bank"] .payment-method-icon {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .payment-method-content {
+            flex: 1;
+        }
+
+        .payment-method-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .payment-method-check {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .payment-method-card.selected .payment-method-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        @media (max-width: 768px) {
+            .payment-methods-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 0.75rem;
+            }
+            
+            .payment-method-card {
+                padding: 0.75rem 1rem;
+                gap: 0.5rem;
+                min-height: 50px;
+            }
+            
+            .payment-method-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
+            }
+            
+            .payment-method-name {
+                font-size: 0.85rem;
+            }
+            
+            .payment-method-check {
+                width: 16px;
+                height: 16px;
+                font-size: 0.6rem;
+            }
+        }
+
+        .form-control {
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--white);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
+            outline: none;
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Amount Input Styling */
+        .amount-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .amount-input {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            color: var(--primary-color);
+            padding-right: 3rem;
+        }
+
+        .amount-input:focus {
+            color: var(--primary-dark);
+        }
+
+        .amount-currency {
+            position: absolute;
+            right: 1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        /* Buttons */
+        .btn {
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-outline-secondary {
+            border: 2px solid var(--text-muted);
+            color: var(--text-muted);
+            background: transparent;
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--text-muted);
+            color: var(--white);
+            transform: translateY(-2px);
+        }
+
+        /* Recent Records */
+        .recent-card {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            transition: all 0.3s ease;
+        }
+
+        .recent-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .recent-card .card-header {
+            background: var(--white);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1.25rem 1.5rem 0.75rem;
+        }
+
+        .recent-card .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .recent-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .recent-item {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 12px;
+            background: var(--light-bg);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .recent-item:hover {
+            background: rgba(0, 117, 83, 0.05);
+            transform: translateX(-4px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .recent-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .recent-item-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.2rem;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .recent-item-icon.expense {
+            background: var(--danger-color);
+        }
+
+        .recent-item-icon.profit {
+            background: var(--success-color);
+        }
+
+        .recent-item-content {
+            flex: 1;
+        }
+
+        .recent-item-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .recent-item-date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .recent-item-amount {
+            font-weight: 700;
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .recent-item-amount.expense {
+            color: var(--danger-color);
+        }
+
+        .recent-item-amount.profit {
+            color: var(--success-color);
+        }
+
+        /* Delete Button Styling */
+        .recent-item .btn-outline-danger {
+            border: 1px solid var(--danger-color);
+            color: var(--danger-color);
+            background: transparent;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .recent-item:hover .btn-outline-danger {
+            opacity: 1;
+            background: var(--danger-color);
+            color: var(--white);
+            transform: scale(1.05);
+        }
+
+        .recent-item .btn-outline-danger:hover {
+            background: var(--danger-color);
+            color: var(--white);
+            transform: scale(1.05);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid rgba(0, 117, 83, 0.1);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Success Modal */
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--success-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: var(--white);
+            font-size: 2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-card .card-body {
+                padding: 1.5rem;
+            }
+            
+            .recent-card .card-body {
+                padding: 1rem;
+            }
+            
+            .btn {
+                padding: 0.875rem 1.5rem;
+                font-size: 0.95rem;
+            }
+
+            .category-cards-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .recent-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+
+            .recent-item-content {
+                order: 2;
+            }
+
+            .recent-item-amount {
+                order: 3;
+                min-width: auto;
+                width: 100%;
+            }
+
+            .recent-item .btn {
+                order: 4;
+                margin: 0.25rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container-fluid {
+                padding: 1rem;
+            }
+
+            .nav-bar {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .main-card .card-body {
+                padding: 1rem;
+            }
+
+            .type-toggle {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .type-option {
+                padding: 0.75rem 1rem;
+            }
+        }
+
+        /* Utility Classes */
+        .text-primary { color: var(--primary-color) !important; }
+        .text-success { color: var(--success-color) !important; }
+        .text-danger { color: var(--danger-color) !important; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4 px-4">
+        <!-- Finance Header -->
+        <div class="finance-header-container"></div>
+
+        <!-- Main Content -->
+        <div class="row justify-content-center">
+            <!-- Form Section -->
+            <div class="col-lg-10 col-xl-8 mb-4">
+                <div class="main-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-edit me-2"></i>
+                            تسجيل مصروف أو ربح جديد
+                        </h5>
+                        <p class="text-white-50 mb-0">اختر الفئة وأدخل تفاصيل المعاملة</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="recordForm">
+                            <!-- Type Toggle -->
+                            <div class="mb-4">
+                                <label class="form-label">نوع التسجيل</label>
+                                <div class="type-toggle">
+                                    <button type="button" class="type-option active" data-type="expense">
+                                        <i class="fas fa-minus-circle me-2"></i>
+                                        مصروف
+                                    </button>
+                                    <button type="button" class="type-option" data-type="profit">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        ربح
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Category Selection Cards -->
+                            <div class="mb-4">
+                                <label class="form-label">اختر فئة المصروف <span class="text-danger">*</span></label>
+                                <div class="category-cards-grid" id="categoryCards">
+                                    <div class="category-card" data-category-id="1" data-category-name="مصاريف المكتب">
+                                        <div class="category-icon">
+                                            <i class="fas fa-building"></i>
+                                        </div>
+                                        <div class="category-content">
+                                            <h6 class="category-name">مصاريف المكتب</h6>
+                                            <p class="category-description">إيجار، مرافق، مستلزمات</p>
+                                        </div>
+                                        <div class="category-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="category-card" data-category-id="2" data-category-name="مرتبات">
+                                        <div class="category-icon">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="category-content">
+                                            <h6 class="category-name">مرتبات</h6>
+                                            <p class="category-description">رواتب الموظفين والأجور</p>
+                                        </div>
+                                        <div class="category-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="category-card" data-category-id="3" data-category-name="مصاريف شخصية">
+                                        <div class="category-icon">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div class="category-content">
+                                            <h6 class="category-name">مصاريف شخصية</h6>
+                                            <p class="category-description">مصاريف شخصية للعمل</p>
+                                        </div>
+                                        <div class="category-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="category-card" data-category-id="4" data-category-name="تكاليف الشغل">
+                                        <div class="category-icon">
+                                            <i class="fas fa-tools"></i>
+                                        </div>
+                                        <div class="category-content">
+                                            <h6 class="category-name">تكاليف الشغل</h6>
+                                            <p class="category-description">مواد وأدوات العمل</p>
+                                        </div>
+                                        <div class="category-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="recordCategory" required>
+                            </div>
+
+                            <!-- Amount Input -->
+                            <div class="mb-4">
+                                <label class="form-label">المبلغ (جنيه مصري) <span class="text-danger">*</span></label>
+                                <div class="amount-input-container">
+                                    <input type="number" class="form-control amount-input" id="recordAmount" 
+                                           placeholder="0" step="0.01" min="0" required>
+                                    <div class="amount-currency">ج.م</div>
+                                </div>
+                            </div>
+
+                            <!-- Date Input -->
+                            <div class="mb-4">
+                                <label class="form-label">التاريخ</label>
+                                <input type="date" class="form-control" id="recordDate" required>
+                            </div>
+
+                            <!-- Payment Method Selection -->
+                            <div class="mb-4">
+                                <label class="form-label">طريقة الدفع <span class="text-danger">*</span></label>
+                                <div class="payment-methods-grid" id="paymentMethodsGrid">
+                                    <div class="payment-method-card" data-method="cash">
+                                        <div class="payment-method-icon">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </div>
+                                        <div class="payment-method-content">
+                                            <h6 class="payment-method-name">نقداً</h6>
+                                        </div>
+                                        <div class="payment-method-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-method-card" data-method="instapay">
+                                        <div class="payment-method-icon">
+                                            <i class="fas fa-mobile-alt"></i>
+                                        </div>
+                                        <div class="payment-method-content">
+                                            <h6 class="payment-method-name">Instapay</h6>
+                                        </div>
+                                        <div class="payment-method-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-method-card" data-method="wallet">
+                                        <div class="payment-method-icon">
+                                            <i class="fas fa-wallet"></i>
+                                        </div>
+                                        <div class="payment-method-content">
+                                            <h6 class="payment-method-name">محفظة رقمية</h6>
+                                        </div>
+                                        <div class="payment-method-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-method-card" data-method="bank">
+                                        <div class="payment-method-icon">
+                                            <i class="fas fa-university"></i>
+                                        </div>
+                                        <div class="payment-method-content">
+                                            <h6 class="payment-method-name">حساب بنكي</h6>
+                                        </div>
+                                        <div class="payment-method-check">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="paymentMethod" required>
+                            </div>
+
+                            <!-- Description Input -->
+                            <div class="mb-4">
+                                <label class="form-label">وصف المعاملة <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="recordDescription" rows="3" 
+                                          placeholder="وصف تفصيلي للمعاملة..." required></textarea>
+                            </div>
+
+
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-3">
+                                <button type="submit" class="btn btn-primary flex-fill">
+                                    <i class="fas fa-save me-2"></i>
+                                    حفظ التسجيل
+                                </button>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="resetForm()">
+                                            <i class="fas fa-undo me-2"></i> إعادة تعيين
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="cancelEdit()" id="cancelEditBtn" style="display: none;">
+                                            <i class="fas fa-times me-2"></i> إلغاء التعديل
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Records Section -->
+        <div class="row justify-content-center">
+            <div class="col-lg-10 col-xl-8">
+                <div class="recent-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-history me-2 text-primary"></i>
+                            التسجيلات الأخيرة
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recentRecords">
+                            <div class="text-center py-3">
+                                <div class="loading-spinner mx-auto"></div>
+                                <p class="text-muted mt-2">جاري التحميل...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-5">
+                    <div class="success-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h4 class="mb-3">تم الحفظ بنجاح!</h4>
+                    <p class="text-muted mb-4">تم تسجيل <span id="recordTypeText">المصروف</span> بنجاح</p>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                        <i class="fas fa-check me-2"></i>
+                        موافق
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Finance Header Component -->
+    <script src="../../../scripts/finance-header-component.js"></script>
+
+    <script>
+        let selectedType = 'expense';
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ar-EG', {
+                style: 'currency',
+                currency: 'EGP',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Handle type toggle
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('type-option')) {
+                document.querySelectorAll('.type-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                e.target.classList.add('active');
+                selectedType = e.target.dataset.type;
+                
+                // Update amount input styling
+                const amountInput = document.getElementById('recordAmount');
+                if (selectedType === 'expense') {
+                    amountInput.style.color = 'var(--danger-color)';
+                } else {
+                    amountInput.style.color = 'var(--success-color)';
+                }
+            }
+        });
+
+        // Load categories
+        async function loadCategories() {
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/records/categories`, {
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load categories');
+                }
+
+                const result = await response.json();
+                populateCategoryCards(result.data.categories || []);
+                
+                // Setup payment method cards after categories are loaded
+                setupPaymentMethodCards();
+
+            } catch (error) {
+                console.error('Categories error:', error);
+                // Use default categories if API fails
+                populateCategoryCards([
+                    { id: 1, name_ar: 'مصاريف المكتب' },
+                    { id: 2, name_ar: 'مرتبات' },
+                    { id: 3, name_ar: 'مصاريف شخصية' },
+                    { id: 4, name_ar: 'تكاليف الشغل' }
+                ]);
+                
+                // Setup payment method cards after categories are loaded
+                setupPaymentMethodCards();
+            }
+        }
+
+        // Populate category cards
+        function populateCategoryCards(categories) {
+            const container = document.getElementById('categoryCards');
+            if (!container) return;
+            
+            container.innerHTML = categories.map(category => `
+                <div class="category-card" data-category-id="${category.id}" data-category-name="${category.name_ar}">
+                    <div class="category-icon">
+                        <i class="fas ${getCategoryIcon(category.id)}"></i>
+                    </div>
+                    <div class="category-content">
+                        <h6 class="category-name">${category.name_ar}</h6>
+                        <p class="category-description">${getCategoryDescription(category.id)}</p>
+                    </div>
+                    <div class="category-check">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Add click event listeners
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectCategory(this);
+                });
+            });
+
+            // Add click event listeners for payment method cards
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectPaymentMethod(this);
+                });
+            });
+        }
+
+        // Get category icon based on ID
+        function getCategoryIcon(categoryId) {
+            const icons = {
+                1: 'fa-building',
+                2: 'fa-users',
+                3: 'fa-user',
+                4: 'fa-tools'
+            };
+            return icons[categoryId] || 'fa-tag';
+        }
+
+        // Get category description based on ID
+        function getCategoryDescription(categoryId) {
+            const descriptions = {
+                1: 'إيجار، مرافق، مستلزمات',
+                2: 'رواتب الموظفين والأجور',
+                3: 'مصاريف شخصية للعمل',
+                4: 'مواد وأدوات العمل'
+            };
+            return descriptions[categoryId] || 'فئة مصروفات';
+        }
+
+        // Select category function
+        function selectCategory(selectedCard) {
+            // Remove selection from all cards
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            selectedCard.classList.add('selected');
+            
+            // Update hidden input
+            const categoryId = selectedCard.dataset.categoryId;
+            document.getElementById('recordCategory').value = categoryId;
+        }
+
+        // Select payment method function
+        function selectPaymentMethod(selectedCard) {
+            // Remove selection from all cards
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            selectedCard.classList.add('selected');
+            
+            // Update hidden input
+            const method = selectedCard.dataset.method;
+            document.getElementById('paymentMethod').value = method;
+        }
+
+        // Populate category select (fallback)
+        function populateCategorySelect(categories) {
+            const select = document.getElementById('recordCategory');
+            select.innerHTML = '<option value="">اختر فئة المصروف</option>';
+            
+            categories.forEach(category => {
+                select.innerHTML += `<option value="${category.id}">${category.name_ar}</option>`;
+            });
+        }
+
+        // Load recent records
+        async function loadRecentRecords() {
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/records/recent`, {
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load recent records');
+                }
+
+                const result = await response.json();
+                renderRecentRecords(result.data.records || []);
+
+            } catch (error) {
+                console.error('Recent records error:', error);
+                showRecentRecordsError();
+            }
+        }
+
+        // Render recent records
+        function renderRecentRecords(records) {
+            const container = document.getElementById('recentRecords');
+            
+            if (!records || records.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.3;"></i>
+                        <p class="mt-2">لا توجد تسجيلات حديثة</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = records.map(record => `
+                <div class="recent-item">
+                    <div class="recent-item-icon ${record.type}">
+                        <i class="fas ${record.type === 'expense' ? 'fa-minus' : 'fa-plus'}"></i>
+                    </div>
+                    <div class="recent-item-content" onclick="fillFromRecent('${record.id}')" style="cursor: pointer;">
+                        <div class="recent-item-name">
+                            ${record.notes || 'لا يوجد وصف'}
+                            ${record.updated_at && record.updated_at !== record.created_at ? 
+                                '<span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;"><i class="fas fa-edit me-1"></i>معدل</span>' : 
+                                ''
+                            }
+                        </div>
+                        <div class="recent-item-description" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                            ${record.name}
+                        </div>
+                        <div class="recent-item-date">
+                            ${new Date(record.date).toLocaleDateString('ar-EG')}
+                            ${record.updated_at && record.updated_at !== record.created_at ? 
+                                `<br><small class="text-muted">آخر تعديل: ${new Date(record.updated_at).toLocaleDateString('ar-EG')}</small>` : 
+                                ''
+                            }
+                        </div>
+                    </div>
+                    <div class="recent-item-amount ${record.type}">
+                        ${record.type === 'expense' ? '-' : '+'}${formatCurrency(record.amount)}
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary edit-record-btn" 
+                            data-record-id="${record.id}"
+                            style="margin-right: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord('${record.id}', '${record.notes || record.name}')" 
+                            style="margin-right: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            // Add click event listeners for edit buttons after rendering
+            document.querySelectorAll('.edit-record-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const recordId = this.getAttribute('data-record-id');
+                    if (recordId) {
+                        editRecord(recordId);
+                    }
+                });
+            });
+        }
+
+        // Global variable to track if we're editing
+        let isEditing = false;
+        let editingRecordId = null;
+
+        // Fill form from recent record
+        function fillFromRecent(recordId) {
+            showNotification('تم تعبئة النموذج من التسجيل السابق', 'info');
+        }
+
+        // Edit record - load data into form
+        async function editRecord(recordId) {
+            console.log('Edit record called with ID:', recordId);
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                console.log('Admin info:', adminInfo);
+                
+                // Try to get token from AuthMiddleware or fallback to adminInfo
+                let token = '';
+                try {
+                    const authMiddleware = new AuthMiddleware();
+                    token = authMiddleware.getAdminToken();
+                } catch (e) {
+                    console.log('AuthMiddleware not available, using adminInfo token');
+                    token = adminInfo.token || '';
+                }
+                
+                console.log('Token:', token ? 'Present' : 'Missing');
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                console.log('API URL:', `${baseUrl}/api/records/${recordId}`);
+                
+                const response = await fetch(`${baseUrl}/api/records/${recordId}`, {
+                    method: 'GET',
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error(`Failed to fetch record: ${response.status} - ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('API Response:', result);
+                
+                if (!result.success || !result.data || !result.data.record) {
+                    throw new Error('Invalid response format from API');
+                }
+                
+                const record = result.data.record;
+                console.log('Record data:', record);
+                console.log('Available record fields:', Object.keys(record));
+                console.log('Record values:', {
+                    id: record.id,
+                    amount: record.amount,
+                    type: record.type,
+                    date: record.date,
+                    description: record.description,
+                    notes: record.notes,
+                    category_id: record.category_id,
+                    payment_method: record.payment_method
+                });
+
+                // Set editing mode
+                isEditing = true;
+                editingRecordId = recordId;
+
+                // Update form title
+                const titleElement = document.querySelector('.card-header h5');
+                const subtitleElement = document.querySelector('.card-header p');
+                if (titleElement) {
+                    titleElement.textContent = 'تعديل التسجيل المالي';
+                }
+                if (subtitleElement) {
+                    subtitleElement.textContent = 'قم بتعديل بيانات التسجيل المالي';
+                }
+
+                // Fill form with record data
+                document.getElementById('recordAmount').value = record.amount;
+                document.getElementById('recordDate').value = record.date.split('T')[0];
+                document.getElementById('recordDescription').value = record.description || record.notes || '';
+
+                // Set type selection
+                const recordType = record.type === 'fixed' ? 'profit' : 'expense';
+                console.log('Record type mapping:', { dbType: record.type, uiType: recordType });
+                selectedType = recordType;
+                document.querySelectorAll('.type-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                const typeOption = document.querySelector(`[data-type="${recordType}"]`);
+                if (typeOption) {
+                    typeOption.classList.add('active');
+                }
+                
+                // Update amount input color based on type
+                const amountInput = document.getElementById('recordAmount');
+                if (amountInput) {
+                    amountInput.style.color = recordType === 'expense' ? 'var(--danger-color)' : 'var(--success-color)';
+                }
+
+                // Set category selection
+                if (record.category_id) {
+                    const categoryInput = document.getElementById('recordCategory');
+                    if (categoryInput) {
+                        categoryInput.value = record.category_id;
+                    }
+                    // Select the category card
+                    document.querySelectorAll('.category-card').forEach(card => {
+                        card.classList.remove('selected');
+                        if (card.dataset.categoryId == record.category_id) {
+                            card.classList.add('selected');
+                        }
+                    });
+                }
+
+                // Set payment method (default to cash if not available)
+                const paymentMethod = record.payment_method || 'cash';
+                const paymentMethodInput = document.getElementById('paymentMethod');
+                if (paymentMethodInput) {
+                    paymentMethodInput.value = paymentMethod;
+                }
+                // Select the payment method card
+                document.querySelectorAll('.payment-method-card').forEach(card => {
+                    card.classList.remove('selected');
+                    if (card.dataset.method === paymentMethod) {
+                        card.classList.add('selected');
+                    }
+                });
+
+                // Update submit button
+                const submitBtn = document.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التعديلات';
+                    submitBtn.className = 'btn btn-warning';
+                }
+                
+                // Show cancel button in dropdown
+                const cancelEditBtn = document.getElementById('cancelEditBtn');
+                if (cancelEditBtn) {
+                    cancelEditBtn.style.display = 'block';
+                }
+
+                // Scroll to form
+                const formElement = document.getElementById('recordForm');
+                if (formElement) {
+                    formElement.scrollIntoView({ behavior: 'smooth' });
+                }
+
+                showNotification('تم تحميل بيانات التسجيل للتعديل', 'info');
+
+            } catch (error) {
+                console.error('Edit record error:', error);
+                showNotification('خطأ في تحميل بيانات التسجيل', 'error');
+            }
+        }
+
+        // Cancel edit mode
+        function cancelEdit() {
+            isEditing = false;
+            editingRecordId = null;
+            
+            // Reset form title
+            const titleElement = document.querySelector('.card-header h5');
+            const subtitleElement = document.querySelector('.card-header p');
+            if (titleElement) {
+                titleElement.textContent = 'تسجيل مصروف/ربح جديد';
+            }
+            if (subtitleElement) {
+                subtitleElement.textContent = 'قم بإدخال بيانات المصروف أو الربح الجديد';
+            }
+            
+            // Reset submit button
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التسجيل';
+                submitBtn.className = 'btn btn-primary';
+            }
+            
+            // Hide cancel button in dropdown
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            if (cancelEditBtn) {
+                cancelEditBtn.style.display = 'none';
+            }
+            
+            // Reset form
+            resetForm();
+        }
+
+        // Delete record
+        async function deleteRecord(recordId, recordName) {
+            // Show confirmation dialog
+            if (!confirm(`هل أنت متأكد من حذف "${recordName}"؟\n\nلا يمكن التراجع عن هذا الإجراء.`)) {
+                return;
+            }
+
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                const response = await fetch(`${baseUrl}/api/records/${recordId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+                    throw new Error(errorData.message || 'Failed to delete record');
+                }
+
+                // Show success message
+                showNotification(`تم حذف "${recordName}" بنجاح`, 'success');
+                
+                // Reload recent records
+                loadRecentRecords();
+                
+                // Notify money management page to refresh (if it's open)
+                if (window.opener && window.opener.location.href.includes('money-management.html')) {
+                    window.opener.postMessage({ type: 'REFRESH_MONEY_DATA' }, '*');
+                }
+                
+                // Also try to refresh if we're in the same window
+                if (window.location.href.includes('money-management.html')) {
+                    // If we're on the money management page, refresh the data
+                    if (typeof MoneyDataLoader !== 'undefined') {
+                        MoneyDataLoader.loadAll();
+                    }
+                }
+
+            } catch (error) {
+                console.error('Delete record error:', error);
+                showNotification('خطأ في حذف التسجيل', 'error');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('recordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Validate required fields
+            const category = document.getElementById('recordCategory').value;
+            const description = document.getElementById('recordDescription').value.trim();
+            const amount = document.getElementById('recordAmount').value;
+            const date = document.getElementById('recordDate').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+
+            if (!category) {
+                showNotification('يرجى اختيار فئة المصروف', 'error');
+                return;
+            }
+
+            if (!description) {
+                showNotification('يرجى إدخال وصف المعاملة', 'error');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showNotification('يرجى إدخال مبلغ صحيح', 'error');
+                return;
+            }
+
+            if (!date) {
+                showNotification('يرجى إدخال التاريخ', 'error');
+                return;
+            }
+
+            if (!paymentMethod) {
+                showNotification('يرجى اختيار طريقة الدفع', 'error');
+                return;
+            }
+
+            const formData = {
+                category_id: parseInt(document.getElementById('recordCategory').value),
+                amount: parseFloat(document.getElementById('recordAmount').value),
+                type: selectedType,
+                date: document.getElementById('recordDate').value,
+                description: document.getElementById('recordDescription').value,
+                paymentMethod: document.getElementById('paymentMethod').value
+            };
+
+            // Show loading state
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
+            submitBtn.disabled = true;
+
+            try {
+                // Get admin info from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                const authMiddleware = new AuthMiddleware();
+                const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+                
+                // API base URL
+                const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+                
+                // Determine if we're creating or updating
+                const method = isEditing ? 'PUT' : 'POST';
+                const url = isEditing ? `${baseUrl}/api/records/${editingRecordId}` : `${baseUrl}/api/records`;
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save record');
+                }
+
+                // Parse the response
+                const result = await response.json();
+
+                // Update success modal text
+                document.getElementById('recordTypeText').textContent = 
+                    selectedType === 'expense' ? 'المصروف' : 'الربح';
+
+                // Show success modal
+                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                successModal.show();
+                
+                // Show additional notification about money management
+                setTimeout(() => {
+                    showNotification('تم تحديث رصيد الموقع المالي. يرجى تحديث صفحة إدارة الأموال لرؤية الحركة الجديدة.', 'info');
+                }, 2000);
+                
+                // Add success animation
+                addSuccessAnimation();
+                
+                // Reset edit mode if we were editing
+                if (isEditing) {
+                    cancelEdit();
+                } else {
+                    // Reset form only if we were creating
+                    resetForm();
+                }
+                
+                // Reload recent records
+                loadRecentRecords();
+                
+                // Notify money management page to refresh (if it's open)
+                if (window.opener && window.opener.location.href.includes('money-management.html')) {
+                    window.opener.postMessage({ type: 'REFRESH_MONEY_DATA' }, '*');
+                }
+                
+                // Also try to refresh if we're in the same window
+                if (window.location.href.includes('money-management.html')) {
+                    // If we're on the money management page, refresh the data
+                    if (typeof MoneyDataLoader !== 'undefined') {
+                        MoneyDataLoader.loadAll();
+                    }
+                }
+                
+                // Show money movement notification if available
+                if (result.data && result.data.moneyMovement) {
+                    const movement = result.data.moneyMovement;
+                    const movementType = selectedType === 'expense' ? 'مصروف' : 'ربح';
+                    const balanceChange = movement.balanceChange > 0 ? '+' : '';
+                    showNotification(
+                        `${movementType} تم تسجيله بنجاح. تغيير الرصيد: ${balanceChange}${formatCurrency(movement.balanceChange)}`,
+                        'success'
+                    );
+                }
+
+            } catch (error) {
+                console.error('Save record error:', error);
+                showNotification('خطأ في حفظ التسجيل', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('recordForm').reset();
+
+            // Reset type selection
+            document.querySelectorAll('.type-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            document.querySelector('[data-type="expense"]').classList.add('active');
+            selectedType = 'expense';
+
+            // Set today's date
+            document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+            
+            // Reset amount input color
+            document.getElementById('recordAmount').style.color = 'var(--danger-color)';
+            
+            // Set default payment method
+            document.getElementById('paymentMethod').value = 'cash';
+            
+            // Select default payment method card
+            const defaultPaymentCard = document.querySelector('.payment-method-card[data-method="cash"]');
+            if (defaultPaymentCard) {
+                selectPaymentMethod(defaultPaymentCard);
+            }
+            
+            // Clear category and description
+            document.getElementById('recordCategory').value = '';
+            document.getElementById('recordDescription').value = '';
+            
+            // Clear category selection
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Clear payment method selection
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'primary'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.style.cssText = 'position: fixed; top: 2rem; left: 2rem; z-index: 10000; min-width: 300px;';
+            
+            const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body d-flex align-items-center">
+                        <i class="fas ${icon} me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // Add success animation to form
+        function addSuccessAnimation() {
+            const form = document.getElementById('recordForm');
+            form.classList.add('success-animation');
+            setTimeout(() => {
+                form.classList.remove('success-animation');
+            }, 2000);
+        }
+
+        // Show recent records error
+        function showRecentRecordsError() {
+            document.getElementById('recentRecords').innerHTML = `
+                <div class="text-center text-danger py-3">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i>
+                    <p class="mt-2">خطأ في تحميل التسجيلات الأخيرة</p>
+                    <button class="btn btn-primary btn-sm" onclick="loadRecentRecords()">إعادة المحاولة</button>
+                </div>
+            `;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => {
+                new bootstrap.Tooltip(tooltip);
+            });
+            
+            // Setup navigation interactions
+            setupNavigationInteractions();
+            
+            // Setup payment method cards
+            setupPaymentMethodCards();
+            
+            loadCategories();
+            loadRecentRecords();
+
+            // Set today's date as default
+            document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+            
+            // Set initial amount input color
+            document.getElementById('recordAmount').style.color = 'var(--danger-color)';
+            
+            // Handle type parameter from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const typeParam = urlParams.get('type');
+            if (typeParam === 'profit') {
+                // Switch to profit type
+                document.querySelectorAll('.type-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                document.querySelector('[data-type="profit"]').classList.add('active');
+                selectedType = 'profit';
+                document.getElementById('recordAmount').style.color = 'var(--success-color)';
+            }
+
+            // Add real-time validation
+            setupRealTimeValidation();
+        });
+
+        // Setup real-time validation
+        function setupRealTimeValidation() {
+            const amountInput = document.getElementById('recordAmount');
+            const descriptionInput = document.getElementById('recordDescription');
+            const categoryInput = document.getElementById('recordCategory');
+            const paymentMethodInput = document.getElementById('paymentMethod');
+
+            // Amount validation
+            amountInput.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                if (value > 0) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+
+            // Description validation
+            descriptionInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value.length >= 3) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+
+            // Category validation
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    categoryInput.classList.remove('is-invalid');
+                    categoryInput.classList.add('is-valid');
+                });
+            });
+
+            // Payment method validation
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    paymentMethodInput.classList.remove('is-invalid');
+                    paymentMethodInput.classList.add('is-valid');
+                });
+            });
+        }
+
+        // Setup navigation interactions (now handled by finance header component)
+        function setupNavigationInteractions() {
+            // Navigation interactions are now handled by the FinanceHeaderComponent
+            console.log('Navigation interactions handled by FinanceHeaderComponent');
+        }
+
+        // Setup payment method card event listeners
+        function setupPaymentMethodCards() {
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectPaymentMethod(this);
+                });
+            });
+        }
+    </script>
+    
+    <!-- Config -->
+    <script src="../../../scripts/config.js"></script>
+    
+    <!-- Auth Middleware -->
+    <script src="../../../scripts/auth-middleware.js"></script>
+    <script src="../../../scripts/auth-check.js"></script>
+    <script src="../../../scripts/auth-test.js"></script>
+</body>
+</html> 
