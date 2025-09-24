@@ -152,7 +152,7 @@ class LpkClientHeader {
                     <!-- Centered Logo and title -->
                     <div class="position-absolute start-50 translate-middle-x" style="position: relative; z-index: 2;">
                         <a class="navbar-brand d-flex align-items-center client-header-brand" href="client-dashboard.html">
-                            <img src="img/cropped-Logo-mark.png.png" alt="Laapak" height="40">
+                            <img src="assets/images/cropped-Logo-mark.png.png" alt="Laapak" height="40">
                             <h4 class="ms-3 mb-0 fw-bold d-none d-sm-block">Laapak</h4>
                         </a>
                     </div>

@@ -314,7 +314,7 @@ class LpkHeader {
                 <div class="d-flex justify-content-between align-items-center w-100">
                     <!-- Logo on left -->
                     <a class="navbar-brand d-flex align-items-center" href="admin.html" style="position: relative; z-index: 2;">
-                        <img src="img/cropped-Logo-mark.png.png" alt="Laapak" height="40">
+                        <img src="assets/images/cropped-Logo-mark.png.png" alt="Laapak" height="40">
                         <h4 class="ms-3 mb-0 fw-bold d-none d-md-block">Laapak</h4>
                     </a>
                     

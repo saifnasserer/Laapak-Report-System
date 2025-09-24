@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the header component
     const header = new LpkHeader('header-container', {
         showLogo: true,
-        logoPath: 'img/logo.png',
+        logoPath: 'assets/images/logo.png',
         logoWidth: '100px',
         showNavigation: true,
         navigationItems: [

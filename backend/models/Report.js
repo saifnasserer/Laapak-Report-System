@@ -97,6 +97,12 @@ const Report = sequelize.define('Report', {
     status: {
         type: DataTypes.ENUM('قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى', 'pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active'),
         defaultValue: 'قيد الانتظار'
+    },
+    admin_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'admin_id',
+        comment: 'Admin who created or last modified this report'
     }
 }, {
     tableName: 'reports',

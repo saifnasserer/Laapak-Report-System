@@ -27,6 +27,8 @@ const financialRoutes = require('./routes/financial');
 const moneyRoutes = require('./routes/money-management');
 const recordsRoutes = require('./routes/records');
 const apiKeysRoutes = require('./routes/api-keys');
+const apiKeysEnhancedRoutes = require('./routes/api-keys-enhanced');
+const apiKeyManagementRoutes = require('./routes/api-key-management');
 const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
@@ -224,6 +226,8 @@ app.use('/api/financial', financialRoutes);
 app.use('/api/money', moneyRoutes);
 app.use('/api/records', recordsRoutes);
 app.use('/api/external', apiKeysRoutes);
+app.use('/api/v2/external', apiKeysEnhancedRoutes);
+app.use('/api/admin', apiKeyManagementRoutes);
 
 // Protected routes examples
 app.get('/api/protected', auth, (req, res) => {

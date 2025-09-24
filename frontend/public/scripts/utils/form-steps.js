@@ -1164,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (invoiceModalContent) {
             invoiceModalContent.innerHTML = `
                 <div class="mb-4 text-center">
-                    <img src="img/logo.png" alt="Laapak" width="120" class="mb-3">
+                    <img src="assets/images/logo.png" alt="Laapak" width="120" class="mb-3">
                     <h5 class="mb-0 fw-bold">فاتورة صيانة</h5>
                     <p class="text-muted small">رقم الفاتورة: ${invoice.id}</p>
                 </div>

@@ -23,13 +23,13 @@
   ],
   "screenshots": [
     {
-      "src": "img/screenshots/report-desktop.png",
+      "src": "assets/images/screenshots/report-desktop.png",
       "sizes": "1280x800",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "img/screenshots/report-mobile.png",
+      "src": "assets/images/screenshots/report-mobile.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"

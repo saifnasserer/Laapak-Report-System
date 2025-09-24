@@ -3,7 +3,7 @@
 ## 🎨 Brand Identity
 
 ### Logo & Branding
-- **Primary Logo**: `img/cropped-Logo-mark.png.png` (40px height in headers)
+- **Primary Logo**: `assets/images/cropped-Logo-mark.png.png` (40px height in headers)
 - **Company Name**: Laapak
 - **Tagline**: "نظام تقارير Laapak" (Laapak Report System)
 - **Industry**: Technology repair and service management

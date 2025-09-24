@@ -1057,7 +1057,7 @@ function createImagePreview(imageUrl) {
     img.className = 'img-fluid';
     img.onerror = function() {
         this.onerror = null;
-        this.src = 'img/image-error.png'; // Fallback image
+        this.src = 'assets/images/image-error.png'; // Fallback image
         this.alt = 'Image failed to load';
     };
     
@@ -1223,7 +1223,7 @@ function addTestScreenshotPreview(url, component) {
     img.style.maxHeight = '100px';
     img.onerror = function() {
         this.onerror = null;
-        this.src = 'img/image-error.png';
+        this.src = 'assets/images/image-error.png';
         this.alt = 'Image failed to load';
     };
     

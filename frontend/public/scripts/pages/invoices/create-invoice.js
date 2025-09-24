@@ -1317,7 +1317,7 @@ function generateInvoicePreview() {
                     <p class="text-muted mb-0">التاريخ: ${formattedDate}</p>
                 </div>
                 <div class="col-6 text-end">
-                    <img src="img/logo.png" alt="Laapak Logo" height="60">
+                    <img src="assets/images/logo.png" alt="Laapak Logo" height="60">
                 </div>
             </div>
             
