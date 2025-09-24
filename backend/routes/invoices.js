@@ -189,7 +189,7 @@ router.get('/', adminAuth, async (req, res) => {
             where: whereClause,
             include: [
                 { model: Client, as: 'client', attributes: ['id', 'name', 'phone'] },
-                { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] }
+                { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] }
             ],
             order: [['created_at', 'DESC']]
         });
@@ -276,7 +276,7 @@ router.get('/client', clientAuth, async (req, res) => {
         const invoices = await Invoice.findAll({
             where: { client_id: req.user.id },
             include: [
-                { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] }
+                { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] }
             ],
             order: [['created_at', 'DESC']]
         });
@@ -316,7 +316,7 @@ router.get('/:id', auth, async (req, res) => {
         const invoice = await Invoice.findByPk(req.params.id, {
             include: [
                 { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
-                { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] },
+                { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] },
                 { model: InvoiceItem, as: 'InvoiceItems' }
             ]
         });
@@ -529,7 +529,7 @@ router.post('/bulk', adminAuth, async (req, res) => {
                 { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
                 { 
                     model: Report, 
-                    as: 'reports',
+                    as: 'relatedReports',
                     attributes: ['id', 'device_model', 'serial_number', 'invoice_created', 'invoice_id'] 
                 },
                 { model: InvoiceItem, as: 'InvoiceItems' }
@@ -736,7 +736,7 @@ router.post('/', adminAuth, async (req, res) => {
                 { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
                 { 
                     model: Report, 
-                    as: 'reports', // Use the alias defined in Invoice.belongsToMany(Report)
+                    as: 'relatedReports', // Use the alias defined in Invoice.belongsToMany(Report)
                     attributes: ['id', 'device_model', 'serial_number'] 
                 },
                 { model: InvoiceItem, as: 'InvoiceItems' }
@@ -979,7 +979,7 @@ router.put('/:id', adminAuth, async (req, res) => {
         const updatedInvoice = await Invoice.findByPk(invoice.id, {
             include: [
                 { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
-                { model: Report, as: 'reports', attributes: ['id', 'device_model', 'serial_number'] },
+                { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] },
                 { model: InvoiceItem, as: 'InvoiceItems' }
             ]
         });
