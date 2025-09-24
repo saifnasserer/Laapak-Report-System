@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laapak Reports</title>
+    <link rel="icon" type="image/png" href="../../assets/images/cropped-Logo-mark.png.png">
+    <link rel="shortcut icon" type="image/png" href="../../assets/images/cropped-Logo-mark.png.png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../../styles/form-steps.css">
+    <link rel="stylesheet" href="../../../styles/custom-admin.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+    
+    <style>
+        /* Custom utility class for smaller font size on mobile */
+        .fs-sm-6 {
+            font-size: 0.875rem;
+        }
+        
+        /* Client search styles */
+        .client-result-item {
+            transition: all 0.2s ease;
+        }
+        
+        .client-result-item:hover {
+            background-color: #f8f9fa !important;
+            transform: translateX(-2px);
+        }
+        
+        .client-result-item:last-child {
+            border-bottom: none !important;
+        }
+        
+        #clientSearchResults {
+            scrollbar-width: thin;
+            scrollbar-color: #007553 #f1f1f1;
+        }
+        
+        #clientSearchResults::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #clientSearchResults::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        #clientSearchResults::-webkit-scrollbar-thumb {
+            background: #007553;
+            border-radius: 3px;
+        }
+        
+        #clientSearchResults::-webkit-scrollbar-thumb:hover {
+            background: #005a40;
+        }
+        
+        @media (max-width: 767.98px) {
+            .fs-sm-6 {
+                font-size: 0.75rem;
+            }
+            
+            /* Smaller nav icons on mobile */
+            .nav-item .nav-link.rounded-circle {
+                width: 32px !important;
+                height: 32px !important;
+                padding: 0 !important;
+            }
+            
+            /* Reduce horizontal spacing on mobile */
+            .navbar-nav .nav-item {
+                margin-left: 2px !important;
+                margin-right: 2px !important;
+            }
+        }
+    </style>
+    
+    <!-- Enhanced UI Styles -->
+    <style>
+        :root {
+            --primary-color: #007553;
+            --primary-hover: #005a40;
+            --secondary-color: #2a3f54;
+            --accent-color: #0eaf54;
+            --light-bg: #f8f9fa;
+            --border-radius: 12px;
+            --card-radius: 16px;
+            --btn-radius: 10px;
+            --input-radius: 10px;
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            background-color: #f5f7f9;
+            color: #333;
+        }
+        
+        /* Card Styling */
+        .card {
+            border-radius: var(--card-radius) !important;
+            border: none !important;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05) !important;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+        .card-header {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+            background: white !important;
+            padding: 1rem 1.5rem !important;
+        }
+        
+        .card-header.bg-light,
+        .card-header.bg-success {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+            color: white !important;
+        }
+        
+        .card-header.bg-light h5,
+        .card-header.bg-success h5 {
+            color: white !important;
+        }
+        
+        .card-header.bg-success.bg-opacity-10 {
+            background: rgba(14, 175, 84, 0.08) !important;
+        }
+        
+        .card-header.bg-success.bg-opacity-10 h5 {
+            color: var(--primary-color) !important;
+        }
+        
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        /* Form Controls */
+        .form-control, .form-select {
+            border-radius: var(--input-radius) !important;
+            padding: 0.6rem 1rem !important;
+            border-color: #e0e0e0 !important;
+            box-shadow: none !important;
+            transition: var(--transition);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 0.25rem rgba(14, 175, 84, 0.15) !important;
+        }
+        
+        .input-group {
+            border-radius: var(--input-radius) !important;
+            overflow: hidden;
+        }
+        
+        .input-group-text {
+            border-color: #e0e0e0 !important;
+        }
+        
+        /* Buttons */
+        .btn {
+            border-radius: var(--btn-radius) !important;
+            padding: 0.5rem 1.25rem !important;
+            font-weight: 500 !important;
+            transition: var(--transition);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+            border: none !important;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-hover) 100%) !important;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #0eaf54 0%, #088f44 100%) !important;
+            border: none !important;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #088f44 0%, #077539 100%) !important;
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline-primary, .btn-outline-success, .btn-outline-info, .btn-outline-secondary {
+            border-width: 1.5px !important;
+        }
+        
+        .btn-outline-primary:hover, .btn-outline-success:hover, .btn-outline-info:hover, .btn-outline-secondary:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Client Card */
+        .client-card {
+            border-radius: var(--card-radius) !important;
+            transition: var(--transition);
+            border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        .client-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        /* Tables */
+        .table {
+            border-radius: var(--border-radius) !important;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background-color: rgba(248, 249, 250, 0.7) !important;
+            font-weight: 600 !important;
+            color: var(--secondary-color) !important;
+        }
+        
+        /* Badge Styles */
+        .badge {
+            padding: 0.5em 0.85em !important;
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Form Steps Indicators */
+        .form-steps-indicator .step {
+            border-radius: 50% !important;
+            transition: var(--transition);
+        }
+        
+        .form-steps-indicator .step.active {
+            background-color: var(--primary-color) !important;
+            transform: scale(1.1);
+        }
+        
+        /* Custom Component Cards */
+        .component-test-card {
+            transition: var(--transition);
+        }
+        
+        .component-test-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        /* Form Check */
+        .form-check-input {
+            cursor: pointer;
+            width: 1.2em !important;
+            height: 1.2em !important;
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+        }
+        
+        /* Modal */
+        .modal-content {
+            border-radius: var(--card-radius) !important;
+            border: none !important;
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+            color: white !important;
+            border-bottom: none !important;
+        }
+        
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+        
+        /* Test Type Cards */
+        .test-type-card {
+            cursor: pointer;
+            transition: var(--transition);
+            border-radius: var(--card-radius) !important;
+        }
+        
+        .test-type-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .test-type-card.selected {
+            border: 2px solid var(--primary-color) !important;
+            background-color: rgba(14, 175, 84, 0.05) !important;
+        }
+        
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .icon-circle i {
+            font-size: 1.5rem;
+        }
+        
+        /* Alert styling */
+        .alert {
+            border-radius: var(--border-radius) !important;
+        }
+        
+        /* Shadows and depths */
+        .shadow-sm {
+            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+    
+    <!-- Main Content -->
+    <div class="container-fluid p-4 mt-3">
+        <!-- Report Creation Header -->
+        
+        
+        <!-- Form -->
+        <div class="card border-0 shadow-sm mb-4" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="card-body p-4">
+                <form id="reportForm">
+                    <!-- Form Step Indicator -->
+                    <div class="row mb-5">
+                        <div class="col-12">
+                            <div class="position-relative" style="background: rgba(255,255,255,0.7); padding: 2rem 1.5rem; border-radius: var(--border-radius); box-shadow: 0 3px 15px rgba(0,0,0,0.03);">
+                                <!-- Step items container -->
+                               
+                               
+                               
+                               
+                                <div class=" justify-content-between align-items-center position-relative" style="z-index: 2;display: flex;">
+                                    <!-- Step 1 -->
+                                    <div class="step-item text-center active">
+                                        <div class="step-circle-container position-relative d-inline-flex justify-content-center">
+                                            <button type="button" class="step-button btn btn-   primary position-relative" style="width: 50px; height: 50px; font-weight: 600; box-shadow: 0 4px 15px rgba(0, 117, 83, 0.25); border: none; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center;">1</button>
+                                        </div>
+                                        <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">معلومات عامة</div>
+                                    </div>
+                                    
+                                    <!-- Step 2 -->
+                                    <div class="step-item text-center">
+                                        <div class="step-circle-container position-relative d-inline-flex justify-content-center">
+                                            <button type="button" class="step-button btn btn-outline-primary position-relative" style="width: 50px; padding: 0; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">2</button>
+                                        </div>
+                                        <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">الفحوصات التقنية</div>
+                                    </div>
+                                    
+                                    <!-- Step 3 -->
+                                    <div class="step-item text-center">
+                                        <div class="step-circle-container position-relative d-inline-flex justify-content-center">
+                                            <button type="button" class="step-button btn btn-outline-primary position-relative" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">3</button>
+                                        </div>
+                                        <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">الفحص الخارجي</div>
+                                    </div>
+                                    
+                                    <!-- Step 4 -->
+                                    <div class="step-item text-center">
+                                        <div class="step-circle-container position-relative d-inline-flex justify-content-center">
+                                            <button type="button" class="step-button btn btn-outline-primary position-relative" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">4</button>
+                                        </div>
+                                        <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">ملاحظات</div>
+                                    </div>
+                                    
+                                    <!-- Step 5 -->
+                                    <div class="step-item text-center">
+                                        <div class="step-circle-container position-relative d-inline-flex justify-content-center">
+                                            <button type="button" class="step-button btn btn-outline-primary position-relative" style="width: 50px; height: 50px; font-weight: 600; border-width: 2px; background-color: white; z-index: 2; border-radius: 50% !important; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">5</button>
+                                        </div>
+                                        <div class="step-title mt-2" style="font-weight: 500; font-size: 0.9rem;">الفاتورة</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Connecting Line (positioned in the middle of the circles) -->
+                                <div class="position-absolute" style="top: calc(2rem + 25px); left: 0; right: 0; height: 3px; background-color: #e9ecef; z-index: 1;"></div>
+                                
+                                <!-- Progress bar (overlays the connecting line) -->
+                                <div class="position-absolute steps-progress-bar" style="top: calc(2rem + 25px); left: 0; width: 0%; height: 3px; background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); z-index: 1; transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 1: Basic Information -->
+                    <div class="form-step" id="step1">
+                        
+                        <!-- Step 1 Error Container -->
+                        <div id="step1ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span id="step1ErrorText"></span>
+                        </div>
+                        <div class="card-header bg-success bg-opacity-10">
+                            <h5 class="mb-0 text-success"><i class="fas fa-user me-2"></i> بيانات العميل</h5>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold" style="font-size: 1.1rem; color: var(--primary-color);">
+                                <i class="fas fa-user-check me-2"></i> اختر عميل
+                            </label>
+                            <div class="d-flex align-items-center mb-3" style="position: relative;">
+                                <div class="input-group" style="flex: 1; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-radius: var(--input-radius); overflow: hidden; border: 2px solid rgba(14, 175, 84, 0.2); position: relative;">
+                                    <span class="input-group-text" style="background: linear-gradient(135deg, rgba(14, 175, 84, 0.1) 0%, rgba(14, 175, 84, 0.05) 100%); border: none;">
+                                        <i class="fas fa-search" style="color: var(--primary-color); font-size: 1.1rem;"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-0 shadow-none" id="clientSearchInput" placeholder="ابحث عن عميل بالاسم أو رقم الهاتف أو رقم الطلب..." style="height: 40px;padding: 0 1.25rem !important; font-size: 1.05rem; background-color: #fafffe;" autocomplete="off">
+                                    <span class="input-group-text" style="background: #fafffe; border: none;">
+                                        <i class="fas fa-chevron-down" id="clientSearchIcon" style="color: var(--primary-color); font-size: 1rem; cursor: pointer;"></i>
+                                    </span>
+                                </div>
+                                <button class="btn btn-success ms-2" type="button" data-bs-toggle="modal" data-bs-target="#addClientModal" style="box-shadow: 0 5px 15px rgba(14, 175, 84, 0.2); border-radius: var(--btn-radius); padding: 0.75rem 1.25rem; font-weight: 500;">
+                                    <i class="fas fa-plus me-2"></i> عميل جديد
+                                </button>
+                                <div id="clientLoadingIndicator" class="spinner-border spinner-border-sm text-primary ms-2" role="status" style="display: none;">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                                
+                                <!-- Client Search Results Dropdown -->
+                                <div id="clientSearchResults" class="position-absolute bg-white border rounded shadow-lg" style="display: none; max-height: 300px; overflow-y: auto; z-index: 1050; width: calc(100% - 120px); top: 100%; left: 0; margin-top: 5px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);">
+                                    <!-- Search results will be populated here -->
+                                </div>
+                            </div>
+                            
+                            <div id="selectedClientInfo" class="card border-0 bg-light p-3 mb-3" style="display: none;">
+                                <div class="d-flex align-items-center" style="position: relative;">
+                                    <div class="flex-shrink-0">
+                                        <div class="client-avatar d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success" style="width: 60px; height: 60px; box-shadow: 0 3px 10px rgba(14, 175, 84, 0.15);">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h6 class="mb-1" id="selectedClientName">اسم العميل</h6>
+                                        <div class="text-muted small">
+                                            <span id="selectedClientPhone"><i class="fas fa-phone me-1"></i> رقم الهاتف</span>
+                                            <span class="mx-2">|</span>
+                                            <span id="selectedClientEmail"><i class="fas fa-envelope me-1"></i> البريد الإلكتروني</span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="badge bg-info text-white" id="selectedClientOrderCode">رقم الطلب</span>
+                                            <span class="badge bg-secondary text-white ms-1" id="selectedClientStatus">الحالة</span>
+                                        </div>
+                                    </div>
+                                    <div class="ms-auto">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="editSelectedClient" style="border-radius: 8px; border-width: 1.5px;">
+                                            <i class="fas fa-edit"></i> تعديل
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            
+                        </div>
+    
+                                    <div class="card mb-4 shadow-sm">
+                                        <div class="card-header bg-success bg-opacity-10">
+                                            <h5 class="mb-0 text-success"><i class="fas fa-laptop me-2"></i> بيانات الجهاز والفحص</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label for="orderNumber" class="form-label">رقم الطلب</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="orderNumber" placeholder="LPK00000" required>
+                                                    </div>
+                                                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i> البادئة LPK مطلوبة - أدخل الأرقام فقط</small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="inspectionDate" class="form-label">تاريخ الفحص</label>
+                                                    <input type="date" class="form-control" id="inspectionDate" required>
+                                                </div>
+                                                <script>
+                                                    // Set today's date automatically
+                                                    document.addEventListener('DOMContentLoaded', function() {
+                                                        const today = new Date();
+                                                        const formattedDate = today.toISOString().substr(0, 10);
+                                                        document.getElementById('inspectionDate').value = formattedDate;
+                                                    });
+                                                </script>
+                                                <div class="col-md-6">
+                                                    <label for="deviceModel" class="form-label">موديل الجهاز</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="deviceModel" placeholder="أدخل موديل الجهاز" required>
+                                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-laptop"></i></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="serialNumber" class="form-label">الرقم التسلسلي</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="serialNumber" placeholder="أدخل الرقم التسلسلي" required>
+                                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-barcode"></i></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="devicePrice" class="form-label">السعر</label>
+                                                    <div class="input-group">
+                                                        <input type="number" class="form-control" id="devicePrice" placeholder="أدخل السعر" min="0" step="1">
+                                                        <span class="input-group-text">جنية</span>
+                                                    </div>
+                                                    <small class="text-muted">سيتم استخدام هذا السعر في الفاتورة</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                
+                                <!-- Step 2: Component Tests -->
+                                <div class="form-step" id="step2" style="padding: 0 5rem ;">
+                                    <!-- Step 2 Error Container -->
+                                    <div id="step2ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <span id="step2ErrorText"></span>
+                                    </div>
+                                    
+                                    <!-- Step 2 Warning Container -->
+                                    <div id="step2WarningContainer" class="step-warning-container mb-3" style="display: none;"></div>
+                                    
+
+                                    
+                                    <!-- Hardware Components Checklist -->
+                                    <div class="card mb-4 shadow-sm">
+                                        <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0 text-success"><i class="fas fa-check-square me-2"></i> فحص المكونات الأساسية</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="text-muted mb-3">تحقق من حالة المكونات الأساسية للجهاز</p>
+                                            
+                                            <div class="table-responsive rounded overflow-hidden" style="box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                                                <table class="table table-bordered" id="hardwareComponentsTable">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>المكون</th>
+                                                            <th class="text-center" width="150">يعمل</th>
+                                                            <th class="text-center" width="150">غير متوفر</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <!-- Camera -->
+                                                        <tr>
+                                                            <td><i class="fas fa-camera text-primary me-2"></i> الكاميرا</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="camera" class="form-check-input" type="radio" name="camera_status" id="camera_working" value="working" checked>
+                                                                    <label class="form-check-label" for="camera_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="camera_status" id="camera_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="camera_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Speakers -->
+                                                        <tr>
+                                                            <td><i class="fas fa-volume-up text-primary me-2"></i> السماعات</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="speakers" class="form-check-input" type="radio" name="speakers_status" id="speakers_working" value="working" checked>
+                                                                    <label class="form-check-label" for="speakers_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="speakers_status" id="speakers_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="speakers_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Microphone -->
+                                                        <tr>
+                                                            <td><i class="fas fa-microphone text-primary me-2"></i> الميكروفون</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="microphone" class="form-check-input" type="radio" name="microphone_status" id="microphone_working" value="working" checked>
+                                                                    <label class="form-check-label" for="microphone_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="microphone_status" id="microphone_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="microphone_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Wi-Fi -->
+                                                        <tr>
+                                                            <td><i class="fas fa-wifi text-primary me-2"></i> واي فاي</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="Wi-Fi" class="form-check-input" type="radio" name="wifi_status" id="wifi_working" value="working" checked>
+                                                                    <label class="form-check-label" for="wifi_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="wifi_status" id="wifi_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="wifi_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- LAN -->
+                                                        <tr>
+                                                            <td><i class="fas fa-network-wired text-primary me-2"></i> منفذ الشبكة (LAN)</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="LAN" class="form-check-input" type="radio" name="lan_status" id="lan_working" value="working" checked>
+                                                                    <label class="form-check-label" for="lan_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="lan_status" id="lan_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="lan_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- USB Ports -->
+                                                        <tr>
+                                                            <td><i class="fas fa-usb text-primary me-2"></i> منافذ USB</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="Ports" class="form-check-input" type="radio" name="usb_status" id="usb_working" value="working" checked>
+                                                                    <label class="form-check-label" for="usb_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="usb_status" id="usb_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="usb_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Keyboard -->
+                                                        <tr>
+                                                            <td><i class="fas fa-keyboard text-primary me-2"></i> لوحة المفاتيح</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="keyboard" class="form-check-input" type="radio" name="keyboard_status" id="keyboard_working" value="working" checked>
+                                                                    <label class="form-check-label" for="keyboard_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="keyboard_status" id="keyboard_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="keyboard_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Touchpad -->
+                                                        <tr>
+                                                            <td><i class="fas fa-hand-pointer text-primary me-2"></i> لوحة اللمس</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="Touchpad" class="form-check-input" type="radio" name="touchpad_status" id="touchpad_working" value="working" checked>
+                                                                    <label class="form-check-label" for="touchpad_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="touchpad_status" id="touchpad_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="touchpad_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Card Reader -->
+                                                        <tr>
+                                                            <td><i class="fas fa-sd-card text-primary me-2"></i> قارئ البطاقات</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="card" class="form-check-input" type="radio" name="card_reader_status" id="card_reader_working" value="working" checked>
+                                                                    <label class="form-check-label" for="card_reader_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="card_reader_status" id="card_reader_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="card_reader_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Audio Jack -->
+                                                        <tr>
+                                                            <td><i class="fas fa-headphones text-primary me-2"></i> منفذ الصوت</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="audio_jack" class="form-check-input" type="radio" name="audio_jack_status" id="audio_jack_working" value="working" checked>
+                                                                    <label class="form-check-label" for="audio_jack_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="audio_jack_status" id="audio_jack_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="audio_jack_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Display Ports -->
+                                                        <tr>
+                                                            <td><i class="fas fa-desktop text-primary me-2"></i> منافذ العرض (HDMI/DisplayPort)</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="DisplayPort" class="form-check-input" type="radio" name="display_ports_status" id="display_ports_working" value="working" checked>
+                                                                    <label class="form-check-label" for="display_ports_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="display_ports_status" id="display_ports_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="display_ports_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Bluetooth -->
+                                                        <tr>
+                                                            <td><i class="fab fa-bluetooth-b text-primary me-2"></i> بلوتوث</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="Bluetooth" class="form-check-input" type="radio" name="bluetooth_status" id="bluetooth_working" value="working" checked>
+                                                                    <label class="form-check-label" for="bluetooth_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="bluetooth_status" id="bluetooth_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="bluetooth_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        
+                                                        <!-- Touchscreen -->
+                                                        <tr>
+                                                            <td><i class="fas fa-hand-pointer text-primary me-2"></i> الشاشة تاتش</td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input data-hardwarecomponent="touchscreen" class="form-check-input" type="radio" name="touchscreen_status" id="touchscreen_working" value="working">
+                                                                    <label class="form-check-label" for="touchscreen_working"></label>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="form-check d-inline-block">
+                                                                    <input class="form-check-input" type="radio" name="touchscreen_status" id="touchscreen_not_available" value="not_available">
+                                                                    <label class="form-check-label" for="touchscreen_not_available"></label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            
+                                        </div>
+                                    </div>
+                                    
+                                    <h5 class="mb-3">فحوصات المكونات</h5>
+                                    <div id="componentTestsContainer">
+                                        
+                                        
+                                        <!-- info Test -->
+                                        <div class="card component-test-card mb-4" data-component="info">
+                                            <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0 text-success"><i class="fas fa-info-circle me-2"></i> تفاصيل اللابتوب</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="infoScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="infoScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="info">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="infoScreenshotUrl" data-component="info">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="infoScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                        <!-- CPU Test -->
+                                        <div class="card component-test-card mb-4" data-component="cpu">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-microchip me-2"></i> اختبار البروسيسور</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="cpuScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="cpuScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="cpu">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="cpuScreenshotUrl" data-component="cpu">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="cpuScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- GPU Test (Optional) -->
+                                        <div class="card component-test-card mb-4" data-component="gpu">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-tv me-2"></i> اختبار كارت الشاشة</h5>
+                                                
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="gpuScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="gpuScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="gpu">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="gpuScreenshotUrl" data-component="gpu">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="gpuScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Hard Drive Test -->
+                                        <div class="card component-test-card mb-4" data-component="hdd">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-hdd me-2"></i> اختبار القرص الصلب</h5>
+                                               
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="hddScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="hddScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="hdd">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="hddScreenshotUrl" data-component="hdd">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="hddScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Keyboard Test -->
+                                        <div class="card component-test-card mb-4" data-component="keyboard">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-keyboard me-2"></i> اختبار لوحة المفاتيح</h5>
+                                                
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="keyboardScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="keyboardScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="keyboard">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="keyboardScreenshotUrl" data-component="keyboard">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="keyboardScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Battery Test -->
+                                        <div class="card component-test-card mb-4" data-component="battery">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h5 class="mb-0"><i class="fas fa-battery-three-quarters me-2"></i> اختبار البطارية</h5>
+                                                
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="batteryScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control test-screenshot-url" id="batteryScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="battery">
+                                                        <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="batteryScreenshotUrl" data-component="battery">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                    <div class="mt-2 screenshot-preview" id="batteryScreenshotPreview"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                            <!-- DxDiag Test -->
+                                            <div class="card component-test-card mb-4" data-component="dxdiag">
+                                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                    <h5 class="mb-0"><i class="fas fa-laptop me-2"></i> اختبار معلومات النظام (DxDiag)</h5>
+                                                    
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="mb-3">
+                                                        <label for="dxdiagScreenshotUrl" class="form-label">رابط صورة نتيجة الاختبار</label>
+                                                        <div class="input-group mb-2">
+                                                            <input type="url" class="form-control test-screenshot-url" id="dxdiagScreenshotUrl" placeholder="https://example.com/image.jpg" data-component="dxdiag">
+                                                            <button type="button" class="btn btn-primary add-screenshot-url-btn" data-target="dxdiagScreenshotUrl" data-component="dxdiag">
+                                                                <i class="fas fa-plus me-1"></i> إضافة
+                                                            </button>
+                                                        </div>
+                                                        <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                        <div class="mt-2 screenshot-preview" id="dxdiagScreenshotPreview"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                    </div>
+                                    
+
+<!-- 
+                                    <div class="form-navigation">
+                                        <button type="button" class="btn btn-prev-step btn-light" style="border-radius: var(--btn-radius) 0 0 var(--btn-radius); padding: 0.75rem 1.5rem; font-weight: 500;">
+                                        <i class="fas fa-arrow-right me-2"></i> السابق
+                                    </button>
+                                    <button type="button" class="btn btn-next-step btn-primary" style="border-radius: 0 var(--btn-radius) var(--btn-radius) 0; padding: 0.75rem 1.5rem; font-weight: 500; background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);">
+                                        التالي <i class="fas fa-arrow-left ms-2"></i>
+                                    </button>
+                                    </div> -->
+                                </div>
+                                
+                                <!-- Step 3: External Inspection -->
+                                <div class="form-step" id="step3">
+                                    <!-- Step 3 Error Container -->
+                                    <div id="step3ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <span id="step3ErrorText"></span>
+                                    </div>
+                                    
+                                    <!-- Step 3 Warning Container -->
+                                    <div id="step3WarningContainer" class="step-warning-container mb-3" style="display: none;"></div>
+                                    
+                                    <!-- Images Section -->
+                                    <div class="mb-4 container px-3 py-2">
+                                        <div style="text-align: center;">
+                                            <h5><i class="fas fa-camera me-2"></i> صور الفحص الخارجي</h5>
+                                        </div>
+                                        <div class="card mb-3">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">إضافة صور عبر الروابط</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="imageUrlInput" class="form-label">رابط الصورة</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control" id="imageUrlInput" placeholder="https://example.com/image.jpg">
+                                                        <button type="button" class="btn btn-primary" id="addImageUrlBtn">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">أدخل رابط صورة صالح (jpg, jpeg, png, gif, webp)</small>
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-2 mb-2" id="imageUrlBadges">
+                                                    <!-- Image URL badges will be added here -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="external-images-grid" id="externalImagesPreview">
+                                            <!-- Image previews will be added here -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Video Section -->
+                                    <div class="mb-4 container style="padding: 0 5rem ;" >
+                                        <div style="text-align: center;">
+                                            <h5><i class="fas fa-video me-2"></i> فيديو الفحص</h5>
+                                        </div>
+                                        <div class="card mb-3">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">إضافة فيديو عبر الرابط</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="videoUrlInput" class="form-label">رابط الفيديو</label>
+                                                    <div class="input-group mb-2">
+                                                        <input type="url" class="form-control" id="videoUrlInput" placeholder="https://example.com/video.mp4 أو https://youtube.com/...">
+                                                        <button type="button" class="btn btn-primary" id="addVideoUrlBtn">
+                                                            <i class="fas fa-plus me-1"></i> إضافة
+                                                        </button>
+                                                    </div>
+                                                    <small class="text-muted">يمكنك إضافة رابط فيديو مباشر (mp4, webm) أو رابط من يوتيوب أو فيميو</small>
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-2 mb-2" id="videoUrlBadges">
+                                                    <!-- Video URL badges will be added here -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="videoPreviewContainer" class="mb-3">
+                                            <!-- Video previews will be added here -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- <div class="form-navigation d-flex justify-content-center">
+                                        <button type="button" class="btn btn-prev-step btn-secondary me-2">السابق</button>
+                                        <button type="button" class="btn btn-next-step btn-primary px-4">التالي</button>
+                                    </div> -->
+                                </div>
+                                
+                                <!-- Step 4: Notes -->
+                                <div class="form-step" id="step4" style="padding: 0 5rem ;">
+                                    <!-- Step 4 Error Container -->
+                                    <div id="step4ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <span id="step4ErrorText"></span>
+                                    </div>
+                                    
+                                    <div class="card border-0 shadow-sm mb-4" style="margin: 1rem; padding: 1rem;">
+                                        <div class="card-body p-4">
+                                            <div class="mb-4" style="margin: 1rem 0;">
+                                                <div class="position-relative" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: var(--input-radius); overflow: hidden;">
+                                                    <textarea class="form-control border-0" id="generalNotes" rows="6" placeholder="أدخل أي ملاحظات إضافية عن حالة الجهاز" style="padding: 1rem; background-color: #fafafa;"></textarea>
+                                                </div>
+                                                <div class="text-muted small mt-2">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    يمكنك إضافة أي ملاحظات أو تفاصيل إضافية لم يتم ذكرها في الخطوات السابقة
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Step 5: Invoice Information -->
+                                <div class="form-step" id="step5" style="margin: 1rem 0; padding: 0 5rem ;">
+                                    <!-- Step 5 Error Container -->
+                                    <div id="step5ErrorContainer" class="alert alert-danger mb-3" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <span id="step5ErrorText"></span>
+                                    </div>
+                                    
+                                    <div class="card border-0 shadow-sm mb-4">
+                                        <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0 text-success"><i class="fas fa-file-invoice me-2"></i> تفاصيل الفاتورة</h5>
+                                            
+                                            <!-- Billing Toggle Button (Prominent and Visible) -->
+                                            <div class="form-check form-switch ps-0 d-flex align-items-center">
+                                                <div class="toggle-container d-inline-flex align-items-center gap-2" style="background: rgba(255,255,255,0.8); padding: 0.5rem 1rem; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                                    <span class="fw-bold small" id="billingStatusText" style="color: var(--primary-color);">الفاتورة مفعلة</span>
+                                                    <input class="form-check-input ms-2 me-0" type="checkbox" id="enableBilling" checked style="width: 3rem; height: 1.5rem;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <!-- Billing Info Text -->
+                                            <div class="alert alert-light border-0 mb-4" style="background: rgba(14, 175, 84, 0.05);">
+                                                <div class="d-flex">
+                                                    <div class="me-3 text-success">
+                                                        <i class="fas fa-info-circle fa-2x"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="fw-bold mb-1">معلومات الفاتورة</h6>
+                                                        <p class="mb-0">عند تفعيل الفاتورة، سيتم إنشاء فاتورة تلقائيًا مع التقرير. إذا كنت ترغب في إنشاء فاتورة لاحقًا، يمكنك إلغاء تفعيل هذا الخيار.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Invoice Fields Container - will be disabled when invoice is toggled off -->
+                                            <div id="invoiceFieldsContainer">
+                                                <!-- Laptop Details Section -->
+                                                <div class="mb-4">
+                                                <h6 class="fw-bold mb-3">تفاصيل الأجهزة</h6>
+                                                <div id="laptopsContainer">
+                                                    <div class="row mb-3 laptop-row">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">اسم الجهاز</label>
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control laptop-name" id="invoiceDeviceName" placeholder="موديل الجهاز" readonly />
+                                                                <span class="input-group-text bg-light text-muted"><i class="fas fa-laptop"></i></span>
+                                                            </div>
+                                                            <small class="text-muted">تم نقله تلقائيًا من الخطوة الأولى</small>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <label class="form-label">الرقم التسلسلي</label>
+                                                            <div class="input-group">
+                                                                <input type="text" class="form-control laptop-serial" id="invoiceSerialNumber" placeholder="الرقم التسلسلي" readonly />
+                                                                <span class="input-group-text bg-light text-muted"><i class="fas fa-barcode"></i></span>
+                                                            </div>
+                                                            <small class="text-muted">تم نقله تلقائيًا من الخطوة الأولى</small>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">السعر</label>
+                                                            <div class="input-group">
+                                                                <input type="number" class="form-control laptop-price" id="invoicePrice" placeholder="أدخل السعر" min="0" step="1" />
+                                                                <span class="input-group-text">جنية</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-1 d-none">
+                                                            <label class="form-label">&nbsp;</label>
+                                                            <button type="button" class="btn btn-outline-danger remove-laptop-btn d-block d-none">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <!-- <div class="additional-serials-container d-none mb-3">
+                                                        <div class="card">
+                                                            <div class="card-header bg-light">
+                                                                <h6 class="mb-0">الأرقام التسلسلية الإضافية</h6>
+                                                            </div>
+                                                            <div class="card-body pt-2 additional-serials">
+                                                                Additional serial numbers will be added here dynamically
+                                                            </div>
+                                                        </div>
+                                                    </div> -->
+                                                </div>
+                                                <!-- <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addLaptopBtn">
+                                                    <i class="fas fa-plus me-1"></i> إضافة جهاز
+                                                </button> -->
+                                            </div>
+                                            
+                                            <!-- Additional Items Section -->
+                                            <div class="mb-4">
+                                                <h6 class="fw-bold mb-3">عناصر إضافية</h6>
+                                                <div id="itemsContainer">
+                                                    <!-- Additional items will be added here -->
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-success mt-2" id="addItemBtn">
+                                                    <i class="fas fa-plus me-1"></i> إضافة عنصر
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Service Fees Section -->
+                                            <div class="mb-4">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">نسبة الضريبة</label>
+                                                        <div class="input-group">
+                                                            <input type="number" class="form-control" id="taxRate" value="0" min="0" max="100" oninput="updateTaxDisplay()" />
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">خصم (إن وجد)</label>
+                                                        <div class="input-group">
+                                                            <input type="number" class="form-control" id="discount" value="0" min="0" step="0.01" />
+                                                            <span class="input-group-text">جنية</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            
+                                            
+                                            <!-- Payment Information section removed -->
+                                            
+                                            <!-- Invoice Preview -->
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <h6 class="fw-bold mb-3">ملخص الفاتورة</h6>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>المجموع الفرعي:</span>
+                                                        <span id="subtotalDisplay">0.00 جنية</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>الخصم:</span>
+                                                        <span id="discountDisplay">0.00 جنية</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span id="taxRateLabel">الضريبة (0%):</span>
+                                                        <span id="taxDisplay">0.00 جنية</span>
+                                                    </div>
+                                                    <hr>
+                                                    <div class="d-flex justify-content-between fw-bold">
+                                                        <span>الإجمالي:</span>
+                                                        <span id="totalDisplay">0.00 جنية</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- End of invoice fields container -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Component Test Modal -->
+                                <div class="modal fade" id="addComponentModal" tabindex="-1" aria-labelledby="addComponentModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-success text-white">
+                                                <h5 class="modal-title" id="addComponentModalLabel">إضافة فحص جديد</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row row-cols-1 row-cols-md-2 g-3 test-type-options">
+                                                    <div class="col">
+                                                        <div class="card h-100 test-type-card" data-test-type="cpu">
+                                                            <div class="card-body text-center p-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 mb-2 mx-auto">
+                                                                    <i class="fas fa-microchip text-success"></i>
+                                                                </div>
+                                                                <h6 class="card-title mb-0">اختبار المعالج</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="card h-100 test-type-card" data-test-type="gpu">
+                                                            <div class="card-body text-center p-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 mb-2 mx-auto">
+                                                                    <i class="fas fa-vr-cardboard text-success"></i>
+                                                                </div>
+                                                                <h6 class="card-title mb-0">اختبار كارت الشاشة</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="card h-100 test-type-card" data-test-type="hardDrive">
+                                                            <div class="card-body text-center p-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 mb-2 mx-auto">
+                                                                    <i class="fas fa-hdd text-success"></i>
+                                                                </div>
+                                                                <h6 class="card-title mb-0">اختبار القرص الصلب</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="card h-100 test-type-card" data-test-type="battery">
+                                                            <div class="card-body text-center p-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 mb-2 mx-auto">
+                                                                    <i class="fas fa-battery-full text-success"></i>
+                                                                </div>
+                                                                <h6 class="card-title mb-0">اختبار البطارية</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="card h-100 test-type-card" data-test-type="keyboard">
+                                                            <div class="card-body text-center p-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 mb-2 mx-auto">
+                                                                    <i class="fas fa-keyboard text-success"></i>
+                                                                </div>
+                                                                <h6 class="card-title mb-0">اختبار لوحة المفاتيح</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="card h-100 test-type-card" data-test-type="deviceDetails">
+                                                            <div class="card-body text-center p-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 mb-2 mx-auto">
+                                                                    <i class="fas fa-laptop-code text-success"></i>
+                                                                </div>
+                                                                <h6 class="card-title mb-0">تفاصيل الجهاز</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="card h-100 test-type-card" data-test-type="dxDiag">
+                                                            <div class="card-body text-center p-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 mb-2 mx-auto">
+                                                                    <i class="fas fa-file-code text-success"></i>
+                                                                </div>
+                                                                <h6 class="card-title mb-0">تقرير DxDiag</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <div class="card h-100 test-type-card" data-test-type="custom">
+                                                            <div class="card-body text-center p-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 mb-2 mx-auto">
+                                                                    <i class="fas fa-tools text-success"></i>
+                                                                </div>
+                                                                <h6 class="card-title mb-0">فحص مخصص</h6>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="mt-3 d-none" id="customTestNameContainer">
+                                                    <label for="customTestName" class="form-label">اسم الفحص المخصص</label>
+                                                    <input type="text" class="form-control" id="customTestName" placeholder="أدخل اسم الفحص">
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                <button type="button" class="btn btn-success" id="confirmAddTest" disabled>إضافة</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Report Created Success Modal -->
+                                <div class="modal fade" id="reportCreatedModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content" style="border-radius: var(--card-radius); overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: none;">
+                                            <div class="modal-header" style="background: linear-gradient(135deg, #0eaf54, #0a3622); border: none; padding: 1.75rem 1.5rem;">
+                                                <h5 class="modal-title text-white" style="font-weight: 600;">
+                                                    <i class="fas fa-check-circle me-2"></i>
+                                                    تم إنشاء التقرير بنجاح
+                                                </h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body p-4">
+                                                <div class="text-center my-4" style="position: relative;">
+                                                    <div class="success-icon-container" style="width: 100px; height: 100px; background: rgba(14, 175, 84, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 10px 20px rgba(14, 175, 84, 0.15);">
+                                                        <i class="fas fa-check-circle text-success fa-3x" style="color: #0eaf54 !important;"></i>
+                                                    </div>
+                                                    <h4 style="font-weight: 700; color: #0a3622; margin-bottom: 0.75rem;">تم إنشاء التقرير بنجاح!</h4>
+                                                    <p class="text-muted" style="font-size: 1rem;">يمكنك مشاركة التقرير أو تحميله من خلال الخيارات التالية</p>
+                                                </div>
+                                                
+                                                <div class="mb-4 report-link-container" style="position: relative;">
+                                                    <label class="form-label fw-bold" style="color: #0a3622;">رابط التقرير</label>
+                                                    <div class="input-group shadow-sm">
+                                                        <input type="text" class="form-control" id="reportLink" readonly style="border-radius: var(--input-radius) 0 0 var(--input-radius); background-color: #f8f9fa; font-weight: 500; padding: 0.75rem; border-color: #e9ecef;">
+                                                        <button class="btn" type="button" id="copyLinkBtn" style="border-radius: 0 var(--input-radius) var(--input-radius) 0; background-color: #0eaf54; color: white;">
+                                                            <i class="fas fa-copy"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div class="copy-success-message text-success position-absolute end-0 me-2" style="display: none; font-size: 0.8rem; top: calc(100% + 2px);">
+                                                        <i class="fas fa-check-circle me-1"></i> تم نسخ الرابط!
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="d-grid gap-3">
+                                                    <a href="#" class="btn" id="whatsappShareBtn" style="border-radius: var(--btn-radius); padding: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; background-color: #25D366; color: white; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: all 0.3s ease;">
+                                                        <i class="fab fa-whatsapp me-2 fa-lg"></i> مشاركة عبر واتساب
+                                                    </a>
+                                                    <a href="#" class="btn" id="modalCopyLinkBtn" style="border-radius: var(--btn-radius); padding: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; background-color: #0eaf54; color: white; box-shadow: 0 4px 12px rgba(14, 175, 84, 0.3); transition: all 0.3s ease;">
+                                                        <i class="fas fa-copy me-2"></i> نسخ رابط التقرير
+                                                    </a>
+                                                    <a href="report.html" id="viewReportBtn" class="btn" style="border-radius: var(--btn-radius); padding: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; background-color: #0a3622; color: white; box-shadow: 0 4px 12px rgba(10, 54, 34, 0.3); transition: all 0.3s ease;">
+                                                        <i class="fas fa-eye me-2"></i> عرض التقرير
+                                                    </a>
+                                                    <a href="reports.html" class="btn" style="border-radius: var(--btn-radius); padding: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; color: #495057; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); transition: all 0.3s ease;">
+                                                        <i class="fas fa-list me-2"></i> العودة إلى قائمة التقارير
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+
+                                <!-- JavaScript for Report Success Modal Functionality -->
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        // Get modal buttons
+                                        const copyLinkBtn = document.getElementById('copyLinkBtn');
+                                        const modalCopyLinkBtn = document.getElementById('modalCopyLinkBtn');
+                                        const whatsappShareBtn = document.getElementById('whatsappShareBtn');
+                                        const reportLinkInput = document.getElementById('reportLink');
+                                        
+                                        // Function to copy link to clipboard
+                                        function copyLinkToClipboard() {
+                                            if (reportLinkInput) {
+                                                reportLinkInput.select();
+                                                reportLinkInput.setSelectionRange(0, 99999); // For mobile devices
+                                                
+                                                navigator.clipboard.writeText(reportLinkInput.value).then(function() {
+                                                    // Show success message
+                                                    const originalText = this.innerHTML;
+                                                    this.innerHTML = '<i class="fas fa-check me-2"></i> تم النسخ';
+                                                    
+                                                    setTimeout(() => {
+                                                        this.innerHTML = originalText;
+                                                    }, 2000);
+                                                }.bind(this)).catch(function(err) {
+                                                    console.error('Could not copy text: ', err);
+                                                });
+                                            }
+                                        }
+                                        
+                                        // Add event listeners
+                                        if (copyLinkBtn) {
+                                            copyLinkBtn.addEventListener('click', function() {
+                                                copyLinkToClipboard.call(this);
+                                            });
+                                        }
+                                        
+                                        if (modalCopyLinkBtn) {
+                                            modalCopyLinkBtn.addEventListener('click', function(e) {
+                                                e.preventDefault();
+                                                copyLinkToClipboard.call(this);
+                                            });
+                                        }
+                                        
+                                        // WhatsApp share functionality
+                                        if (whatsappShareBtn) {
+                                            whatsappShareBtn.addEventListener('click', function(e) {
+                                                e.preventDefault();
+                                                const reportUrl = reportLinkInput ? reportLinkInput.value : window.location.href;
+                                                const message = encodeURIComponent('تقرير فحص الجهاز من Laapak: ' + reportUrl);
+                                                const whatsappUrl = 'https://wa.me/?text=' + message;
+                                                window.open(whatsappUrl, '_blank');
+                                            });
+                                        }
+                                    });
+                                </script>
+                                
+                                <!-- Centralized Form Navigation -->
+                                <div class="form-navigation d-flex justify-content-center mt-4 py-3 border-top">
+                                    <div class="d-flex justify-content-center gap-3">
+                                        <button type="button" class="btn btn-prev-step btn-outline-secondary px-4" id="globalPrevBtn" style="min-width: 120px;">
+                                            <i class="fas fa-chevron-right me-1"></i> السابق
+                                        </button>
+                                        <button type="button" class="btn btn-next-step btn-primary px-4" id="globalNextBtn" style="min-width: 120px;">
+                                            التالي <i class="fas fa-chevron-left ms-1"></i>
+                                        </button>
+                                        <!-- Submit button only for step 5 -->
+                                        <button type="submit" class="btn btn-success px-4 d-none" id="submitReportBtn" style="min-width: 140px;">
+                                            <i class="fas fa-check-circle me-1"></i> إنشاء التقرير
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    <!-- Invoice Modal -->
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> فاتورة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="invoiceModalContent">
+                    <!-- Invoice content will be inserted here dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                        <i class="fas fa-print me-2"></i> طباعة الفاتورة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS Files -->
+    <script src="../../../scripts/offline-handler.js"></script>
+    <script src="../../../scripts/config.js"></script>
+    <script src="../../../scripts/api-service.js"></script>
+    <script src="../../../scripts/auth-middleware.js"></script>
+    <script src="../../../scripts/reset-service-worker.js"></script>
+    <script src="../../../scripts/header-component.js"></script>
+    <script src="../../../scripts/invoice-generator.js"></script>
+    <script src="../../../scripts/invoice-form.js"></script>
+    <script src="../../../scripts/component-tests.js"></script>
+    
+    <!-- Print functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+            if (printInvoiceBtn) {
+                printInvoiceBtn.addEventListener('click', function() {
+                    // Store the current body content
+                    const originalContent = document.body.innerHTML;
+                    
+                    // Replace with just the invoice content for printing
+                    const invoiceContent = document.getElementById('invoiceModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${invoiceContent}
+                        </div>
+                    `;
+                    
+                    // Print
+                    window.print();
+                    
+                    // Restore original content
+                    document.body.innerHTML = originalContent;
+                    
+                    // Reattach event listeners
+                    location.reload();
+                });
+            }
+        });
+    </script>
+    
+    <!-- Initialize Header Component -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the header component
+            const header = new LpkHeader('header-container', {
+                showLogo: true,
+                logoPath: 'img/logo.png',
+                logoWidth: '100px',
+                showNavigation: true,
+                navigationItems: [
+                    { text: 'الرئيسية', url: 'admin.html', icon: 'fas fa-tachometer-alt' },
+                    { text: 'التقارير', url: 'reports.html', icon: 'fas fa-file-alt' },
+                    { text: 'العملاء', url: 'clients.html', icon: 'fas fa-users' },
+                    { text: 'تقرير جديد', url: 'create-report.html', icon: 'fas fa-plus-circle', active: true }
+                ],
+                showUserMenu: true,
+                userMenuItems: [
+                    { text: 'الإعدادات', url: 'settings.html', icon: 'fas fa-cog' },
+                    { text: 'تسجيل الخروج', url: 'index.html', icon: 'fas fa-sign-out-alt' }
+                ]
+            });
+        });
+    </script>
+
+    <!-- PWA Service Worker Registration - Temporarily disabled for debugging -->
+    <script>
+        // Unregister any existing service workers to prevent API caching issues
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let registration of registrations) {
+                    console.log('Unregistering service worker:', registration);
+                    registration.unregister();
+                }
+                console.log('Service workers unregistered successfully');
+            }).catch(function(error) {
+                console.error('Error unregistering service workers:', error);
+            });
+            
+            // Clear caches
+            if ('caches' in window) {
+                caches.keys().then(function(cacheNames) {
+                    return Promise.all(
+                        cacheNames.map(function(cacheName) {
+                            console.log('Deleting cache:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                }).then(function() {
+                    console.log('Caches cleared successfully');
+                });
+            }
+            
+            // Temporarily disable service worker registration
+            // window.addEventListener('load', function() {
+            //     navigator.serviceWorker.register('service-worker.js')
+            //         .then(function(registration) {
+            //             console.log('ServiceWorker registration successful');
+            //         })
+            //         .catch(function(error) {
+            //             console.log('ServiceWorker registration failed: ', error);
+            //         });
+            // });
+        }
+    </script>
+
+    <!-- JavaScript Files -->
+    <script src="../../../scripts/form-steps-utils.js"></script>
+    <script src="../../../scripts/form-steps.js"></script>
+    <script src="../../../scripts/component-tests.js"></script>
+    <script src="../../../scripts/invoice-form.js"></script>
+    <script src="../../../scripts/invoice-generator.js"></script>
+    <script src="../../../scripts/create-report.js"></script>
+    
+    <!-- Invoice toggle functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const enableBillingCheckbox = document.getElementById('enableBilling');
+            const billingStatusText = document.getElementById('billingStatusText');
+            const invoiceFieldsContainer = document.getElementById('invoiceFieldsContainer');
+            const submitReportBtn = document.getElementById('submitReportBtn');
+            
+            // Function to toggle visibility of invoice fields
+            function toggleInvoiceFields() {
+                const isEnabled = enableBillingCheckbox.checked;
+                
+                // Update text indicator
+                if (billingStatusText) {
+                    billingStatusText.textContent = isEnabled ? 'الفاتورة مفعلة' : 'الفاتورة معطلة';
+                    billingStatusText.style.color = isEnabled ? 'var(--primary-color)' : '#888';
+                }
+                
+                // Show/hide all invoice fields
+                if (invoiceFieldsContainer) {
+                    invoiceFieldsContainer.style.opacity = isEnabled ? '1' : '0.5';
+                    invoiceFieldsContainer.style.pointerEvents = isEnabled ? 'auto' : 'none';
+                }
+                
+                // Add/remove disabled state to all form controls in the invoice section
+                const formControls = document.querySelectorAll('#invoiceFieldsContainer input, #invoiceFieldsContainer select, #invoiceFieldsContainer textarea, #invoiceFieldsContainer button');
+                formControls.forEach(control => {
+                    control.disabled = !isEnabled;
+                });
+                
+                // Handle toggle container visual appearance
+                const toggleContainer = document.querySelector('.toggle-container');
+                if (toggleContainer) {
+                    if (isEnabled) {
+                        toggleContainer.style.background = 'rgba(14, 175, 84, 0.1)';
+                        toggleContainer.style.boxShadow = '0 2px 8px rgba(14, 175, 84, 0.15)';
+                    } else {
+                        toggleContainer.style.background = 'rgba(200, 200, 200, 0.2)';
+                        toggleContainer.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
+                    }
+                }
+                
+                // Make sure submit button is always visible and styled correctly
+                if (submitReportBtn) {
+                    submitReportBtn.style.display = 'inline-flex';
+                    submitReportBtn.style.alignItems = 'center';
+                    submitReportBtn.style.justifyContent = 'center';
+                    submitReportBtn.style.background = 'linear-gradient(135deg, #0eaf54 0%, #088f44 100%)';
+                    submitReportBtn.style.boxShadow = '0 5px 15px rgba(14, 175, 84, 0.2)';
+                }
+            }
+            
+            // Set initial state
+            if (enableBillingCheckbox) {
+                toggleInvoiceFields();
+                
+                // Add event listener for changes
+                enableBillingCheckbox.addEventListener('change', toggleInvoiceFields);
+            }
+        });
+    </script>
+    
+    <!-- Form navigation (Handled by form-steps.js) -->
+    <!-- Add Client Modal -->
+    <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #0a592c 0%, #0d944d 100%); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> إضافة عميل جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="addClientForm">
+                        <div class="mb-3">
+                            <label for="clientName" class="form-label">اسم العميل <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="clientName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientPhone" class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="clientPhone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientEmail" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="clientEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientAddress" class="form-label">العنوان</label>
+                            <textarea class="form-control" id="clientAddress" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientOrderCode" class="form-label">رقم الطلب <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="clientOrderCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-block">حالة العميل</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="clientStatus" id="statusActive" value="active" checked>
+                                <label class="form-check-label" for="statusActive">نشط</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="clientStatus" id="statusInactive" value="inactive">
+                                <label class="form-check-label" for="statusInactive">غير نشط</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveClientBtn">
+                        <i class="fas fa-save me-2"></i> حفظ العميل
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

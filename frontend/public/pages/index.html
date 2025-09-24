@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laapak Reports</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->    
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../../styles/base/styles.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f2f5 0%, #e6e9ec 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Tajawal', sans-serif;
+            color: #333;
+            padding-top: 50px;
+        }
+        
+        .main-logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        
+        .login-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 0;
+            position: relative;
+            z-index: 2;
+            padding: 40px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .login-form {
+            width: 100%;
+            padding: 40px;
+            border-radius: 20px;
+            background: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.1);
+            margin: 0 auto;
+            transition: all 0.3s ease;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-form::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #007553, #00a67a);
+        }
+        
+        .login-form h3 {
+            color: #333;
+            font-size: 1.75rem;
+            margin-bottom: 5px;
+        }
+        
+        .form-control {
+            padding: 12px 15px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            color: #495057;
+        }
+        
+        .form-control:focus, .btn:focus {
+            box-shadow: 0 0 0 0.25rem rgba(0, 117, 83, 0.15);
+            border-color: #00a67a;
+            background: #ffffff;
+        }
+        
+        .input-group-text {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            color: #6c757d;
+        }
+        
+        .btn-primary, .btn-success {
+            background: linear-gradient(135deg, #007553 0%, #004d35 100%);
+            border: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,117,83,0.2);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #198754 0%, #0c6c41 100%);
+        }
+        
+        .btn-primary:hover, .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,117,83,0.3);
+        }
+        
+        .btn-outline-primary {
+            border-color: #007553;
+            color: #007553;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: #007553;
+            color: white;
+        }
+        
+        .login-logo {
+            width: 120px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .login-divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .login-divider::before, .login-divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .login-divider span {
+            padding: 0 10px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+        
+        .form-label {
+            color: #495057;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .text-muted {
+            color: #6c757d !important;
+        }
+        
+        .form-text {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        
+        .form-check-input:checked {
+            background-color: #007553;
+            border-color: #007553;
+        }
+        
+        /* Smart Login Detection */
+        .login-type-indicator {
+            background: linear-gradient(135deg, #007553 0%, #00a67a 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        
+        .login-type-indicator.client {
+            background: linear-gradient(135deg, #198754 0%, #0c6c41 100%);
+        }
+        
+        .login-type-indicator.employee {
+            background: linear-gradient(135deg, #007553 0%, #004d35 100%);
+        }
+        
+        .field-hint {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .field-hint.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .field-hint.hide {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        
+        /* Feature Cards */
+        .features-section {
+            padding: 60px 0;
+            background-color: #f8f9fa;
+        }
+        
+        .feature-card {
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-icon::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            z-index: -1;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover .feature-icon::after {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        
+        .feature-card .card-title {
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card .card-text {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+        
+        /* Offline Alert */
+        .offline-alert {
+            display: none;
+            background-color: #ffc107;
+            color: #333;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Footer */
+        .bg-dark-green {
+            background-color: #0a3622;
+        }
+        
+        footer {
+            background: linear-gradient(135deg, #0a3622 0%, #007553 100%);
+        }
+        
+        footer h5 {
+            font-weight: 700;
+            margin-bottom: 20px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        footer h5::after {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 2px;
+            background-color: #fff;
+            bottom: -8px;
+            right: 0;
+        }
+        
+        footer .contact-item {
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        footer .contact-item:hover {
+            transform: translateX(-5px);
+        }
+        
+        /* General */
+        main {
+            flex: 1;
+        }
+        
+        .section-title {
+            position: relative;
+            margin-bottom: 40px;
+            font-weight: 700;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, #007553, transparent);
+            bottom: -15px;
+            right: 0;
+            left: 0;
+            margin: 0 auto;
+        }
+        
+        .form-switch .form-check-input {
+            width: 3em;
+            height: 1.5em;
+        }
+        
+        .form-switch .form-check-input:focus {
+            border-color: rgba(0, 0, 0, 0.25);
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        <i class="fas fa-wifi-slash"></i> أنت غير متصل بالإنترنت حاليًا. سيتم إعادة الاتصال تلقائيًا عند توفر الإنترنت.
+    </div>
+    
+    <main class="d-flex align-items-center justify-content-center flex-grow-1">
+        <!-- Login Section with modern design -->
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-md-10 col-lg-8 col-xl-6">
+                    <div class="text-center mb-4">
+                        <img src="../../assets/images/logo.png" alt="Laapak" class="main-logo">
+                        <h2 class="fw-bold text-dark">نظام تقارير Laapak</h2>
+                        <p class="text-muted">منصة متكاملة لادارة التقارير ونظام الضمان</p>
+                    </div>
+                    <div class="login-form shadow-lg">
+                            <!-- Login Form Header -->
+                            <div class="text-center mb-4">
+                                <h3 class="fw-bold">تسجيل الدخول</h3>
+                                <p class="text-muted">أدخل بياناتك للوصول إلى حسابك</p>
+                            
+                            <!-- Smart Login Type Indicator -->
+                            <!-- <div class="login-type-indicator" id="loginTypeIndicator">
+                                <i class="fas fa-user me-2"></i>
+                                <span id="loginTypeText">سيتم تحديد نوع الحساب تلقائيًا</span>
+                            </div> -->
+                        </div>
+                        
+                        <!-- Unified Login Form -->
+                        <form id="unifiedLoginForm" class="text-start">
+                            <!-- First Field - Username/Phone -->
+                            <div class="mb-3">
+                                <label for="identifier" class="form-label fw-medium">
+                                    <i class="fas fa-user me-2"></i>
+                                    <span id="identifierLabel">اسم المستخدم أو رقم الموبايل</span>
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-user text-primary" id="identifierIcon"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="identifier" 
+                                           placeholder="أدخل اسم المستخدم أو رقم الموبايل" dir="ltr">
+                                </div>
+                                <div class="field-hint hide" id="identifierHint">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <span id="identifierHintText">أدخل اسم المستخدم للموظفين أو رقم الموبايل للعملاء</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Second Field - Password/Order Code -->
+                                        <div class="mb-3">
+                                <label for="credential" class="form-label fw-medium">
+                                    <i class="fas fa-lock me-2"></i>
+                                    <span id="credentialLabel">كلمة المرور أو كود الطلب</span>
+                                </label>
+                                            <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-lock text-primary" id="credentialIcon"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="credential" 
+                                           placeholder="أدخل كلمة المرور أو كود الطلب">
+                                    <button class="btn btn-light border" type="button" id="toggleCredential">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                <div class="field-hint hide" id="credentialHint">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <span id="credentialHintText">أدخل كلمة المرور للموظفين أو كود الطلب للعملاء</span>
+                                        </div>
+                                        </div>
+                                        
+                            <!-- Remember Me Checkbox -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="rememberMe">
+                                    <label class="form-check-label" for="rememberMe">
+                                        تذكرني
+                                    </label>
+                                            </div>
+                                        </div>
+                                        
+                            <!-- Error Alert -->
+                            <div class="alert alert-danger d-none" id="loginError" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <span id="loginErrorMessage">خطأ في بيانات الدخول. يرجى المحاولة مرة أخرى.</span>
+                                        </div>
+                                        
+                            <!-- Submit Button -->
+                                        <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary rounded-pill py-3 fw-bold" id="loginSubmitBtn">
+                                    <i class="fas fa-sign-in-alt me-2"></i>
+                                    <span id="loginSubmitText">تسجيل الدخول</span>
+                                            </button>
+                                        </div>
+                                    </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="text-white py-5 mt-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start">
+                    
+                    <h5 class="mb-3">شركة Laapak</h5>
+
+                    <p class="mb-0"><a href="https://laapak.com" class="text-white text-decoration-none" target="_blank"><i class="fas fa-globe me-2"></i>www.laapak.com</a></p>
+                </div>
+                <div class="col-md-6 text-center text-md-end mt-4 mt-md-0">
+                    <h5 class="mb-3">تواصل معنا</h5>
+                    <ul class="list-unstyled">
+                        <li class="contact-item mb-2"><i class="fas fa-envelope me-2"></i> info@laapak.com</li>
+                        <li class="contact-item mb-2"><i class="fas fa-phone me-2"></i> 01013148007</li>
+                        <li class="contact-item mb-2"><i class="fas fa-map-marker-alt me-2"></i> القاهرة، تحرير، 19 شارع يوسف الجندي</li>
+                    </ul>
+                    <a href="https://wa.me/201013148007" class="btn btn-success rounded-pill mt-2" target="_blank">
+                        <i class="fab fa-whatsapp me-2"></i> تواصل عبر واتساب
+                    </a>
+                </div>
+            </div>
+            <hr class="mt-4 mb-3 opacity-25">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2025 Laapak. جميع الحقوق محفوظة.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Configuration -->
+    <script src="../../../scripts/config.js"></script>
+    
+    <!-- Authentication Check - Must be loaded first -->
+    <script src="../../../scripts/auth-middleware.js"></script>
+    <script src="../../../scripts/auth-check.js"></script>
+    
+    <!-- Bootstrap core JS-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../../../scripts/main.js"></script>
+    <script src="../../../scripts/login.js"></script>
+    
+    <!-- Service Worker Registration for PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+    
+    <!-- Authentication Redirect Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔍 index.html: DOMContentLoaded - Checking authentication status...');
+            
+            // Add a small delay to ensure all scripts are loaded
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Check if user is already authenticated and redirect accordingly
+            if (typeof authMiddleware !== 'undefined') {
+                console.log('✅ index.html: Auth middleware loaded successfully');
+                
+                // Check tokens directly from storage first
+                const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+                const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+                
+                console.log('🔍 index.html: Direct token check:', {
+                    adminToken: adminToken ? adminToken.substring(0, 20) + '...' : 'null',
+                    clientToken: clientToken ? clientToken.substring(0, 20) + '...' : 'null',
+                    adminTokenLength: adminToken ? adminToken.length : 0,
+                    clientTokenLength: clientToken ? clientToken.length : 0
+                });
+                
+                // Use authMiddleware methods for validation
+                const adminLoggedIn = authMiddleware.isAdminLoggedIn();
+                const clientLoggedIn = authMiddleware.isClientLoggedIn();
+                
+                console.log('🔍 index.html: AuthMiddleware validation:', {
+                    adminLoggedIn,
+                    clientLoggedIn
+                });
+                
+                if (adminLoggedIn) {
+                    console.log('👤 index.html: Admin authenticated, redirecting to admin dashboard');
+                    window.location.href = 'admin.html';
+                    return;
+                }
+                
+                if (clientLoggedIn) {
+                    console.log('👤 index.html: Client authenticated, redirecting to client dashboard');
+                    window.location.href = 'client-dashboard.html';
+                    return;
+                }
+                
+                console.log('❌ index.html: No active session found, staying on login page');
+            } else {
+                console.error('❌ index.html: Auth middleware not loaded!');
+                
+                // Fallback: check tokens directly if authMiddleware is not available
+                const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+                const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+                
+                if (adminToken) {
+                    console.log('👤 index.html: Fallback - Admin token found, redirecting to admin dashboard');
+                    window.location.href = 'admin.html';
+                    return;
+                }
+                
+                if (clientToken) {
+                    console.log('👤 index.html: Fallback - Client token found, redirecting to client dashboard');
+                    window.location.href = 'client-dashboard.html';
+                    return;
+                }
+                
+                console.log('❌ index.html: Fallback - No tokens found');
+            }
+        });
+    </script>
+</body>
+</html>
