@@ -105,6 +105,110 @@ app.get('/client-dashboard.html', (req, res) => {
     res.sendFile(clientPath);
 });
 
+// Serve reports pages
+app.get('/reports.html', (req, res) => {
+    const reportsPath = path.join(__dirname, '../frontend/public/pages/reports/reports.html');
+    console.log('Serving reports.html from:', reportsPath);
+    console.log('File exists:', require('fs').existsSync(reportsPath));
+    res.sendFile(reportsPath);
+});
+
+app.get('/report.html', (req, res) => {
+    const reportPath = path.join(__dirname, '../frontend/public/pages/reports/report.html');
+    console.log('Serving report.html from:', reportPath);
+    console.log('File exists:', require('fs').existsSync(reportPath));
+    res.sendFile(reportPath);
+});
+
+app.get('/create-report.html', (req, res) => {
+    const createReportPath = path.join(__dirname, '../frontend/public/pages/reports/create-report.html');
+    console.log('Serving create-report.html from:', createReportPath);
+    console.log('File exists:', require('fs').existsSync(createReportPath));
+    res.sendFile(createReportPath);
+});
+
+// Serve invoice pages
+app.get('/invoices.html', (req, res) => {
+    const invoicesPath = path.join(__dirname, '../frontend/public/pages/invoices/invoices.html');
+    console.log('Serving invoices.html from:', invoicesPath);
+    console.log('File exists:', require('fs').existsSync(invoicesPath));
+    res.sendFile(invoicesPath);
+});
+
+app.get('/create-invoice.html', (req, res) => {
+    const createInvoicePath = path.join(__dirname, '../frontend/public/pages/invoices/create-invoice.html');
+    console.log('Serving create-invoice.html from:', createInvoicePath);
+    console.log('File exists:', require('fs').existsSync(createInvoicePath));
+    res.sendFile(createInvoicePath);
+});
+
+app.get('/edit-invoice.html', (req, res) => {
+    const editInvoicePath = path.join(__dirname, '../frontend/public/pages/invoices/edit-invoice.html');
+    console.log('Serving edit-invoice.html from:', editInvoicePath);
+    console.log('File exists:', require('fs').existsSync(editInvoicePath));
+    res.sendFile(editInvoicePath);
+});
+
+app.get('/view-invoice.html', (req, res) => {
+    const viewInvoicePath = path.join(__dirname, '../frontend/public/pages/invoices/view-invoice.html');
+    console.log('Serving view-invoice.html from:', viewInvoicePath);
+    console.log('File exists:', require('fs').existsSync(viewInvoicePath));
+    res.sendFile(viewInvoicePath);
+});
+
+// Serve financial pages
+app.get('/financial-dashboard.html', (req, res) => {
+    const financialDashboardPath = path.join(__dirname, '../frontend/public/pages/financial/financial-dashboard.html');
+    console.log('Serving financial-dashboard.html from:', financialDashboardPath);
+    console.log('File exists:', require('fs').existsSync(financialDashboardPath));
+    res.sendFile(financialDashboardPath);
+});
+
+app.get('/financial-add-expense.html', (req, res) => {
+    const financialAddExpensePath = path.join(__dirname, '../frontend/public/pages/financial/financial-add-expense.html');
+    console.log('Serving financial-add-expense.html from:', financialAddExpensePath);
+    console.log('File exists:', require('fs').existsSync(financialAddExpensePath));
+    res.sendFile(financialAddExpensePath);
+});
+
+app.get('/financial-profit-management.html', (req, res) => {
+    const financialProfitPath = path.join(__dirname, '../frontend/public/pages/financial/financial-profit-management.html');
+    console.log('Serving financial-profit-management.html from:', financialProfitPath);
+    console.log('File exists:', require('fs').existsSync(financialProfitPath));
+    res.sendFile(financialProfitPath);
+});
+
+// Serve money management pages
+app.get('/money-management.html', (req, res) => {
+    const moneyManagementPath = path.join(__dirname, '../frontend/public/pages/money-management/money-management.html');
+    console.log('Serving money-management.html from:', moneyManagementPath);
+    console.log('File exists:', require('fs').existsSync(moneyManagementPath));
+    res.sendFile(moneyManagementPath);
+});
+
+app.get('/expected-money.html', (req, res) => {
+    const expectedMoneyPath = path.join(__dirname, '../frontend/public/pages/money-management/expected-money.html');
+    console.log('Serving expected-money.html from:', expectedMoneyPath);
+    console.log('File exists:', require('fs').existsSync(expectedMoneyPath));
+    res.sendFile(expectedMoneyPath);
+});
+
+// Serve admin pages
+app.get('/clients.html', (req, res) => {
+    const clientsPath = path.join(__dirname, '../frontend/public/pages/admin/clients.html');
+    console.log('Serving clients.html from:', clientsPath);
+    console.log('File exists:', require('fs').existsSync(clientsPath));
+    res.sendFile(clientsPath);
+});
+
+// Serve offline page
+app.get('/offline.html', (req, res) => {
+    const offlinePath = path.join(__dirname, '../frontend/public/pages/offline.html');
+    console.log('Serving offline.html from:', offlinePath);
+    console.log('File exists:', require('fs').existsSync(offlinePath));
+    res.sendFile(offlinePath);
+});
+
 // Serve static files from the frontend directory
 app.use(express.static(path.join(__dirname, '../frontend/public')));
 
