@@ -37,97 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load client reports and related data will be defined outside
     
-    /**
-     * Load cached reports from localStorage when offline
-     */
-    function loadCachedReports() {
-        try {
-            const cachedReports = JSON.parse(localStorage.getItem('cached_client_reports') || '[]');
-            const cachedInvoices = JSON.parse(localStorage.getItem('cached_client_invoices') || '[]');
-            
-            if (cachedReports.length > 0) {
-                console.log('Loaded cached reports:', cachedReports.length);
-                displayReportsAndInvoices(cachedReports, cachedInvoices);
-            } else {
-                // If no cached data, use mock data as last resort
-                displayReportsAndInvoices(getMockReports(clientInfo.id), getMockInvoices(clientInfo.id));
-            }
-        } catch (error) {
-            console.error('Error loading cached reports:', error);
-            // Fall back to mock data
-            displayReportsAndInvoices(getMockReports(clientInfo.id), getMockInvoices(clientInfo.id));
-        }
-    }
-    
-    /**
-     * Cache reports for offline use
-     */
-    function cacheReportsForOffline(reports, invoices) {
-        try {
-            localStorage.setItem('cached_client_reports', JSON.stringify(reports));
-            localStorage.setItem('cached_client_invoices', JSON.stringify(invoices));
-            console.log('Reports cached for offline use');
-        } catch (error) {
-            console.error('Error caching reports:', error);
-        }
-    }
-    
-    /**
-     * Generate invoices from reports
-     * In a real implementation, these would come from the API
-     */
-    function generateInvoicesFromReports(reports) {
-        return reports.map(report => ({
-            id: 'INV-' + report.id,
-            reportId: report.id,
-            clientId: report.clientId,
-            date: report.inspectionDate,
-            items: [
-                { description: 'Inspection Fee', amount: 150 },
-                { description: 'Parts and Repairs', amount: report.invoiceAmount ? parseFloat(report.invoiceAmount) - 150 : 0 }
-            ],
-            subtotal: report.invoiceAmount ? parseFloat(report.invoiceAmount) : 150,
-            tax: report.invoiceAmount ? parseFloat(report.invoiceAmount) * 0.15 : 22.5,
-            total: report.invoiceAmount ? parseFloat(report.invoiceAmount) * 1.15 : 172.5,
-            paid: true,
-            paymentMethod: 'Credit Card',
-            paymentDate: report.invoiceDate || report.inspectionDate
-        }));
-    }
-
-    // Display reports and invoices in the UI
-    function displayReportsAndInvoices(reportsArray, invoicesArray) {
-        // Call functions from client-display.js (which should now be globally available)
-        if (typeof displayReports === 'function') {
-            displayReports(reportsArray);
-        } else {
-            console.error('displayReports function is not defined. Check script loading order.');
-            showErrorMessage('Error displaying reports content.');
-        }
-
-        // Call function from client-warranty.js to populate warranty tab
-        if (typeof displayWarrantyInfo === 'function') {
-            displayWarrantyInfo(reportsArray);
-        } else {
-            console.error('displayWarrantyInfo function is not defined. Check script loading order.');
-            showErrorMessage('Error displaying warranty information.');
-        }
-
-        // Call function from client-maintenance.js to populate maintenance tab
-        if (typeof displayMaintenanceSchedule === 'function') {
-            displayMaintenanceSchedule(reportsArray);
-        } else {
-            console.error('displayMaintenanceSchedule function is not defined. Check script loading order.');
-            showErrorMessage('Error displaying maintenance schedule.');
-        }
-
-        if (typeof displayInvoices === 'function') {
-            displayInvoices(invoicesArray);
-        } else {
-            console.error('displayInvoices function is not defined. Check script loading order.');
-            showErrorMessage('Error displaying invoices content.');
-        }
-    }
+    // Functions moved to global scope
     
     // showLoading function moved to global scope
     
@@ -281,6 +191,79 @@ function showErrorMessage(message) {
         closeBtn.setAttribute('data-bs-dismiss', 'alert');
         closeBtn.setAttribute('aria-label', 'Close');
         alertEl.appendChild(closeBtn);
+    }
+}
+
+/**
+ * Load cached reports from localStorage when offline
+ */
+function loadCachedReports() {
+    try {
+        const cachedReports = JSON.parse(localStorage.getItem('cached_client_reports') || '[]');
+        const cachedInvoices = JSON.parse(localStorage.getItem('cached_client_invoices') || '[]');
+        
+        if (cachedReports.length > 0) {
+            console.log('Loaded cached reports:', cachedReports.length);
+            displayReportsAndInvoices(cachedReports, cachedInvoices);
+        } else {
+            // If no cached data, use mock data as last resort
+            const clientInfo = JSON.parse(localStorage.getItem('clientInfo') || '{}');
+            displayReportsAndInvoices(getMockReports(clientInfo.id), getMockInvoices(clientInfo.id));
+        }
+    } catch (error) {
+        console.error('Error loading cached reports:', error);
+        // Fall back to mock data
+        const clientInfo = JSON.parse(localStorage.getItem('clientInfo') || '{}');
+        displayReportsAndInvoices(getMockReports(clientInfo.id), getMockInvoices(clientInfo.id));
+    }
+}
+
+/**
+ * Cache reports for offline use
+ */
+function cacheReportsForOffline(reports, invoices) {
+    try {
+        localStorage.setItem('cached_client_reports', JSON.stringify(reports));
+        localStorage.setItem('cached_client_invoices', JSON.stringify(invoices));
+        console.log('Reports cached for offline use');
+    } catch (error) {
+        console.error('Error caching reports:', error);
+    }
+}
+
+/**
+ * Display reports and invoices in the UI
+ */
+function displayReportsAndInvoices(reportsArray, invoicesArray) {
+    // Call functions from client-display.js (which should now be globally available)
+    if (typeof displayReports === 'function') {
+        displayReports(reportsArray);
+    } else {
+        console.error('displayReports function is not defined. Check script loading order.');
+        showErrorMessage('Error displaying reports content.');
+    }
+
+    // Call function from client-warranty.js to populate warranty tab
+    if (typeof displayWarrantyInfo === 'function') {
+        displayWarrantyInfo(reportsArray);
+    } else {
+        console.error('displayWarrantyInfo function is not defined. Check script loading order.');
+        showErrorMessage('Error displaying warranty information.');
+    }
+
+    // Call function from client-maintenance.js to populate maintenance tab
+    if (typeof displayMaintenanceSchedule === 'function') {
+        displayMaintenanceSchedule(reportsArray);
+    } else {
+        console.error('displayMaintenanceSchedule function is not defined. Check script loading order.');
+        showErrorMessage('Error displaying maintenance schedule.');
+    }
+
+    if (typeof displayInvoices === 'function') {
+        displayInvoices(invoicesArray);
+    } else {
+        console.error('displayInvoices function is not defined. Check script loading order.');
+        showErrorMessage('Error displaying invoices content.');
     }
 }
 
