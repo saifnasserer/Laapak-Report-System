@@ -35,72 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Note: Logout is now handled by the client-header-component.js
     // The logoutBtn event listener is set up in that component
     
-    // Load client reports and related data
-    async function loadClientReports() {
-        try {
-            showLoading(true);
-            
-            // Check if apiService exists, use window.apiService as fallback
-            let service = typeof apiService !== 'undefined' ? apiService : window.apiService;
-            
-            if (!service) {
-                console.error('API Service not available - creating emergency instance');
-                // Create emergency instance if needed
-                window.apiService = new ApiService();
-                // Use the newly created instance
-                service = window.apiService;
-            }
-            
-            console.log('Using API service with base URL:', service.baseUrl);
-            
-            // Fetch reports from API
-            const apiResponse = await service.getClientReports();
-            console.log('Reports data from API:', apiResponse);
-            
-            // Hide loading indicator
-            showLoading(false);
-
-            if (apiResponse && apiResponse.success && Array.isArray(apiResponse.data)) {
-                const reportsArray = apiResponse.data;
-                
-                // Fetch invoices from API for the client
-                let invoicesArray = [];
-                try {
-                    const invoiceApiResponse = await apiService.getClientInvoices(); // Fetch invoices for the authenticated client
-                    if (invoiceApiResponse && invoiceApiResponse.success && Array.isArray(invoiceApiResponse.data)) {
-                        invoicesArray = invoiceApiResponse.data;
-                        console.log('Invoices data from API:', invoicesArray);
-                    } else if (invoiceApiResponse && Array.isArray(invoiceApiResponse)) { // If API returns array directly
-                        invoicesArray = invoiceApiResponse;
-                        console.log('Invoices data from API (direct array):', invoicesArray);
-                    } else {
-                        console.warn('API response for invoices was not a valid array or success object:', invoiceApiResponse);
-                    }
-                } catch (invoiceError) {
-                    console.error('Error fetching client invoices:', invoiceError);
-                    // Optionally show a non-blocking error for invoices, or proceed with empty invoicesArray
-                }
-                
-                // Display the reports and invoices
-                displayReportsAndInvoices(reportsArray, invoicesArray);
-                
-                // Cache reports and invoices for offline use
-                cacheReportsForOffline(reportsArray, invoicesArray); // Pass both arrays
-            } else {
-                console.error('API response did not contain a valid reports array:', apiResponse);
-                showErrorMessage('Failed to process reports data from server.');
-            }
-        } catch (error) {
-            console.error('Error loading client reports:', error);
-            showLoading(false);
-            
-            // Show error message
-            showErrorMessage('Failed to load reports. ' + (navigator.onLine ? 'Please try again later.' : 'You are currently offline.'));
-            
-            // Try to load cached reports if offline
-            loadCachedReports();
-        }
-    }
+    // Load client reports and related data will be defined outside
     
     /**
      * Load cached reports from localStorage when offline
@@ -340,6 +275,75 @@ function getClientInfo() {
 function logout() {
     sessionStorage.removeItem('clientInfo');
     localStorage.removeItem('clientInfo');
+}
+
+/**
+ * Load client reports and related data
+ */
+async function loadClientReports() {
+    try {
+        showLoading(true);
+        
+        // Check if apiService exists, use window.apiService as fallback
+        let service = typeof apiService !== 'undefined' ? apiService : window.apiService;
+        
+        if (!service) {
+            console.error('API Service not available - creating emergency instance');
+            // Create emergency instance if needed
+            window.apiService = new ApiService();
+            // Use the newly created instance
+            service = window.apiService;
+        }
+        
+        console.log('Using API service with base URL:', service.baseUrl);
+        
+        // Fetch reports from API
+        const apiResponse = await service.getClientReports();
+        console.log('Reports data from API:', apiResponse);
+        
+        // Hide loading indicator
+        showLoading(false);
+
+        if (apiResponse && apiResponse.success && Array.isArray(apiResponse.data)) {
+            const reportsArray = apiResponse.data;
+            
+            // Fetch invoices from API for the client
+            let invoicesArray = [];
+            try {
+                const invoiceApiResponse = await apiService.getClientInvoices(); // Fetch invoices for the authenticated client
+                if (invoiceApiResponse && invoiceApiResponse.success && Array.isArray(invoiceApiResponse.data)) {
+                    invoicesArray = invoiceApiResponse.data;
+                    console.log('Invoices data from API:', invoicesArray);
+                } else if (invoiceApiResponse && Array.isArray(invoiceApiResponse)) { // If API returns array directly
+                    invoicesArray = invoiceApiResponse;
+                    console.log('Invoices data from API (direct array):', invoicesArray);
+                } else {
+                    console.warn('API response for invoices was not a valid array or success object:', invoiceApiResponse);
+                }
+            } catch (invoiceError) {
+                console.error('Error fetching client invoices:', invoiceError);
+                // Optionally show a non-blocking error for invoices, or proceed with empty invoicesArray
+            }
+            
+            // Display the reports and invoices
+            displayReportsAndInvoices(reportsArray, invoicesArray);
+            
+            // Cache reports and invoices for offline use
+            cacheReportsForOffline(reportsArray, invoicesArray); // Pass both arrays
+        } else {
+            console.error('API response did not contain a valid reports array:', apiResponse);
+            showErrorMessage('Failed to process reports data from server.');
+        }
+    } catch (error) {
+        console.error('Error loading client reports:', error);
+        showLoading(false);
+        
+        // Show error message
+        showErrorMessage('Failed to load reports. ' + (navigator.onLine ? 'Please try again later.' : 'You are currently offline.'));
+        
+        // Try to load cached reports if offline
+        loadCachedReports();
+    }
 }
 
 /**
