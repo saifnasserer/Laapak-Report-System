@@ -218,18 +218,19 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
         
-        /* Enhanced Print Styles */
+        /* Enhanced Print Styles - Optimized for A5 One Page */
         @media print {
             @page {
-                margin: 0.5in;
-                size: A4;
+                size: A5;
+                margin: 5mm;
             }
             
             body {
                 background-color: #fff !important;
                 margin: 0 !important;
-                font-size: 12pt;
-                line-height: 1.4;
+                padding: 0 !important;
+                font-size: 9pt;
+                line-height: 1.3;
             }
             
             .invoice-container {
@@ -246,8 +247,20 @@
                 background: #0a592c !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
-                padding: 1.5rem 2rem !important;
+                print-color-adjust: exact !important;
+                padding: 6mm 5mm !important;
                 page-break-inside: avoid;
+                page-break-after: avoid;
+            }
+            
+            .invoice-header h1 {
+                font-size: 14pt !important;
+                margin: 0 !important;
+            }
+            
+            .invoice-title {
+                font-size: 12pt !important;
+                margin: 0 !important;
             }
             
             .invoice-header::before {
@@ -255,14 +268,19 @@
             }
             
             .invoice-body {
-                padding: 2rem !important;
+                padding: 4mm 5mm !important;
+                font-size: 8pt !important;
             }
             
             .invoice-section-title {
                 color: #0a592c !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
+                print-color-adjust: exact !important;
                 border-bottom-color: #0d944d !important;
+                font-size: 9pt !important;
+                margin-bottom: 2mm !important;
+                padding-bottom: 1mm !important;
                 page-break-after: avoid;
             }
             
@@ -270,25 +288,60 @@
                 background: #f8f9fa !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
+                print-color-adjust: exact !important;
                 page-break-inside: avoid;
+                padding: 2mm !important;
+                margin-bottom: 3mm !important;
+                gap: 2mm !important;
+            }
+            
+            .invoice-details-grid p, .client-details-grid p {
+                margin-bottom: 1mm !important;
+                font-size: 7pt !important;
+                line-height: 1.2 !important;
             }
             
             .invoice-items-table {
                 page-break-inside: avoid;
+                margin-top: 3mm !important;
+                margin-bottom: 3mm !important;
+                font-size: 7pt !important;
             }
             
             .invoice-items-table th {
                 background: #0a592c !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
+                print-color-adjust: exact !important;
                 color: white !important;
+                padding: 1.5mm !important;
+                font-size: 7pt !important;
+            }
+            
+            .invoice-items-table td {
+                padding: 1.5mm !important;
+                font-size: 7pt !important;
+                border-bottom: 0.5pt solid #e9ecef !important;
             }
             
             .invoice-summary {
                 background: #f8f9fa !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
+                print-color-adjust: exact !important;
                 page-break-inside: avoid;
+                padding: 3mm !important;
+                margin-top: 3mm !important;
+            }
+            
+            .invoice-summary .row {
+                margin-bottom: 1mm !important;
+                font-size: 8pt !important;
+            }
+            
+            .invoice-summary .row:last-child {
+                font-size: 10pt !important;
+                font-weight: bold !important;
             }
             
             .invoice-actions, .back-button-container {
@@ -299,18 +352,38 @@
                 color: #0a592c !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                font-size: 7pt !important;
             }
             
             .invoice-summary .row > div:first-child {
                 color: #495057 !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             
             .invoice-summary .row:last-child {
                 color: #0a592c !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Reduce spacing to fit on one page */
+            .row.mb-4 {
+                margin-bottom: 2mm !important;
+            }
+            
+            h5 {
+                font-size: 9pt !important;
+                margin-bottom: 2mm !important;
+            }
+            
+            /* Hide logo for space saving */
+            .invoice-header img {
+                max-height: 20px !important;
+                width: auto !important;
             }
         }
         
@@ -436,8 +509,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Toastr JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <!-- jsPDF for clean PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Auth Middleware -->
     <script src="../../scripts/core/auth-middleware.js"></script>
