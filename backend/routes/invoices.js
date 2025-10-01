@@ -1071,24 +1071,66 @@ router.delete('/:id', adminAuth, async (req, res) => {
             return res.status(404).json({ message: 'Invoice not found' });
         }
         
-        // If invoice has a report, update the report to mark it as not having an invoice
-        if (invoice.reportId) {
+        // Get all report IDs linked to this invoice (from invoice items)
+        const invoiceItems = await InvoiceItem.findAll({
+            where: { invoiceId: invoice.id },
+            attributes: ['report_id'],
+            transaction
+        });
+        
+        const reportIdsFromItems = invoiceItems
+            .map(item => item.report_id)
+            .filter(reportId => reportId !== null && reportId !== undefined);
+        
+        console.log(`Found ${reportIdsFromItems.length} reports linked to invoice ${invoice.id} through items`);
+        
+        // Get reports from InvoiceReport junction table
+        const invoiceReports = await InvoiceReport.findAll({
+            where: { invoice_id: invoice.id },
+            attributes: ['report_id'],
+            transaction
+        });
+        
+        const reportIdsFromJunction = invoiceReports.map(ir => ir.report_id);
+        console.log(`Found ${reportIdsFromJunction.length} reports linked to invoice ${invoice.id} through junction table`);
+        
+        // Combine all report IDs (remove duplicates)
+        const allReportIds = [...new Set([...reportIdsFromItems, ...reportIdsFromJunction])];
+        
+        // Also handle old single report field if it exists
+        if (invoice.reportId && !allReportIds.includes(invoice.reportId)) {
+            allReportIds.push(invoice.reportId);
+        }
+        
+        // Update all linked reports to mark them as not having an invoice
+        if (allReportIds.length > 0) {
             try {
                 await Report.update(
                     { 
                         billingEnabled: false,
-                        amount: 0
+                        invoice_created: false,
+                        invoice_id: null,
+                        invoice_date: null
                     },
                     { 
-                        where: { id: invoice.reportId },
+                        where: { id: { [Op.in]: allReportIds } },
                         transaction 
                     }
                 );
-                console.log(`Updated report ${invoice.reportId} to remove billing information`);
+                console.log(`Updated ${allReportIds.length} reports to remove invoice associations:`, allReportIds);
             } catch (updateError) {
-                console.error('Error updating report billing status during invoice deletion:', updateError);
+                console.error('Error updating reports during invoice deletion:', updateError);
                 // Continue with invoice deletion even if report update fails
             }
+        }
+        
+        // Delete entries from InvoiceReport junction table
+        if (reportIdsFromJunction.length > 0) {
+            await InvoiceReport.destroy({
+                where: { invoice_id: invoice.id },
+                transaction
+            });
+            console.log(`Deleted ${reportIdsFromJunction.length} entries from InvoiceReport junction table`);
         }
         
         // Delete invoice items
@@ -1096,12 +1138,14 @@ router.delete('/:id', adminAuth, async (req, res) => {
             where: { invoiceId: invoice.id },
             transaction
         });
+        console.log(`Deleted invoice items for invoice ${invoice.id}`);
         
         // Store invoice data before deletion for hook
         const invoiceData = invoice.toJSON();
         
         // Delete the invoice
         await invoice.destroy({ transaction });
+        console.log(`Deleted invoice ${invoice.id}`);
         
         await transaction.commit();
         
@@ -1113,11 +1157,14 @@ router.delete('/:id', adminAuth, async (req, res) => {
             // Don't fail the request if the hook fails
         }
         
-        res.json({ message: 'Invoice deleted successfully' });
+        res.json({ 
+            message: 'Invoice deleted successfully',
+            unlinkedReports: allReportIds.length
+        });
     } catch (error) {
         await transaction.rollback();
         console.error('Error deleting invoice:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 

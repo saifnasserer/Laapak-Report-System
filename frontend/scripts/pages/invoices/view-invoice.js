@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentMethodEl = document.getElementById('paymentMethod');
     // const paymentDateEl = document.getElementById('paymentDate'); // Removed payment date field
 
-    const printInvoiceBtn = document.getElementById('printInvoiceBtn');
     const downloadPdfBtn = document.getElementById('downloadPdfBtn');
     const invoiceContainerToPrint = document.getElementById('invoiceContainerToPrint');
 
@@ -176,11 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateInvoiceDetails(invoice) {
     console.log('Invoice object in populateInvoiceDetails:', JSON.stringify(invoice, null, 2)); // Debug line
-        // Client Details
-        clientNameEl.textContent = get(invoice, 'Client.name', get(invoice, 'client_name')); // Corrected to Client.name // Fallback if client is nested or flat
-        clientPhoneEl.textContent = get(invoice, 'Client.phone', get(invoice, 'client_phone')); // Corrected to Client.phone
-        clientEmailEl.textContent = get(invoice, 'Client.email', get(invoice, 'client_email', 'لا يوجد')); // Corrected to Client.email
-        clientAddressEl.textContent = get(invoice, 'Client.address', get(invoice, 'client_address', 'لا يوجد')); // Corrected to Client.address
+        // Client Details - Fixed to use correct client data structure
+        clientNameEl.textContent = get(invoice, 'client.name', get(invoice, 'client_name', 'لا يوجد'));
+        clientPhoneEl.textContent = get(invoice, 'client.phone', get(invoice, 'client_phone', 'لا يوجد'));
+        clientEmailEl.textContent = get(invoice, 'client.email', get(invoice, 'client_email', 'لا يوجد'));
+        clientAddressEl.textContent = get(invoice, 'client.address', get(invoice, 'client_address', 'لا يوجد'));
 
         // Invoice Details
         invoiceIdEl.textContent = get(invoice, 'id');
@@ -224,58 +223,74 @@ document.addEventListener('DOMContentLoaded', () => {
         // paymentDateEl.textContent = formatDate(get(invoice, 'paymentDate')); // Removed payment date field
     }
 
-    // Print Invoice
-    if (printInvoiceBtn) {
-        printInvoiceBtn.addEventListener('click', () => {
-            window.print();
-        });
-    }
-
-    // Download PDF
+    // Save PDF and Print - Combined functionality
     if (downloadPdfBtn && invoiceContainerToPrint) {
         downloadPdfBtn.addEventListener('click', async () => {
             downloadPdfBtn.disabled = true;
             downloadPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري التجهيز...';
             
             try {
-                // Ensure images are loaded if any (might not be applicable for simple invoices)
-                // await Promise.all(Array.from(invoiceContainerToPrint.querySelectorAll('img')).map(img => {
-                //     if (img.complete) return Promise.resolve();
-                //     return new Promise(resolve => { img.onload = img.onerror = resolve; });
-                // }));
-
+                // Generate and save PDF with enhanced quality
                 const { jsPDF } = window.jspdf;
+                
+                // Temporarily add print styles for better PDF generation
+                const originalStyles = document.querySelector('style').innerHTML;
+                const printStyles = `
+                    <style>
+                        body { font-size: 14pt !important; }
+                        .invoice-container { border: 2px solid #0a592c !important; }
+                        .invoice-header { background: #0a592c !important; color: white !important; }
+                        .invoice-section-title { color: #0a592c !important; }
+                        .invoice-items-table th { background: #0a592c !important; color: white !important; }
+                        .invoice-details-grid, .client-details-grid { background: #f8f9fa !important; }
+                        .invoice-summary { background: #f8f9fa !important; }
+                        .invoice-actions, .back-button-container { display: none !important; }
+                    </style>
+                `;
+                
                 const canvas = await html2canvas(invoiceContainerToPrint, {
-                    scale: 2, // Higher scale for better quality
-                    useCORS: true, // If you have external images/fonts
-                    logging: false
+                    scale: 3, // Higher scale for better quality
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    removeContainer: false,
+                    allowTaint: true,
+                    foreignObjectRendering: true
                 });
-                const imgData = canvas.toDataURL('image/png');
+                
+                const imgData = canvas.toDataURL('image/png', 1.0);
                 
                 // A4 dimensions in mm: 210 x 297
                 const pdf = new jsPDF({
                     orientation: 'portrait',
                     unit: 'mm',
-                    format: 'a4'
+                    format: 'a4',
+                    compress: true
                 });
 
                 const imgProps = pdf.getImageProperties(imgData);
-                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfWidth = pdf.internal.pageSize.getWidth() - 20; // Add margins
                 const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
                 let heightLeft = pdfHeight;
-                let position = 0;
+                let position = 10; // Start with margin
 
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
+                pdf.addImage(imgData, 'PNG', 10, position, pdfWidth, pdfHeight, '', 'FAST');
+                heightLeft -= (pdf.internal.pageSize.getHeight() - 20);
 
                 while (heightLeft >= 0) {
-                    position = heightLeft - pdfHeight;
+                    position = heightLeft - pdfHeight + 10;
                     pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                    heightLeft -= pdf.internal.pageSize.getHeight();
+                    pdf.addImage(imgData, 'PNG', 10, position, pdfWidth, pdfHeight, '', 'FAST');
+                    heightLeft -= (pdf.internal.pageSize.getHeight() - 20);
                 }
                 
+                // Save PDF
                 pdf.save(`invoice-${get(invoiceIdEl, 'textContent', 'details')}.pdf`);
+                
+                // Also trigger print dialog
+                setTimeout(() => {
+                    window.print();
+                }, 500); // Small delay to ensure PDF download starts
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -284,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } finally {
                 downloadPdfBtn.disabled = false;
-                downloadPdfBtn.innerHTML = '<i class="fas fa-file-pdf me-1"></i> تحميل PDF';
+                downloadPdfBtn.innerHTML = '<i class="fas fa-file-pdf me-1"></i> حفظ PDF';
             }
         });
     }
