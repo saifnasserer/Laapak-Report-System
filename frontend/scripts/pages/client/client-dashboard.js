@@ -129,102 +129,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    /**
-     * Show loading indicator
-     */
-    function showLoading(show) {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        
-        if (!loadingOverlay && show) {
-            // Create loading overlay
-            const overlay = document.createElement('div');
-            overlay.id = 'loadingOverlay';
-            overlay.className = 'loading-overlay';
-            overlay.innerHTML = `
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2">جاري تحميل البيانات...</p>
-            `;
-            
-            // Add loading overlay to body
-            document.body.appendChild(overlay);
-            
-            // Add styles if not already in CSS
-            if (!document.getElementById('loadingStyles')) {
-                const style = document.createElement('style');
-                style.id = 'loadingStyles';
-                style.textContent = `
-                    .loading-overlay {
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background-color: rgba(255, 255, 255, 0.8);
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;
-                        z-index: 9999;
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-        } else if (loadingOverlay && !show) {
-            // Remove loading overlay
-            loadingOverlay.remove();
-        }
-    }
+    // showLoading function moved to global scope
     
     /**
      * Show error message
      */
-    function showErrorMessage(message) {
-        // Create alert if it doesn't exist
-        let alertEl = document.getElementById('dashboardAlert');
-        
-        if (!alertEl) {
-            alertEl = document.createElement('div');
-            alertEl.id = 'dashboardAlert';
-            alertEl.className = 'alert alert-danger alert-dismissible fade show';
-            alertEl.role = 'alert';
-            
-            // Add close button
-            const closeBtn = document.createElement('button');
-            closeBtn.type = 'button';
-            closeBtn.className = 'btn-close';
-            closeBtn.setAttribute('data-bs-dismiss', 'alert');
-            closeBtn.setAttribute('aria-label', 'Close');
-            
-            // Add message and button to alert
-            alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
-            alertEl.appendChild(closeBtn);
-            
-            // Add alert to page
-            const container = document.querySelector('.container.py-4');
-            if (container) {
-                container.insertBefore(alertEl, container.firstChild);
-            }
-            
-            // Auto-dismiss after 10 seconds
-            setTimeout(() => {
-                if (alertEl.parentNode) {
-                    alertEl.classList.remove('show');
-                    setTimeout(() => alertEl.remove(), 300);
-                }
-            }, 10000);
-        } else {
-            // Update existing alert
-            alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
-            const closeBtn = document.createElement('button');
-            closeBtn.type = 'button';
-            closeBtn.className = 'btn-close';
-            closeBtn.setAttribute('data-bs-dismiss', 'alert');
-            closeBtn.setAttribute('aria-label', 'Close');
-            alertEl.appendChild(closeBtn);
-        }
-    }
+    // showErrorMessage function moved to global scope
     
     // Check for offline status
     function updateOfflineStatus() {
@@ -275,6 +185,103 @@ function getClientInfo() {
 function logout() {
     sessionStorage.removeItem('clientInfo');
     localStorage.removeItem('clientInfo');
+}
+
+/**
+ * Show loading indicator
+ */
+function showLoading(show) {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    
+    if (!loadingOverlay && show) {
+        // Create loading overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">جاري تحميل البيانات...</p>
+        `;
+        
+        // Add loading overlay to body
+        document.body.appendChild(overlay);
+        
+        // Add styles if not already in CSS
+        if (!document.getElementById('loadingStyles')) {
+            const style = document.createElement('style');
+            style.id = 'loadingStyles';
+            style.textContent = `
+                .loading-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(255, 255, 255, 0.8);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    } else if (loadingOverlay && !show) {
+        // Remove loading overlay
+        loadingOverlay.remove();
+    }
+}
+
+/**
+ * Show error message
+ */
+function showErrorMessage(message) {
+    // Create alert if it doesn't exist
+    let alertEl = document.getElementById('dashboardAlert');
+    
+    if (!alertEl) {
+        alertEl = document.createElement('div');
+        alertEl.id = 'dashboardAlert';
+        alertEl.className = 'alert alert-danger alert-dismissible fade show';
+        alertEl.role = 'alert';
+        
+        // Add close button
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('data-bs-dismiss', 'alert');
+        closeBtn.setAttribute('aria-label', 'Close');
+        
+        // Add message and button to alert
+        alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
+        alertEl.appendChild(closeBtn);
+        
+        // Add alert to page
+        const container = document.querySelector('.container.py-4');
+        if (container) {
+            container.insertBefore(alertEl, container.firstChild);
+        }
+        
+        // Auto-dismiss after 10 seconds
+        setTimeout(() => {
+            if (alertEl.parentNode) {
+                alertEl.classList.remove('show');
+                setTimeout(() => alertEl.remove(), 300);
+            }
+        }, 10000);
+    } else {
+        // Update existing alert
+        alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('data-bs-dismiss', 'alert');
+        closeBtn.setAttribute('aria-label', 'Close');
+        alertEl.appendChild(closeBtn);
+    }
 }
 
 /**
