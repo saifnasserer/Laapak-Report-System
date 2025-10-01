@@ -188,7 +188,7 @@ router.get('/', adminAuth, async (req, res) => {
         const invoices = await Invoice.findAll({
             where: whereClause,
             include: [
-                { model: Client, as: 'client', attributes: ['id', 'name', 'phone'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email', 'address'] },
                 { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] }
             ],
             order: [['created_at', 'DESC']]
@@ -315,7 +315,7 @@ router.get('/:id', auth, async (req, res) => {
     try {
         const invoice = await Invoice.findByPk(req.params.id, {
             include: [
-                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email', 'address'] },
                 { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] },
                 { model: InvoiceItem, as: 'InvoiceItems' }
             ]
@@ -526,7 +526,7 @@ router.post('/bulk', adminAuth, async (req, res) => {
         // Fetch the complete invoice with all associations
         const completeInvoice = await Invoice.findByPk(invoice.id, {
             include: [
-                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email', 'address'] },
                 { 
                     model: Report, 
                     as: 'relatedReports',
@@ -733,7 +733,7 @@ router.post('/', adminAuth, async (req, res) => {
         // Fetch the complete invoice with all associations
         const completeInvoice = await Invoice.findByPk(invoice.id, {
             include: [
-                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email', 'address'] },
                 { 
                     model: Report, 
                     as: 'relatedReports', // Use the alias defined in Invoice.belongsToMany(Report)
@@ -814,13 +814,17 @@ router.put('/:id', adminAuth, async (req, res) => {
     
     try {
         console.log('UPDATE INVOICE REQUEST BODY:', JSON.stringify(req.body, null, 2));
+        console.log('Invoice ID:', req.params.id);
         
         // Find the invoice
         const invoice = await Invoice.findByPk(req.params.id);
         
         if (!invoice) {
+            await transaction.rollback();
             return res.status(404).json({ message: 'الفاتورة غير موجودة', error: 'Invoice not found' });
         }
+        
+        console.log('Found invoice:', invoice.id);
         
         // Extract data from request body
         const { 
@@ -837,6 +841,20 @@ router.put('/:id', adminAuth, async (req, res) => {
             notes,
             items
         } = req.body;
+        
+        // Validate items array
+        if (items && items.length > 0) {
+            console.log('Processing', items.length, 'invoice items');
+            items.forEach((item, index) => {
+                console.log(`Item ${index}:`, {
+                    description: item.description,
+                    amount: item.amount,
+                    quantity: item.quantity,
+                    totalAmount: item.totalAmount,
+                    type: item.type
+                });
+            });
+        }
         
         // Update invoice
         await invoice.update({
@@ -882,13 +900,18 @@ router.put('/:id', adminAuth, async (req, res) => {
                     reportIdsFromItems.push(item.report_id);
                 }
                 
+                // Calculate totalAmount if not provided
+                const itemAmount = Number(item.amount || item.unitPrice || 0);
+                const itemQuantity = Number(item.quantity || 1);
+                const itemTotalAmount = item.totalAmount ? Number(item.totalAmount) : (itemAmount * itemQuantity);
+                
                 return InvoiceItem.create({
                     invoiceId: invoice.id,
                     description: item.description || '',
                     type: item.type || 'service',
-                    amount: Number(item.amount || item.unitPrice || 0),
-                    quantity: Number(item.quantity || 1),
-                    totalAmount: Number(item.totalAmount || item.total || 0),
+                    amount: itemAmount,
+                    quantity: itemQuantity,
+                    totalAmount: itemTotalAmount,
                     serialNumber: item.serialNumber || null,
                     report_id: item.report_id || null, // Add report_id field
                     created_at: new Date(),
@@ -978,7 +1001,7 @@ router.put('/:id', adminAuth, async (req, res) => {
         // Fetch the updated invoice with all related data
         const updatedInvoice = await Invoice.findByPk(invoice.id, {
             include: [
-                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] },
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email', 'address'] },
                 { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] },
                 { model: InvoiceItem, as: 'InvoiceItems' }
             ]
@@ -992,8 +1015,20 @@ router.put('/:id', adminAuth, async (req, res) => {
         // Log detailed error information for debugging
         if (error.name) console.error('Error name:', error.name);
         if (error.message) console.error('Error message:', error.message);
+        if (error.errors) {
+            console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
+        }
+        if (error.stack) console.error('Error stack:', error.stack);
         
         // Handle specific error types
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({
+                message: 'خطأ في التحقق من صحة البيانات',
+                error: error.message,
+                details: error.errors ? error.errors.map(e => e.message) : []
+            });
+        }
+        
         if (error.name === 'SequelizeForeignKeyConstraintError') {
             return res.status(400).json({
                 message: 'العميل المحدد غير موجود', // Selected client does not exist
