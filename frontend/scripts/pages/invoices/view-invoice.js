@@ -15,6 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const clientPhoneEl = document.getElementById('clientPhone');
     const clientEmailEl = document.getElementById('clientEmail');
     const clientAddressEl = document.getElementById('clientAddress');
+    
+    // Debug: Log element selection
+    console.log('Elements found on page load:', {
+        clientNameEl: !!clientNameEl,
+        clientPhoneEl: !!clientPhoneEl,
+        clientEmailEl: !!clientEmailEl,
+        clientAddressEl: !!clientAddressEl
+    });
 
     const invoiceIdEl = document.getElementById('invoiceId');
     const invoiceDateEl = document.getElementById('invoiceDate');
@@ -176,6 +184,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateInvoiceDetails(invoice) {
     console.log('Invoice object in populateInvoiceDetails:', JSON.stringify(invoice, null, 2)); // Debug line
         
+        // Debug: Check if elements exist
+        console.log('Client elements found:', {
+            clientNameEl: !!clientNameEl,
+            clientPhoneEl: !!clientPhoneEl,
+            clientEmailEl: !!clientEmailEl,
+            clientAddressEl: !!clientAddressEl
+        });
+        
         // Client Details - Enhanced to handle multiple data structures
         // Try to get client data from multiple possible sources
         const clientData = invoice.client || invoice.Client || {};
@@ -185,12 +201,41 @@ document.addEventListener('DOMContentLoaded', () => {
         const clientEmail = clientData.email || invoice.client_email || 'لا يوجد';
         const clientAddress = clientData.address || invoice.client_address || 'لا يوجد';
         
-        clientNameEl.textContent = clientName;
-        clientPhoneEl.textContent = clientPhone;
-        clientEmailEl.textContent = clientEmail;
-        clientAddressEl.textContent = clientAddress;
+        console.log('Extracted client data:', { clientName, clientPhone, clientEmail, clientAddress });
         
-        console.log('Client data populated:', { clientName, clientPhone, clientEmail, clientAddress });
+        // Update elements if they exist, with fallback selection
+        const nameEl = clientNameEl || document.getElementById('clientName');
+        const phoneEl = clientPhoneEl || document.getElementById('clientPhone');
+        const emailEl = clientEmailEl || document.getElementById('clientEmail');
+        const addressEl = clientAddressEl || document.getElementById('clientAddress');
+        
+        if (nameEl) {
+            nameEl.textContent = clientName;
+            console.log('Updated clientNameEl:', nameEl.textContent);
+        } else {
+            console.error('clientNameEl not found even after fallback!');
+        }
+        
+        if (phoneEl) {
+            phoneEl.textContent = clientPhone;
+            console.log('Updated clientPhoneEl:', phoneEl.textContent);
+        } else {
+            console.error('clientPhoneEl not found even after fallback!');
+        }
+        
+        if (emailEl) {
+            emailEl.textContent = clientEmail;
+            console.log('Updated clientEmailEl:', emailEl.textContent);
+        } else {
+            console.error('clientEmailEl not found even after fallback!');
+        }
+        
+        if (addressEl) {
+            addressEl.textContent = clientAddress;
+            console.log('Updated clientAddressEl:', addressEl.textContent);
+        } else {
+            console.error('clientAddressEl not found even after fallback!');
+        }
 
         // Invoice Details
         invoiceIdEl.textContent = get(invoice, 'id');
@@ -306,6 +351,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to generate clean PDF without screenshots
     function generateCleanInvoicePDF(invoiceData) {
+        console.log('Starting clean PDF generation with data:', invoiceData);
+        
+        // Check if jsPDF is available
+        if (typeof window.jspdf === 'undefined') {
+            console.error('jsPDF library not loaded!');
+            throw new Error('مكتبة PDF غير متوفرة');
+        }
+        
         const { jsPDF } = window.jspdf;
         
         // A5 dimensions in mm: 148 x 210
@@ -475,12 +528,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Save PDF
         const fileName = `invoice-${invoiceData.invoiceId || 'details'}.pdf`;
+        console.log('Saving PDF with filename:', fileName);
         pdf.save(fileName);
         
         // Show success message
         if (typeof toastr !== 'undefined') {
-            toastr.success('تم إنشاء ملف PDF بنجاح');
+            toastr.success('تم إنشاء ملف PDF بنجاح - حجم صغير');
         }
+        
+        console.log('PDF generation completed successfully');
     }
 
     // Initial call to fetch and display data
