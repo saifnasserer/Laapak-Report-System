@@ -85,59 +85,154 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
-// Serve static frontend files - MUST be before route handlers
+// Root route - serve index.html (must be before static middleware)
+app.get('/', (req, res) => {
+    const indexPath = path.join(__dirname, '../frontend/public/pages/index.html');
+    console.log('Serving index.html from:', indexPath);
+    console.log('File exists:', require('fs').existsSync(indexPath));
+    res.sendFile(indexPath);
+});
+
+// Serve admin pages (must be before static middleware)
+app.get('/admin.html', (req, res) => {
+    const adminPath = path.join(__dirname, '../frontend/public/pages/admin/admin.html');
+    console.log('Serving admin.html from:', adminPath);
+    console.log('File exists:', require('fs').existsSync(adminPath));
+    res.sendFile(adminPath);
+});
+
+// Serve client pages
+app.get('/client-dashboard.html', (req, res) => {
+    const clientPath = path.join(__dirname, '../frontend/public/pages/client/client-dashboard.html');
+    console.log('Serving client-dashboard.html from:', clientPath);
+    console.log('File exists:', require('fs').existsSync(clientPath));
+    res.sendFile(clientPath);
+});
+
+app.get('/client-login.html', (req, res) => {
+    const clientLoginPath = path.join(__dirname, '../frontend/public/pages/client/client-login.html');
+    console.log('Serving client-login.html from:', clientLoginPath);
+    console.log('File exists:', require('fs').existsSync(clientLoginPath));
+    res.sendFile(clientLoginPath);
+});
+
+app.get('/client-login-test.html', (req, res) => {
+    const clientLoginTestPath = path.join(__dirname, '../frontend/public/pages/client/client-login-test.html');
+    console.log('Serving client-login-test.html from:', clientLoginTestPath);
+    console.log('File exists:', require('fs').existsSync(clientLoginTestPath));
+    res.sendFile(clientLoginTestPath);
+});
+
+// Serve reports pages
+app.get('/reports.html', (req, res) => {
+    const reportsPath = path.join(__dirname, '../frontend/public/pages/reports/reports.html');
+    console.log('Serving reports.html from:', reportsPath);
+    console.log('File exists:', require('fs').existsSync(reportsPath));
+    res.sendFile(reportsPath);
+});
+
+app.get('/report.html', (req, res) => {
+    const reportPath = path.join(__dirname, '../frontend/public/pages/reports/report.html');
+    console.log('Serving report.html from:', reportPath);
+    console.log('File exists:', require('fs').existsSync(reportPath));
+    res.sendFile(reportPath);
+});
+
+app.get('/create-report.html', (req, res) => {
+    const createReportPath = path.join(__dirname, '../frontend/public/pages/reports/create-report.html');
+    console.log('Serving create-report.html from:', createReportPath);
+    console.log('File exists:', require('fs').existsSync(createReportPath));
+    res.sendFile(createReportPath);
+});
+
+// Serve invoice pages
+app.get('/invoices.html', (req, res) => {
+    const invoicesPath = path.join(__dirname, '../frontend/public/pages/invoices/invoices.html');
+    console.log('Serving invoices.html from:', invoicesPath);
+    console.log('File exists:', require('fs').existsSync(invoicesPath));
+    res.sendFile(invoicesPath);
+});
+
+app.get('/create-invoice.html', (req, res) => {
+    const createInvoicePath = path.join(__dirname, '../frontend/public/pages/invoices/create-invoice.html');
+    console.log('Serving create-invoice.html from:', createInvoicePath);
+    console.log('File exists:', require('fs').existsSync(createInvoicePath));
+    res.sendFile(createInvoicePath);
+});
+
+app.get('/edit-invoice.html', (req, res) => {
+    const editInvoicePath = path.join(__dirname, '../frontend/public/pages/invoices/edit-invoice.html');
+    console.log('Serving edit-invoice.html from:', editInvoicePath);
+    console.log('File exists:', require('fs').existsSync(editInvoicePath));
+    res.sendFile(editInvoicePath);
+});
+
+app.get('/view-invoice.html', (req, res) => {
+    const viewInvoicePath = path.join(__dirname, '../frontend/public/pages/invoices/view-invoice.html');
+    console.log('Serving view-invoice.html from:', viewInvoicePath);
+    console.log('File exists:', require('fs').existsSync(viewInvoicePath));
+    res.sendFile(viewInvoicePath);
+});
+
+// Serve financial pages
+app.get('/financial-dashboard.html', (req, res) => {
+    const financialDashboardPath = path.join(__dirname, '../frontend/public/pages/financial/financial-dashboard.html');
+    console.log('Serving financial-dashboard.html from:', financialDashboardPath);
+    console.log('File exists:', require('fs').existsSync(financialDashboardPath));
+    res.sendFile(financialDashboardPath);
+});
+
+app.get('/financial-add-expense.html', (req, res) => {
+    const financialAddExpensePath = path.join(__dirname, '../frontend/public/pages/financial/financial-add-expense.html');
+    console.log('Serving financial-add-expense.html from:', financialAddExpensePath);
+    console.log('File exists:', require('fs').existsSync(financialAddExpensePath));
+    res.sendFile(financialAddExpensePath);
+});
+
+app.get('/financial-profit-management.html', (req, res) => {
+    const financialProfitPath = path.join(__dirname, '../frontend/public/pages/financial/financial-profit-management.html');
+    console.log('Serving financial-profit-management.html from:', financialProfitPath);
+    console.log('File exists:', require('fs').existsSync(financialProfitPath));
+    res.sendFile(financialProfitPath);
+});
+
+// Serve money management pages
+app.get('/money-management.html', (req, res) => {
+    const moneyManagementPath = path.join(__dirname, '../frontend/public/pages/money-management/money-management.html');
+    console.log('Serving money-management.html from:', moneyManagementPath);
+    console.log('File exists:', require('fs').existsSync(moneyManagementPath));
+    res.sendFile(moneyManagementPath);
+});
+
+app.get('/expected-money.html', (req, res) => {
+    const expectedMoneyPath = path.join(__dirname, '../frontend/public/pages/money-management/expected-money.html');
+    console.log('Serving expected-money.html from:', expectedMoneyPath);
+    console.log('File exists:', require('fs').existsSync(expectedMoneyPath));
+    res.sendFile(expectedMoneyPath);
+});
+
+// Serve admin pages
+app.get('/clients.html', (req, res) => {
+    const clientsPath = path.join(__dirname, '../frontend/public/pages/admin/clients.html');
+    console.log('Serving clients.html from:', clientsPath);
+    console.log('File exists:', require('fs').existsSync(clientsPath));
+    res.sendFile(clientsPath);
+});
+
+// Serve offline page
+app.get('/offline.html', (req, res) => {
+    const offlinePath = path.join(__dirname, '../frontend/public/pages/offline.html');
+    console.log('Serving offline.html from:', offlinePath);
+    console.log('File exists:', require('fs').existsSync(offlinePath));
+    res.sendFile(offlinePath);
+});
+
+// Serve static frontend files - AFTER route handlers to avoid conflicts
 app.use('/styles', express.static(path.join(__dirname, '../frontend/styles')));
 app.use('/scripts', express.static(path.join(__dirname, '../frontend/scripts')));
 app.use('/assets', express.static(path.join(__dirname, '../frontend/public/assets')));
 app.use('/pages', express.static(path.join(__dirname, '../frontend/public/pages')));
 app.use(express.static(path.join(__dirname, '../frontend/public')));
-
-// Root route - serve index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/public/pages/index.html'));
-});
-
-// Map top-level HTML routes to their actual locations in subdirectories
-const pageRoutes = {
-    // Admin pages
-    '/admin.html': '../frontend/public/pages/admin/admin.html',
-    '/clients.html': '../frontend/public/pages/admin/clients.html',
-    
-    // Client pages
-    '/client-dashboard.html': '../frontend/public/pages/client/client-dashboard.html',
-    '/client-login.html': '../frontend/public/pages/client/client-login.html',
-    '/client-login-test.html': '../frontend/public/pages/client/client-login-test.html',
-    
-    // Reports pages
-    '/reports.html': '../frontend/public/pages/reports/reports.html',
-    '/report.html': '../frontend/public/pages/reports/report.html',
-    '/create-report.html': '../frontend/public/pages/reports/create-report.html',
-    
-    // Invoice pages
-    '/invoices.html': '../frontend/public/pages/invoices/invoices.html',
-    '/create-invoice.html': '../frontend/public/pages/invoices/create-invoice.html',
-    '/edit-invoice.html': '../frontend/public/pages/invoices/edit-invoice.html',
-    '/view-invoice.html': '../frontend/public/pages/invoices/view-invoice.html',
-    
-    // Financial pages
-    '/financial-dashboard.html': '../frontend/public/pages/financial/financial-dashboard.html',
-    '/financial-add-expense.html': '../frontend/public/pages/financial/financial-add-expense.html',
-    '/financial-profit-management.html': '../frontend/public/pages/financial/financial-profit-management.html',
-    
-    // Money management pages
-    '/money-management.html': '../frontend/public/pages/money-management/money-management.html',
-    '/expected-money.html': '../frontend/public/pages/money-management/expected-money.html',
-    
-    // Other pages
-    '/offline.html': '../frontend/public/pages/offline.html'
-};
-
-// Register all page routes
-Object.keys(pageRoutes).forEach(route => {
-    app.get(route, (req, res) => {
-        res.sendFile(path.join(__dirname, pageRoutes[route]));
-    });
-});
 
 // Routes
 app.use('/api/auth', authRoutes);
