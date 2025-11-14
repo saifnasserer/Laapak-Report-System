@@ -13,11 +13,39 @@
     console.log('🚀 Base Auth Wrapper: Current URL:', window.location.href);
     console.log('🚀 Base Auth Wrapper: Document ready state:', document.readyState);
     
+    // Debug: Dump ALL storage keys to see what's actually stored
+    function dumpAllStorage() {
+        console.log('📦 Base Auth Wrapper: DUMPING ALL STORAGE');
+        console.log('📦 localStorage keys:', Object.keys(localStorage));
+        console.log('📦 sessionStorage keys:', Object.keys(sessionStorage));
+        
+        // Log all localStorage items
+        const allLocalStorage = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            const value = localStorage.getItem(key);
+            allLocalStorage[key] = value ? (value.length > 50 ? value.substring(0, 50) + '...' : value) : 'null';
+        }
+        console.log('📦 localStorage contents:', allLocalStorage);
+        
+        // Log all sessionStorage items
+        const allSessionStorage = {};
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            const value = sessionStorage.getItem(key);
+            allSessionStorage[key] = value ? (value.length > 50 ? value.substring(0, 50) + '...' : value) : 'null';
+        }
+        console.log('📦 sessionStorage contents:', allSessionStorage);
+    }
+    
     // Immediate check function - checks storage directly
     function checkSessionImmediate() {
         console.log('🔍 Base Auth Wrapper: checkSessionImmediate() called');
         
         try {
+            // Dump all storage first
+            dumpAllStorage();
+            
             // Get current page information
             const currentPath = window.location.pathname;
             const filename = currentPath.split('/').pop() || 'index.html';
@@ -27,7 +55,9 @@
                 currentPath,
                 filename,
                 isRoot,
-                fullUrl: window.location.href
+                fullUrl: window.location.href,
+                hostname: window.location.hostname,
+                pathname: window.location.pathname
             });
             
             if (!isRoot) {
@@ -44,6 +74,12 @@
             const clientTokenLocal = localStorage.getItem('clientToken');
             const clientTokenSession = sessionStorage.getItem('clientToken');
             
+            // Also check adminInfo and clientInfo
+            const adminInfoLocal = localStorage.getItem('adminInfo');
+            const adminInfoSession = sessionStorage.getItem('adminInfo');
+            const clientInfoLocal = localStorage.getItem('clientInfo');
+            const clientInfoSession = sessionStorage.getItem('clientInfo');
+            
             const adminToken = adminTokenLocal || adminTokenSession;
             const clientToken = clientTokenLocal || clientTokenSession;
             
@@ -53,7 +89,9 @@
                 clientTokenLocal: clientTokenLocal ? clientTokenLocal.substring(0, 20) + '...' : 'null',
                 clientTokenSession: clientTokenSession ? clientTokenSession.substring(0, 20) + '...' : 'null',
                 adminToken: adminToken ? adminToken.substring(0, 20) + '...' : 'null',
-                clientToken: clientToken ? clientToken.substring(0, 20) + '...' : 'null'
+                clientToken: clientToken ? clientToken.substring(0, 20) + '...' : 'null',
+                adminInfoExists: !!(adminInfoLocal || adminInfoSession),
+                clientInfoExists: !!(clientInfoLocal || clientInfoSession)
             });
             
             // Basic token validation (length check)
