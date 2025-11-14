@@ -5,15 +5,62 @@
  */
 
 // Global Auth Wrapper - Runs immediately to check sessions
+// This runs BEFORE DOMContentLoaded to catch sessions early
 (function() {
     'use strict';
     
-    // Wait for auth middleware to be available
-    function initAuthWrapper() {
+    // Immediate check function - checks storage directly
+    function checkSessionImmediate() {
+        // Get current page information
+        const currentPath = window.location.pathname;
+        const filename = currentPath.split('/').pop() || 'index.html';
+        const isRoot = currentPath === '/' || currentPath.endsWith('/index.html') || filename === 'index.html' || filename === '';
+        
+        if (!isRoot) {
+            // Not on root page, skip immediate check
+            return;
+        }
+        
+        console.log('🔐 Base Auth Wrapper: Immediate session check for:', filename);
+        
+        // Check storage directly first (faster, no dependency on authMiddleware)
+        const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+        
+        // Basic token validation (length check)
+        const hasAdminSession = adminToken && adminToken.length >= 10;
+        const hasClientSession = clientToken && clientToken.length >= 10;
+        
+        console.log('🔐 Base Auth Wrapper: Direct storage check:', {
+            hasAdminSession,
+            hasClientSession,
+            adminTokenLength: adminToken ? adminToken.length : 0,
+            clientTokenLength: clientToken ? clientToken.length : 0
+        });
+        
+        // Redirect immediately if session found
+        if (hasAdminSession) {
+            console.log('✅ Base Auth Wrapper: Admin session found (direct check), redirecting...');
+            window.location.replace('/admin.html');
+            return true; // Prevent further execution
+        }
+        
+        if (hasClientSession) {
+            console.log('✅ Base Auth Wrapper: Client session found (direct check), redirecting...');
+            window.location.replace('/client-dashboard.html');
+            return true; // Prevent further execution
+        }
+        
+        console.log('ℹ️ Base Auth Wrapper: No active session found (direct check)');
+        return false;
+    }
+    
+    // Enhanced check with authMiddleware when available
+    function checkSessionEnhanced() {
         // Check if auth-middleware.js is loaded
         if (typeof authMiddleware === 'undefined') {
             // Retry after a short delay
-            setTimeout(initAuthWrapper, 50);
+            setTimeout(checkSessionEnhanced, 50);
             return;
         }
         
@@ -22,43 +69,47 @@
         const filename = currentPath.split('/').pop() || 'index.html';
         const isRoot = currentPath === '/' || currentPath.endsWith('/index.html') || filename === 'index.html' || filename === '';
         
-        console.log('🔐 Base Auth Wrapper: Checking session for page:', filename);
+        if (!isRoot) {
+            return;
+        }
         
-        // Check for active sessions and redirect if authenticated
+        console.log('🔐 Base Auth Wrapper: Enhanced check with authMiddleware');
+        
+        // Use authMiddleware for more accurate check
         const adminLoggedIn = authMiddleware.isAdminLoggedIn();
         const clientLoggedIn = authMiddleware.isClientLoggedIn();
         
-        console.log('🔐 Base Auth Wrapper: Session status:', {
+        console.log('🔐 Base Auth Wrapper: AuthMiddleware check:', {
             adminLoggedIn,
-            clientLoggedIn,
-            isRoot,
-            filename
+            clientLoggedIn
         });
         
-        // If on root/login page and user is authenticated, redirect to dashboard
-        if (isRoot) {
-            if (adminLoggedIn) {
-                console.log('✅ Base Auth Wrapper: Admin session found, redirecting to admin dashboard');
-                window.location.href = '/admin.html';
-                return;
-            }
-            
-            if (clientLoggedIn) {
-                console.log('✅ Base Auth Wrapper: Client session found, redirecting to client dashboard');
-                window.location.href = '/client-dashboard.html';
-                return;
-            }
-            
-            console.log('ℹ️ Base Auth Wrapper: No active session, staying on login page');
+        // Redirect if authenticated
+        if (adminLoggedIn) {
+            console.log('✅ Base Auth Wrapper: Admin session found (authMiddleware), redirecting...');
+            window.location.replace('/admin.html');
+            return;
+        }
+        
+        if (clientLoggedIn) {
+            console.log('✅ Base Auth Wrapper: Client session found (authMiddleware), redirecting...');
+            window.location.replace('/client-dashboard.html');
+            return;
         }
     }
     
-    // Start checking as soon as possible
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAuthWrapper);
-    } else {
-        // DOM already loaded
-        initAuthWrapper();
+    // Run immediate check right away (before any scripts load)
+    const immediateRedirect = checkSessionImmediate();
+    
+    // If immediate check didn't redirect, run enhanced check when scripts are ready
+    if (!immediateRedirect) {
+        // Start checking as soon as possible
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkSessionEnhanced);
+        } else {
+            // DOM already loaded
+            checkSessionEnhanced();
+        }
     }
 })();
 
