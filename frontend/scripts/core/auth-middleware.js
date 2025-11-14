@@ -131,21 +131,11 @@ class AuthMiddleware {
             
             console.log('All tokens and user info cleared');
             
-            // Redirect to appropriate login page based on user type
+            // Redirect to main login page (always use root-relative path)
             setTimeout(() => {
-                if (isClient) {
-                    console.log('Redirecting to client login page...');
-                    // Redirect to client login page
-                    window.location.href = 'pages/client/client-login.html';
-                } else if (isAdmin) {
-                    console.log('Redirecting to admin login page...');
-                    // Redirect to main login page (index.html) for admin
-                    window.location.href = 'index.html';
-                } else {
-                    console.log('Redirecting to main login page...');
-                    // Default to main login page
-                    window.location.href = 'index.html';
-                }
+                console.log('Redirecting to main login page...');
+                // Use root-relative path to always go to the main domain root
+                window.location.href = '/index.html';
             }, 100);
         } catch (error) {
             console.error('Error during logout:', error);
@@ -166,10 +156,10 @@ class AuthMiddleware {
         
         console.log('Client tokens and user info cleared');
         
-        // Redirect to client login page
+        // Redirect to main login page (root-relative path)
         setTimeout(() => {
-            console.log('Redirecting to client login page...');
-            window.location.href = 'pages/client/client-login.html';
+            console.log('Redirecting to main login page...');
+            window.location.href = '/index.html';
         }, 100);
     }
     
@@ -186,18 +176,18 @@ class AuthMiddleware {
         
         console.log('Admin tokens and user info cleared');
         
-        // Redirect to main login page
+        // Redirect to main login page (root-relative path)
         setTimeout(() => {
-            console.log('Redirecting to admin login page...');
-            window.location.href = 'index.html';
+            console.log('Redirecting to main login page...');
+            window.location.href = '/index.html';
         }, 100);
     }
 
     // Require admin authentication for admin pages
     requireAdminAuth() {
         if (!this.isAdminLoggedIn()) {
-            // Redirect to login page if not authenticated
-            window.location.href = 'index.html';
+            // Redirect to login page if not authenticated (root-relative path)
+            window.location.href = '/index.html';
             return false;
         }
         return true;
@@ -206,8 +196,8 @@ class AuthMiddleware {
     // Require client authentication for client pages
     requireClientAuth() {
         if (!this.isClientLoggedIn()) {
-            // Redirect to login page if not authenticated
-            window.location.href = 'index.html';
+            // Redirect to login page if not authenticated (root-relative path)
+            window.location.href = '/index.html';
             return false;
         }
         return true;
