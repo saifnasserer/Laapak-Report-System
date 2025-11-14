@@ -131,15 +131,66 @@ class AuthMiddleware {
             
             console.log('All tokens and user info cleared');
             
-            // Redirect to appropriate page
+            // Redirect to appropriate login page based on user type
             setTimeout(() => {
-                console.log('Redirecting to login page...');
-                window.location.href = 'index.html';
+                if (isClient) {
+                    console.log('Redirecting to client login page...');
+                    // Redirect to client login page
+                    window.location.href = 'pages/client/client-login.html';
+                } else if (isAdmin) {
+                    console.log('Redirecting to admin login page...');
+                    // Redirect to main login page (index.html) for admin
+                    window.location.href = 'index.html';
+                } else {
+                    console.log('Redirecting to main login page...');
+                    // Default to main login page
+                    window.location.href = 'index.html';
+                }
             }, 100);
         } catch (error) {
             console.error('Error during logout:', error);
             alert('حدث خطأ أثناء تسجيل الخروج. يرجى المحاولة مرة أخرى.');
         }
+    }
+    
+    // Client-specific logout
+    clientLogout() {
+        console.log('Logging out client...');
+        
+        // Clear client data
+        this.clearClientTokens();
+        
+        // Clear any other session data
+        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('currentUser');
+        
+        console.log('Client tokens and user info cleared');
+        
+        // Redirect to client login page
+        setTimeout(() => {
+            console.log('Redirecting to client login page...');
+            window.location.href = 'pages/client/client-login.html';
+        }, 100);
+    }
+    
+    // Admin-specific logout
+    adminLogout() {
+        console.log('Logging out admin...');
+        
+        // Clear admin data
+        this.clearAdminTokens();
+        
+        // Clear any other session data
+        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('currentUser');
+        
+        console.log('Admin tokens and user info cleared');
+        
+        // Redirect to main login page
+        setTimeout(() => {
+            console.log('Redirecting to admin login page...');
+            window.location.href = 'index.html';
+        }, 100);
     }
 
     // Require admin authentication for admin pages

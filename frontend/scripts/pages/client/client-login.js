@@ -4,6 +4,25 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if client is already logged in
+    if (typeof authMiddleware !== 'undefined') {
+        const isClientLoggedIn = authMiddleware.isClientLoggedIn();
+        if (isClientLoggedIn) {
+            console.log('Client already authenticated, redirecting to client dashboard');
+            window.location.href = 'client-dashboard.html';
+            return;
+        }
+    } else {
+        // Fallback: check tokens directly
+        const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+        const clientInfo = localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo');
+        if (clientToken && clientInfo) {
+            console.log('Client session found, redirecting to client dashboard');
+            window.location.href = 'client-dashboard.html';
+            return;
+        }
+    }
+    
     // Client login form
     const loginForm = document.getElementById('clientLoginForm');
     const loginError = document.getElementById('loginError');

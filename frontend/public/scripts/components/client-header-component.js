@@ -41,6 +41,7 @@ class LpkClientHeader {
                 .client-header-navbar {
                     position: relative;
                     z-index: 1000;
+                    overflow: visible !important;
                 }
                 
                 .client-header-navbar::after {
@@ -52,10 +53,25 @@ class LpkClientHeader {
                     bottom: 0;
                     background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
                     pointer-events: none;
+                    z-index: 1;
+                }
+                
+                .client-header-user-dropdown {
+                    position: relative;
+                    z-index: 1050 !important;
+                }
+                
+                .client-header-user-dropdown .dropdown-menu {
+                    z-index: 1051 !important;
+                    position: absolute !important;
+                    margin-top: 0.5rem;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
                 }
                 
                 .client-header-user-dropdown .btn {
                     transition: all 0.3s ease;
+                    position: relative;
+                    z-index: 1050;
                 }
                 
                 .client-header-user-dropdown .btn:hover {
@@ -65,6 +81,8 @@ class LpkClientHeader {
                 
                 .client-header-brand {
                     transition: all 0.3s ease;
+                    position: relative;
+                    z-index: 2;
                 }
                 
                 .client-header-brand:hover {
@@ -113,7 +131,7 @@ class LpkClientHeader {
                     localStorage.removeItem('clientInfo');
                     sessionStorage.removeItem('clientToken');
                     sessionStorage.removeItem('clientInfo');
-                    window.location.href = 'index.html';
+                    window.location.href = 'pages/client/client-login.html';
                 }
             });
         }
@@ -137,7 +155,7 @@ class LpkClientHeader {
         }
         
         let html = `
-        <nav class="navbar navbar-dark client-header-navbar" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); box-shadow: 0 8px 32px rgba(0,0,0,0.15); border-radius: 16px; position: relative; overflow: hidden;">
+        <nav class="navbar navbar-dark client-header-navbar" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); box-shadow: 0 8px 32px rgba(0,0,0,0.15); border-radius: 16px; position: relative; overflow: visible;">
             <!-- Enhanced background pattern -->
             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.03%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E') repeat; opacity: 0.6;"></div>
             
@@ -158,8 +176,8 @@ class LpkClientHeader {
                     </div>
                     
                     <!-- User dropdown on the right -->
-                    <div class="ms-auto d-flex align-items-center" style="position: relative; z-index: 2;">
-                        <div class="dropdown client-header-user-dropdown">
+                    <div class="ms-auto d-flex align-items-center" style="position: relative; z-index: 1050;">
+                        <div class="dropdown client-header-user-dropdown" style="position: relative; z-index: 1050;">
                             <button class="btn btn-sm btn-outline-light rounded-pill dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="backdrop-filter: blur(10px);">
                                 <i class="fas fa-user-circle"></i>
                             </button>

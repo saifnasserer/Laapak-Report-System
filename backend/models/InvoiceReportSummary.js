@@ -44,8 +44,8 @@ const InvoiceReportSummary = sequelize.define('InvoiceReportSummary', {
         field: 'inspection_date'
     },
     report_status: {
-        type: DataTypes.ENUM('قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى', 'pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active'),
-        defaultValue: 'قيد الانتظار',
+        type: DataTypes.ENUM('pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active'),
+        defaultValue: 'pending',
         field: 'report_status'
     },
     invoice_created: {
