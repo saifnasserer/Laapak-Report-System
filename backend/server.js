@@ -97,6 +97,48 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/public/pages/index.html'));
 });
 
+// Map top-level HTML routes to their actual locations in subdirectories
+const pageRoutes = {
+    // Admin pages
+    '/admin.html': '../frontend/public/pages/admin/admin.html',
+    '/clients.html': '../frontend/public/pages/admin/clients.html',
+    
+    // Client pages
+    '/client-dashboard.html': '../frontend/public/pages/client/client-dashboard.html',
+    '/client-login.html': '../frontend/public/pages/client/client-login.html',
+    '/client-login-test.html': '../frontend/public/pages/client/client-login-test.html',
+    
+    // Reports pages
+    '/reports.html': '../frontend/public/pages/reports/reports.html',
+    '/report.html': '../frontend/public/pages/reports/report.html',
+    '/create-report.html': '../frontend/public/pages/reports/create-report.html',
+    
+    // Invoice pages
+    '/invoices.html': '../frontend/public/pages/invoices/invoices.html',
+    '/create-invoice.html': '../frontend/public/pages/invoices/create-invoice.html',
+    '/edit-invoice.html': '../frontend/public/pages/invoices/edit-invoice.html',
+    '/view-invoice.html': '../frontend/public/pages/invoices/view-invoice.html',
+    
+    // Financial pages
+    '/financial-dashboard.html': '../frontend/public/pages/financial/financial-dashboard.html',
+    '/financial-add-expense.html': '../frontend/public/pages/financial/financial-add-expense.html',
+    '/financial-profit-management.html': '../frontend/public/pages/financial/financial-profit-management.html',
+    
+    // Money management pages
+    '/money-management.html': '../frontend/public/pages/money-management/money-management.html',
+    '/expected-money.html': '../frontend/public/pages/money-management/expected-money.html',
+    
+    // Other pages
+    '/offline.html': '../frontend/public/pages/offline.html'
+};
+
+// Register all page routes
+Object.keys(pageRoutes).forEach(route => {
+    app.get(route, (req, res) => {
+        res.sendFile(path.join(__dirname, pageRoutes[route]));
+    });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
