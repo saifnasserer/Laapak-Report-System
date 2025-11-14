@@ -535,73 +535,7 @@
         }
     </script>
     
-    <!-- Authentication Redirect Check -->
-    <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🔍 index.html: DOMContentLoaded - Checking authentication status...');
-            
-            // Add a small delay to ensure all scripts are loaded
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Check if user is already authenticated and redirect accordingly
-            if (typeof authMiddleware !== 'undefined') {
-                console.log('✅ index.html: Auth middleware loaded successfully');
-                
-                // Check tokens directly from storage first
-                const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
-                const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
-                
-                console.log('🔍 index.html: Direct token check:', {
-                    adminToken: adminToken ? adminToken.substring(0, 20) + '...' : 'null',
-                    clientToken: clientToken ? clientToken.substring(0, 20) + '...' : 'null',
-                    adminTokenLength: adminToken ? adminToken.length : 0,
-                    clientTokenLength: clientToken ? clientToken.length : 0
-                });
-                
-                // Use authMiddleware methods for validation
-                const adminLoggedIn = authMiddleware.isAdminLoggedIn();
-                const clientLoggedIn = authMiddleware.isClientLoggedIn();
-                
-                console.log('🔍 index.html: AuthMiddleware validation:', {
-                    adminLoggedIn,
-                    clientLoggedIn
-                });
-                
-                if (adminLoggedIn) {
-                    console.log('👤 index.html: Admin authenticated, redirecting to admin dashboard');
-                    window.location.href = 'admin.html';
-                    return;
-                }
-                
-                if (clientLoggedIn) {
-                    console.log('👤 index.html: Client authenticated, redirecting to client dashboard');
-                    window.location.href = 'client-dashboard.html';
-                    return;
-                }
-                
-                console.log('❌ index.html: No active session found, staying on login page');
-            } else {
-                console.error('❌ index.html: Auth middleware not loaded!');
-                
-                // Fallback: check tokens directly if authMiddleware is not available
-                const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
-                const clientToken = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
-                
-                if (adminToken) {
-                    console.log('👤 index.html: Fallback - Admin token found, redirecting to admin dashboard');
-                    window.location.href = 'admin.html';
-                    return;
-                }
-                
-                if (clientToken) {
-                    console.log('👤 index.html: Fallback - Client token found, redirecting to client dashboard');
-                    window.location.href = 'client-dashboard.html';
-                    return;
-                }
-                
-                console.log('❌ index.html: Fallback - No tokens found');
-            }
-        });
-    </script>
+    <!-- Authentication is handled by auth-check.js base wrapper -->
+    <!-- No need for inline script - the base auth wrapper handles session checks -->
 </body>
 </html>

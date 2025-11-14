@@ -1,8 +1,68 @@
 /**
- * Laapak Report System - Authentication Check
- * This script checks if a user is authenticated before allowing access to protected pages
+ * Laapak Report System - Authentication Check & Session Wrapper
+ * Base authentication wrapper that checks for active sessions and redirects accordingly
+ * This runs on ALL pages to ensure proper session management
  */
 
+// Global Auth Wrapper - Runs immediately to check sessions
+(function() {
+    'use strict';
+    
+    // Wait for auth middleware to be available
+    function initAuthWrapper() {
+        // Check if auth-middleware.js is loaded
+        if (typeof authMiddleware === 'undefined') {
+            // Retry after a short delay
+            setTimeout(initAuthWrapper, 50);
+            return;
+        }
+        
+        // Get current page information
+        const currentPath = window.location.pathname;
+        const filename = currentPath.split('/').pop() || 'index.html';
+        const isRoot = currentPath === '/' || currentPath.endsWith('/index.html') || filename === 'index.html' || filename === '';
+        
+        console.log('🔐 Base Auth Wrapper: Checking session for page:', filename);
+        
+        // Check for active sessions and redirect if authenticated
+        const adminLoggedIn = authMiddleware.isAdminLoggedIn();
+        const clientLoggedIn = authMiddleware.isClientLoggedIn();
+        
+        console.log('🔐 Base Auth Wrapper: Session status:', {
+            adminLoggedIn,
+            clientLoggedIn,
+            isRoot,
+            filename
+        });
+        
+        // If on root/login page and user is authenticated, redirect to dashboard
+        if (isRoot) {
+            if (adminLoggedIn) {
+                console.log('✅ Base Auth Wrapper: Admin session found, redirecting to admin dashboard');
+                window.location.href = '/admin.html';
+                return;
+            }
+            
+            if (clientLoggedIn) {
+                console.log('✅ Base Auth Wrapper: Client session found, redirecting to client dashboard');
+                window.location.href = '/client-dashboard.html';
+                return;
+            }
+            
+            console.log('ℹ️ Base Auth Wrapper: No active session, staying on login page');
+        }
+    }
+    
+    // Start checking as soon as possible
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAuthWrapper);
+    } else {
+        // DOM already loaded
+        initAuthWrapper();
+    }
+})();
+
+// Page-specific authentication checks
 document.addEventListener('DOMContentLoaded', async function() {
     // Check if auth-middleware.js is loaded
     if (typeof authMiddleware === 'undefined') {
