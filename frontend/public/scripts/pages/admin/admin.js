@@ -15,18 +15,225 @@ document.addEventListener('DOMContentLoaded', function() {
     testGoalsAPI();
     
     // Load dashboard data from API
-    loadDashboardStats();
     displayCurrentDate();
+    loadTodaySummary();
+    loadDashboardStats();
     initializeCharts();
-    loadRecentReports();
-    loadRecentInvoices();
-    loadGoalsAndAchievements();
+    loadReportsStatusChart();
     loadDeviceModelsInsights();
     loadWarrantyAlerts();
     
-    // Initialize goal and achievement event listeners
-    initializeGoalsAndAchievements();
+    // Initialize device models filter
+    initializeDeviceModelsFilter();
 });
+
+/**
+ * Format date to Arabic locale string
+ */
+function formatArabicDate(date) {
+    if (!date) return '';
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(date).toLocaleDateString('ar-EG', options);
+}
+
+/**
+ * Initialize device models filter dropdown
+ */
+function initializeDeviceModelsFilter() {
+    const filterBtn = document.getElementById('deviceModelsFilterBtn');
+    const filterMenu = document.getElementById('deviceModelsFilterMenu');
+    const customDateRange = document.getElementById('device-models-custom-date-range');
+    const applyCustomDateBtn = document.getElementById('device-models-apply-custom-date');
+    
+    if (!filterMenu) return;
+    
+    // Handle period selection
+    filterMenu.addEventListener('click', function(e) {
+        e.preventDefault();
+        const periodItem = e.target.closest('[data-period]');
+        if (!periodItem) return;
+        
+        const period = periodItem.getAttribute('data-period');
+        const filterTextEl = document.getElementById('device-models-filter-text');
+        
+        // Update filter button text
+        const periodTexts = {
+            'this-month': 'هذا الشهر',
+            'last-month': 'الشهر الماضي',
+            'this-week': 'هذا الأسبوع',
+            'last-week': 'الأسبوع الماضي',
+            'last-30-days': 'آخر 30 يوم',
+            'last-7-days': 'آخر 7 أيام',
+            'custom': 'فترة مخصصة'
+        };
+        
+        if (filterTextEl) {
+            filterTextEl.textContent = periodTexts[period] || 'هذا الشهر';
+        }
+        
+        // Show/hide custom date range picker
+        if (period === 'custom') {
+            if (customDateRange) {
+                customDateRange.style.display = 'block';
+            }
+        } else {
+            if (customDateRange) {
+                customDateRange.style.display = 'none';
+            }
+            // Load data for selected period
+            loadDeviceModelsInsights(period);
+        }
+        
+        // Update active state
+        filterMenu.querySelectorAll('.dropdown-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        periodItem.classList.add('active');
+    });
+    
+    // Handle custom date apply button
+    if (applyCustomDateBtn) {
+        applyCustomDateBtn.addEventListener('click', function() {
+            const startInput = document.getElementById('device-models-start-date');
+            const endInput = document.getElementById('device-models-end-date');
+            
+            if (!startInput || !endInput || !startInput.value || !endInput.value) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.warning('يرجى اختيار تاريخ البداية والنهاية');
+                }
+                return;
+            }
+            
+            if (new Date(startInput.value) > new Date(endInput.value)) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+                }
+                return;
+            }
+            
+            loadDeviceModelsInsights('custom');
+        });
+    }
+}
+
+/**
+ * Load today's summary statistics
+ */
+function loadTodaySummary() {
+    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+    const authMiddleware = new AuthMiddleware();
+    const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    
+    // Get today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Get yesterday's date range for comparison
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    Promise.all([
+        // Reports today
+        fetch(`${baseUrl}/api/reports/count?startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => r.json()),
+        // Reports yesterday
+        fetch(`${baseUrl}/api/reports/count?startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => r.json()),
+        // Invoices today
+        fetch(`${baseUrl}/api/invoices/count?startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => r.json()),
+        // Invoices yesterday
+        fetch(`${baseUrl}/api/invoices/count?startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => r.json()),
+        // Completed reports today (status = completed)
+        fetch(`${baseUrl}/api/reports/count?status=completed&startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => r.json()),
+        // Completed reports yesterday
+        fetch(`${baseUrl}/api/reports/count?status=completed&startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => r.json()),
+        // Pending reports
+        fetch(`${baseUrl}/api/reports/count?status=pending`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => r.json())
+    ])
+    .then(([reportsToday, reportsYesterday, invoicesToday, invoicesYesterday, completedToday, completedYesterday, pendingCount]) => {
+        // Update today's summary
+        const reportsTodayEl = document.getElementById('reports-today');
+        const reportsTodayTrendEl = document.getElementById('reports-today-trend');
+        const invoicesTodayEl = document.getElementById('invoices-today');
+        const invoicesTodayTrendEl = document.getElementById('invoices-today-trend');
+        const completedTodayEl = document.getElementById('completed-today');
+        const completedTodayTrendEl = document.getElementById('completed-today-trend');
+        const attentionEl = document.getElementById('attention-needed');
+        
+        const reportsTodayCount = reportsToday.count || 0;
+        const reportsYesterdayCount = reportsYesterday.count || 0;
+        const invoicesTodayCount = invoicesToday.count || 0;
+        const invoicesYesterdayCount = invoicesYesterday.count || 0;
+        const completedTodayCount = completedToday.count || 0;
+        const completedYesterdayCount = completedYesterday.count || 0;
+        
+        if (reportsTodayEl) reportsTodayEl.textContent = reportsTodayCount;
+        if (reportsTodayTrendEl) {
+            const diff = reportsTodayCount - reportsYesterdayCount;
+            if (diff > 0) {
+                reportsTodayTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${diff}</span>`;
+            } else if (diff < 0) {
+                reportsTodayTrendEl.innerHTML = `<span class="text-danger"><i class="fas fa-arrow-down"></i> ${diff}</span>`;
+            } else {
+                reportsTodayTrendEl.innerHTML = `<span class="text-muted">=</span>`;
+            }
+        }
+        
+        if (invoicesTodayEl) invoicesTodayEl.textContent = invoicesTodayCount;
+        if (invoicesTodayTrendEl) {
+            const diff = invoicesTodayCount - invoicesYesterdayCount;
+            if (diff > 0) {
+                invoicesTodayTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${diff}</span>`;
+            } else if (diff < 0) {
+                invoicesTodayTrendEl.innerHTML = `<span class="text-danger"><i class="fas fa-arrow-down"></i> ${diff}</span>`;
+            } else {
+                invoicesTodayTrendEl.innerHTML = `<span class="text-muted">=</span>`;
+            }
+        }
+        
+        if (completedTodayEl) completedTodayEl.textContent = completedTodayCount;
+        if (completedTodayTrendEl) {
+            const diff = completedTodayCount - completedYesterdayCount;
+            if (diff > 0) {
+                completedTodayTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${diff}</span>`;
+            } else if (diff < 0) {
+                completedTodayTrendEl.innerHTML = `<span class="text-danger"><i class="fas fa-arrow-down"></i> ${diff}</span>`;
+            } else {
+                completedTodayTrendEl.innerHTML = `<span class="text-muted">=</span>`;
+            }
+        }
+        
+        if (attentionEl) attentionEl.textContent = pendingCount.count || '0';
+    })
+    .catch(error => {
+        console.error('Error loading today summary:', error);
+        // Set default values
+        const reportsTodayEl = document.getElementById('reports-today');
+        const invoicesTodayEl = document.getElementById('invoices-today');
+        const completedTodayEl = document.getElementById('completed-today');
+        const attentionEl = document.getElementById('attention-needed');
+        
+        if (reportsTodayEl) reportsTodayEl.textContent = '0';
+        if (invoicesTodayEl) invoicesTodayEl.textContent = '0';
+        if (completedTodayEl) completedTodayEl.textContent = '0';
+        if (attentionEl) attentionEl.textContent = '0';
+    });
+}
 
 /**
  * Load dashboard statistics from API
@@ -46,67 +253,110 @@ function loadDashboardStats() {
     const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
     console.log('API Base URL:', baseUrl);
     
-    // Make simultaneous API requests to get statistics
+    // Get current month date range
+    const today = new Date();
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59);
+    
+    // Get current week date range
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() - today.getDay()); // Sunday
+    currentWeekStart.setHours(0, 0, 0, 0);
+    const currentWeekEnd = new Date(currentWeekStart);
+    currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+    currentWeekEnd.setHours(23, 59, 59);
+    
+    const lastWeekStart = new Date(currentWeekStart);
+    lastWeekStart.setDate(currentWeekStart.getDate() - 7);
+    const lastWeekEnd = new Date(currentWeekStart);
+    lastWeekEnd.setDate(currentWeekStart.getDate() - 1);
+    lastWeekEnd.setHours(23, 59, 59);
+    
+    // Make simultaneous API requests to get statistics (only needed metrics)
     Promise.all([
-        // Total reports count
-        fetch(`${baseUrl}/api/reports/count`, {
-            headers: {
-                'x-auth-token': token
-            }
-        }).then(response => {
-            console.log('Reports count response:', response.status, response.statusText);
-            return response;
+        // Pending reports count
+        fetch(`${baseUrl}/api/reports/count?status=pending`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) throw new Error(`Pending reports count failed: ${r.status}`);
+            return r.json();
         }),
-        // Total invoices count
-        fetch(`${baseUrl}/api/invoices/count`, {
-            headers: {
-                'x-auth-token': token
-            }
-        }).then(response => {
-            console.log('Invoices count response:', response.status, response.statusText);
-            return response;
+        // Reports this month
+        fetch(`${baseUrl}/api/reports/count?startDate=${currentMonthStart.toISOString()}&endDate=${currentMonthEnd.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) throw new Error(`Reports this month failed: ${r.status}`);
+            return r.json();
         }),
-        // Total clients count
-        fetch(`${baseUrl}/api/clients/count`, {
-            headers: {
-                'x-auth-token': token
-            }
-        }).then(response => {
-            console.log('Clients count response:', response.status, response.statusText);
-            return response;
+        // Reports last month
+        fetch(`${baseUrl}/api/reports/count?startDate=${lastMonthStart.toISOString()}&endDate=${lastMonthEnd.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) throw new Error(`Reports last month failed: ${r.status}`);
+            return r.json();
         }),
-        // Unpaid invoices count
-        fetch(`${baseUrl}/api/invoices/count?paymentStatus=unpaid`, {
-            headers: {
-                'x-auth-token': token
-            }
-        }).then(response => {
-            console.log('Unpaid invoices count response:', response.status, response.statusText);
-            return response;
+        // Completed this week
+        fetch(`${baseUrl}/api/reports/count?status=completed&startDate=${currentWeekStart.toISOString()}&endDate=${currentWeekEnd.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) throw new Error(`Completed this week failed: ${r.status}`);
+            return r.json();
+        }),
+        // Completed last week
+        fetch(`${baseUrl}/api/reports/count?status=completed&startDate=${lastWeekStart.toISOString()}&endDate=${lastWeekEnd.toISOString()}`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) throw new Error(`Completed last week failed: ${r.status}`);
+            return r.json();
         })
     ])
-    .then(responses => {
-        // Check if all responses are ok
-        const failedResponses = responses.filter(resp => !resp.ok);
-        if (failedResponses.length > 0) {
-            console.error('Failed responses:', failedResponses);
-            throw new Error(`Failed to load dashboard stats: ${failedResponses.length} requests failed`);
-        }
-        return Promise.all(responses.map(resp => resp.json()));
-    })
     .then(data => {
         console.log('Dashboard stats data:', data);
-        // Process data [totalReports, totalInvoices, totalClients, unpaidInvoices]
-        // Add element existence checks to prevent errors
-        const totalReportsEl = document.getElementById('total-reports');
-        const totalInvoicesEl = document.getElementById('total-invoices');
-        const totalClientsEl = document.getElementById('total-clients');
+        // Process data [pendingReports, reportsThisMonth, reportsLastMonth, completedThisWeek, completedLastWeek]
         const pendingReportsEl = document.getElementById('pending-reports');
+        const reportsThisMonthEl = document.getElementById('reports-this-month');
+        const reportsThisMonthTrendEl = document.getElementById('reports-this-month-trend');
+        const completedThisWeekEl = document.getElementById('completed-this-week');
+        const completedThisWeekTrendEl = document.getElementById('completed-this-week-trend');
         
-        if (totalReportsEl) totalReportsEl.textContent = data[0].count || '0';
-        if (totalInvoicesEl) totalInvoicesEl.textContent = data[1].count || '0';
-        if (totalClientsEl) totalClientsEl.textContent = data[2].count || '0';
-        if (pendingReportsEl) pendingReportsEl.textContent = data[3].count || '0';
+        const pendingReports = data[0].count || 0;
+        const reportsThisMonth = data[1].count || 0;
+        const reportsLastMonth = data[2].count || 0;
+        const completedThisWeek = data[3].count || 0;
+        const completedLastWeek = data[4].count || 0;
+        
+        if (pendingReportsEl) pendingReportsEl.textContent = pendingReports;
+        if (reportsThisMonthEl) reportsThisMonthEl.textContent = reportsThisMonth;
+        if (completedThisWeekEl) completedThisWeekEl.textContent = completedThisWeek;
+        
+        // Calculate trends (simplified - comparing with previous period)
+        if (reportsThisMonthTrendEl) {
+            const diff = reportsThisMonth - reportsLastMonth;
+            if (diff > 0) {
+                const percent = reportsLastMonth > 0 ? Math.round((diff / reportsLastMonth) * 100) : 0;
+                reportsThisMonthTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${percent}%</span>`;
+            } else if (diff < 0) {
+                const percent = reportsLastMonth > 0 ? Math.round((Math.abs(diff) / reportsLastMonth) * 100) : 0;
+                reportsThisMonthTrendEl.innerHTML = `<span class="text-danger"><i class="fas fa-arrow-down"></i> -${percent}%</span>`;
+            } else {
+                reportsThisMonthTrendEl.innerHTML = `<span class="text-muted">=</span>`;
+            }
+        }
+        
+        if (completedThisWeekTrendEl) {
+            const diff = completedThisWeek - completedLastWeek;
+            if (diff > 0) {
+                const percent = completedLastWeek > 0 ? Math.round((diff / completedLastWeek) * 100) : 0;
+                completedThisWeekTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${percent}%</span>`;
+            } else if (diff < 0) {
+                const percent = completedLastWeek > 0 ? Math.round((Math.abs(diff) / completedLastWeek) * 100) : 0;
+                completedThisWeekTrendEl.innerHTML = `<span class="text-danger"><i class="fas fa-arrow-down"></i> -${percent}%</span>`;
+            } else {
+                completedThisWeekTrendEl.innerHTML = `<span class="text-muted">=</span>`;
+            }
+        }
         
         console.log('Updated dashboard elements with data');
     })
@@ -114,15 +364,13 @@ function loadDashboardStats() {
         console.error('Error loading dashboard stats:', error);
         
         // Set placeholder values on error (only if elements exist)
-        const totalReportsEl = document.getElementById('total-reports');
-        const totalInvoicesEl = document.getElementById('total-invoices');
-        const totalClientsEl = document.getElementById('total-clients');
         const pendingReportsEl = document.getElementById('pending-reports');
+        const reportsThisMonthEl = document.getElementById('reports-this-month');
+        const completedThisWeekEl = document.getElementById('completed-this-week');
         
-        if (totalReportsEl) totalReportsEl.textContent = '0';
-        if (totalInvoicesEl) totalInvoicesEl.textContent = '0';
-        if (totalClientsEl) totalClientsEl.textContent = '0';
         if (pendingReportsEl) pendingReportsEl.textContent = '0';
+        if (reportsThisMonthEl) reportsThisMonthEl.textContent = '0';
+        if (completedThisWeekEl) completedThisWeekEl.textContent = '0';
         
         // Show error toast
         if (typeof toastr !== 'undefined') {
@@ -408,7 +656,15 @@ function displayCurrentDate() {
     const arabicDate = today.toLocaleDateString('ar-EG', options);
     
     // Display the date
-    dateElement.textContent = arabicDate;
+    if (dateElement) {
+        dateElement.textContent = arabicDate;
+    }
+    
+    // Also update small date badge in today's summary
+    const dateSmallElement = document.getElementById('current-date-small');
+    if (dateSmallElement) {
+        dateSmallElement.textContent = arabicDate;
+    }
 }
 
 /**
@@ -482,45 +738,46 @@ function initializeCharts() {
                 const reportsData = reportResults.map(result => result.count || 0);
                 const invoicesData = invoiceResults.map(result => result.count || 0);
                 
-                // Create the chart
+                // Create the chart (Column chart instead of line)
                 new Chart(performanceChartCanvas, {
-                    type: 'line',
+                    type: 'bar',
                     data: {
                         labels: last6Months,
                         datasets: [
                             {
                                 label: 'التقارير',
                                 data: reportsData,
+                                backgroundColor: 'rgba(0, 117, 83, 0.8)',
                                 borderColor: '#007553',
-                                backgroundColor: 'rgba(0, 117, 83, 0.1)',
-                                borderWidth: 2,
-                                pointBackgroundColor: '#007553',
-                                tension: 0.4,
-                                fill: true
+                                borderWidth: 1,
+                                borderRadius: 4
                             },
                             {
                                 label: 'الفواتير',
                                 data: invoicesData,
+                                backgroundColor: 'rgba(13, 110, 253, 0.8)',
                                 borderColor: '#0d6efd',
-                                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                                borderWidth: 2,
-                                pointBackgroundColor: '#0d6efd',
-                                tension: 0.4,
-                                fill: true
+                                borderWidth: 1,
+                                borderRadius: 4
                             }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
                         plugins: {
                             legend: {
                                 position: 'top',
                                 align: 'end',
                                 labels: {
-                                    boxWidth: 10,
+                                    boxWidth: 12,
                                     usePointStyle: true,
-                                    pointStyle: 'circle'
+                                    pointStyle: 'circle',
+                                    padding: 15
                                 }
                             },
                             tooltip: {
@@ -528,10 +785,27 @@ function initializeCharts() {
                                 intersect: false,
                                 rtl: true,
                                 titleAlign: 'right',
-                                bodyAlign: 'right'
+                                bodyAlign: 'right',
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                displayColors: true
                             }
                         },
                         scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#6c757d',
+                                    padding: 15,
+                                    font: {
+                                        size: 11,
+                                        family: 'Cairo, sans-serif'
+                                    }
+                                }
+                            },
                             y: {
                                 beginAtZero: true,
                                 grid: {
@@ -539,7 +813,8 @@ function initializeCharts() {
                                     display: true,
                                     drawOnChartArea: true,
                                     drawTicks: false,
-                                    borderDash: [5, 5]
+                                    borderDash: [5, 5],
+                                    color: 'rgba(0, 0, 0, 0.05)'
                                 },
                                 ticks: {
                                     display: true,
@@ -547,29 +822,7 @@ function initializeCharts() {
                                     color: '#b2b9bf',
                                     font: {
                                         size: 11,
-                                        family: 'Cairo, sans-serif',
-                                        style: 'normal',
-                                        lineHeight: 2
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    drawBorder: false,
-                                    display: false,
-                                    drawOnChartArea: false,
-                                    drawTicks: false,
-                                    borderDash: [5, 5]
-                                },
-                                ticks: {
-                                    display: true,
-                                    color: '#b2b9bf',
-                                    padding: 20,
-                                    font: {
-                                        size: 11,
-                                        family: 'Cairo, sans-serif',
-                                        style: 'normal',
-                                        lineHeight: 2
+                                        family: 'Cairo, sans-serif'
                                     }
                                 }
                             }
@@ -581,12 +834,14 @@ function initializeCharts() {
                 console.error('Error loading chart data:', error);
                 // Show error message on the chart
                 new Chart(performanceChartCanvas, {
-                    type: 'line',
+                    type: 'bar',
                     data: {
                         labels: last6Months,
                         datasets: []
                     },
                     options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
                         plugins: {
                             title: {
                                 display: true,
@@ -603,101 +858,151 @@ function initializeCharts() {
             });
     }
     
-    // Invoice Status Chart - Doughnut chart
-    const invoiceStatusChartCanvas = document.getElementById('invoiceStatusChart');
-    if (invoiceStatusChartCanvas) {
-        // Fetch real invoice data by payment status
-        Promise.all([
-            // Paid invoices
-            fetch(`${baseUrl}/api/invoices/count?paymentStatus=paid`, {
-                headers: {
-                    'x-auth-token': token
-                }
-            }),
-            // Partially paid invoices
-            fetch(`${baseUrl}/api/invoices/count?paymentStatus=partial`, {
-                headers: {
-                    'x-auth-token': token
-                }
-            }),
-            // Unpaid invoices
-            fetch(`${baseUrl}/api/invoices/count?paymentStatus=unpaid`, {
-                headers: {
-                    'x-auth-token': token
-                }
-            })
-        ])
-        .then(responses => {
-            // Check if all responses are ok
-            const failedResponses = responses.filter(resp => !resp.ok);
-            if (failedResponses.length > 0) {
-                throw new Error(`Failed to load invoice status data: ${failedResponses.length} requests failed`);
-            }
-            return Promise.all(responses.map(resp => resp.json()));
-        })
-        .then(data => {
-            // Extract counts from results [paid, partial, unpaid]
-            const invoiceStatusData = data.map(result => result.count || 0);
-            
-            // Create the chart
-            new Chart(invoiceStatusChartCanvas, {
-                type: 'doughnut',
-                data: {
-                    labels: ['مدفوعة', 'مدفوعة جزئياً', 'غير مدفوعة'],
-                    datasets: [{
-                        data: invoiceStatusData,
-                        backgroundColor: ['#198754', '#ffc107', '#dc3545'],
-                        borderWidth: 0,
-                        cutout: '75%',
-                        borderRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 15,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
-                        },
-                        tooltip: {
-                            rtl: true,
-                            titleAlign: 'right',
-                            bodyAlign: 'right'
-                        }
-                    }
-                }
-            });
-        })
-        .catch(error => {
-            console.error('Error loading invoice status data:', error);
-            // Show error message on the chart
-            new Chart(invoiceStatusChartCanvas, {
-                type: 'doughnut',
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: {
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'فشل في تحميل البيانات',
-                            color: '#dc3545',
+    // Invoice Status Chart removed - not always showing correct data and not useful for operational dashboard
+}
+
+/**
+ * Load reports status breakdown chart
+ */
+function loadReportsStatusChart() {
+    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+    const authMiddleware = new AuthMiddleware();
+    const token = authMiddleware.getAdminToken() || adminInfo.token || '';
+    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    
+    const reportsStatusChartCanvas = document.getElementById('reportsStatusChart');
+    if (!reportsStatusChartCanvas) {
+        console.log('Reports status chart canvas not found');
+        return;
+    }
+    
+    // Fetch reports count by status
+    Promise.all([
+        fetch(`${baseUrl}/api/reports/count?status=pending`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) return { count: 0 };
+            return r.json();
+        }).catch(() => ({ count: 0 })),
+        fetch(`${baseUrl}/api/reports/count?status=in-progress`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) return { count: 0 };
+            return r.json();
+        }).catch(() => ({ count: 0 })),
+        fetch(`${baseUrl}/api/reports/count?status=completed`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) return { count: 0 };
+            return r.json();
+        }).catch(() => ({ count: 0 })),
+        fetch(`${baseUrl}/api/reports/count?status=cancelled`, {
+            headers: { 'x-auth-token': token }
+        }).then(r => {
+            if (!r.ok) return { count: 0 };
+            return r.json();
+        }).catch(() => ({ count: 0 }))
+    ])
+    .then(data => {
+        // Extract counts: [pending, in-progress, completed, cancelled]
+        const statusData = [
+            parseInt(data[0]?.count || 0),
+            parseInt(data[1]?.count || 0),
+            parseInt(data[2]?.count || 0),
+            parseInt(data[3]?.count || 0)
+        ];
+        
+        // Only create chart if there's data
+        const total = statusData.reduce((a, b) => a + b, 0);
+        if (total === 0) {
+            // Show empty state
+            reportsStatusChartCanvas.closest('.card-body').innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-info-circle text-muted fa-2x mb-3"></i>
+                    <p class="text-muted">لا توجد تقارير لعرضها</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Create the chart
+        new Chart(reportsStatusChartCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['قيد الانتظار', 'قيد التنفيذ', 'مكتمل', 'ملغي'],
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: [
+                        '#ffc107',  // pending - yellow
+                        '#0dcaf0',  // in-progress - cyan
+                        '#198754',  // completed - green
+                        '#dc3545'   // cancelled - red
+                    ],
+                    borderWidth: 0,
+                    cutout: '75%',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
                             font: {
-                                size: 14,
+                                size: 12,
                                 family: 'Cairo, sans-serif'
                             }
                         }
+                    },
+                    tooltip: {
+                        rtl: true,
+                        titleAlign: 'right',
+                        bodyAlign: 'right',
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
                     }
                 }
-            });
+            }
         });
-    }
+    })
+    .catch(error => {
+        console.error('Error loading reports status chart:', error);
+        // Show empty chart on error
+        new Chart(reportsStatusChartCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: []
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'فشل في تحميل البيانات',
+                        color: '#dc3545',
+                        font: {
+                            size: 14,
+                            family: 'Cairo, sans-serif'
+                        }
+                    }
+                }
+            }
+        });
+    });
 }
 
 /**
@@ -1275,16 +1580,87 @@ function testGoalsAPI() {
 }
 
 /**
- * Load device models sold this month
+ * Load device models sold in a specific time period
  */
-function loadDeviceModelsInsights() {
-    console.log('Loading device models insights');
+function loadDeviceModelsInsights(period = 'this-month') {
+    console.log('Loading device models insights for period:', period);
     
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken();
     const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
     
-    fetch(`${baseUrl}/api/reports/insights/device-models`, {
+    // Calculate date range based on period
+    const today = new Date();
+    let startDate, endDate;
+    
+    switch(period) {
+        case 'this-month':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            endDate.setHours(23, 59, 59, 999);
+            break;
+        case 'last-month':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            endDate.setHours(23, 59, 59, 999);
+            break;
+        case 'this-week':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - today.getDay()); // Sunday
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(today);
+            endDate.setHours(23, 59, 59, 999);
+            break;
+        case 'last-week':
+            const lastWeekStart = new Date(today);
+            lastWeekStart.setDate(today.getDate() - today.getDay() - 7); // Last Sunday
+            lastWeekStart.setHours(0, 0, 0, 0);
+            const lastWeekEnd = new Date(lastWeekStart);
+            lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+            lastWeekEnd.setHours(23, 59, 59, 999);
+            startDate = lastWeekStart;
+            endDate = lastWeekEnd;
+            break;
+        case 'last-30-days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 30);
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(today);
+            endDate.setHours(23, 59, 59, 999);
+            break;
+        case 'last-7-days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 7);
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(today);
+            endDate.setHours(23, 59, 59, 999);
+            break;
+        case 'custom':
+            // Get custom dates from inputs
+            const startInput = document.getElementById('device-models-start-date');
+            const endInput = document.getElementById('device-models-end-date');
+            if (startInput && endInput && startInput.value && endInput.value) {
+                startDate = new Date(startInput.value);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(endInput.value);
+                endDate.setHours(23, 59, 59, 999);
+            } else {
+                // Default to this month if custom dates not set
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                endDate.setHours(23, 59, 59, 999);
+            }
+            break;
+        default:
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            endDate.setHours(23, 59, 59, 999);
+    }
+    
+    // Build API URL with date range
+    const url = `${baseUrl}/api/reports/insights/device-models?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+    
+    fetch(url, {
         headers: {
             'x-auth-token': token
         }
@@ -1298,7 +1674,7 @@ function loadDeviceModelsInsights() {
     })
     .then(data => {
         console.log('Device models data:', data);
-        displayDeviceModels(data);
+        displayDeviceModels(data, period, startDate, endDate);
     })
     .catch(error => {
         console.error('Error loading device models:', error);
@@ -1309,46 +1685,162 @@ function loadDeviceModelsInsights() {
 /**
  * Display device models insights
  */
-function displayDeviceModels(deviceModels) {
+function displayDeviceModels(deviceModels, period = 'this-month', startDate = null, endDate = null) {
     const content = document.getElementById('deviceModelsContent');
     const countBadge = document.getElementById('device-models-count');
+    const periodTextEl = document.getElementById('device-models-period-text');
     
     if (!content) return;
     
+    // Update period text
+    if (periodTextEl) {
+        const periodTexts = {
+            'this-month': 'أفضل الأجهزة مبيعاً في الشهر الحالي',
+            'last-month': 'أفضل الأجهزة مبيعاً في الشهر الماضي',
+            'this-week': 'أفضل الأجهزة مبيعاً في هذا الأسبوع',
+            'last-week': 'أفضل الأجهزة مبيعاً في الأسبوع الماضي',
+            'last-30-days': 'أفضل الأجهزة مبيعاً في آخر 30 يوم',
+            'last-7-days': 'أفضل الأجهزة مبيعاً في آخر 7 أيام',
+            'custom': startDate && endDate ? 
+                `أفضل الأجهزة مبيعاً من ${formatArabicDate(startDate)} إلى ${formatArabicDate(endDate)}` :
+                'أفضل الأجهزة مبيعاً'
+        };
+        periodTextEl.textContent = periodTexts[period] || periodTexts['this-month'];
+    }
+    
     if (!deviceModels || deviceModels.length === 0) {
+        const emptyMessages = {
+            'this-month': 'لا توجد أجهزة مباعة هذا الشهر',
+            'last-month': 'لا توجد أجهزة مباعة في الشهر الماضي',
+            'this-week': 'لا توجد أجهزة مباعة هذا الأسبوع',
+            'last-week': 'لا توجد أجهزة مباعة في الأسبوع الماضي',
+            'last-30-days': 'لا توجد أجهزة مباعة في آخر 30 يوم',
+            'last-7-days': 'لا توجد أجهزة مباعة في آخر 7 أيام',
+            'custom': 'لا توجد أجهزة مباعة في الفترة المحددة'
+        };
+        
         content.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-laptop text-muted fa-2x mb-3"></i>
-                <p class="text-muted">لا توجد أجهزة مباعة هذا الشهر</p>
+            <div class="text-center py-5">
+                <i class="fas fa-laptop text-muted fa-3x mb-3"></i>
+                <p class="text-muted fs-5">${emptyMessages[period] || emptyMessages['this-month']}</p>
             </div>
         `;
         if (countBadge) countBadge.textContent = '0';
         return;
     }
     
-    let html = '';
-    let totalCount = 0;
+    // Calculate total count for percentage calculations
+    const totalCount = deviceModels.reduce((sum, m) => sum + parseInt(m.count || 0), 0);
     
-    deviceModels.forEach((model, index) => {
-        totalCount += parseInt(model.count);
-        const percentage = ((model.count / deviceModels.reduce((sum, m) => sum + parseInt(m.count), 0)) * 100).toFixed(1);
+    // Create enhanced display with chart and table
+    let html = '<div class="row g-3">';
+    
+    // Left side: Top devices list with enhanced styling
+    html += '<div class="col-lg-7">';
+    html += '<div class="mb-3"><h6 class="fw-bold mb-3"><i class="fas fa-trophy text-warning me-2"></i>أفضل الأجهزة مبيعاً</h6></div>';
+    
+    deviceModels.slice(0, 5).forEach((model, index) => {
+        const count = parseInt(model.count || 0);
+        const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
+        const barWidth = totalCount > 0 ? (count / totalCount) * 100 : 0;
+        
+        // Color coding based on rank
+        let borderColor = '#0d6efd';
+        let bgColor = 'rgba(13, 110, 253, 0.05)';
+        if (index === 0) {
+            borderColor = '#ffc107';
+            bgColor = 'rgba(255, 193, 7, 0.1)';
+        } else if (index === 1) {
+            borderColor = '#6c757d';
+            bgColor = 'rgba(108, 117, 125, 0.1)';
+        } else if (index === 2) {
+            borderColor = '#fd7e14';
+            bgColor = 'rgba(253, 126, 20, 0.1)';
+        }
         
         html += `
-            <div class="d-flex align-items-center mb-3 p-3 rounded" 
-                 style="background-color: rgba(13, 110, 253, 0.05); border-left: 4px solid #0d6efd;">
-                <div class="me-3">
-                    <div class="fw-bold text-primary">${index + 1}</div>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1 fw-bold">${model.device_model}</h6>
+            <div class="mb-3 p-3 rounded shadow-sm" style="background-color: ${bgColor}; border-left: 4px solid ${borderColor};">
+                <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="d-flex align-items-center">
-                        <span class="badge bg-primary me-2">${model.count} جهاز</span>
-                        <small class="text-muted">${percentage}% من المبيعات</small>
+                        <div class="me-3" style="min-width: 30px;">
+                            ${index === 0 ? '<i class="fas fa-crown text-warning fa-lg"></i>' : 
+                              index === 1 ? '<i class="fas fa-medal text-secondary fa-lg"></i>' :
+                              index === 2 ? '<i class="fas fa-award text-warning fa-lg"></i>' :
+                              `<span class="fw-bold text-muted">${index + 1}</span>`}
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">${model.device_model}</h6>
+                        </div>
                     </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary fs-6 px-3 py-2">${count} جهاز</span>
+                        <small class="d-block text-muted mt-1">${percentage}%</small>
+                    </div>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" role="progressbar" style="width: ${barWidth}%; background-color: ${borderColor};" 
+                         aria-valuenow="${barWidth}" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
             </div>
         `;
     });
+    
+    html += '</div>';
+    
+    // Right side: Visual chart representation
+    html += '<div class="col-lg-5">';
+    html += '<div class="mb-3"><h6 class="fw-bold mb-3"><i class="fas fa-chart-pie text-info me-2"></i>التوزيع النسبي</h6></div>';
+    html += '<div class="d-flex flex-column gap-3">';
+    
+    deviceModels.slice(0, 5).forEach((model, index) => {
+        const count = parseInt(model.count || 0);
+        const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
+        
+        html += `
+            <div class="p-3 rounded shadow-sm" style="background: rgba(13, 110, 253, 0.03);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small fw-bold">${model.device_model}</span>
+                    <span class="badge bg-info">${percentage}%</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: ${percentage}%" 
+                         aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <small class="text-muted d-block mt-2">${count} جهاز من ${totalCount} إجمالي</small>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    
+    // Summary stats at bottom
+    html += `
+        <div class="row g-3 mt-3 pt-3 border-top">
+            <div class="col-md-4">
+                <div class="text-center p-3 rounded" style="background: rgba(13, 110, 253, 0.05);">
+                    <i class="fas fa-laptop text-primary fa-2x mb-2"></i>
+                    <h4 class="fw-bold mb-0">${deviceModels.length}</h4>
+                    <small class="text-muted">نوع مختلف من الأجهزة</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center p-3 rounded" style="background: rgba(25, 135, 84, 0.05);">
+                    <i class="fas fa-shopping-cart text-success fa-2x mb-2"></i>
+                    <h4 class="fw-bold mb-0">${totalCount}</h4>
+                    <small class="text-muted">إجمالي الأجهزة المباعة</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center p-3 rounded" style="background: rgba(255, 193, 7, 0.05);">
+                    <i class="fas fa-chart-line text-warning fa-2x mb-2"></i>
+                    <h4 class="fw-bold mb-0">${totalCount > 0 ? ((parseInt(deviceModels[0].count || 0) / totalCount) * 100).toFixed(1) : 0}%</h4>
+                    <small class="text-muted">حصة أفضل جهاز</small>
+                </div>
+            </div>
+        </div>
+    `;
     
     content.innerHTML = html;
     if (countBadge) countBadge.textContent = deviceModels.length;

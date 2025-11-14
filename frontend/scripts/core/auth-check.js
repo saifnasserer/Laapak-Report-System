@@ -9,236 +9,137 @@
 (function() {
     'use strict';
     
-    console.log('🚀 Base Auth Wrapper: Script loaded at', new Date().toISOString());
-    console.log('🚀 Base Auth Wrapper: Current URL:', window.location.href);
-    console.log('🚀 Base Auth Wrapper: Document ready state:', document.readyState);
-    
-    // Debug: Dump ALL storage keys to see what's actually stored
-    function dumpAllStorage() {
-        console.log('📦 Base Auth Wrapper: DUMPING ALL STORAGE');
-        console.log('📦 localStorage keys:', Object.keys(localStorage));
-        console.log('📦 sessionStorage keys:', Object.keys(sessionStorage));
-        
-        // Log all localStorage items
-        const allLocalStorage = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            const value = localStorage.getItem(key);
-            allLocalStorage[key] = value ? (value.length > 50 ? value.substring(0, 50) + '...' : value) : 'null';
-        }
-        console.log('📦 localStorage contents:', allLocalStorage);
-        
-        // Log all sessionStorage items
-        const allSessionStorage = {};
-        for (let i = 0; i < sessionStorage.length; i++) {
-            const key = sessionStorage.key(i);
-            const value = sessionStorage.getItem(key);
-            allSessionStorage[key] = value ? (value.length > 50 ? value.substring(0, 50) + '...' : value) : 'null';
-        }
-        console.log('📦 sessionStorage contents:', allSessionStorage);
-    }
-    
     // Immediate check function - checks storage directly
     function checkSessionImmediate() {
-        console.log('🔍 Base Auth Wrapper: checkSessionImmediate() called');
-        
         try {
-            // Dump all storage first
-            dumpAllStorage();
-            
             // Get current page information
             const currentPath = window.location.pathname;
             const filename = currentPath.split('/').pop() || 'index.html';
             const isRoot = currentPath === '/' || currentPath.endsWith('/index.html') || filename === 'index.html' || filename === '';
             
-            console.log('🔍 Base Auth Wrapper: Path analysis:', {
-                currentPath,
-                filename,
-                isRoot,
-                fullUrl: window.location.href,
-                hostname: window.location.hostname,
-                pathname: window.location.pathname
-            });
-            
             if (!isRoot) {
-                // Not on root page, skip immediate check
-                console.log('ℹ️ Base Auth Wrapper: Not on root page, skipping immediate check');
                 return false;
             }
             
-            console.log('🔐 Base Auth Wrapper: Immediate session check for root page:', filename);
-            
             // Check storage directly first (faster, no dependency on authMiddleware)
+            // Check standard keys
             const adminTokenLocal = localStorage.getItem('adminToken');
             const adminTokenSession = sessionStorage.getItem('adminToken');
             const clientTokenLocal = localStorage.getItem('clientToken');
             const clientTokenSession = sessionStorage.getItem('clientToken');
             
-            // Also check adminInfo and clientInfo
-            const adminInfoLocal = localStorage.getItem('adminInfo');
-            const adminInfoSession = sessionStorage.getItem('adminInfo');
+            // Also check alternative keys (from remote SDK)
+            const laapakToken = localStorage.getItem('laapak_token');
+            
+            // Also check clientInfo for token
             const clientInfoLocal = localStorage.getItem('clientInfo');
             const clientInfoSession = sessionStorage.getItem('clientInfo');
             
-            const adminToken = adminTokenLocal || adminTokenSession;
-            const clientToken = clientTokenLocal || clientTokenSession;
+            // Try to get token from clientInfo if it exists
+            let clientTokenFromInfo = null;
+            if (clientInfoLocal) {
+                try {
+                    const info = JSON.parse(clientInfoLocal);
+                    clientTokenFromInfo = info.token || null;
+                } catch (e) {}
+            }
+            if (clientInfoSession && !clientTokenFromInfo) {
+                try {
+                    const info = JSON.parse(clientInfoSession);
+                    clientTokenFromInfo = info.token || null;
+                } catch (e) {}
+            }
             
-            console.log('🔍 Base Auth Wrapper: Storage check details:', {
-                adminTokenLocal: adminTokenLocal ? adminTokenLocal.substring(0, 20) + '...' : 'null',
-                adminTokenSession: adminTokenSession ? adminTokenSession.substring(0, 20) + '...' : 'null',
-                clientTokenLocal: clientTokenLocal ? clientTokenLocal.substring(0, 20) + '...' : 'null',
-                clientTokenSession: clientTokenSession ? clientTokenSession.substring(0, 20) + '...' : 'null',
-                adminToken: adminToken ? adminToken.substring(0, 20) + '...' : 'null',
-                clientToken: clientToken ? clientToken.substring(0, 20) + '...' : 'null',
-                adminInfoExists: !!(adminInfoLocal || adminInfoSession),
-                clientInfoExists: !!(clientInfoLocal || clientInfoSession)
-            });
+            const adminToken = adminTokenLocal || adminTokenSession;
+            const clientToken = clientTokenLocal || clientTokenSession || laapakToken || clientTokenFromInfo;
             
             // Basic token validation (length check)
             const hasAdminSession = adminToken && adminToken.length >= 10;
             const hasClientSession = clientToken && clientToken.length >= 10;
             
-            console.log('🔐 Base Auth Wrapper: Direct storage check results:', {
-                hasAdminSession,
-                hasClientSession,
-                adminTokenLength: adminToken ? adminToken.length : 0,
-                clientTokenLength: clientToken ? clientToken.length : 0,
-                adminTokenExists: !!adminToken,
-                clientTokenExists: !!clientToken
-            });
-            
             // Redirect immediately if session found
             if (hasAdminSession) {
-                console.log('✅ Base Auth Wrapper: Admin session found (direct check), redirecting to /admin.html');
-                console.log('🔄 Base Auth Wrapper: Executing window.location.replace("/admin.html")');
                 try {
                     window.location.replace('/admin.html');
-                    console.log('✅ Base Auth Wrapper: Redirect command executed');
-                    return true; // Prevent further execution
+                    return true;
                 } catch (error) {
-                    console.error('❌ Base Auth Wrapper: Error during redirect:', error);
+                    console.error('Error during redirect:', error);
                     return false;
                 }
             }
             
             if (hasClientSession) {
-                console.log('✅ Base Auth Wrapper: Client session found (direct check), redirecting to /client-dashboard.html');
-                console.log('🔄 Base Auth Wrapper: Executing window.location.replace("/client-dashboard.html")');
                 try {
                     window.location.replace('/client-dashboard.html');
-                    console.log('✅ Base Auth Wrapper: Redirect command executed');
-                    return true; // Prevent further execution
+                    return true;
                 } catch (error) {
-                    console.error('❌ Base Auth Wrapper: Error during redirect:', error);
+                    console.error('Error during redirect:', error);
                     return false;
                 }
             }
             
-            console.log('ℹ️ Base Auth Wrapper: No active session found (direct check)');
             return false;
         } catch (error) {
-            console.error('❌ Base Auth Wrapper: Error in checkSessionImmediate:', error);
+            console.error('Error in checkSessionImmediate:', error);
             return false;
         }
     }
     
     // Enhanced check with authMiddleware when available
     function checkSessionEnhanced() {
-        console.log('🔍 Base Auth Wrapper: checkSessionEnhanced() called');
-        
         try {
             // Check if auth-middleware.js is loaded
             if (typeof authMiddleware === 'undefined') {
-                console.log('⏳ Base Auth Wrapper: authMiddleware not loaded yet, retrying in 50ms...');
-                // Retry after a short delay
                 setTimeout(checkSessionEnhanced, 50);
                 return;
             }
-            
-            console.log('✅ Base Auth Wrapper: authMiddleware is available');
             
             // Get current page information
             const currentPath = window.location.pathname;
             const filename = currentPath.split('/').pop() || 'index.html';
             const isRoot = currentPath === '/' || currentPath.endsWith('/index.html') || filename === 'index.html' || filename === '';
             
-            console.log('🔍 Base Auth Wrapper: Enhanced check - Path analysis:', {
-                currentPath,
-                filename,
-                isRoot
-            });
-            
             if (!isRoot) {
-                console.log('ℹ️ Base Auth Wrapper: Not on root page, skipping enhanced check');
                 return;
             }
-            
-            console.log('🔐 Base Auth Wrapper: Enhanced check with authMiddleware for root page');
             
             // Use authMiddleware for more accurate check
             const adminLoggedIn = authMiddleware.isAdminLoggedIn();
             const clientLoggedIn = authMiddleware.isClientLoggedIn();
             
-            console.log('🔐 Base Auth Wrapper: AuthMiddleware check results:', {
-                adminLoggedIn,
-                clientLoggedIn,
-                adminToken: authMiddleware.getAdminToken ? (authMiddleware.getAdminToken() ? authMiddleware.getAdminToken().substring(0, 20) + '...' : 'null') : 'method not available',
-                clientToken: authMiddleware.getClientToken ? (authMiddleware.getClientToken() ? authMiddleware.getClientToken().substring(0, 20) + '...' : 'null') : 'method not available'
-            });
-            
             // Redirect if authenticated
             if (adminLoggedIn) {
-                console.log('✅ Base Auth Wrapper: Admin session found (authMiddleware), redirecting to /admin.html');
-                console.log('🔄 Base Auth Wrapper: Executing window.location.replace("/admin.html")');
                 try {
                     window.location.replace('/admin.html');
-                    console.log('✅ Base Auth Wrapper: Redirect command executed');
                     return;
                 } catch (error) {
-                    console.error('❌ Base Auth Wrapper: Error during redirect:', error);
+                    console.error('Error during redirect:', error);
                 }
             }
             
             if (clientLoggedIn) {
-                console.log('✅ Base Auth Wrapper: Client session found (authMiddleware), redirecting to /client-dashboard.html');
-                console.log('🔄 Base Auth Wrapper: Executing window.location.replace("/client-dashboard.html")');
                 try {
                     window.location.replace('/client-dashboard.html');
-                    console.log('✅ Base Auth Wrapper: Redirect command executed');
                     return;
                 } catch (error) {
-                    console.error('❌ Base Auth Wrapper: Error during redirect:', error);
+                    console.error('Error during redirect:', error);
                 }
             }
-            
-            console.log('ℹ️ Base Auth Wrapper: No active session found (authMiddleware check)');
         } catch (error) {
-            console.error('❌ Base Auth Wrapper: Error in checkSessionEnhanced:', error);
+            console.error('Error in checkSessionEnhanced:', error);
         }
     }
     
     // Run immediate check right away (before any scripts load)
-    console.log('🚀 Base Auth Wrapper: Starting immediate check...');
     const immediateRedirect = checkSessionImmediate();
-    console.log('🚀 Base Auth Wrapper: Immediate check result:', immediateRedirect);
     
     // If immediate check didn't redirect, run enhanced check when scripts are ready
     if (!immediateRedirect) {
-        console.log('🚀 Base Auth Wrapper: No immediate redirect, setting up enhanced check');
-        // Start checking as soon as possible
         if (document.readyState === 'loading') {
-            console.log('🚀 Base Auth Wrapper: Document still loading, waiting for DOMContentLoaded');
-            document.addEventListener('DOMContentLoaded', function() {
-                console.log('🚀 Base Auth Wrapper: DOMContentLoaded fired, running enhanced check');
-                checkSessionEnhanced();
-            });
+            document.addEventListener('DOMContentLoaded', checkSessionEnhanced);
         } else {
-            console.log('🚀 Base Auth Wrapper: DOM already loaded, running enhanced check immediately');
-            // DOM already loaded
             checkSessionEnhanced();
         }
-    } else {
-        console.log('🚀 Base Auth Wrapper: Immediate redirect triggered, skipping enhanced check');
     }
 })();
 
@@ -253,8 +154,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Get current page information
     const currentPath = window.location.pathname;
     const filename = currentPath.split('/').pop() || 'index.html';
-    
-    console.log('Auth check for page:', filename);
     
     // Define protected pages
     const adminPages = [
@@ -289,22 +188,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     const isClientPage = clientPages.includes(filename);
     const isLoginPage = filename === 'index.html';
     
-    console.log('Page type:', { isAdminPage, isSuperadminPage, isClientPage, isLoginPage });
-    
     // Handle authentication checks
     if (isAdminPage || isSuperadminPage) {
         // Check if admin is logged in
         if (!authMiddleware.isAdminLoggedIn()) {
-            console.log('Admin not authenticated, redirecting to domain root');
             window.location.href = '/';
             return;
         } else {
-            console.log('Admin authenticated, checking role permissions...');
-            
             // For superadmin pages, check if user has superadmin role
             if (isSuperadminPage) {
-                console.log('🔍 Checking superadmin access...');
-                
                 // Get user info from API instead of localStorage to ensure accuracy
                 let userRole = 'admin'; // default fallback
                 let adminInfo = {};
@@ -312,12 +204,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 try {
                     const token = authMiddleware.getAdminToken();
                     const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
-                    
-                    console.log('🔍 API call details:', {
-                        token: token ? token.substring(0, 20) + '...' : 'null',
-                        apiBaseUrl,
-                        endpoint: `${apiBaseUrl}/api/auth/me`
-                    });
                     
                     // Add a small delay to ensure the page is fully loaded
                     await new Promise(resolve => setTimeout(resolve, 100));
@@ -330,55 +216,35 @@ document.addEventListener('DOMContentLoaded', async function() {
                         }
                     });
                     
-                    console.log('🔍 API response status:', response.status);
-                    
                     if (response.ok) {
                         const userData = await response.json();
-                        console.log('🔍 API response data:', userData);
                         
                         // Check if userData has a user property (wrapped) or is the user object directly
                         if (userData && userData.user) {
                             userRole = userData.user.role || 'admin';
                             adminInfo = userData.user;
-                            console.log('✅ Got user info from API (wrapped):', userData.user);
                         } else if (userData && userData.role) {
                             // Direct user object response
                             userRole = userData.role || 'admin';
                             adminInfo = userData;
-                            console.log('✅ Got user info from API (direct):', userData);
                         } else {
                             throw new Error('Invalid user data structure');
                         }
                     } else {
                         const errorText = await response.text();
-                        console.log('🔍 API error response:', errorText);
                         throw new Error(`API response not ok: ${response.status} - ${errorText}`);
                     }
                 } catch (error) {
-                    console.error('❌ Error getting user info from API:', error);
+                    console.error('Error getting user info from API:', error);
                     // Fallback to localStorage
                     adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
                     userRole = adminInfo.role || 'admin';
-                    console.log('⚠️ Using localStorage fallback due to API error:', adminInfo);
                 }
-                
-                console.log('🔍 Superadmin page access check:', {
-                    filename,
-                    userRole,
-                    adminInfo: adminInfo,
-                    isSuperadmin: userRole === 'superadmin',
-                    shouldShowModal: userRole !== 'superadmin'
-                });
                 
                 if (userRole !== 'superadmin') {
-                    console.log('❌ Access denied: Financial pages require superadmin role');
                     showAccessDeniedModal();
                     return;
-                } else {
-                    console.log('✅ Superadmin access granted to financial page');
                 }
-            } else {
-                console.log('✅ Admin access granted to regular admin page');
             }
         }
     }
@@ -386,11 +252,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (isClientPage) {
         // Check if client is logged in
         if (!authMiddleware.isClientLoggedIn()) {
-            console.log('Client not authenticated, redirecting to domain root');
             window.location.href = '/';
             return;
-        } else {
-            console.log('Client authenticated, access granted');
         }
     }
     
@@ -398,19 +261,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (isLoginPage) {
         // Check if admin is already logged in
         if (authMiddleware.isAdminLoggedIn()) {
-            console.log('Admin already authenticated, redirecting to admin dashboard');
             window.location.href = 'admin.html';
             return;
         }
         
         // Check if client is already logged in
         if (authMiddleware.isClientLoggedIn()) {
-            console.log('Client already authenticated, redirecting to client dashboard');
             window.location.href = 'client-dashboard.html';
             return;
         }
-        
-        console.log('No authentication found, staying on login page');
     }
     
     // Add logout functionality to any logout buttons
@@ -419,8 +278,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     logoutButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            
-            console.log('Logout button clicked');
             
             if (button.classList.contains('admin-logout-btn')) {
                 authMiddleware.adminLogout();
@@ -432,20 +289,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 authMiddleware.clientLogout();
             }
                 
-                // Redirect to domain root
-                window.location.href = '/';
+            // Redirect to domain root
+            window.location.href = '/';
         });
     });
 });
     
 // Show access denied modal
 function showAccessDeniedModal() {
-    console.log('🚨 showAccessDeniedModal called - this should only happen for admin users');
-    
-    // Get current user info for debugging
+    // Get current user info
     const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
     const userRole = adminInfo.role || 'admin';
-    console.log('🚨 Modal triggered for user role:', userRole);
     
     // Create modal HTML
     const modalHTML = `

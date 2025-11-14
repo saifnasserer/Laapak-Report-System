@@ -415,22 +415,38 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// GET /reports/insights/device-models - get device models sold this month
+// GET /reports/insights/device-models - get device models sold in a specific time period
 router.get('/insights/device-models', auth, async (req, res) => {
     try {
-        const currentDate = new Date();
-        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const { startDate, endDate } = req.query;
+        
+        let startDateObj, endDateObj;
+        
+        // If date range is provided, use it
+        if (startDate && endDate) {
+            startDateObj = new Date(startDate);
+            endDateObj = new Date(endDate);
+            // Set end date to end of day
+            endDateObj.setHours(23, 59, 59, 999);
+        } else {
+            // Default to current month
+            const currentDate = new Date();
+            startDateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            endDateObj = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            endDateObj.setHours(23, 59, 59, 999);
+        }
 
         const deviceModels = await Report.findAll({
             where: {
                 created_at: {
-                    [Op.between]: [startOfMonth, endOfMonth]
+                    [Op.between]: [startDateObj, endDateObj]
                 }
             },
             attributes: [
                 'device_model',
-                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+                [sequelize.fn('MIN', sequelize.col('created_at')), 'first_sale'],
+                [sequelize.fn('MAX', sequelize.col('created_at')), 'last_sale']
             ],
             group: ['device_model'],
             order: [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
