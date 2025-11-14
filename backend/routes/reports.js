@@ -9,7 +9,7 @@ const router = express.Router();
 // GET /reports/count - get count of reports
 router.get('/count', auth, async (req, res) => {
     try {
-        const { status, startDate, endDate } = req.query;
+        const { status, startDate, endDate, dateField } = req.query;
         
         let whereClause = {};
         
@@ -18,17 +18,22 @@ router.get('/count', auth, async (req, res) => {
             whereClause.status = status;
         }
         
+        // Determine which date field to use for filtering
+        // For completed reports, use updated_at (when status was changed to completed)
+        // For other reports, use inspection_date (when report was created/inspected)
+        const dateFieldToUse = dateField || (status === 'completed' ? 'updated_at' : 'inspection_date');
+        
         // If date range is provided
         if (startDate && endDate) {
-            whereClause.inspection_date = {
+            whereClause[dateFieldToUse] = {
                 [Op.between]: [new Date(startDate), new Date(endDate)]
             };
         } else if (startDate) {
-            whereClause.inspection_date = {
+            whereClause[dateFieldToUse] = {
                 [Op.gte]: new Date(startDate)
             };
         } else if (endDate) {
-            whereClause.inspection_date = {
+            whereClause[dateFieldToUse] = {
                 [Op.lte]: new Date(endDate)
             };
         }
@@ -456,6 +461,109 @@ router.get('/insights/device-models', auth, async (req, res) => {
         res.json(deviceModels);
     } catch (error) {
         console.error('Error getting device models insights:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// GET /reports/dashboard/today-summary - get today's summary statistics
+router.get('/dashboard/today-summary', auth, async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        // Get today's statistics
+        const [
+            reportsToday,
+            reportsYesterday,
+            invoicesToday,
+            invoicesYesterday,
+            completedToday,
+            completedYesterday,
+            pendingCount
+        ] = await Promise.all([
+            // Reports today (created/inspected today)
+            Report.count({
+                where: {
+                    inspection_date: {
+                        [Op.between]: [today, tomorrow]
+                    }
+                }
+            }),
+            // Reports yesterday
+            Report.count({
+                where: {
+                    inspection_date: {
+                        [Op.between]: [yesterday, today]
+                    }
+                }
+            }),
+            // Invoices today (using Invoice model)
+            Invoice.count({
+                where: {
+                    date: {
+                        [Op.between]: [today, tomorrow]
+                    }
+                }
+            }),
+            // Invoices yesterday
+            Invoice.count({
+                where: {
+                    date: {
+                        [Op.between]: [yesterday, today]
+                    }
+                }
+            }),
+            // Completed reports today (completed status changed today)
+            Report.count({
+                where: {
+                    status: 'completed',
+                    updated_at: {
+                        [Op.between]: [today, tomorrow]
+                    }
+                }
+            }),
+            // Completed reports yesterday
+            Report.count({
+                where: {
+                    status: 'completed',
+                    updated_at: {
+                        [Op.between]: [yesterday, today]
+                    }
+                }
+            }),
+            // Pending reports count
+            Report.count({
+                where: {
+                    status: 'pending'
+                }
+            })
+        ]);
+        
+        res.json({
+            reports: {
+                today: reportsToday,
+                yesterday: reportsYesterday,
+                trend: reportsToday - reportsYesterday
+            },
+            invoices: {
+                today: invoicesToday,
+                yesterday: invoicesYesterday,
+                trend: invoicesToday - invoicesYesterday
+            },
+            completed: {
+                today: completedToday,
+                yesterday: completedYesterday,
+                trend: completedToday - completedYesterday
+            },
+            pending: pendingCount
+        });
+    } catch (error) {
+        console.error('Error getting today summary:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });

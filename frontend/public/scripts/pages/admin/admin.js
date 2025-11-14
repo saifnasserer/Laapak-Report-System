@@ -218,11 +218,13 @@ function loadTodaySummary() {
             }
         }
         
-        if (attentionEl) attentionEl.textContent = pendingCount.count || '0';
+        // Update attention needed (pending reports)
+        if (attentionEl) attentionEl.textContent = data.pending || '0';
     })
     .catch(error => {
         console.error('Error loading today summary:', error);
-        // Set default values
+        
+        // Set placeholder values on error
         const reportsTodayEl = document.getElementById('reports-today');
         const invoicesTodayEl = document.getElementById('invoices-today');
         const completedTodayEl = document.getElementById('completed-today');
@@ -232,6 +234,11 @@ function loadTodaySummary() {
         if (invoicesTodayEl) invoicesTodayEl.textContent = '0';
         if (completedTodayEl) completedTodayEl.textContent = '0';
         if (attentionEl) attentionEl.textContent = '0';
+        
+        // Show error toast
+        if (typeof toastr !== 'undefined') {
+            toastr.error('فشل في تحميل ملخص اليوم');
+        }
     });
 }
 
@@ -297,15 +304,15 @@ function loadDashboardStats() {
             if (!r.ok) throw new Error(`Reports last month failed: ${r.status}`);
             return r.json();
         }),
-        // Completed this week
-        fetch(`${baseUrl}/api/reports/count?status=completed&startDate=${currentWeekStart.toISOString()}&endDate=${currentWeekEnd.toISOString()}`, {
+        // Completed this week (use updated_at to get reports completed this week, not just inspected)
+        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${currentWeekStart.toISOString()}&endDate=${currentWeekEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) throw new Error(`Completed this week failed: ${r.status}`);
             return r.json();
         }),
-        // Completed last week
-        fetch(`${baseUrl}/api/reports/count?status=completed&startDate=${lastWeekStart.toISOString()}&endDate=${lastWeekEnd.toISOString()}`, {
+        // Completed last week (use updated_at to get reports completed last week)
+        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${lastWeekStart.toISOString()}&endDate=${lastWeekEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) throw new Error(`Completed last week failed: ${r.status}`);
@@ -1735,11 +1742,13 @@ function displayDeviceModels(deviceModels, period = 'this-month', startDate = nu
     // Create enhanced display with chart and table
     let html = '<div class="row g-3">';
     
-    // Left side: Top devices list with enhanced styling
+    // Left side: Top devices list with enhanced styling (scrollable)
     html += '<div class="col-lg-7">';
     html += '<div class="mb-3"><h6 class="fw-bold mb-3"><i class="fas fa-trophy text-warning me-2"></i>أفضل الأجهزة مبيعاً</h6></div>';
+    html += '<div style="max-height: 450px; overflow-y: auto; padding-right: 10px;">';
+    html += '<style>.device-models-scroll::-webkit-scrollbar { width: 6px; } .device-models-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; } .device-models-scroll::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; } .device-models-scroll::-webkit-scrollbar-thumb:hover { background: #555; }</style>';
     
-    deviceModels.slice(0, 5).forEach((model, index) => {
+    deviceModels.forEach((model, index) => {
         const count = parseInt(model.count || 0);
         const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
         const barWidth = totalCount > 0 ? (count / totalCount) * 100 : 0;
@@ -1785,14 +1794,14 @@ function displayDeviceModels(deviceModels, period = 'this-month', startDate = nu
         `;
     });
     
-    html += '</div>';
+    html += '</div></div>'; // Close scrollable container and col
     
-    // Right side: Visual chart representation
+    // Right side: Visual chart representation (scrollable)
     html += '<div class="col-lg-5">';
     html += '<div class="mb-3"><h6 class="fw-bold mb-3"><i class="fas fa-chart-pie text-info me-2"></i>التوزيع النسبي</h6></div>';
-    html += '<div class="d-flex flex-column gap-3">';
+    html += '<div style="max-height: 450px; overflow-y: auto; padding-right: 10px;" class="device-models-scroll">';
     
-    deviceModels.slice(0, 5).forEach((model, index) => {
+    deviceModels.forEach((model, index) => {
         const count = parseInt(model.count || 0);
         const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
         
@@ -1811,9 +1820,8 @@ function displayDeviceModels(deviceModels, period = 'this-month', startDate = nu
         `;
     });
     
-    html += '</div>';
-    html += '</div>';
-    html += '</div>';
+    html += '</div></div>'; // Close scrollable container and col
+    html += '</div>'; // Close row
     
     // Summary stats at bottom
     html += `
@@ -1904,56 +1912,184 @@ function displayWarrantyAlerts(alerts) {
     
     if (!alerts || alerts.length === 0) {
         content.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-shield-check text-success fa-2x mb-3"></i>
-                <p class="text-muted">لا توجد تنبيهات ضمان</p>
+            <div class="text-center py-5">
+                <i class="fas fa-shield-check text-success fa-3x mb-3"></i>
+                <p class="text-muted fs-5">لا توجد تنبيهات ضمان</p>
+                <small class="text-muted">جميع الضمانات سارية المفعول</small>
             </div>
         `;
         if (countBadge) countBadge.textContent = '0';
         return;
     }
     
+    // Group alerts by urgency
+    const criticalAlerts = alerts.filter(a => a.days_remaining <= 3);
+    const warningAlerts = alerts.filter(a => a.days_remaining > 3 && a.days_remaining <= 5);
+    const infoAlerts = alerts.filter(a => a.days_remaining > 5);
+    
     let html = '';
     
-    alerts.forEach(alert => {
-        const urgencyClass = alert.days_remaining <= 3 ? 'border-danger' : 
-                           alert.days_remaining <= 5 ? 'border-warning' : 'border-info';
-        const urgencyColor = alert.days_remaining <= 3 ? '#dc3545' : 
-                           alert.days_remaining <= 5 ? '#ffc107' : '#0dcaf0';
-        
-        const warrantyTypeText = {
-            'maintenance_6months': 'ضمان الصيانة الدورية (6 أشهر)',
-            'maintenance_12months': 'ضمان الصيانة الدورية (12 شهر)'
-        }[alert.warranty_type] || alert.warranty_type;
-        
-        html += `
-            <div class="d-flex align-items-center mb-3 p-3 rounded" 
-                 style="background-color: ${urgencyColor}15; border-left: 4px solid ${urgencyColor};">
-                <div class="me-3">
-                    <i class="fas fa-exclamation-triangle" style="color: ${urgencyColor}; font-size: 1.2rem;"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1 fw-bold">${alert.client_name}</h6>
-                    <p class="text-muted mb-1 small">${alert.device_model}</p>
-                    <div class="d-flex align-items-center">
-                        <span class="badge ${alert.days_remaining <= 3 ? 'bg-danger' : alert.days_remaining <= 5 ? 'bg-warning' : 'bg-info'} me-2">
-                            ${alert.days_remaining} يوم
-                        </span>
-                        <small class="text-muted">${warrantyTypeText}</small>
-                    </div>
-                </div>
-                <div class="text-end">
-                    <small class="text-muted d-block">${formatDate(new Date(alert.warranty_end_date))}</small>
-                    <a href="report.html?id=${alert.report_id}" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye"></i>
-                    </a>
+    // Summary cards at top
+    html += `
+        <div class="row g-2 mb-3">
+            <div class="col-md-4">
+                <div class="text-center p-2 rounded" style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3);">
+                    <i class="fas fa-exclamation-circle text-danger fa-lg mb-1"></i>
+                    <h5 class="mb-0 text-danger">${criticalAlerts.length}</h5>
+                    <small class="text-muted">عاجلة (≤ 3 أيام)</small>
                 </div>
             </div>
-        `;
-    });
+            <div class="col-md-4">
+                <div class="text-center p-2 rounded" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3);">
+                    <i class="fas fa-exclamation-triangle text-warning fa-lg mb-1"></i>
+                    <h5 class="mb-0 text-warning">${warningAlerts.length}</h5>
+                    <small class="text-muted">تحذير (4-5 أيام)</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center p-2 rounded" style="background: rgba(13, 202, 240, 0.1); border: 1px solid rgba(13, 202, 240, 0.3);">
+                    <i class="fas fa-info-circle text-info fa-lg mb-1"></i>
+                    <h5 class="mb-0 text-info">${infoAlerts.length}</h5>
+                    <small class="text-muted">تنبيه (6-7 أيام)</small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Scrollable alerts list
+    html += '<div style="max-height: 400px; overflow-y: auto; padding-right: 10px;" class="warranty-alerts-scroll">';
+    html += '<style>.warranty-alerts-scroll::-webkit-scrollbar { width: 6px; } .warranty-alerts-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; } .warranty-alerts-scroll::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; } .warranty-alerts-scroll::-webkit-scrollbar-thumb:hover { background: #555; }</style>';
+    
+    // Display critical alerts first
+    if (criticalAlerts.length > 0) {
+        criticalAlerts.forEach(alert => {
+            html += buildWarrantyAlertCard(alert, 'critical');
+        });
+    }
+    
+    // Then warning alerts
+    if (warningAlerts.length > 0) {
+        warningAlerts.forEach(alert => {
+            html += buildWarrantyAlertCard(alert, 'warning');
+        });
+    }
+    
+    // Finally info alerts
+    if (infoAlerts.length > 0) {
+        infoAlerts.forEach(alert => {
+            html += buildWarrantyAlertCard(alert, 'info');
+        });
+    }
+    
+    html += '</div>'; // Close scrollable container
     
     content.innerHTML = html;
     if (countBadge) countBadge.textContent = alerts.length;
+}
+
+/**
+ * Build warranty alert card
+ */
+function buildWarrantyAlertCard(alert, urgencyLevel = 'info') {
+    const urgencyConfig = {
+        'critical': {
+            color: '#dc3545',
+            bgColor: 'rgba(220, 53, 69, 0.1)',
+            borderColor: '#dc3545',
+            icon: 'fa-exclamation-circle',
+            badgeClass: 'bg-danger',
+            text: 'عاجل'
+        },
+        'warning': {
+            color: '#ffc107',
+            bgColor: 'rgba(255, 193, 7, 0.1)',
+            borderColor: '#ffc107',
+            icon: 'fa-exclamation-triangle',
+            badgeClass: 'bg-warning',
+            text: 'تحذير'
+        },
+        'info': {
+            color: '#0dcaf0',
+            bgColor: 'rgba(13, 202, 240, 0.1)',
+            borderColor: '#0dcaf0',
+            icon: 'fa-info-circle',
+            badgeClass: 'bg-info',
+            text: 'تنبيه'
+        }
+    };
+    
+    const config = urgencyConfig[urgencyLevel] || urgencyConfig['info'];
+    const warrantyTypeText = {
+        'maintenance_6months': 'ضمان الصيانة (6 أشهر)',
+        'maintenance_12months': 'ضمان الصيانة (12 شهر)'
+    }[alert.warranty_type] || alert.warranty_type || 'ضمان';
+    
+    const inspectionDate = alert.inspection_date ? new Date(alert.inspection_date).toLocaleDateString('ar-EG') : 'غير محدد';
+    const warrantyEndDate = alert.warranty_end_date ? new Date(alert.warranty_end_date).toLocaleDateString('ar-EG') : 'غير محدد';
+    
+    return `
+        <div class="mb-3 p-3 rounded shadow-sm" 
+             style="background-color: ${config.bgColor}; border-left: 4px solid ${config.borderColor};">
+            <div class="d-flex align-items-start justify-content-between mb-2">
+                <div class="d-flex align-items-start flex-grow-1">
+                    <div class="me-3">
+                        <i class="fas ${config.icon}" style="color: ${config.color}; font-size: 1.5rem; margin-top: 5px;"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-1">
+                            <h6 class="mb-0 fw-bold me-2">${alert.client_name || 'عميل غير معروف'}</h6>
+                            <span class="badge ${config.badgeClass} badge-sm">${config.text}</span>
+                        </div>
+                        <div class="mb-2">
+                            <p class="mb-1 fw-bold small">${alert.device_model || 'جهاز غير معروف'}</p>
+                            ${alert.serial_number ? `<small class="text-muted d-block"><i class="fas fa-barcode me-1"></i>${alert.serial_number}</small>` : ''}
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <span class="badge ${config.badgeClass} fs-6 px-3 py-1">
+                                <i class="fas fa-clock me-1"></i>
+                                ${alert.days_remaining} ${alert.days_remaining === 1 ? 'يوم' : 'أيام'} متبقية
+                            </span>
+                            <span class="badge bg-secondary fs-6 px-3 py-1">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                ${warrantyTypeText}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 mt-2 pt-2 border-top" style="border-color: ${config.borderColor}40 !important;">
+                <div class="col-6">
+                    <small class="text-muted d-block">
+                        <i class="fas fa-calendar-check me-1"></i>
+                        تاريخ الفحص
+                    </small>
+                    <small class="fw-bold">${inspectionDate}</small>
+                </div>
+                <div class="col-6">
+                    <small class="text-muted d-block">
+                        <i class="fas fa-calendar-times me-1"></i>
+                        ينتهي الضمان
+                    </small>
+                    <small class="fw-bold">${warrantyEndDate}</small>
+                </div>
+                ${alert.client_phone ? `
+                <div class="col-12 mt-1">
+                    <small class="text-muted d-block">
+                        <i class="fas fa-phone me-1"></i>
+                        ${alert.client_phone}
+                    </small>
+                </div>
+                ` : ''}
+                ${alert.report_id ? `
+                <div class="col-12 mt-1">
+                    <a href="report.html?id=${alert.report_id}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-eye me-1"></i>عرض التقرير
+                    </a>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
 }
 
 /**
