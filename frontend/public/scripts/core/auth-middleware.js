@@ -131,11 +131,11 @@ class AuthMiddleware {
             
             console.log('All tokens and user info cleared');
             
-            // Redirect to main login page (always use root-relative path)
+            // Redirect to main domain root
             setTimeout(() => {
-                console.log('Redirecting to main login page...');
-                // Use root-relative path to always go to the main domain root
-                window.location.href = '/index.html';
+                console.log('Redirecting to main domain root...');
+                // Go to domain root (e.g., reports.laapak.com/ or localhost:3001/)
+                window.location.href = '/';
             }, 100);
         } catch (error) {
             console.error('Error during logout:', error);
@@ -156,10 +156,10 @@ class AuthMiddleware {
         
         console.log('Client tokens and user info cleared');
         
-        // Redirect to main login page (root-relative path)
+        // Redirect to main domain root
         setTimeout(() => {
-            console.log('Redirecting to main login page...');
-            window.location.href = '/index.html';
+            console.log('Redirecting to main domain root...');
+            window.location.href = '/';
         }, 100);
     }
     
@@ -176,18 +176,18 @@ class AuthMiddleware {
         
         console.log('Admin tokens and user info cleared');
         
-        // Redirect to main login page (root-relative path)
+        // Redirect to main domain root
         setTimeout(() => {
-            console.log('Redirecting to main login page...');
-            window.location.href = '/index.html';
+            console.log('Redirecting to main domain root...');
+            window.location.href = '/';
         }, 100);
     }
 
     // Require admin authentication for admin pages
     requireAdminAuth() {
         if (!this.isAdminLoggedIn()) {
-            // Redirect to login page if not authenticated (root-relative path)
-            window.location.href = '/index.html';
+            // Redirect to domain root if not authenticated
+            window.location.href = '/';
             return false;
         }
         return true;
@@ -196,8 +196,8 @@ class AuthMiddleware {
     // Require client authentication for client pages
     requireClientAuth() {
         if (!this.isClientLoggedIn()) {
-            // Redirect to login page if not authenticated (root-relative path)
-            window.location.href = '/index.html';
+            // Redirect to domain root if not authenticated
+            window.location.href = '/';
             return false;
         }
         return true;

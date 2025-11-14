@@ -131,7 +131,7 @@ class LpkClientHeader {
                     localStorage.removeItem('clientInfo');
                     sessionStorage.removeItem('clientToken');
                     sessionStorage.removeItem('clientInfo');
-                    window.location.href = '/index.html';
+                    window.location.href = '/';
                 }
             });
         }

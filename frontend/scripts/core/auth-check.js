@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (isAdminPage || isSuperadminPage) {
         // Check if admin is logged in
         if (!authMiddleware.isAdminLoggedIn()) {
-            console.log('Admin not authenticated, redirecting to login page');
-            window.location.href = '/index.html';
+            console.log('Admin not authenticated, redirecting to domain root');
+            window.location.href = '/';
             return;
         } else {
             console.log('Admin authenticated, checking role permissions...');
@@ -146,8 +146,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (isClientPage) {
         // Check if client is logged in
         if (!authMiddleware.isClientLoggedIn()) {
-            console.log('Client not authenticated, redirecting to login page');
-            window.location.href = '/index.html';
+            console.log('Client not authenticated, redirecting to domain root');
+            window.location.href = '/';
             return;
         } else {
             console.log('Client authenticated, access granted');
@@ -192,8 +192,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 authMiddleware.clientLogout();
             }
                 
-                // Redirect to login page (root-relative path)
-                window.location.href = '/index.html';
+                // Redirect to domain root
+                window.location.href = '/';
         });
     });
 });
