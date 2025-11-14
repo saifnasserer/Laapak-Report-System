@@ -3,7 +3,7 @@
  * Enables offline capabilities for the PWA
  */
 
-const CACHE_NAME = 'laapak-report-system-v1';
+const CACHE_NAME = 'laapak-report-system-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -76,6 +76,35 @@ self.addEventListener('fetch', event => {
     return;
   }
   
+  // For navigation requests (HTML pages), use network-first strategy
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // If network succeeds, cache and return
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseToCache);
+            });
+            return response;
+          }
+          // If network fails, try cache
+          return caches.match(event.request).then(cachedResponse => {
+            return cachedResponse || caches.match('/index.html');
+          });
+        })
+        .catch(() => {
+          // Network failed, try cache
+          return caches.match(event.request).then(cachedResponse => {
+            return cachedResponse || caches.match('/index.html');
+          });
+        })
+    );
+    return;
+  }
+  
+  // For other assets (CSS, JS, images), use cache-first strategy
   event.respondWith(
     caches.match(event.request)
       .then(response => {
