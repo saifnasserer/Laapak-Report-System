@@ -4,7 +4,7 @@
  */
 
 // API URLs
-const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api';
+const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api';
 const CLIENTS_API_URL = `${API_BASE_URL}/clients`;
 
 // Store clients data globally to make it accessible across functions

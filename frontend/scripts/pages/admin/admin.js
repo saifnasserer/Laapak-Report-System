@@ -123,7 +123,24 @@ function loadTodaySummary() {
     const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken() || adminInfo.token || '';
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     // Use the new consolidated endpoint
     fetch(`${baseUrl}/api/reports/dashboard/today-summary`, {
@@ -223,7 +240,24 @@ function loadDashboardStats() {
     console.log('Token available:', !!token);
     
     // API base URL
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     console.log('API Base URL:', baseUrl);
     
     // Get current month date range
@@ -364,7 +398,24 @@ function loadRecentReports() {
     const token = authMiddleware.getAdminToken() || adminInfo.token || '';
     
     // API base URL
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     // Make API request to get recent reports
     fetch(`${baseUrl}/api/reports?limit=5&sort=desc`, {
@@ -458,7 +509,24 @@ function loadRecentInvoices() {
     const token = authMiddleware.getAdminToken() || adminInfo.token || '';
     
     // API base URL
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     // Make API request to get recent invoices
     fetch(`${baseUrl}/api/invoices?limit=5&sort=desc`, {
@@ -648,7 +716,24 @@ function initializeCharts() {
     const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken() || adminInfo.token || '';
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     // Performance chart - Line chart for reports and invoices
     const performanceChartCanvas = document.getElementById('performanceChart');
@@ -937,7 +1022,24 @@ function loadReportsStatusChart() {
     const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken() || adminInfo.token || '';
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     const reportsStatusChartCanvas = document.getElementById('reportsStatusChart');
     if (!reportsStatusChartCanvas) {
@@ -1082,7 +1184,24 @@ function loadGoalsAndAchievements() {
     
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     console.log('Goals API - Token:', !!token, 'Base URL:', baseUrl);
     
@@ -1383,7 +1502,24 @@ function populateGoalForm(goal) {
 function saveGoal() {
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     const goalData = {
         title: document.getElementById('goalTitle').value,
@@ -1429,7 +1565,24 @@ function saveGoal() {
 function saveAchievement() {
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     const achievementData = {
         title: document.getElementById('achievementTitle').value,
@@ -1543,7 +1696,22 @@ function checkAdminAuth() {
     // Optional: Validate token with server
     const adminToken = authMiddleware.getAdminToken();
     if (adminToken) {
-        const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+        // Get apiBaseUrl with port 3001 enforcement for localhost
+        let apiBaseUrl;
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (window.config && window.config.api && window.config.api.baseUrl) {
+            apiBaseUrl = window.config.api.baseUrl;
+            if (isLocalhost && apiBaseUrl.includes(':3000')) {
+                apiBaseUrl = 'http://localhost:3001';
+            }
+        } else if (isLocalhost) {
+            apiBaseUrl = 'http://localhost:3001';
+        } else {
+            apiBaseUrl = window.location.origin;
+        }
+        if (isLocalhost && apiBaseUrl.includes(':3000')) {
+            apiBaseUrl = 'http://localhost:3001';
+        }
         
         fetch(`${apiBaseUrl}/api/auth/me`, {
             method: 'GET',
@@ -1579,7 +1747,24 @@ function testAPIConnectivity() {
     
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     console.log('Testing with:', {
         baseUrl: baseUrl,
@@ -1617,7 +1802,24 @@ function testGoalsAPI() {
     
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     // Test goals endpoints
     Promise.all([
@@ -1656,7 +1858,24 @@ function loadDeviceModelsInsights(period = 'this-month') {
     
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     // Calculate date range based on period
     const today = new Date();
@@ -1939,7 +2158,24 @@ function loadWarrantyAlerts() {
     
     const authMiddleware = new AuthMiddleware();
     const token = authMiddleware.getAdminToken();
-    const baseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
+    // Get baseUrl with port 3001 enforcement for localhost
+    let baseUrl;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        baseUrl = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && baseUrl.includes(':3000')) {
+            baseUrl = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        baseUrl = 'http://localhost:3001';
+    } else {
+        baseUrl = window.location.origin;
+    }
+    // Final safety check
+    if (isLocalhost && baseUrl.includes(':3000')) {
+        baseUrl = 'http://localhost:3001';
+    }
     
     fetch(`${baseUrl}/api/reports/insights/warranty-alerts`, {
         headers: {

@@ -2,8 +2,10 @@
 var config = {
     // API configuration
     api: {
-        // Use localhost for development (change to production URL when deploying)
-        baseUrl: 'https://reports.laapak.com',
+        // Auto-detect: use localhost for development, production URL for deployed
+        baseUrl: (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) 
+            ? 'http://localhost:3001' 
+            : 'https://reports.laapak.com',
         version: 'v1'
     }
 };

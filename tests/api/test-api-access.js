@@ -6,7 +6,7 @@
 const fetch = require('node-fetch'); // Install with: npm install node-fetch
 
 class LaapakAPITester {
-    constructor(baseUrl = 'http://localhost:3000/api') {
+    constructor(baseUrl = 'http://localhost:3001/api') {
         this.baseUrl = baseUrl;
         this.token = null;
     }

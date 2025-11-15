@@ -28,14 +28,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const identifierHintText = document.getElementById('identifierHintText');
     const credentialHintText = document.getElementById('credentialHintText');
     
-    // API endpoints
-    const API_URL = window.config ? window.config.api.baseUrl : 'https://reports.laapak.com';
+    // API endpoints - Auto-detect localhost and use port 3001
+    // FORCE PORT 3001 FOR LOCALHOST - DO NOT USE 3000
+    let API_URL;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        API_URL = window.config.api.baseUrl;
+        // Override if config has wrong port for localhost
+        if (isLocalhost && API_URL.includes(':3000')) {
+            console.warn('⚠️ Config has port 3000, overriding to 3001');
+            API_URL = 'http://localhost:3001';
+        }
+    } else if (isLocalhost) {
+        API_URL = 'http://localhost:3001';
+    } else {
+        API_URL = 'https://reports.laapak.com';
+    }
+    
+    // Final safety check - ensure localhost uses 3001
+    if (isLocalhost && API_URL.includes(':3000')) {
+        console.error('❌ ERROR: Detected port 3000 on localhost, forcing 3001');
+        API_URL = 'http://localhost:3001';
+    }
+    
     const ADMIN_LOGIN_URL = `${API_URL}/api/auth/admin`;
     const CLIENT_LOGIN_URL = `${API_URL}/api/clients/auth`;
     
-    console.log('Smart login system initialized');
-    console.log('Admin login URL:', ADMIN_LOGIN_URL);
-    console.log('Client login URL:', CLIENT_LOGIN_URL);
+    console.log('🔧 Smart login system initialized');
+    console.log('📍 Hostname:', window.location.hostname);
+    console.log('⚙️ Config detected:', window.config ? window.config.api : 'not found');
+    console.log('🌐 API_URL resolved to:', API_URL);
+    console.log('🔐 Admin login URL:', ADMIN_LOGIN_URL);
+    console.log('👤 Client login URL:', CLIENT_LOGIN_URL);
     
     let detectedLoginType = null; // 'client' or 'employee'
     
@@ -97,49 +122,57 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update UI based on detected login type
     const updateUIForLoginType = (loginType) => {
+        // Add null checks for all elements
+        if (!loginTypeIndicator || !loginTypeText || !identifierLabel || !credentialLabel || 
+            !identifierIcon || !credentialIcon || !identifierHint || !credentialHint || 
+            !loginSubmitBtn || !loginSubmitText) {
+            console.warn('Some login form elements are missing, skipping UI update');
+            return;
+        }
+        
         if (!loginType) {
             // Reset to default state
-            loginTypeIndicator.className = 'login-type-indicator';
-            loginTypeText.textContent = 'سيتم تحديد نوع الحساب تلقائيًا';
-            identifierLabel.textContent = 'اسم المستخدم أو رقم الموبايل';
-            credentialLabel.textContent = 'كلمة المرور أو كود الطلب';
-            identifierIcon.className = 'fas fa-user text-primary';
-            credentialIcon.className = 'fas fa-lock text-primary';
-            identifierHint.className = 'field-hint hide';
-            credentialHint.className = 'field-hint hide';
-            loginSubmitBtn.className = 'btn btn-primary rounded-pill py-3 fw-bold';
-            loginSubmitText.textContent = 'تسجيل الدخول';
+            if (loginTypeIndicator) loginTypeIndicator.className = 'login-type-indicator';
+            if (loginTypeText) loginTypeText.textContent = 'سيتم تحديد نوع الحساب تلقائيًا';
+            if (identifierLabel) identifierLabel.textContent = 'اسم المستخدم أو رقم الموبايل';
+            if (credentialLabel) credentialLabel.textContent = 'كلمة المرور أو كود الطلب';
+            if (identifierIcon) identifierIcon.className = 'fas fa-user text-primary';
+            if (credentialIcon) credentialIcon.className = 'fas fa-lock text-primary';
+            if (identifierHint) identifierHint.className = 'field-hint hide';
+            if (credentialHint) credentialHint.className = 'field-hint hide';
+            if (loginSubmitBtn) loginSubmitBtn.className = 'btn btn-primary rounded-pill py-3 fw-bold';
+            if (loginSubmitText) loginSubmitText.textContent = 'تسجيل الدخول';
             return;
         }
         
         if (loginType === 'client') {
             // Client UI
-            loginTypeIndicator.className = 'login-type-indicator client';
-            loginTypeText.innerHTML = '<i class="fas fa-user me-2"></i> تسجيل دخول العميل';
-            identifierLabel.textContent = 'رقم الموبايل';
-            credentialLabel.textContent = 'كود الطلب';
-            identifierIcon.className = 'fas fa-phone text-primary';
-            credentialIcon.className = 'fas fa-key text-primary';
-            identifierHintText.textContent = 'اكتب رقم الموبايل اللي عملت بيه الاوردر';
-            credentialHintText.textContent = 'اتواصل مع ممثل خدمة العملاء لو مش عارفه';
-            identifierHint.className = 'field-hint show';
-            credentialHint.className = 'field-hint show';
-            loginSubmitBtn.className = 'btn btn-success rounded-pill py-3 fw-bold';
-            loginSubmitText.textContent = 'تسجيل دخول العميل';
+            if (loginTypeIndicator) loginTypeIndicator.className = 'login-type-indicator client';
+            if (loginTypeText) loginTypeText.innerHTML = '<i class="fas fa-user me-2"></i> تسجيل دخول العميل';
+            if (identifierLabel) identifierLabel.textContent = 'رقم الموبايل';
+            if (credentialLabel) credentialLabel.textContent = 'كود الطلب';
+            if (identifierIcon) identifierIcon.className = 'fas fa-phone text-primary';
+            if (credentialIcon) credentialIcon.className = 'fas fa-key text-primary';
+            if (identifierHintText) identifierHintText.textContent = 'اكتب رقم الموبايل اللي عملت بيه الاوردر';
+            if (credentialHintText) credentialHintText.textContent = 'اتواصل مع ممثل خدمة العملاء لو مش عارفه';
+            if (identifierHint) identifierHint.className = 'field-hint show';
+            if (credentialHint) credentialHint.className = 'field-hint show';
+            if (loginSubmitBtn) loginSubmitBtn.className = 'btn btn-success rounded-pill py-3 fw-bold';
+            if (loginSubmitText) loginSubmitText.textContent = 'تسجيل دخول العميل';
         } else if (loginType === 'employee') {
             // Employee UI
-            loginTypeIndicator.className = 'login-type-indicator employee';
-            loginTypeText.innerHTML = '<i class="fas fa-user-tie me-2"></i> تسجيل دخول الموظف';
-            identifierLabel.textContent = 'اسم المستخدم';
-            credentialLabel.textContent = 'كلمة المرور';
-            identifierIcon.className = 'fas fa-user text-primary';
-            credentialIcon.className = 'fas fa-lock text-primary';
-            identifierHintText.textContent = 'أدخل اسم المستخدم الخاص بك';
-            credentialHintText.textContent = 'أدخل كلمة المرور الخاصة بك';
-            identifierHint.className = 'field-hint show';
-            credentialHint.className = 'field-hint show';
-            loginSubmitBtn.className = 'btn btn-primary rounded-pill py-3 fw-bold';
-            loginSubmitText.textContent = 'تسجيل دخول الموظف';
+            if (loginTypeIndicator) loginTypeIndicator.className = 'login-type-indicator employee';
+            if (loginTypeText) loginTypeText.innerHTML = '<i class="fas fa-user-tie me-2"></i> تسجيل دخول الموظف';
+            if (identifierLabel) identifierLabel.textContent = 'اسم المستخدم';
+            if (credentialLabel) credentialLabel.textContent = 'كلمة المرور';
+            if (identifierIcon) identifierIcon.className = 'fas fa-user text-primary';
+            if (credentialIcon) credentialIcon.className = 'fas fa-lock text-primary';
+            if (identifierHintText) identifierHintText.textContent = 'أدخل اسم المستخدم الخاص بك';
+            if (credentialHintText) credentialHintText.textContent = 'أدخل كلمة المرور الخاصة بك';
+            if (identifierHint) identifierHint.className = 'field-hint show';
+            if (credentialHint) credentialHint.className = 'field-hint show';
+            if (loginSubmitBtn) loginSubmitBtn.className = 'btn btn-primary rounded-pill py-3 fw-bold';
+            if (loginSubmitText) loginSubmitText.textContent = 'تسجيل دخول الموظف';
             }
     };
     

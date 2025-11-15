@@ -33,7 +33,7 @@ const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // CORS Middleware - Handle both domains
 app.use((req, res, next) => {

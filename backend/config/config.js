@@ -9,7 +9,7 @@ require('dotenv').config();
 // Configuration object
 const config = {
     // Server configuration
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 3001,
     
     // API configuration
     api: {

@@ -3,7 +3,7 @@
  * Enables offline capabilities for the PWA
  */
 
-const CACHE_NAME = 'laapak-report-system-v2';
+const CACHE_NAME = 'laapak-report-system-v3-port3001';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
