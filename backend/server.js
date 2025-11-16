@@ -228,8 +228,9 @@ app.get('/offline.html', (req, res) => {
 });
 
 // Serve static frontend files - AFTER route handlers to avoid conflicts
-app.use('/styles', express.static(path.join(__dirname, '../frontend/styles')));
-app.use('/scripts', express.static(path.join(__dirname, '../frontend/scripts')));
+// Use the built public assets so paths like /styles/... and /scripts/... work in production
+app.use('/styles', express.static(path.join(__dirname, '../frontend/public/styles')));
+app.use('/scripts', express.static(path.join(__dirname, '../frontend/public/scripts')));
 app.use('/assets', express.static(path.join(__dirname, '../frontend/public/assets')));
 app.use('/pages', express.static(path.join(__dirname, '../frontend/public/pages')));
 app.use(express.static(path.join(__dirname, '../frontend/public')));
