@@ -1,0 +1,666 @@
+/**
+ * Apple Liquid Glass UI Theme
+ * Inspired by Apple's Liquid Glass design language (2025)
+ * Laapak Report System - Elegant & Subtle Design
+ * Reference: https://www.apple.com/eg/newsroom/2025/06/apple-introduces-a-delightful-and-elegant-new-software-design/
+ */
+
+:root {
+    /* Laapak Brand Colors - Used Subtly */
+    --laapak-dark-green: #0a6e35;
+    --laapak-medium-green: #0eaf54;
+    --laapak-light-green: #36d278;
+    
+    /* Glass Background Colors - Subtle & Elegant */
+    --glass-bg-primary: rgba(255, 255, 255, 0.7);
+    --glass-bg-secondary: rgba(255, 255, 255, 0.5);
+    --glass-bg-elevated: rgba(255, 255, 255, 0.8);
+    --glass-bg-input: rgba(255, 255, 255, 0.6);
+    --glass-bg-input-focus: rgba(255, 255, 255, 0.85);
+    
+    /* Dark Mode Glass (for future use) */
+    --glass-bg-dark: rgba(0, 0, 0, 0.3);
+    --glass-bg-dark-elevated: rgba(0, 0, 0, 0.4);
+    
+    /* Text Colors - Elegant & Readable */
+    --text-primary: rgba(0, 0, 0, 0.9);
+    --text-secondary: rgba(0, 0, 0, 0.7);
+    --text-tertiary: rgba(0, 0, 0, 0.5);
+    --text-inverse: rgba(255, 255, 255, 0.95);
+    --text-placeholder: rgba(0, 0, 0, 0.4);
+    
+    /* Glass Borders - Subtle */
+    --glass-border-light: rgba(255, 255, 255, 0.5);
+    --glass-border-medium: rgba(255, 255, 255, 0.6);
+    --glass-border-strong: rgba(255, 255, 255, 0.8);
+    
+    /* Shadows - Soft & Elegant */
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+    --shadow-glass-elevated: 0 20px 60px 0 rgba(0, 0, 0, 0.12);
+    --shadow-inner-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+    --shadow-focus: 0 0 0 4px rgba(10, 110, 53, 0.1);
+    
+    /* Brand Accent - Subtle Green Tint */
+    --brand-accent-subtle: rgba(10, 110, 53, 0.1);
+    --brand-accent-light: rgba(14, 175, 84, 0.15);
+    
+    /* Spacing */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+    --space-3xl: 4rem;
+    
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-full: 9999px;
+    
+    /* Typography */
+    --font-primary: -apple-system, BlinkMacSystemFont, "SF Pro Display", 
+                    "SF Pro Text", "Helvetica Neue", "Segoe UI", 
+                    "Tajawal", sans-serif;
+    
+    /* Transitions */
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-standard: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ============================================
+   BACKGROUND & LAYOUT - Subtle & Elegant
+   ============================================ */
+
+.apple-glass-body {
+    font-family: var(--font-primary);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Subtle Background - Like Apple's Clean Design */
+.glass-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background: linear-gradient(
+        180deg,
+        #f5f7fa 0%,
+        #ffffff 50%,
+        #fafbfc 100%
+    );
+}
+
+/* Subtle gradient overlay for depth */
+.glass-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(10, 110, 53, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(14, 175, 84, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* ============================================
+   GLASS CARDS - Elegant & Refined
+   ============================================ */
+
+.glass-card {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-2xl);
+    box-shadow: 
+        var(--shadow-glass),
+        var(--shadow-inner-highlight);
+    padding: var(--space-3xl);
+    position: relative;
+    animation: fadeInUp 0.6s ease-out;
+    transition: var(--transition-standard);
+}
+
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        0 24px 70px 0 rgba(0, 0, 0, 0.1),
+        var(--shadow-inner-highlight);
+}
+
+.glass-card-elevated {
+    background: var(--glass-bg-elevated);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    border: 1px solid var(--glass-border-medium);
+}
+
+/* ============================================
+   MINIMALIST LOGIN STYLES (No Container)
+   ============================================ */
+
+/* These styles are now in the HTML file for better control */
+
+/* ============================================
+   TYPOGRAPHY - Clean & Elegant
+   ============================================ */
+
+.glass-heading {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 2rem;
+    margin-bottom: var(--space-sm);
+    text-align: center;
+    letter-spacing: -0.02em;
+}
+
+.glass-subheading {
+    color: var(--text-secondary);
+    font-weight: 400;
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: var(--space-2xl);
+    line-height: 1.5;
+}
+
+.glass-label {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-bottom: var(--space-sm);
+    display: block;
+}
+
+/* ============================================
+   INPUT FIELDS - Elegant Glass
+   ============================================ */
+
+.glass-input-group {
+    position: relative;
+    margin-bottom: var(--space-lg);
+}
+
+.glass-input {
+    width: 100%;
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: var(--font-primary);
+    transition: var(--transition-standard);
+    outline: none;
+}
+
+.glass-input::placeholder {
+    color: var(--text-placeholder);
+}
+
+.glass-input:focus {
+    background: var(--glass-bg-input-focus);
+    border-color: var(--laapak-medium-green);
+    box-shadow: 
+        var(--shadow-focus),
+        0 4px 12px rgba(10, 110, 53, 0.08);
+    transform: translateY(-1px);
+}
+
+.glass-input:not(:placeholder-shown) {
+    border-color: var(--glass-border-medium);
+}
+
+/* Input with Icon */
+.glass-input-with-icon {
+    padding-left: 3rem;
+}
+
+.glass-input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    font-size: 1.125rem;
+    pointer-events: none;
+    transition: var(--transition-standard);
+}
+
+.glass-input:focus + .glass-input-icon,
+.glass-input:not(:placeholder-shown) + .glass-input-icon {
+    color: var(--laapak-medium-green);
+}
+
+/* Input Group (Bootstrap style compatibility) */
+.input-group.glass-input-group-wrapper {
+    margin-bottom: var(--space-lg);
+}
+
+.input-group.glass-input-group-wrapper .input-group-text {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    border-right: none;
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+    color: var(--text-tertiary);
+    padding: 1rem 1.25rem;
+    transition: var(--transition-standard);
+}
+
+.input-group.glass-input-group-wrapper .form-control {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    border-left: none;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    color: var(--text-primary);
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    transition: var(--transition-standard);
+}
+
+.input-group.glass-input-group-wrapper .form-control:focus {
+    background: var(--glass-bg-input-focus);
+    border-color: var(--laapak-medium-green);
+    box-shadow: 
+        var(--shadow-focus),
+        0 4px 12px rgba(10, 110, 53, 0.08);
+}
+
+.input-group.glass-input-group-wrapper .form-control::placeholder {
+    color: var(--text-placeholder);
+}
+
+.input-group.glass-input-group-wrapper .input-group-text:has(+ .form-control:focus) {
+    border-color: var(--laapak-medium-green);
+    color: var(--laapak-medium-green);
+}
+
+/* Password Toggle Button */
+.btn-glass-toggle {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    border-left: none;
+    color: var(--text-tertiary);
+    padding: 1rem 1.25rem;
+    transition: var(--transition-standard);
+}
+
+.btn-glass-toggle:hover {
+    background: var(--glass-bg-input-focus);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   BUTTONS - Elegant & Minimal
+   ============================================ */
+
+.glass-button {
+    width: 100%;
+    background: var(--laapak-medium-green);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 1rem 2rem;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    font-family: var(--font-primary);
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: var(--transition-standard);
+    cursor: pointer;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Support Bootstrap padding utilities */
+.glass-button.py-3 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.glass-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.2), 
+        transparent
+    );
+    transition: left 0.5s;
+}
+
+.glass-button:hover {
+    background: var(--laapak-dark-green);
+    transform: translateY(-1px);
+    box-shadow: 
+        0 6px 20px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.glass-button:hover::before {
+    left: 100%;
+}
+
+.glass-button:active {
+    transform: translateY(0);
+    box-shadow: 
+        0 2px 8px rgba(10, 110, 53, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.glass-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.glass-button-success {
+    background: var(--laapak-medium-green);
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.glass-button-success:hover {
+    background: var(--laapak-dark-green);
+    box-shadow: 
+        0 6px 20px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   CHECKBOXES & FORM CONTROLS
+   ============================================ */
+
+.glass-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.glass-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-left: var(--space-sm);
+    cursor: pointer;
+    accent-color: var(--laapak-medium-green);
+}
+
+.glass-checkbox-label {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* ============================================
+   ALERTS & MESSAGES
+   ============================================ */
+
+.glass-alert {
+    background: rgba(220, 53, 69, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    margin-bottom: var(--space-lg);
+    animation: slideDown 0.3s ease-out;
+}
+
+.glass-alert-success {
+    background: rgba(10, 110, 53, 0.1);
+    border-color: rgba(10, 110, 53, 0.2);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   LOGIN TYPE INDICATOR
+   ============================================ */
+
+.login-type-indicator {
+    background: var(--brand-accent-subtle);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-full);
+    padding: 0.5rem 1rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: var(--space-lg);
+    display: inline-block;
+    transition: var(--transition-standard);
+}
+
+.login-type-indicator.client {
+    background: rgba(14, 175, 84, 0.15);
+    border-color: rgba(14, 175, 84, 0.3);
+}
+
+.login-type-indicator.employee {
+    background: rgba(10, 110, 53, 0.15);
+    border-color: rgba(10, 110, 53, 0.3);
+}
+
+/* ============================================
+   FIELD HINTS
+   ============================================ */
+
+.field-hint {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: var(--space-xs);
+    transition: var(--transition-standard);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.field-hint.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.field-hint.hide {
+    opacity: 0;
+    transform: translateY(-10px);
+    height: 0;
+    overflow: hidden;
+}
+
+/* ============================================
+   LOGO & BRANDING
+   ============================================ */
+
+.glass-logo-container {
+    text-align: center;
+    margin-bottom: var(--space-2xl);
+}
+
+.glass-logo {
+    max-width: 150px;
+    height: auto;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+    animation: fadeIn 0.8s ease-out;
+}
+
+/* ============================================
+   ANIMATIONS - Smooth & Subtle
+   ============================================ */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+    .login-card-glass {
+        padding: var(--space-2xl) var(--space-lg);
+        border-radius: var(--radius-xl);
+        margin: var(--space-md);
+    }
+    
+    .glass-heading {
+        font-size: 1.75rem;
+    }
+    
+    .glass-input,
+    .input-group.glass-input-group-wrapper .form-control {
+        padding: 0.875rem 1rem;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .glass-button {
+        padding: 0.875rem 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-card-glass {
+        padding: var(--space-xl) var(--space-md);
+    }
+    
+    .glass-heading {
+        font-size: 1.5rem;
+    }
+}
+
+/* ============================================
+   COMPATIBILITY WITH EXISTING CLASSES
+   ============================================ */
+
+/* Button compatibility - support both old and new classes */
+.btn-primary:not(.glass-button) {
+    background: var(--laapak-medium-green);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-weight: 600;
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: var(--transition-standard);
+}
+
+.btn-primary:not(.glass-button):hover {
+    background: var(--laapak-dark-green);
+    transform: translateY(-1px);
+    box-shadow: 
+        0 6px 20px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-success:not(.glass-button) {
+    background: var(--laapak-medium-green);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-weight: 600;
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: var(--transition-standard);
+}
+
+.btn-success:not(.glass-button):hover {
+    background: var(--laapak-dark-green);
+    transform: translateY(-1px);
+    box-shadow: 
+        0 6px 20px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Ensure rounded-pill works with glass buttons */
+.rounded-pill.glass-button {
+    border-radius: var(--radius-full);
+}
+
+/* Alert compatibility */
+.alert-danger:not(.glass-alert) {
+    background: rgba(220, 53, 69, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   FALLBACK FOR BROWSERS WITHOUT BACKDROP-FILTER
+   ============================================ */
+
+@supports not (backdrop-filter: blur(10px)) {
+    .glass-card,
+    .login-card-glass {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .glass-input,
+    .input-group.glass-input-group-wrapper .form-control {
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
+    }
+    
+    .glass-background {
+        background: linear-gradient(180deg, #f5f7fa 0%, #ffffff 100%);
+    }
+}

@@ -100,6 +100,37 @@
             line-height: 1.5;
         }
         
+        /* Login Type Indicator - Minimal */
+        .login-type-indicator-minimal {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(10, 110, 53, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(10, 110, 53, 0.15);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary, rgba(0, 0, 0, 0.8));
+            font-size: 0.875rem;
+            font-weight: 500;
+            width: 100%;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .login-type-indicator-minimal.client {
+            background: rgba(14, 175, 84, 0.1);
+            border-color: rgba(14, 175, 84, 0.2);
+        }
+        
+        .login-type-indicator-minimal.employee {
+            background: rgba(10, 110, 53, 0.1);
+            border-color: rgba(10, 110, 53, 0.2);
+        }
+        
         /* Login Form - Minimal */
         .login-form-minimal {
             width: 100%;
@@ -122,91 +153,68 @@
             margin-bottom: 0.25rem;
         }
         
-        /* Input Group - Enhanced Minimal - LTR & Same Dimensions as Button */
+        /* Input Group - Minimal */
         .input-group-minimal {
             position: relative;
             display: flex;
             align-items: center;
-            direction: ltr;
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border: 1.5px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
-            box-shadow: 
-                0 2px 8px rgba(0, 0, 0, 0.04),
-                inset 0 1px 0 rgba(255, 255, 255, 0.6);
-            padding: 1.125rem 2rem;
         }
         
         .input-group-minimal:focus-within {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.8);
             border-color: var(--laapak-medium-green, #0eaf54);
             box-shadow: 
-                0 0 0 4px rgba(14, 175, 84, 0.12),
-                0 8px 24px rgba(14, 175, 84, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            transform: translateY(-2px);
+                0 0 0 4px rgba(14, 175, 84, 0.08),
+                0 4px 12px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
         }
         
         .input-icon-minimal {
-            padding: 0;
-            margin-right: 0.75rem;
-            color: rgba(0, 0, 0, 0.5);
+            padding: 0 1rem;
+            color: rgba(0, 0, 0, 0.4);
             display: flex;
             align-items: center;
-            font-size: 1.125rem;
-            transition: all 0.3s ease;
-            background: transparent;
-            border: none;
+            transition: color 0.3s ease;
         }
         
         .input-group-minimal:focus-within .input-icon-minimal {
             color: var(--laapak-medium-green, #0eaf54);
-            transform: scale(1.1);
         }
         
         .input-minimal {
             flex: 1;
             border: none;
             background: transparent;
-            padding: 0;
-            font-size: 1.0625rem;
+            padding: 1rem 1rem 1rem 0;
+            font-size: 1rem;
             color: var(--text-primary, rgba(0, 0, 0, 0.9));
             font-family: var(--font-primary, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif);
-            font-weight: 400;
             outline: none;
-            letter-spacing: -0.01em;
-            direction: ltr;
-            text-align: left;
         }
         
         .input-minimal::placeholder {
-            color: rgba(0, 0, 0, 0.45);
-            font-weight: 400;
+            color: rgba(0, 0, 0, 0.4);
         }
         
         .input-toggle-minimal {
-            padding: 0;
-            margin-left: 0.75rem;
+            padding: 0 1rem;
             border: none;
             background: transparent;
-            color: rgba(0, 0, 0, 0.5);
+            color: rgba(0, 0, 0, 0.4);
             cursor: pointer;
             display: flex;
             align-items: center;
-            font-size: 1.125rem;
-            transition: all 0.3s ease;
+            transition: color 0.3s ease;
         }
         
         .input-toggle-minimal:hover {
-            color: var(--laapak-medium-green, #0eaf54);
-            transform: scale(1.1);
-        }
-        
-        .input-group-minimal:focus-within .input-toggle-minimal {
             color: var(--laapak-medium-green, #0eaf54);
         }
         
@@ -248,39 +256,38 @@
             animation: slideDown 0.3s ease-out;
         }
         
-        /* Button - Circular Minimal */
+        /* Button - Minimal */
         .login-button-minimal {
             width: 100%;
-            padding: 1.125rem 2rem;
+            padding: 1rem 2rem;
             background: var(--laapak-medium-green, #0eaf54);
             border: none;
-            border-radius: 50px;
+            border-radius: 12px;
             color: white;
-            font-size: 1.0625rem;
+            font-size: 1rem;
             font-weight: 600;
             font-family: var(--font-primary, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 
-                0 4px 16px rgba(10, 110, 53, 0.25),
-                inset 0 1px 0 rgba(255, 255, 255, 0.25);
+                0 4px 12px rgba(10, 110, 53, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
             margin-top: 0.5rem;
-            letter-spacing: -0.01em;
         }
         
         .login-button-minimal:hover {
             background: var(--laapak-dark-green, #0a6e35);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: 
-                0 8px 24px rgba(10, 110, 53, 0.35),
+                0 6px 20px rgba(10, 110, 53, 0.3),
                 inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
         
         .login-button-minimal:active {
             transform: translateY(0);
             box-shadow: 
-                0 2px 8px rgba(10, 110, 53, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.25);
+                0 2px 8px rgba(10, 110, 53, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
         }
         
         .login-button-minimal:disabled {
@@ -311,6 +318,11 @@
             height: 0;
             overflow: hidden;
             margin: 0;
+        }
+        
+        /* Login Type Indicator Icon Spacing */
+        .login-type-indicator-minimal i {
+            margin-left: 0.5rem;
         }
         
         /* Animations */
@@ -348,52 +360,54 @@
             .input-minimal {
                 font-size: 16px; /* Prevents zoom on iOS */
             }
-            
-            .input-group-minimal {
-                border-radius: 50px;
-                padding: 1rem 1.5rem;
-            }
-            
-            .login-button-minimal {
-                border-radius: 50px;
-                padding: 1rem 1.5rem;
-            }
         }
         
-        /* Footer - Minimal */
-        .footer-minimal {
-            background: transparent;
-            padding: 1.5rem 0;
-            margin-top: 3rem;
+        /* Footer Styling */
+        footer {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
             z-index: 1;
         }
         
-        .footer-content-minimal {
-            text-align: center;
+        footer h5 {
+            font-weight: 700;
+            margin-bottom: 20px;
+            position: relative;
+            display: inline-block;
         }
         
-        .footer-text-minimal {
-            font-size: 0.875rem;
-            color: rgba(0, 0, 0, 0.5);
-            margin: 0;
-            font-weight: 400;
+        footer h5::after {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.5);
+            bottom: -8px;
+            right: 0;
         }
         
-        .footer-link-minimal {
-            color: rgba(0, 0, 0, 0.6);
+        footer .contact-item {
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        footer .contact-item:hover {
+            transform: translateX(-5px);
+            color: rgba(255, 255, 255, 1);
+        }
+        
+        footer a {
+            color: rgba(255, 255, 255, 0.9);
             text-decoration: none;
-            transition: color 0.3s ease;
-            font-weight: 500;
+            transition: var(--transition-standard);
         }
         
-        .footer-link-minimal:hover {
-            color: var(--laapak-medium-green, #0eaf54);
-        }
-        
-        .footer-separator {
-            margin: 0 0.5rem;
-            color: rgba(0, 0, 0, 0.3);
+        footer a:hover {
+            color: rgba(255, 255, 255, 1);
         }
         
         /* Offline Alert */
@@ -445,11 +459,19 @@
                 <p class="login-subtitle-minimal">منصة متكاملة لادارة التقارير ونظام الضمان</p>
             </div>
             
+            <!-- Smart Login Type Indicator -->
+            <div class="login-type-indicator-minimal" id="loginTypeIndicator">
+                <i class="fas fa-user"></i>
+                <span id="loginTypeText">سيتم تحديد نوع الحساب تلقائيًا</span>
+            </div>
+            
             <!-- Unified Login Form - No Container -->
             <form id="unifiedLoginForm" class="login-form-minimal">
                 <!-- First Field - Username/Phone -->
                 <div class="login-field-minimal">
-                    
+                    <label for="identifier" class="login-label-minimal" id="identifierLabel">
+                        اسم المستخدم أو رقم الموبايل
+                    </label>
                     <div class="input-group-minimal">
                         <span class="input-icon-minimal">
                             <i class="fas fa-user" id="identifierIcon"></i>
@@ -468,7 +490,9 @@
                 
                 <!-- Second Field - Password/Order Code -->
                 <div class="login-field-minimal">
-                    
+                    <label for="credential" class="login-label-minimal" id="credentialLabel">
+                        كلمة المرور أو كود الطلب
+                    </label>
                     <div class="input-group-minimal">
                         <span class="input-icon-minimal">
                             <i class="fas fa-lock" id="credentialIcon"></i>
@@ -476,8 +500,7 @@
                         <input type="password" 
                                class="input-minimal" 
                                id="credential" 
-                               placeholder="أدخل كلمة المرور أو كود الطلب"
-                               dir="ltr">
+                               placeholder="أدخل كلمة المرور أو كود الطلب">
                         <button class="input-toggle-minimal" type="button" id="toggleCredential">
                             <i class="fas fa-eye"></i>
                         </button>
@@ -510,15 +533,39 @@
         </div>
     </main>
     
-    <!-- Footer - Minimal -->
-    <footer class="footer-minimal">
+    <!-- Footer -->
+    <footer class="text-white py-5 mt-4">
         <div class="container">
-            <div class="footer-content-minimal">
-                <p class="footer-text-minimal">
-                    <a href="https://laapak.com" class="footer-link-minimal" target="_blank">Laapak</a>
-                    <span class="footer-separator">•</span>
-                    <span>&copy; 2025</span>
-                </p>
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start">
+                    <h5 class="mb-3">شركة Laapak</h5>
+                    <p class="mb-0">
+                        <a href="https://laapak.com" class="text-white text-decoration-none" target="_blank">
+                            <i class="fas fa-globe me-2"></i>www.laapak.com
+                        </a>
+                    </p>
+                </div>
+                <div class="col-md-6 text-center text-md-end mt-4 mt-md-0">
+                    <h5 class="mb-3">تواصل معنا</h5>
+                    <ul class="list-unstyled">
+                        <li class="contact-item mb-2">
+                            <i class="fas fa-envelope me-2"></i> info@laapak.com
+                        </li>
+                        <li class="contact-item mb-2">
+                            <i class="fas fa-phone me-2"></i> 01013148007
+                        </li>
+                        <li class="contact-item mb-2">
+                            <i class="fas fa-map-marker-alt me-2"></i> القاهرة، تحرير، 19 شارع يوسف الجندي
+                        </li>
+                    </ul>
+                    <a href="https://wa.me/201013148007" class="glass-button glass-button-success mt-2" style="display: inline-block; width: auto; padding: 0.75rem 1.5rem;" target="_blank">
+                        <i class="fab fa-whatsapp me-2"></i> تواصل عبر واتساب
+                    </a>
+                </div>
+            </div>
+            <hr class="mt-4 mb-3" style="border-color: rgba(255, 255, 255, 0.1);">
+            <div class="text-center">
+                <p class="mb-0" style="color: rgba(255, 255, 255, 0.8);">&copy; 2025 Laapak. جميع الحقوق محفوظة.</p>
             </div>
         </div>
     </footer>

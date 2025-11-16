@@ -17,8 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const rememberMeCheckbox = document.getElementById('rememberMe');
     
     // UI elements for smart detection
-    const loginTypeIndicator = document.getElementById('loginTypeIndicator');
-    const loginTypeText = document.getElementById('loginTypeText');
     const identifierLabel = document.getElementById('identifierLabel');
     const credentialLabel = document.getElementById('credentialLabel');
     const identifierIcon = document.getElementById('identifierIcon');
@@ -123,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update UI based on detected login type
     const updateUIForLoginType = (loginType) => {
         // Add null checks for all elements
-        if (!loginTypeIndicator || !loginTypeText || !identifierLabel || !credentialLabel || 
+        if (!identifierLabel || !credentialLabel || 
             !identifierIcon || !credentialIcon || !identifierHint || !credentialHint || 
             !loginSubmitBtn || !loginSubmitText) {
             console.warn('Some login form elements are missing, skipping UI update');
@@ -132,46 +130,40 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!loginType) {
             // Reset to default state
-            if (loginTypeIndicator) loginTypeIndicator.className = 'login-type-indicator';
-            if (loginTypeText) loginTypeText.textContent = 'سيتم تحديد نوع الحساب تلقائيًا';
             if (identifierLabel) identifierLabel.textContent = 'اسم المستخدم أو رقم الموبايل';
             if (credentialLabel) credentialLabel.textContent = 'كلمة المرور أو كود الطلب';
-            if (identifierIcon) identifierIcon.className = 'fas fa-user text-primary';
-            if (credentialIcon) credentialIcon.className = 'fas fa-lock text-primary';
+            if (identifierIcon) identifierIcon.className = 'fas fa-user';
+            if (credentialIcon) credentialIcon.className = 'fas fa-lock';
             if (identifierHint) identifierHint.className = 'field-hint hide';
             if (credentialHint) credentialHint.className = 'field-hint hide';
-            if (loginSubmitBtn) loginSubmitBtn.className = 'btn btn-primary rounded-pill py-3 fw-bold';
+            if (loginSubmitBtn) loginSubmitBtn.className = 'login-button-minimal';
             if (loginSubmitText) loginSubmitText.textContent = 'تسجيل الدخول';
             return;
         }
         
         if (loginType === 'client') {
             // Client UI
-            if (loginTypeIndicator) loginTypeIndicator.className = 'login-type-indicator client';
-            if (loginTypeText) loginTypeText.innerHTML = '<i class="fas fa-user me-2"></i> تسجيل دخول العميل';
             if (identifierLabel) identifierLabel.textContent = 'رقم الموبايل';
             if (credentialLabel) credentialLabel.textContent = 'كود الطلب';
-            if (identifierIcon) identifierIcon.className = 'fas fa-phone text-primary';
-            if (credentialIcon) credentialIcon.className = 'fas fa-key text-primary';
+            if (identifierIcon) identifierIcon.className = 'fas fa-phone';
+            if (credentialIcon) credentialIcon.className = 'fas fa-key';
             if (identifierHintText) identifierHintText.textContent = 'اكتب رقم الموبايل اللي عملت بيه الاوردر';
             if (credentialHintText) credentialHintText.textContent = 'اتواصل مع ممثل خدمة العملاء لو مش عارفه';
             if (identifierHint) identifierHint.className = 'field-hint show';
             if (credentialHint) credentialHint.className = 'field-hint show';
-            if (loginSubmitBtn) loginSubmitBtn.className = 'btn btn-success rounded-pill py-3 fw-bold';
+            if (loginSubmitBtn) loginSubmitBtn.className = 'login-button-minimal';
             if (loginSubmitText) loginSubmitText.textContent = 'تسجيل دخول العميل';
         } else if (loginType === 'employee') {
             // Employee UI
-            if (loginTypeIndicator) loginTypeIndicator.className = 'login-type-indicator employee';
-            if (loginTypeText) loginTypeText.innerHTML = '<i class="fas fa-user-tie me-2"></i> تسجيل دخول الموظف';
             if (identifierLabel) identifierLabel.textContent = 'اسم المستخدم';
             if (credentialLabel) credentialLabel.textContent = 'كلمة المرور';
-            if (identifierIcon) identifierIcon.className = 'fas fa-user text-primary';
-            if (credentialIcon) credentialIcon.className = 'fas fa-lock text-primary';
+            if (identifierIcon) identifierIcon.className = 'fas fa-user';
+            if (credentialIcon) credentialIcon.className = 'fas fa-lock';
             if (identifierHintText) identifierHintText.textContent = 'أدخل اسم المستخدم الخاص بك';
             if (credentialHintText) credentialHintText.textContent = 'أدخل كلمة المرور الخاصة بك';
             if (identifierHint) identifierHint.className = 'field-hint show';
             if (credentialHint) credentialHint.className = 'field-hint show';
-            if (loginSubmitBtn) loginSubmitBtn.className = 'btn btn-primary rounded-pill py-3 fw-bold';
+            if (loginSubmitBtn) loginSubmitBtn.className = 'login-button-minimal';
             if (loginSubmitText) loginSubmitText.textContent = 'تسجيل دخول الموظف';
             }
     };
