@@ -1506,6 +1506,16 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
     // Step navigation logic
     function updateSteps() {
         console.log('Updating steps, current step:', currentStep);
+        
+        // Update body class to show/hide header based on step
+        if (currentStep === 1) {
+            document.body.classList.add('step-1-active');
+            document.body.classList.remove('step-2-active', 'step-3-active', 'step-4-active', 'step-5-active', 'step-6-active');
+        } else {
+            document.body.classList.remove('step-1-active');
+            document.body.classList.add(`step-${currentStep}-active`);
+        }
+        
         // Scroll to top of the page with a smooth animation
         window.scrollTo({
             top: 0,
@@ -1755,6 +1765,51 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             const style = document.createElement('style');
             style.id = 'enhanced-step-styles';
             style.textContent = `
+                /* Transparent Glass Background */
+                body {
+                    background: #f5f7fa !important;
+                }
+                
+                /* Report Header - Transparent Glass, Only on Step 1 */
+                .report-header {
+                    background: rgba(255, 255, 255, 0.15) !important;
+                    backdrop-filter: blur(30px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                    border-radius: 24px !important;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06) !important;
+                    color: rgba(0, 0, 0, 0.9) !important;
+                    padding: 2rem !important;
+                    margin-bottom: 2rem !important;
+                    transition: all 0.4s ease !important;
+                }
+                
+                .report-header h1 {
+                    color: rgba(0, 0, 0, 0.9) !important;
+                    font-weight: 700 !important;
+                    margin-bottom: 0.5rem !important;
+                }
+                
+                .report-header .lead {
+                    color: rgba(0, 0, 0, 0.7) !important;
+                    font-weight: 500 !important;
+                }
+                
+                /* Hide header on steps other than step 1 */
+                body:not(.step-1-active) .report-header {
+                    display: none !important;
+                }
+                
+                /* Main Container Card - Transparent Glass */
+                .card.border-0.shadow-sm {
+                    background: rgba(255, 255, 255, 0.15) !important;
+                    backdrop-filter: blur(30px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                    border-radius: 24px !important;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06) !important;
+                }
+                
                 /* Enhanced Step Buttons */
                 .step-button {
                     position: relative !important;
@@ -1786,21 +1841,25 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 
                 .step-item.active .step-button {
                     animation: activeStepPulse 2s ease-in-out infinite !important;
-                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+                    background: #0eaf54 !important;
+                    box-shadow: 0 4px 16px rgba(14, 175, 84, 0.25), inset 0 1px 0 rgba(255,255,255,0.2) !important;
                     border: 1px solid rgba(255,255,255,0.3) !important;
+                    color: white !important;
                 }
                 
                 .step-item.completed .step-button {
-                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+                    background: #0eaf54 !important;
+                    box-shadow: 0 4px 16px rgba(14, 175, 84, 0.25), inset 0 1px 0 rgba(255,255,255,0.2) !important;
                     border: 1px solid rgba(255,255,255,0.3) !important;
+                    color: white !important;
                 }
                 
                 .step-item:not(.active):not(.completed) .step-button {
-                    background: rgba(255,255,255,0.1) !important;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
-                    border: 1px solid rgba(255,255,255,0.1) !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    backdrop-filter: blur(10px) !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    color: rgba(0,0,0,0.7) !important;
                 }
                 
                 @keyframes activeStepPulse {
@@ -1812,10 +1871,13 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 .steps-container {
                     position: relative;
                     z-index: 1000;
-                    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,255,245,0.95) 100%) !important;
-                    backdrop-filter: blur(20px) !important;
-                    border: 1px solid rgba(255,255,255,0.2) !important;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    backdrop-filter: blur(30px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    border-radius: 24px !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.06) !important;
+                    padding: 1.5rem !important;
                 }
                 
                 .steps-container::after {
@@ -1842,14 +1904,14 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 
                 /* Enhanced Progress Bar */
                 .steps-progress-bar {
-                    background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+                    background: #0eaf54 !important;
+                    box-shadow: 0 2px 8px rgba(14, 175, 84, 0.25) !important;
                     border-radius: 2px !important;
                 }
                 
                 /* Enhanced Progress Line */
                 .steps-progress-line {
-                    background: linear-gradient(90deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 100%) !important;
+                    background: rgba(0,0,0,0.05) !important;
                     border-radius: 2px !important;
                 }
                 
@@ -1894,21 +1956,24 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 
                 /* Enhanced Report Cards */
                 .card {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,255,250,0.95) 100%) !important;
-                    backdrop-filter: blur(20px) !important;
-                    border: 1px solid rgba(255,255,255,0.2) !important;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.08) !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    backdrop-filter: blur(30px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    border-radius: 24px !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.06) !important;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
                 }
                 
                 .card:hover {
                     transform: translateY(-2px) !important;
-                    box-shadow: 0 12px 40px rgba(0,0,0,0.12) !important;
+                    background: rgba(255,255,255,0.25) !important;
+                    box-shadow: 0 12px 40px rgba(0,0,0,0.1) !important;
                 }
                 
                 /* Enhanced Card Headers */
                 .card-header {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(240,255,245,0.1) 100%) !important;
+                    background: rgba(255,255,255,0.1) !important;
                     border-bottom: 1px solid rgba(255,255,255,0.2) !important;
                     backdrop-filter: blur(10px) !important;
                 }
@@ -1931,40 +1996,42 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 
                 /* Enhanced Information Display */
                 .info-item {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(248,255,250,0.5) 100%) !important;
+                    background: rgba(255,255,255,0.15) !important;
                     border: 1px solid rgba(255,255,255,0.3) !important;
-                    border-radius: 12px !important;
+                    border-radius: 16px !important;
                     padding: 1rem !important;
                     margin-bottom: 0.5rem !important;
                     transition: all 0.3s ease !important;
-                    backdrop-filter: blur(10px) !important;
+                    backdrop-filter: blur(20px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
                 }
                 
                 .info-item:hover {
                     transform: translateY(-1px) !important;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
-                    background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(248,255,250,0.7) 100%) !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                    background: rgba(255,255,255,0.25) !important;
                 }
                 
                 /* Enhanced Status Badges */
                 .badge {
-                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+                    background: #0eaf54 !important;
+                    box-shadow: 0 2px 8px rgba(14, 175, 84, 0.25) !important;
                     border: 1px solid rgba(255,255,255,0.2) !important;
                     backdrop-filter: blur(10px) !important;
                 }
                 
                 /* Enhanced Tables */
                 .table {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(248,255,250,0.8) 100%) !important;
-                    backdrop-filter: blur(10px) !important;
-                    border-radius: 12px !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    backdrop-filter: blur(20px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+                    border-radius: 16px !important;
                     overflow: hidden !important;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
                 }
                 
                 .table thead th {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(240,255,245,0.1) 100%) !important;
+                    background: rgba(255,255,255,0.1) !important;
                     border-bottom: 1px solid rgba(255,255,255,0.2) !important;
                     backdrop-filter: blur(10px) !important;
                 }
@@ -1973,81 +2040,95 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 .gallery-item .card {
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
                     overflow: hidden !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    backdrop-filter: blur(30px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
                 }
                 
                 .gallery-item .card:hover {
                     transform: translateY(-4px) scale(1.02) !important;
-                    box-shadow: 0 16px 48px rgba(0,0,0,0.15) !important;
+                    background: rgba(255,255,255,0.25) !important;
+                    box-shadow: 0 16px 48px rgba(0,0,0,0.1) !important;
                 }
                 
                 /* Enhanced Video Container */
                 #deviceVideoContainer {
-                    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 100%) !important;
-                    border-radius: 16px !important;
+                    background: rgba(0,0,0,0.7) !important;
+                    backdrop-filter: blur(20px) !important;
+                    border-radius: 24px !important;
                     overflow: hidden !important;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
+                    border: 1px solid rgba(255,255,255,0.1) !important;
                 }
                 
                 /* Enhanced Test Screenshot Sections */
                 .test-screenshot-section .card {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,255,250,0.95) 100%) !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    backdrop-filter: blur(30px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
                     border: 1px solid rgba(255,255,255,0.3) !important;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+                    border-radius: 24px !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.06) !important;
                 }
                 
                 .test-screenshot-section .card-header {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(240,255,245,0.1) 100%) !important;
+                    background: rgba(255,255,255,0.1) !important;
                     border-bottom: 1px solid rgba(255,255,255,0.2) !important;
                 }
                 
                 /* Enhanced Mobile Step Titles */
                 .mobile-step-title {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(240,255,245,0.1) 100%) !important;
-                    backdrop-filter: blur(10px) !important;
-                    border: 1px solid rgba(255,255,255,0.2) !important;
-                    border-radius: 12px !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    backdrop-filter: blur(30px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    border-radius: 16px !important;
                     padding: 1rem !important;
                     margin-bottom: 1.5rem !important;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
                 }
                 
                 /* Enhanced Alerts */
                 .alert {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,255,250,0.9) 100%) !important;
-                    backdrop-filter: blur(10px) !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    backdrop-filter: blur(20px) saturate(180%) !important;
+                    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
                     border: 1px solid rgba(255,255,255,0.3) !important;
-                    border-radius: 12px !important;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                    border-radius: 16px !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important;
                 }
                 
                 /* Enhanced Buttons */
-                .btn {
-                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                .btn-primary {
+                    background: #0eaf54 !important;
                     border: 1px solid rgba(255,255,255,0.2) !important;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                    box-shadow: 0 4px 12px rgba(14, 175, 84, 0.25) !important;
                     backdrop-filter: blur(10px) !important;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
                 }
                 
-                .btn:hover {
+                .btn-primary:hover {
                     transform: translateY(-2px) !important;
-                    box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
+                    box-shadow: 0 6px 20px rgba(14, 175, 84, 0.3) !important;
+                    background: #0d944d !important;
                 }
                 
                 .btn-outline-primary {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,255,250,0.1) 100%) !important;
-                    border: 1px solid var(--primary-color) !important;
-                    color: var(--primary-color) !important;
+                    background: rgba(255,255,255,0.15) !important;
+                    border: 1px solid #0eaf54 !important;
+                    color: #0eaf54 !important;
+                    backdrop-filter: blur(10px) !important;
                 }
                 
                 .btn-outline-primary:hover {
-                    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
+                    background: #0eaf54 !important;
                     color: white !important;
                 }
                 
                 /* Enhanced Progress Indicators */
                 .progress {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(248,255,250,0.1) 100%) !important;
+                    background: rgba(255,255,255,0.1) !important;
                     backdrop-filter: blur(10px) !important;
                     border: 1px solid rgba(255,255,255,0.2) !important;
                     border-radius: 10px !important;
@@ -2055,8 +2136,8 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 }
                 
                 .progress-bar {
-                    background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%) !important;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+                    background: #0eaf54 !important;
+                    box-shadow: 0 2px 8px rgba(14, 175, 84, 0.25) !important;
                 }
                 
                 /* Enhanced Loading States */

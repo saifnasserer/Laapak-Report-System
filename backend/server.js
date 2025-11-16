@@ -46,7 +46,8 @@ app.use((req, res, next) => {
         'https://www.reports.laapak.com',
         'http://82.112.253.29',
         'http://localhost:3001',
-        'http://localhost:3000'
+        'http://localhost:3000',
+        'http://localhost:5173' // Vite dev server
     ];
     
     const origin = req.headers.origin;
@@ -75,7 +76,9 @@ app.use(cors({
         'https://www.reports.laapak.com',
         'http://82.112.253.29',
         'http://localhost:3001',
-        'http://localhost:3000'
+        'http://localhost:3000',
+        'http://localhost:5173' // Vite dev server
+
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

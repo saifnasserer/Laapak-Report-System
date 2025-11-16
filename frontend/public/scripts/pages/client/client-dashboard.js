@@ -46,17 +46,8 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     // showErrorMessage function moved to global scope
     
-    // Check for offline status
-    function updateOfflineStatus() {
-        const offlineAlert = document.getElementById('offlineAlert');
-        if (offlineAlert) {
-            if (navigator.onLine) {
-                offlineAlert.style.display = 'none';
-            } else {
-                offlineAlert.style.display = 'block';
-            }
-        }
-    }
+    // Check for offline status with enhanced glass-style alert
+    
 
     // Initial check
     updateOfflineStatus();
@@ -98,100 +89,46 @@ function logout() {
 }
 
 /**
- * Show loading indicator
+ * Show glass-style loading indicator
  */
-function showLoading(show) {
-    const loadingOverlay = document.getElementById('loadingOverlay');
+function showLoading(show, message = 'جاري تحميل البيانات...') {
+    let loadingOverlay = document.getElementById('glassLoadingOverlay');
     
-    if (!loadingOverlay && show) {
-        // Create loading overlay
-        const overlay = document.createElement('div');
-        overlay.id = 'loadingOverlay';
-        overlay.className = 'loading-overlay';
-        overlay.innerHTML = `
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">جاري تحميل البيانات...</p>
-        `;
-        
-        // Add loading overlay to body
-        document.body.appendChild(overlay);
-        
-        // Add styles if not already in CSS
-        if (!document.getElementById('loadingStyles')) {
-            const style = document.createElement('style');
-            style.id = 'loadingStyles';
-            style.textContent = `
-                .loading-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: rgba(255, 255, 255, 0.8);
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 9999;
-                }
+    if (show) {
+        if (!loadingOverlay) {
+            // Create glass loading overlay
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'glassLoadingOverlay';
+            loadingOverlay.className = 'glass-loading-overlay';
+            loadingOverlay.innerHTML = `
+                <div class="glass-spinner" role="status" aria-label="Loading"></div>
+                <p class="glass-loading-text">${message}</p>
             `;
-            document.head.appendChild(style);
+            document.body.appendChild(loadingOverlay);
+        } else {
+            // Update message if overlay exists
+            const textEl = loadingOverlay.querySelector('.glass-loading-text');
+            if (textEl) {
+                textEl.textContent = message;
+            }
+            loadingOverlay.classList.remove('hide');
         }
-    } else if (loadingOverlay && !show) {
-        // Remove loading overlay
-        loadingOverlay.remove();
+    } else if (loadingOverlay) {
+        // Hide with animation
+        loadingOverlay.classList.add('hide');
+        setTimeout(() => {
+            if (loadingOverlay && loadingOverlay.parentNode) {
+                loadingOverlay.remove();
+            }
+        }, 300);
     }
 }
 
 /**
- * Show error message
+ * Show glass-style notification (error, success, warning)
  */
-function showErrorMessage(message) {
-    // Create alert if it doesn't exist
-    let alertEl = document.getElementById('dashboardAlert');
-    
-    if (!alertEl) {
-        alertEl = document.createElement('div');
-        alertEl.id = 'dashboardAlert';
-        alertEl.className = 'alert alert-danger alert-dismissible fade show';
-        alertEl.role = 'alert';
-        
-        // Add close button
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'btn-close';
-        closeBtn.setAttribute('data-bs-dismiss', 'alert');
-        closeBtn.setAttribute('aria-label', 'Close');
-        
-        // Add message and button to alert
-        alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
-        alertEl.appendChild(closeBtn);
-        
-        // Add alert to page
-        const container = document.querySelector('.container.py-4');
-        if (container) {
-            container.insertBefore(alertEl, container.firstChild);
-        }
-        
-        // Auto-dismiss after 10 seconds
-        setTimeout(() => {
-            if (alertEl.parentNode) {
-                alertEl.classList.remove('show');
-                setTimeout(() => alertEl.remove(), 300);
-            }
-        }, 10000);
-    } else {
-        // Update existing alert
-        alertEl.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> ${message}`;
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'btn-close';
-        closeBtn.setAttribute('data-bs-dismiss', 'alert');
-        closeBtn.setAttribute('aria-label', 'Close');
-        alertEl.appendChild(closeBtn);
-    }
+function showErrorMessage(message, type = 'error', duration = 5000) {
+    showGlassNotification(message, type, duration);
 }
 
 /**
@@ -232,15 +169,34 @@ function cacheReportsForOffline(reports, invoices) {
 }
 
 /**
- * Display reports and invoices in the UI
+ * Display reports and invoices in the UI with animations
  */
 function displayReportsAndInvoices(reportsArray, invoicesArray) {
+    // Remove any skeleton loaders first
+    const skeletonLoaders = document.querySelectorAll('.skeleton-card');
+    skeletonLoaders.forEach(skeleton => {
+        skeleton.style.opacity = '0';
+        skeleton.style.transform = 'translateY(-20px)';
+        setTimeout(() => skeleton.remove(), 300);
+    });
+    
     // Call functions from client-display.js (which should now be globally available)
     if (typeof displayReports === 'function') {
         displayReports(reportsArray);
+        // Trigger card animations and re-initialize magnetic effect
+        setTimeout(() => {
+            const cards = document.querySelectorAll('.report-card, .card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+            // Re-initialize magnetic cards if function exists
+            if (typeof initMagneticCards === 'function') {
+                initMagneticCards();
+            }
+        }, 100);
     } else {
         console.error('displayReports function is not defined. Check script loading order.');
-        showErrorMessage('Error displaying reports content.');
+        showErrorMessage('خطأ في عرض محتوى التقارير.');
     }
 
     // Call function from client-warranty.js to populate warranty tab
@@ -248,7 +204,7 @@ function displayReportsAndInvoices(reportsArray, invoicesArray) {
         displayWarrantyInfo(reportsArray);
     } else {
         console.error('displayWarrantyInfo function is not defined. Check script loading order.');
-        showErrorMessage('Error displaying warranty information.');
+        showErrorMessage('خطأ في عرض معلومات الضمان.');
     }
 
     // Call function from client-maintenance.js to populate maintenance tab
@@ -256,14 +212,49 @@ function displayReportsAndInvoices(reportsArray, invoicesArray) {
         displayMaintenanceSchedule(reportsArray);
     } else {
         console.error('displayMaintenanceSchedule function is not defined. Check script loading order.');
-        showErrorMessage('Error displaying maintenance schedule.');
+        showErrorMessage('خطأ في عرض جدول الصيانة.');
     }
 
     if (typeof displayInvoices === 'function') {
         displayInvoices(invoicesArray);
+        // Trigger invoice card animations and re-initialize magnetic effect
+        setTimeout(() => {
+            const invoiceCards = document.querySelectorAll('#invoicesList .card');
+            invoiceCards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+            // Re-initialize magnetic cards if function exists
+            if (typeof initMagneticCards === 'function') {
+                initMagneticCards();
+            }
+        }, 100);
     } else {
         console.error('displayInvoices function is not defined. Check script loading order.');
-        showErrorMessage('Error displaying invoices content.');
+        showErrorMessage('خطأ في عرض محتوى الفواتير.');
+    }
+}
+
+/**
+ * Show skeleton loaders while data is loading
+ */
+function showSkeletonLoaders(containerId, count = 3) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create skeleton cards
+    for (let i = 0; i < count; i++) {
+        const skeletonCard = document.createElement('div');
+        skeletonCard.className = 'skeleton-card';
+        skeletonCard.innerHTML = `
+            <div class="skeleton-line long"></div>
+            <div class="skeleton-line medium"></div>
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line medium" style="margin-top: 1rem;"></div>
+        `;
+        container.appendChild(skeletonCard);
     }
 }
 
@@ -272,7 +263,11 @@ function displayReportsAndInvoices(reportsArray, invoicesArray) {
  */
 async function loadClientReports() {
     try {
-        showLoading(true);
+        showLoading(true, 'جاري تحميل البيانات...');
+        
+        // Show skeleton loaders
+        showSkeletonLoaders('reportsList', 3);
+        showSkeletonLoaders('invoicesList', 2);
         
         // Check if apiService exists, use window.apiService as fallback
         let service = typeof apiService !== 'undefined' ? apiService : window.apiService;
@@ -315,21 +310,29 @@ async function loadClientReports() {
                 // Optionally show a non-blocking error for invoices, or proceed with empty invoicesArray
             }
             
-            // Display the reports and invoices
+            // Display the reports and invoices with animations
             displayReportsAndInvoices(reportsArray, invoicesArray);
             
             // Cache reports and invoices for offline use
             cacheReportsForOffline(reportsArray, invoicesArray); // Pass both arrays
+            
+            // Show success notification if data loaded successfully
+            if (reportsArray.length > 0 || invoicesArray.length > 0) {
+                showGlassNotification(`تم تحميل ${reportsArray.length} تقرير و ${invoicesArray.length} فاتورة`, 'success', 3000);
+            }
         } else {
             console.error('API response did not contain a valid reports array:', apiResponse);
-            showErrorMessage('Failed to process reports data from server.');
+            showErrorMessage('فشل في معالجة بيانات التقارير من الخادم.');
         }
     } catch (error) {
         console.error('Error loading client reports:', error);
         showLoading(false);
         
-        // Show error message
-        showErrorMessage('Failed to load reports. ' + (navigator.onLine ? 'Please try again later.' : 'You are currently offline.'));
+        // Show error message with glass notification
+        const errorMsg = navigator.onLine 
+            ? 'فشل تحميل التقارير. يرجى المحاولة مرة أخرى لاحقاً.' 
+            : 'أنت غير متصل بالإنترنت حالياً. جاري تحميل البيانات المحفوظة محلياً.';
+        showErrorMessage(errorMsg);
         
         // Try to load cached reports if offline
         loadCachedReports();
