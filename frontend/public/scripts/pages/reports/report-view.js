@@ -74,7 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Determine base URL safely
             const apiBaseUrl = service && service.baseUrl ? service.baseUrl : 
                              (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
-                             'https://reports.laapak.com';
+                             (window.config && window.config.api && window.config.api.baseUrl) 
+                                 ? window.config.api.baseUrl 
+                                 : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                                     ? 'http://localhost:3001'
+                                     : 'https://reports.laapak.com';
                              
             console.log('Using API base URL:', apiBaseUrl);
             console.log('Fetching report with ID:', reportId);

@@ -3,6 +3,21 @@
  * Handles the invoices listing, filtering, and management functionality
  */
 
+/**
+ * Get API base URL from config or auto-detect
+ * @returns {string} The API base URL
+ */
+function getApiBaseUrl() {
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        return window.config.api.baseUrl;
+    }
+    // Auto-detect based on hostname
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3001';
+    }
+    return 'https://reports.laapak.com';
+}
+
 let invoicesTable; // Global variable for the DataTable instance
 let clients = []; // Store clients data
 let reports = []; // Store reports data
@@ -2087,8 +2102,11 @@ async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync =
             throw new Error('No authentication token found');
         }
         
+        // Get API base URL
+        const apiBaseUrl = getApiBaseUrl();
+        
         // Update via API
-        const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
+        const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -2150,8 +2168,11 @@ async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync =
  */
 async function handleInvoiceReportStatusSync(invoiceId, newStatus) {
     try {
+        // Get API base URL
+        const apiBaseUrl = getApiBaseUrl();
+        
         // Get invoice details to find linked reports
-        const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
+        const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-auth-token': localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
@@ -2196,7 +2217,10 @@ async function handleInvoiceReportStatusSync(invoiceId, newStatus) {
  */
 async function updateReportStatusFromInvoice(reportId, newStatus) {
     try {
-        const response = await fetch(`https://reports.laapak.com/api/reports/${reportId}`, {
+        // Get API base URL
+        const apiBaseUrl = getApiBaseUrl();
+        
+        const response = await fetch(`${apiBaseUrl}/api/reports/${reportId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

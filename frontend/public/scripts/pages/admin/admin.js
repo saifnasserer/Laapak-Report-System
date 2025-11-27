@@ -153,36 +153,88 @@ function loadTodaySummary() {
     yesterday.setDate(yesterday.getDate() - 1);
     
     Promise.all([
-        // Reports today
-        fetch(`${baseUrl}/api/reports/count?startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
+        // Reports today (use inspection_date for when reports were created/inspected)
+        fetch(`${baseUrl}/api/reports/count?dateField=inspection_date&startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
             headers: { 'x-auth-token': token }
-        }).then(r => r.json()),
-        // Reports yesterday
-        fetch(`${baseUrl}/api/reports/count?startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
+        }).then(r => {
+            if (!r.ok) {
+                console.error(`Reports today failed: ${r.status}`, r.statusText);
+                return { count: 0 };
+            }
+            return r.json().then(data => {
+                console.log('Reports today response:', data);
+                return data;
+            });
+        }),
+        // Reports yesterday (use inspection_date for when reports were created/inspected)
+        fetch(`${baseUrl}/api/reports/count?dateField=inspection_date&startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
             headers: { 'x-auth-token': token }
-        }).then(r => r.json()),
+        }).then(r => {
+            if (!r.ok) throw new Error(`Reports yesterday failed: ${r.status}`);
+            return r.json();
+        }),
         // Invoices today
         fetch(`${baseUrl}/api/invoices/count?startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
             headers: { 'x-auth-token': token }
-        }).then(r => r.json()),
+        }).then(r => {
+            if (!r.ok) {
+                console.error(`Invoices today failed: ${r.status} ${r.statusText}`);
+                return { count: 0 };
+            }
+            return r.json();
+        }),
         // Invoices yesterday
         fetch(`${baseUrl}/api/invoices/count?startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
             headers: { 'x-auth-token': token }
-        }).then(r => r.json()),
-        // Completed reports today (status = completed)
-        fetch(`${baseUrl}/api/reports/count?status=completed&startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
+        }).then(r => {
+            if (!r.ok) {
+                console.error(`Invoices yesterday failed: ${r.status} ${r.statusText}`);
+                return { count: 0 };
+            }
+            return r.json();
+        }),
+        // Completed reports today (status = completed, use updated_at to track when completed)
+        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
             headers: { 'x-auth-token': token }
-        }).then(r => r.json()),
-        // Completed reports yesterday
-        fetch(`${baseUrl}/api/reports/count?status=completed&startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
+        }).then(r => {
+            if (!r.ok) {
+                console.error(`Completed reports today failed: ${r.status} ${r.statusText}`);
+                return { count: 0 };
+            }
+            return r.json();
+        }),
+        // Completed reports yesterday (use updated_at to track when completed)
+        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
             headers: { 'x-auth-token': token }
-        }).then(r => r.json()),
-        // Pending reports
+        }).then(r => {
+            if (!r.ok) {
+                console.error(`Completed reports yesterday failed: ${r.status} ${r.statusText}`);
+                return { count: 0 };
+            }
+            return r.json();
+        }),
+        // Pending reports (all pending reports regardless of date)
         fetch(`${baseUrl}/api/reports/count?status=pending`, {
             headers: { 'x-auth-token': token }
-        }).then(r => r.json())
+        }).then(r => {
+            if (!r.ok) {
+                console.error(`Pending reports count failed: ${r.status} ${r.statusText}`);
+                return { count: 0 };
+            }
+            return r.json();
+        })
     ])
     .then(([reportsToday, reportsYesterday, invoicesToday, invoicesYesterday, completedToday, completedYesterday, pendingCount]) => {
+        console.log('Today Summary Data:', {
+            reportsToday,
+            reportsYesterday,
+            invoicesToday,
+            invoicesYesterday,
+            completedToday,
+            completedYesterday,
+            pendingCount
+        });
+        
         // Update today's summary
         const reportsTodayEl = document.getElementById('reports-today');
         const reportsTodayTrendEl = document.getElementById('reports-today-trend');
@@ -192,12 +244,23 @@ function loadTodaySummary() {
         const completedTodayTrendEl = document.getElementById('completed-today-trend');
         const attentionEl = document.getElementById('attention-needed');
         
-        const reportsTodayCount = reportsToday.count || 0;
-        const reportsYesterdayCount = reportsYesterday.count || 0;
-        const invoicesTodayCount = invoicesToday.count || 0;
-        const invoicesYesterdayCount = invoicesYesterday.count || 0;
-        const completedTodayCount = completedToday.count || 0;
-        const completedYesterdayCount = completedYesterday.count || 0;
+        const reportsTodayCount = reportsToday?.count ?? 0;
+        const reportsYesterdayCount = reportsYesterday?.count ?? 0;
+        const invoicesTodayCount = invoicesToday?.count ?? 0;
+        const invoicesYesterdayCount = invoicesYesterday?.count ?? 0;
+        const completedTodayCount = completedToday?.count ?? 0;
+        const completedYesterdayCount = completedYesterday?.count ?? 0;
+        const pendingReportsCount = pendingCount?.count ?? 0;
+        
+        console.log('Today Summary Counts:', {
+            reportsTodayCount,
+            reportsYesterdayCount,
+            invoicesTodayCount,
+            invoicesYesterdayCount,
+            completedTodayCount,
+            completedYesterdayCount,
+            pendingReportsCount
+        });
         
         if (reportsTodayEl) reportsTodayEl.textContent = reportsTodayCount;
         if (reportsTodayTrendEl) {
@@ -236,7 +299,10 @@ function loadTodaySummary() {
         }
         
         // Update attention needed (pending reports)
-        if (attentionEl) attentionEl.textContent = data.pending || '0';
+        if (attentionEl) {
+            attentionEl.textContent = pendingReportsCount;
+            console.log('Updated attention-needed with:', pendingReportsCount);
+        }
     })
     .catch(error => {
         console.error('Error loading today summary:', error);
@@ -324,15 +390,15 @@ function loadDashboardStats() {
             if (!r.ok) throw new Error(`Pending reports count failed: ${r.status}`);
             return r.json();
         }),
-        // Reports this month
-        fetch(`${baseUrl}/api/reports/count?startDate=${currentMonthStart.toISOString()}&endDate=${currentMonthEnd.toISOString()}`, {
+        // Reports this month (only completed reports)
+        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${currentMonthStart.toISOString()}&endDate=${currentMonthEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) throw new Error(`Reports this month failed: ${r.status}`);
             return r.json();
         }),
-        // Reports last month
-        fetch(`${baseUrl}/api/reports/count?startDate=${lastMonthStart.toISOString()}&endDate=${lastMonthEnd.toISOString()}`, {
+        // Reports last month (only completed reports)
+        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${lastMonthStart.toISOString()}&endDate=${lastMonthEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) throw new Error(`Reports last month failed: ${r.status}`);
@@ -1614,15 +1680,16 @@ function createToastContainer() {
  * Check if admin is authenticated
  */
 function checkAdminAuth() {
-    // Check if authMiddleware is available
-    if (typeof authMiddleware === 'undefined') {
-        console.error('AuthMiddleware not available');
+    // Check if AuthMiddleware class is available
+    if (typeof AuthMiddleware === 'undefined') {
+        console.error('AuthMiddleware class not available');
         return;
     }
     
     console.log('Checking admin authentication...');
     
-    // Use authMiddleware to check if admin is logged in
+    // Create AuthMiddleware instance to check if admin is logged in
+    const authMiddleware = new AuthMiddleware();
     if (!authMiddleware.isAdminLoggedIn()) {
         console.log('Admin not authenticated, redirecting to login page');
         window.location.href = 'index.html';
@@ -1969,6 +2036,7 @@ function displayDeviceModels(deviceModels, period = 'this-month', startDate = nu
     
     deviceModels.forEach((model, index) => {
         const count = parseInt(model.count || 0);
+        const deviceModel = model.device_model || 'غير معروف';
         const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
         const barWidth = totalCount > 0 ? (count / totalCount) * 100 : 0;
         
@@ -1997,7 +2065,7 @@ function displayDeviceModels(deviceModels, period = 'this-month', startDate = nu
                               `<span class="fw-bold text-muted">${index + 1}</span>`}
                         </div>
                         <div>
-                            <h6 class="mb-0 fw-bold">${model.device_model}</h6>
+                            <h6 class="mb-0 fw-bold">${deviceModel}</h6>
                         </div>
                     </div>
                     <div class="text-end">
@@ -2022,12 +2090,13 @@ function displayDeviceModels(deviceModels, period = 'this-month', startDate = nu
     
     deviceModels.forEach((model, index) => {
         const count = parseInt(model.count || 0);
+        const deviceModel = model.device_model || 'غير معروف';
         const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
         
         html += `
             <div class="p-3 rounded shadow-sm" style="background: rgba(13, 110, 253, 0.03);">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="small fw-bold">${model.device_model}</span>
+                    <span class="small fw-bold">${deviceModel}</span>
                     <span class="badge bg-info">${percentage}%</span>
                 </div>
                 <div class="progress" style="height: 10px;">
@@ -2062,7 +2131,7 @@ function displayDeviceModels(deviceModels, period = 'this-month', startDate = nu
             <div class="col-md-4">
                 <div class="text-center p-3 rounded" style="background: rgba(255, 193, 7, 0.05);">
                     <i class="fas fa-chart-line text-warning fa-2x mb-2"></i>
-                    <h4 class="fw-bold mb-0">${totalCount > 0 ? ((parseInt(deviceModels[0].count || 0) / totalCount) * 100).toFixed(1) : 0}%</h4>
+                    <h4 class="fw-bold mb-0">${totalCount > 0 && deviceModels.length > 0 ? ((parseInt(deviceModels[0].count || 0) / totalCount) * 100).toFixed(1) : 0}%</h4>
                     <small class="text-muted">حصة أفضل جهاز</small>
                 </div>
             </div>

@@ -578,6 +578,18 @@ router.post('/', adminAuth, async (req, res) => {
         transaction = await sequelize.transaction();
         
         console.log('CREATE INVOICE REQUEST BODY:', JSON.stringify(req.body, null, 2));
+        console.log('=== INVOICE CREATION DEBUG ===');
+        console.log('report_id (single):', req.body.report_id);
+        console.log('report_ids (array):', req.body.report_ids);
+        console.log('report_ids type:', typeof req.body.report_ids);
+        console.log('report_ids isArray:', Array.isArray(req.body.report_ids));
+        console.log('items:', req.body.items);
+        if (req.body.items && Array.isArray(req.body.items)) {
+            req.body.items.forEach((item, index) => {
+                console.log(`Item ${index} report_id:`, item.report_id);
+            });
+        }
+        console.log('=== END DEBUG ===');
         
         // Extract data from request body
         const { 
@@ -692,32 +704,87 @@ router.post('/', adminAuth, async (req, res) => {
         }
         
         // Link reports to the invoice using the InvoiceReport junction table
+        // Handle both report_ids (array) and report_id (single) for backward compatibility
+        let reportsToLink = [];
+        console.log('=== REPORT LINKING DEBUG ===');
+        console.log('report_ids from body:', report_ids);
+        console.log('report_id from body:', report_id);
+        console.log('items:', items);
+        
         if (report_ids && Array.isArray(report_ids) && report_ids.length > 0) {
-            console.log('Linking reports to invoice:', report_ids);
+            reportsToLink = report_ids;
+            console.log('Using report_ids array:', reportsToLink);
+        } else if (report_id) {
+            // Convert single report_id to array
+            reportsToLink = [report_id];
+            console.log('Using single report_id converted to array:', reportsToLink);
+        } else {
+            // Try to extract report_id from invoice items if not provided directly
+            console.log('Extracting report_id from items...');
+            const reportIdsFromItems = items
+                ?.map(item => item.report_id)
+                .filter(id => id !== null && id !== undefined && id !== '') || [];
+            console.log('Report IDs extracted from items:', reportIdsFromItems);
+            if (reportIdsFromItems.length > 0) {
+                reportsToLink = [...new Set(reportIdsFromItems)]; // Remove duplicates
+                console.log('Using report IDs from items:', reportsToLink);
+            }
+        }
+        
+        // Final fallback: if still no reports to link, try to get from the invoice items that were just created
+        if (reportsToLink.length === 0 && invoice && invoice.id) {
+            console.log('⚠️ No reports found in request, checking invoice items in database...');
             try {
-                const invoiceReportEntries = report_ids.map(rId => ({
+                const createdItems = await InvoiceItem.findAll({
+                    where: { invoiceId: invoice.id },
+                    attributes: ['report_id'],
+                    transaction
+                });
+                const reportIdsFromDb = createdItems
+                    .map(item => item.report_id)
+                    .filter(id => id !== null && id !== undefined && id !== '');
+                if (reportIdsFromDb.length > 0) {
+                    reportsToLink = [...new Set(reportIdsFromDb)];
+                    console.log('✅ Found report IDs from database items:', reportsToLink);
+                }
+            } catch (dbError) {
+                console.error('Error fetching items from database:', dbError);
+            }
+        }
+        
+        console.log('Final reportsToLink:', reportsToLink);
+        console.log('=== END REPORT LINKING DEBUG ===');
+        
+        if (reportsToLink.length > 0) {
+            console.log('Linking reports to invoice:', reportsToLink);
+            try {
+                const invoiceReportEntries = reportsToLink.map(rId => ({
                     invoice_id: invoice.id,
                     report_id: rId
                 }));
+                console.log('InvoiceReport entries to create:', JSON.stringify(invoiceReportEntries, null, 2));
+                
                 await InvoiceReport.bulkCreate(invoiceReportEntries, { transaction });
-                console.log(`Created ${invoiceReportEntries.length} entries in InvoiceReport table.`);
+                console.log(`✅ Created ${invoiceReportEntries.length} entries in InvoiceReport table.`);
 
                 // Update each report to mark it as having an invoice and update billing status
-                // Consider if 'amount' should be updated here or if it's report-specific
                 const [affectedRows] = await Report.update(
                     { billingEnabled: true }, 
                     { 
-                        where: { id: { [Op.in]: report_ids } },
+                        where: { id: { [Op.in]: reportsToLink } },
                         transaction,
                         returning: false // Not typically needed for MySQL/MariaDB for simple count
                     }
                 );
-                console.log(`Report.update for billingEnabled: Matched ${report_ids.length} report IDs, Affected rows: ${affectedRows}`);
+                console.log(`✅ Report.update for billingEnabled: Matched ${reportsToLink.length} report IDs, Affected rows: ${affectedRows}`);
 
             } catch (linkError) {
-                console.error('Error linking reports or updating report status:', linkError);
+                console.error('❌ Error linking reports or updating report status:', linkError);
+                console.error('Link error stack:', linkError.stack);
                 throw linkError; // Re-throw to be caught by the outer transaction catch block
             }
+        } else {
+            console.log('⚠️ No reports to link to invoice - invoice will be created without report links');
         }
         
         await transaction.commit();
@@ -857,7 +924,8 @@ router.put('/:id', adminAuth, async (req, res) => {
         }
         
         // Update invoice
-        await invoice.update({
+        // Only update paymentStatus if it's explicitly provided (not null/undefined)
+        const updateData = {
             title: title || invoice.title,
             date: date ? new Date(date) : invoice.date,
             client_id: client_id || invoice.client_id,
@@ -865,11 +933,18 @@ router.put('/:id', adminAuth, async (req, res) => {
             discount: Number(discount || invoice.discount),
             tax: Number(tax || invoice.tax),
             total: Number(total || invoice.total),
-            paymentStatus: paymentStatus || invoice.paymentStatus,
             paymentMethod: paymentMethod || invoice.paymentMethod,
             notes: notes || invoice.notes,
             updated_at: new Date()
-        }, { transaction });
+        };
+        
+        // Only update paymentStatus if it's explicitly provided in the request
+        if (paymentStatus !== undefined && paymentStatus !== null) {
+            updateData.paymentStatus = paymentStatus;
+            console.log(`Updating invoice ${invoice.id} paymentStatus to: ${paymentStatus}`);
+        }
+        
+        await invoice.update(updateData, { transaction });
         
         // Update invoice items
         if (items && Array.isArray(items)) {

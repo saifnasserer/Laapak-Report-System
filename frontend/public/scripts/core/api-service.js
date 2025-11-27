@@ -861,11 +861,26 @@ class ApiService {
             }
 
             // Create a structured payload for the API
+            // Determine report_ids - prioritize array, fallback to single, then extract from items
+            let reportIdsArray = null;
+            if (invoiceData.report_ids && Array.isArray(invoiceData.report_ids) && invoiceData.report_ids.length > 0) {
+                reportIdsArray = invoiceData.report_ids;
+            } else if (invoiceData.report_id) {
+                reportIdsArray = [invoiceData.report_id];
+            }
+            
+            console.log('=== API SERVICE INVOICE CREATION DEBUG ===');
+            console.log('Input invoiceData.report_id:', invoiceData.report_id);
+            console.log('Input invoiceData.report_ids:', invoiceData.report_ids);
+            console.log('Computed reportIdsArray:', reportIdsArray);
+            console.log('Items with report_id:', invoiceData.items?.map(item => ({ description: item.description, report_id: item.report_id })));
+            
             const payload = {
                 id: invoiceData.id || this._generateUniqueId('INV'),
                 client_id: Number(invoiceData.client_id),
                 date: invoiceData.date ? new Date(invoiceData.date).toISOString() : new Date().toISOString(),
-                report_id: invoiceData.report_id || null, // Keep report_id field
+                report_id: invoiceData.report_id || null, // Keep report_id field for backward compatibility
+                report_ids: reportIdsArray, // Include report_ids array for proper linking
                 subtotal: Number(invoiceData.subtotal || 0),
                 discount: Number(invoiceData.discount || 0),
                 taxRate: Number(invoiceData.taxRate || 0), // Ensure taxRate is present
@@ -874,8 +889,14 @@ class ApiService {
                 paymentStatus: invoiceData.paymentStatus || 'unpaid',
                 paymentMethod: invoiceData.paymentMethod || null,
                 paymentDate: invoiceData.paymentDate ? new Date(invoiceData.paymentDate).toISOString() : null,
+                notes: invoiceData.notes || null,
+                status: invoiceData.status || 'draft',
                 items: []
             };
+            
+            console.log('Payload report_id:', payload.report_id);
+            console.log('Payload report_ids:', payload.report_ids);
+            console.log('=== END API SERVICE DEBUG ===');
 
             // Validate and map items
             payload.items = invoiceData.items.map(item => {
@@ -895,7 +916,7 @@ class ApiService {
                     throw new Error('Item line total (from item.totalAmount or item.total) is missing or not a valid non-negative number.');
                 }
 
-                return {
+                const itemPayload = {
                     invoiceId: payload.id, // Link to the main invoice
                     description: item.description,
                     type: item.type || 'service', // Default to 'service' if not provided
@@ -904,6 +925,14 @@ class ApiService {
                     totalAmount: Number(lineTotal), // This is line total, maps to 'totalAmount' in DB
                     serialNumber: item.serialNumber || item.serial || null // Prefer item.serialNumber from invoice-generator
                 };
+                
+                // Always include report_id if it exists in the item
+                if (item.report_id) {
+                    itemPayload.report_id = item.report_id;
+                    console.log(`Adding report_id ${item.report_id} to item: ${item.description}`);
+                }
+                
+                return itemPayload;
             });
             
             // Final check on client_id (redundant with above but good for safety)

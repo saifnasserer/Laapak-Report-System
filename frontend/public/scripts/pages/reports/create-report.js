@@ -661,7 +661,7 @@ function createNewInvoiceForReport() {
         discount: parseFloat(document.getElementById('discount')?.value || 0),
         taxRate: parseFloat(document.getElementById('taxRate')?.value || 0),
         items: [{
-            description: `فحص وإصلاح ${document.getElementById('deviceModel')?.value || 'جهاز'}`,
+            description: `${document.getElementById('deviceModel')?.value || 'جهاز'}`,
             quantity: 1,
             amount: parseFloat(document.getElementById('devicePrice')?.value || 0),
             type: 'service'
@@ -2247,7 +2247,8 @@ async function checkExistingInvoice(reportId) {
             const invoiceData = {
                 id: invoiceId,
                 client_id: Number(reportData.client_id), // Ensure client_id is a number
-                report_id: reportId, // Use report_id (string) instead of report_ids (array)
+                report_id: reportId, // Single report ID (for backward compatibility)
+                report_ids: [reportId], // Also send as array for proper linking via junction table
                 date: new Date().toISOString(),
                 subtotal: subtotal,
                 taxRate: taxRate,
@@ -2261,11 +2262,12 @@ async function checkExistingInvoice(reportId) {
                 items: [
                     {
                         invoiceId: invoiceId, // Link item to invoice
-                        description: `فحص وإصلاح ${reportData.device_model || 'جهاز'}`,
+                        description: `${reportData.device_model || 'جهاز'}`,
                         quantity: 1,
                         amount: subtotal, // Use 'amount' instead of 'unitPrice'
                         totalAmount: subtotal, // Use 'totalAmount' instead of 'totalPrice'
-                        type: 'service',
+                        type: 'report', // Changed from 'service' to 'report' to properly link
+                        report_id: reportId, // Add report_id to the item so it gets linked
                         serialNumber: reportData.serial_number || null
                     }
                 ]

@@ -109,6 +109,135 @@
         .search-container .btn:hover {
             transform: scale(1.1);
         }
+        
+        /* Filter Panel Styles */
+        .filter-panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .filter-panel.collapsed {
+            display: none;
+        }
+        
+        .filter-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-header:hover {
+            background: #e9ecef;
+        }
+        
+        .filter-header i {
+            transition: transform 0.3s ease;
+        }
+        
+        .filter-header.collapsed i {
+            transform: rotate(-90deg);
+        }
+        
+        .quick-filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        
+        .quick-filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .quick-filter-btn:hover {
+            background: #e9ecef;
+            border-color: #007553;
+        }
+        
+        .quick-filter-btn.active {
+            background: #007553;
+            color: white;
+            border-color: #007553;
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+        
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+        
+        /* Load More Button Styles */
+        #loadMoreBtn {
+            min-width: 200px;
+            padding: 0.75rem 2rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        #loadMoreBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 117, 83, 0.3);
+        }
+        
+        #loadMoreBtn:active {
+            transform: translateY(0);
+        }
+        
+        #loadMoreBtn i {
+            transition: transform 0.3s ease;
+        }
+        
+        #loadMoreBtn:hover i {
+            transform: translateY(2px);
+        }
+        
+        @media (max-width: 768px) {
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-filters {
+                flex-direction: column;
+            }
+            
+            .quick-filter-btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -125,67 +254,124 @@
         <div class="admin-content">
                 <!-- Reports Content -->
                 <div class="container-fluid">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>قائمة التقارير</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <h2 class="mb-0">قائمة التقارير</h2>
                         
-                        <!-- Minimal Round Search Bar -->
-                        <div class="search-container position-relative">
-                            <div class="input-group" style="width: 300px;">
-                                <input type="text" class="form-control rounded-pill border-0 shadow-sm" 
-                                       id="searchReport" placeholder="البحث في التقارير، رقم الهاتف، العميل..." 
-                                       style="padding-left: 45px; padding-right: 15px; background-color: #f8f9fa;">
-                                <div class="position-absolute start-0 top-50 translate-middle-y ms-3">
-                                    <i class="fas fa-search text-muted"></i>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <!-- Minimal Round Search Bar -->
+                            <div class="search-container position-relative">
+                                <div class="input-group" style="width: 300px;">
+                                    <input type="text" class="form-control rounded-pill border-0 shadow-sm" 
+                                           id="searchReport" placeholder="البحث في التقارير، رقم الهاتف، العميل..." 
+                                           style="padding-left: 45px; padding-right: 15px; background-color: #f8f9fa;">
+                                    <div class="position-absolute start-0 top-50 translate-middle-y ms-3">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill position-absolute end-0 top-50 translate-middle-y me-2 d-none" 
+                                            id="clearReportSearchBtn" style="width: 24px; height: 24px; padding: 0;">
+                                        <i class="fas fa-times" style="font-size: 10px;"></i>
+                                    </button>
                                 </div>
-                                <button type="button" class="btn btn-outline-secondary rounded-pill position-absolute end-0 top-50 translate-middle-y me-2 d-none" 
-                                        id="clearReportSearchBtn" style="width: 24px; height: 24px; padding: 0;">
-                                    <i class="fas fa-times" style="font-size: 10px;"></i>
-                                </button>
                             </div>
+                            <a href="create-report.html" class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
+                            </a>
                         </div>
-                        <a href="create-report.html" class="btn btn-primary">
-                            <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
-                        </a>
                     </div>
-<!--                     
-                    Search & Filter
-                    <div class="card mb-4 shadow">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">بحث وتصفية</h5>
-                            <form id="searchForm">
-                                <div class="row g-3">
-                                    <div class="col-md-3">
-                                        <input type="text" class="form-control" placeholder="اسم العميل أو رقم الطلب">
+                    
+                    <!-- Filters Panel -->
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body p-0">
+                            <div class="filter-header" id="filterHeader">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-filter text-primary"></i>
+                                    <h6 class="mb-0 fw-bold">تصفية التقارير</h6>
+                                    <span class="badge bg-primary" id="activeFiltersCount">0</span>
+                                </div>
+                                <i class="fas fa-chevron-down text-muted"></i>
+                            </div>
+                            
+                            <div class="filter-panel" id="filterPanel" style="display: block;">
+                                <!-- Quick Date Filters -->
+                                <div class="quick-filters">
+                                    <button type="button" class="quick-filter-btn" data-period="today">
+                                        <i class="fas fa-calendar-day me-1"></i> اليوم
+                                    </button>
+                                    <button type="button" class="quick-filter-btn" data-period="week">
+                                        <i class="fas fa-calendar-week me-1"></i> هذا الأسبوع
+                                    </button>
+                                    <button type="button" class="quick-filter-btn active" data-period="month">
+                                        <i class="fas fa-calendar-alt me-1"></i> هذا الشهر
+                                    </button>
+                                    <button type="button" class="quick-filter-btn" data-period="all">
+                                        <i class="fas fa-calendar me-1"></i> الكل
+                                    </button>
+                                </div>
+                                
+                                <!-- Filter Form -->
+                                <form id="filterForm">
+                                    <div class="filter-row">
+                                        <div class="filter-group">
+                                            <label for="startDate">
+                                                <i class="fas fa-calendar me-1"></i> من تاريخ
+                                            </label>
+                                            <input type="date" class="form-control form-control-sm" id="startDate" name="startDate">
+                                        </div>
+                                        
+                                        <div class="filter-group">
+                                            <label for="endDate">
+                                                <i class="fas fa-calendar me-1"></i> إلى تاريخ
+                                            </label>
+                                            <input type="date" class="form-control form-control-sm" id="endDate" name="endDate">
+                                        </div>
+                                        
+                                        <div class="filter-group">
+                                            <label for="statusFilter">
+                                                <i class="fas fa-tag me-1"></i> حالة التقرير
+                                            </label>
+                                            <select class="form-select form-select-sm" id="statusFilter" name="status">
+                                                <option value="">جميع الحالات</option>
+                                                <option value="قيد الانتظار">قيد الانتظار</option>
+                                                <option value="قيد المعالجة">قيد المعالجة</option>
+                                                <option value="مكتمل">مكتمل</option>
+                                                <option value="ملغي">ملغي</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="filter-group">
+                                            <label for="invoiceStatusFilter">
+                                                <i class="fas fa-file-invoice me-1"></i> حالة الفاتورة
+                                            </label>
+                                            <select class="form-select form-select-sm" id="invoiceStatusFilter" name="invoiceStatus">
+                                                <option value="">جميع الفواتير</option>
+                                                <option value="with_invoice">مع فاتورة</option>
+                                                <option value="without_invoice">بدون فاتورة</option>
+                                                <option value="paid">مدفوع</option>
+                                                <option value="unpaid">غير مدفوع</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div class="col-md-3">
-                                        <select class="form-select">
-                                            <option selected>الموديل</option>
-                                            <option>Dell XPS</option>
-                                            <option>HP Spectre</option>
-                                            <option>MacBook Pro</option>
-                                            <option>Lenovo ThinkPad</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <input type="date" class="form-control" placeholder="من تاريخ">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <input type="date" class="form-control" placeholder="إلى تاريخ">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="submit" class="btn btn-primary w-100">
-                                            <i class="fas fa-search me-2"></i> بحث
+                                    
+                                    <div class="filter-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetFiltersBtn">
+                                            <i class="fas fa-redo me-1"></i> إعادة تعيين
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-primary" id="applyFiltersBtn">
+                                            <i class="fas fa-check me-1"></i> تطبيق التصفية
                                         </button>
                                     </div>
-                                </div>
-                            </form>
+                                </form>
+                            </div>
                         </div>
-                    </div> -->
+                    </div>
                     
                     <!-- Reports Table -->
                     <div class="card mb-4 shadow">
-                        <div class="card-header" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white;">
-                            <h5 class="mb-0 fw-bold">جميع التقارير</h5>
+                        <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white;">
+                            <h5 class="mb-0 fw-bold">
+                                <span id="reportsTitle">تقارير هذا الشهر</span>
+                                <small class="ms-2 opacity-75" id="reportsCount">(0 تقرير)</small>
+                            </h5>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -221,20 +407,14 @@
                                 </table>
                             </div>
                             
-                            <!-- Pagination -->
-                            <nav aria-label="Page navigation">
-                                <ul class="pagination justify-content-center mt-4">
-                                    <li class="page-item disabled">
-                                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">السابق</a>
-                                    </li>
-                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="#">التالي</a>
-                                    </li>
-                                </ul>
-                            </nav>
+                            <!-- Load More Button -->
+                            <div class="text-center mt-4" id="loadMoreContainer">
+                                <button type="button" class="btn btn-outline-primary btn-lg" id="loadMoreBtn" style="display: none;">
+                                    <i class="fas fa-chevron-down me-2"></i>
+                                    <span id="loadMoreText">تحميل المزيد</span>
+                                    <span id="loadMoreCount" class="ms-2 opacity-75"></span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

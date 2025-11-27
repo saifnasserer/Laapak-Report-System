@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laapak Reports</title>
+    <title>تفاصيل الضمان | Laapak</title>
     
     <!-- Favicon -->
     <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="../../styles/base/styles.css">
     <link rel="stylesheet" href="../../styles/components/client.css">
     <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/client-dashboard.css">
     
     <!-- PWA manifest -->
     <link rel="manifest" href="../../manifest.json">
@@ -31,80 +32,125 @@
     
     <!-- Theme color for browser -->
     <meta name="theme-color" content="#0a3622">
-
-        <link rel="stylesheet" href="../../styles/pages/client-dashboard.css">
-
 </head>
-<body class="bg-light apple-glass-body">
-    <!-- Particle Background Effect -->
+<body class="bg-light">
     <div class="particles" id="particles"></div>
-    <div class="glass-background"></div>
-    
-    <!-- Offline Alert - Enhanced Glass Style -->
     <div class="offline-alert" id="offlineAlert">
         <i class="fas fa-wifi-slash"></i>
         أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
     </div>
-    
-    <!-- Full Screen Hero Section -->
-    <section class="hero-section" id="heroSection">
-        <div class="hero-content">
-            <div class="hero-text">
-                <h1 class="hero-title">
-                    مرحباً <span id="welcomeClientName" class="gradient-text">عزيزي العميل</span>
-                </h1>
-                <p class="hero-subtitle">
-                    نظام Laapak لإدارة التقارير والضمانات
-                </p>
-                <p class="hero-description">
-                    يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا
-                </p>
-            </div>
-            
-            <!-- Navigation Tiles -->
-            <div class="navigation-tiles">
-                <a href="client-reports.html" class="nav-tile">
-                    <div class="tile-icon">
-                        <i class="fas fa-laptop-medical"></i>
+
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 welcome-card-glass">
+                    <div class="card-body">
+                        <h5 class="mb-0">مرحباً <span id="welcomeClientName"></span>،</h5>
+                        <p class="text-muted mb-0">يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا.</p>
                     </div>
-                    <h3 class="tile-title">تقارير الفحص</h3>
-                    <p class="tile-description">عرض جميع تقارير الصيانة</p>
-                </a>
-                
-                <a href="client-warranty.html" class="nav-tile">
-                    <div class="tile-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h3 class="tile-title">تفاصيل الضمان</h3>
-                    <p class="tile-description">معلومات الضمان والضمانات</p>
-                </a>
-                
-                <a href="client-maintenance.html" class="nav-tile">
-                    <div class="tile-icon">
-                        <i class="fas fa-tools"></i>
-                    </div>
-                    <h3 class="tile-title">مواعيد الصيانة</h3>
-                    <p class="tile-description">جدولة الصيانة الدورية</p>
-                </a>
-                
-                <a href="client-invoices.html" class="nav-tile">
-                    <div class="tile-icon">
-                        <i class="fas fa-file-invoice-dollar"></i>
-                    </div>
-                    <h3 class="tile-title">الفواتير</h3>
-                    <p class="tile-description">عرض وإدارة الفواتير</p>
-                </a>
-            </div>
-            
-            <!-- Swipe Indicator -->
-            <div class="swipe-indicator">
-                <div class="swipe-arrow">
-                    <i class="fas fa-chevron-down"></i>
                 </div>
-                <p class="swipe-text">اسحب للأسفل</p>
             </div>
         </div>
-    </section>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <ul class="nav client-nav" id="clientTabs" role="navigation">
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-reports.html">
+                            <i class="fas fa-laptop-medical me-2"></i> تقارير الفحص
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="client-warranty.html" aria-current="page">
+                            <i class="fas fa-shield-alt me-2"></i> تفاصيل الضمان
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-maintenance.html">
+                            <i class="fas fa-tools me-2"></i> مواعيد الصيانة الدورية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-invoices.html">
+                            <i class="fas fa-dollar-sign me-2"></i> الفواتير
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-info-circle text-primary me-2"></i> معلومات الضمان</h5>
+                        <p class="card-text">تقدم Laapak ثلاثة أنواع من الضمانات لعملائها:</p>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 border-success border-start border-5">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-success">
+                                            <i class="fas fa-cog me-2"></i> ضمان عيوب الصناعة
+                                        </h6>
+                                        <p class="card-text">ضمان لمدة 6 أشهر ضد عيوب الصناعة منذ تاريخ إنشاء التقرير</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 border-warning border-start border-5">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-warning">
+                                            <i class="fas fa-exchange-alt me-2"></i> ضمان الاستبدال
+                                        </h6>
+                                        <p class="card-text">ضمان استبدال لمدة 14 يوم من تاريخ استلام الجهاز</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 border-info border-start border-5">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-info">
+                                            <i class="fas fa-tools me-2"></i> ضمان الصيانة الدورية
+                                        </h6>
+                                        <p class="card-text">ضمان صيانة دورية لمدة سنة كاملة (مرة كل 6 أشهر)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4"><i class="fas fa-exclamation-triangle text-warning me-2"></i> شروط الضمان الأساسية</h5>
+                        
+                        <div class="alert alert-warning">
+                            <h6 class="fw-bold"><i class="fas fa-ban me-2"></i> استثناءات الضمان:</h6>
+                            <p class="mb-0">لا يسري الضمان في حال وجود سوء استخدام، الكسر، أو الأضرار الناتجة عن الكهرباء ذات الجهد العالي أو ما شابه.</p>
+                        </div>
+                        
+                        <div class="alert alert-danger">
+                            <h6 class="fw-bold"><i class="fas fa-unlock-alt me-2"></i> الاستثناء عند فتح الجهاز:</h6>
+                            <p class="mb-0">لا يسري الضمان في حال تم إزالة الاستيكر الخاص بالشركة أو في حالة محاولة فتح أو صيانة الجهاز خارج الشركة.</p>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h6 class="fw-bold"><i class="fas fa-info-circle me-2"></i> عيوب الصناعة فقط:</h6>
+                            <p class="mb-0">يشمل الضمان فقط العيوب الناتجة عن التصنيع ولا يشمل الأعطال الناتجة عن البرمجيات أو أي مشاكل غير متعلقة بالأجزاء المادية.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="warrantyList">
+            <!-- Warranty cards will be loaded here by JavaScript -->
+        </div>
+    </div>
 
     <!-- Report Modal -->
     <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
@@ -115,7 +161,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="reportModalContent">
-                    <!-- Report content will be loaded here by JavaScript -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
@@ -136,7 +181,6 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4" id="invoiceModalContent">
-                    <!-- Invoice content will be loaded here by JavaScript -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
@@ -148,22 +192,14 @@
         </div>
     </div>
 
-    <!-- Client Footer Container - will be populated by client-header-component.js -->
     <div id="client-footer-container"></div>
 
-    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Configuration -->
     <script src="../../scripts/core/config.js"></script>
-    
-    <!-- Custom JS -->
-    <script src="../../scripts/core/auth-middleware.js"></script> <!-- Defines how auth token is handled -->
-    <script src="../../scripts/core/api-service.js"></script>    <!-- Defines ApiService, must be before scripts that use it -->
-    <script src="../../scripts/core/auth-check.js"></script>      <!-- Performs auth checks, likely uses ApiService -->
-    <script src="../../scripts/components/client-header-component.js"></script> <!-- UI component -->
-    
-    <!-- Dashboard Modules (New Modular Architecture) -->
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/core/auth-check.js"></script>
+    <script src="../../scripts/components/client-header-component.js"></script>
     <script src="../../scripts/pages/client/modules/DashboardStateManager.js"></script>
     <script src="../../scripts/pages/client/modules/EventBus.js"></script>
     <script src="../../scripts/pages/client/modules/NotificationManager.js"></script>
@@ -171,18 +207,14 @@
     <script src="../../scripts/pages/client/modules/components/QuickStats.js"></script>
     <script src="../../scripts/pages/client/modules/components/SearchAndFilter.js"></script>
     <script src="../../scripts/pages/client/modules/Dashboard.js"></script>
-    
-    <!-- Client Display Functions (Legacy - for compatibility) -->
-    <script src="../../scripts/pages/client/client-display.js"></script>   <!-- Functions to display reports/invoices -->
-    <script src="../../scripts/pages/client/client-warranty.js"></script>  <!-- Warranty related functions -->
-    <script src="../../scripts/pages/client/client-maintenance.js"></script> <!-- Maintenance related functions -->
-    <script src="../../scripts/pages/client/client-dashboard.js"></script>  <!-- Main initialization - now uses Dashboard class -->
-    <script src="../../scripts/pages/invoices/invoice-generator.js"></script> <!-- Other utilities -->
-    
-    <!-- Creative Interactive Effects -->
+    <script src="../../scripts/pages/client/client-display.js"></script>
+    <script src="../../scripts/pages/client/client-warranty.js"></script>
+    <script src="../../scripts/pages/client/client-maintenance.js"></script>
+    <script src="../../scripts/pages/client/client-dashboard.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Create floating particles
             function createParticles() {
                 const particlesContainer = document.getElementById('particles');
                 if (!particlesContainer) return;
@@ -198,135 +230,60 @@
                 }
             }
             
-            // Smooth tab transitions
-            const tabLinks = document.querySelectorAll('#clientTabs .nav-link');
-            tabLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('data-bs-target');
-                    const targetPane = document.querySelector(targetId);
-                    
-                    if (targetPane) {
-                        // Hide all panes
-                        document.querySelectorAll('.tab-pane').forEach(pane => {
-                            pane.classList.remove('show', 'active');
-                        });
-                        
-                        // Remove active from all tabs
-                        tabLinks.forEach(tab => tab.classList.remove('active'));
-                        
-                        // Show target pane with animation
-                        this.classList.add('active');
-                        setTimeout(() => {
-                            targetPane.classList.add('show', 'active');
-                        }, 50);
-                    }
-                });
-            });
-            
-            // Initialize effects
             createParticles();
-            
-            // Hide swipe indicator on desktop, show on mobile
-            function initSwipeIndicator() {
-                const swipeIndicator = document.querySelector('.swipe-indicator');
-                if (!swipeIndicator) return;
-                
-                const isMobile = window.innerWidth <= 768;
-                if (!isMobile) {
-                    swipeIndicator.style.display = 'none';
-                }
-                
-                // Update on resize
-                window.addEventListener('resize', function() {
-                    const isMobileNow = window.innerWidth <= 768;
-                    swipeIndicator.style.display = isMobileNow ? 'block' : 'none';
-                });
-            }
-            
-            initSwipeIndicator();
         });
     </script>
 
-    <!-- Authentication Check -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Check authentication first before initializing anything
             if (typeof authMiddleware !== 'undefined') {
                 if (!authMiddleware.isClientLoggedIn()) {
-                    console.log('Client not authenticated, redirecting to login page');
                     window.location.href = 'index.html';
-                    return;
                 }
-                console.log('Client authenticated, proceeding with dashboard initialization');
             }
         });
     </script>
 
-    <!-- Print functionality -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Print report functionality
             const printReportBtn = document.getElementById('printReportBtn');
             if (printReportBtn) {
                 printReportBtn.addEventListener('click', function() {
-                    // Store the current body content
                     const originalContent = document.body.innerHTML;
-                    
-                    // Replace with just the report content for printing
                     const reportContent = document.getElementById('reportModalContent').innerHTML;
                     document.body.innerHTML = `
                         <div class="container p-4">
                             ${reportContent}
                         </div>
                     `;
-                    
-                    // Print
                     window.print();
-                    
-                    // Restore original content
                     document.body.innerHTML = originalContent;
-                    
-                    // Reattach event listeners
                     location.reload();
                 });
             }
-            
-            // Print invoice functionality
+
             const printInvoiceBtn = document.getElementById('printInvoiceBtn');
             if (printInvoiceBtn) {
                 printInvoiceBtn.addEventListener('click', function() {
-                    // Store the current body content
                     const originalContent = document.body.innerHTML;
-                    
-                    // Replace with just the invoice content for printing
                     const invoiceContent = document.getElementById('invoiceModalContent').innerHTML;
                     document.body.innerHTML = `
                         <div class="container p-4">
                             ${invoiceContent}
                         </div>
                     `;
-                    
-                    // Print
                     window.print();
-                    
-                    // Restore original content
                     document.body.innerHTML = originalContent;
-                    
-                    // Reattach event listeners
                     location.reload();
                 });
             }
         });
     </script>
-    <!-- PWA Service Worker Registration -->
+
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('service-worker.js')
-                    .then(function(registration) {
-                        console.log('ServiceWorker registration successful');
-                    })
                     .catch(function(error) {
                         console.log('ServiceWorker registration failed: ', error);
                     });
@@ -335,3 +292,4 @@
     </script>
 </body>
 </html>
+

@@ -1,3 +1,18 @@
+/**
+ * Get API base URL from config or auto-detect
+ * @returns {string} The API base URL
+ */
+function getApiBaseUrl() {
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        return window.config.api.baseUrl;
+    }
+    // Auto-detect based on hostname
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3001';
+    }
+    return 'https://reports.laapak.com';
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const urlParams = new URLSearchParams(window.location.search);
     const isNewInvoice = urlParams.get('new') === 'true';
@@ -54,7 +69,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch('https://reports.laapak.com/api/clients?all=true', {
+            const apiBaseUrl = getApiBaseUrl();
+            const response = await fetch(`${apiBaseUrl}/api/clients?all=true`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
@@ -101,7 +117,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('No authentication token found');
             }
             
-            const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
+            const apiBaseUrl = getApiBaseUrl();
+            const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token
@@ -514,20 +531,22 @@ document.addEventListener('DOMContentLoaded', function () {
             
             let url, method;
             
+            const apiBaseUrl = getApiBaseUrl();
+            
             if (isNewInvoice) {
                 if (isBulkInvoice) {
                     // Use bulk invoice endpoint for multiple reports
-                    url = 'https://reports.laapak.com/api/invoices/bulk';
+                    url = `${apiBaseUrl}/api/invoices/bulk`;
                     // Convert report_ids to reportIds for bulk endpoint
                     invoiceData.reportIds = invoiceData.report_ids;
                     delete invoiceData.report_ids;
                 } else {
                     // Use regular invoice endpoint for single report
-                    url = 'https://reports.laapak.com/api/invoices';
+                    url = `${apiBaseUrl}/api/invoices`;
                 }
                 method = 'POST';
             } else {
-                url = `https://reports.laapak.com/api/invoices/${invoiceData.id}`;
+                url = `${apiBaseUrl}/api/invoices/${invoiceData.id}`;
                 method = 'PUT';
             }
             
@@ -675,7 +694,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // Fetch all reports
-            const response = await fetch('https://reports.laapak.com/api/reports?fetch_mode=all_reports', {
+            const apiBaseUrl = getApiBaseUrl();
+            const response = await fetch(`${apiBaseUrl}/api/reports?fetch_mode=all_reports`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': token

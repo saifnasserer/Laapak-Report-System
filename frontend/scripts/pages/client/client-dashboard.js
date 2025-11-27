@@ -314,16 +314,12 @@ function displayReportsAndInvoices(reportsArray, invoicesArray) {
             }
         } else {
             displayReports(reportsArray);
-            // Trigger card animations and re-initialize magnetic effect
+            // Trigger card animations
             setTimeout(() => {
                 const cards = document.querySelectorAll('.report-card, .card');
                 cards.forEach((card, index) => {
                     card.style.animationDelay = `${index * 0.1}s`;
                 });
-                // Re-initialize magnetic cards if function exists
-                if (typeof initMagneticCards === 'function') {
-                    initMagneticCards();
-                }
             }, 100);
         }
     } else {
@@ -359,16 +355,12 @@ function displayReportsAndInvoices(reportsArray, invoicesArray) {
             }
         } else {
             displayInvoices(invoicesArray);
-            // Trigger invoice card animations and re-initialize magnetic effect
+            // Trigger invoice card animations
             setTimeout(() => {
                 const invoiceCards = document.querySelectorAll('#invoicesList .card');
                 invoiceCards.forEach((card, index) => {
                     card.style.animationDelay = `${index * 0.1}s`;
                 });
-                // Re-initialize magnetic cards if function exists
-                if (typeof initMagneticCards === 'function') {
-                    initMagneticCards();
-                }
             }, 100);
         }
     } else {
@@ -577,7 +569,7 @@ function initializeQuickStats() {
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="statReports">0</div>
-                        <div class="stat-label">تقارير الصيانة</div>
+                        <div class="stat-label">تقارير الفحص</div>
                     </div>
                     <div class="stat-wave"></div>
                 </div>
@@ -1487,6 +1479,11 @@ function setupTabHandlers() {
     if (tabElements.length > 0) {
         tabElements.forEach(tab => {
             tab.addEventListener('click', function(e) {
+                const targetId = this.getAttribute('data-bs-target');
+                if (!targetId) {
+                    return;
+                }
+                
                 e.preventDefault();
                 
                 // Remove active class from all tabs
@@ -1494,9 +1491,6 @@ function setupTabHandlers() {
                 
                 // Add active class to clicked tab
                 this.classList.add('active');
-                
-                // Get the target tab content ID
-                const targetId = this.getAttribute('data-bs-target');
                 
                 // Hide all tab content
                 const tabContents = document.querySelectorAll('.tab-pane');

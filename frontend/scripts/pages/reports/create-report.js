@@ -661,7 +661,7 @@ function createNewInvoiceForReport() {
         discount: parseFloat(document.getElementById('discount')?.value || 0),
         taxRate: parseFloat(document.getElementById('taxRate')?.value || 0),
         items: [{
-            description: `فحص وإصلاح ${document.getElementById('deviceModel')?.value || 'جهاز'}`,
+            description: `${document.getElementById('deviceModel')?.value || 'جهاز'}`,
             quantity: 1,
             amount: parseFloat(document.getElementById('devicePrice')?.value || 0),
             type: 'service'
@@ -2261,7 +2261,7 @@ async function checkExistingInvoice(reportId) {
                 items: [
                     {
                         invoiceId: invoiceId, // Link item to invoice
-                        description: `فحص وإصلاح ${reportData.device_model || 'جهاز'}`,
+                        description: `${reportData.device_model || 'جهاز'}`,
                         quantity: 1,
                         amount: subtotal, // Use 'amount' instead of 'unitPrice'
                         totalAmount: subtotal, // Use 'totalAmount' instead of 'totalPrice'

@@ -5,9 +5,11 @@
 
 class LpkClientHeader {
     constructor(options = {}) {
-        this.containerId = options.containerId || 'client-header-container';
+        this.placement = options.placement === 'footer' ? 'footer' : 'header';
+        this.containerId = options.containerId || (this.placement === 'footer' ? 'client-footer-container' : 'client-header-container');
         this.options = {
-            clientName: options.clientName || 'العميل'
+            clientName: options.clientName || 'العميل',
+            placement: this.placement
         };
         
         this.render();
@@ -49,6 +51,29 @@ class LpkClientHeader {
                     margin-bottom: 2rem;
                     min-height: 80px;
                     background: transparent;
+                }
+
+                .floating-header-container.footer-placement {
+                    position: fixed;
+                    bottom: 1rem;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: min(1100px, calc(100% - 2rem));
+                    margin-bottom: 0;
+                    z-index: 1052;
+                    pointer-events: none;
+                }
+
+                .floating-header-container.footer-placement > * {
+                    pointer-events: all;
+                }
+
+                @media (max-width: 768px) {
+                    .floating-header-container.footer-placement {
+                        width: calc(100% - 1rem);
+                        bottom: 0.75rem;
+                        padding: 1rem 1.25rem;
+                    }
                 }
                 
                 /* Floating Glass Cards - Transparent */
@@ -147,7 +172,7 @@ class LpkClientHeader {
                     width: 40px;
                     height: 40px;
                     object-fit: contain;
-                    filter: brightness(0) invert(1);
+                    filter: none;
                     position: relative;
                     z-index: 2;
                     transition: all 0.3s ease;
@@ -390,7 +415,47 @@ class LpkClientHeader {
                 
                 /* Enhanced Dropdown (same as before but adjusted) */
                 .floating-dropdown-menu {
-                    margin-top: 0.5rem !important;
+                    position: absolute !important;
+                    bottom: calc(100% + 0.35rem);
+                    right: 0;
+                    left: auto;
+                    display: none;
+                    opacity: 0;
+                    transform: translateY(6px);
+                    transition: opacity 0.2s ease, transform 0.2s ease;
+                    pointer-events: none;
+                    margin: 0 !important;
+                }
+
+                .floating-dropdown-menu.show {
+                    display: block;
+                    opacity: 1;
+                    transform: translateY(0);
+                    pointer-events: auto;
+                }
+
+                .floating-dropdown.dropup .floating-dropdown-menu {
+                    bottom: calc(100% + 0.5rem);
+                }
+
+                .floating-dropdown:not(.dropup) .floating-dropdown-menu {
+                    top: calc(100% + 0.5rem);
+                    bottom: auto;
+                }
+                
+                /* Mobile: Always open upward for footer placement */
+                @media (max-width: 768px) {
+                    .floating-dropdown.dropup .floating-dropdown-menu,
+                    .footer-placement .floating-dropdown-menu {
+                        bottom: calc(100% + 0.5rem) !important;
+                        top: auto !important;
+                        transform: translateY(6px);
+                    }
+                    
+                    .floating-dropdown.dropup .floating-dropdown-menu.show,
+                    .footer-placement .floating-dropdown-menu.show {
+                        transform: translateY(0);
+                    }
                 }
                 
                 /* Responsive Design */
@@ -844,6 +909,7 @@ class LpkClientHeader {
                     min-width: 250px;
                     z-index: 1051 !important;
                     animation: dropdownSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: absolute;
                 }
                 
                 @keyframes dropdownSlideIn {
@@ -1031,6 +1097,39 @@ class LpkClientHeader {
                 userProfileCard.style.transform = 'translateY(0)';
             });
         }
+
+        // Popup dropdown that opens upward from the floating icon
+        const dropdownToggle = document.getElementById('userDropdown');
+        const dropdownMenu = document.querySelector('.floating-dropdown-menu');
+        const dropdownWrapper = document.querySelector('.floating-dropdown');
+
+        if (dropdownToggle && dropdownMenu && dropdownWrapper) {
+            const toggleDropdown = (forceState) => {
+                const isOpen = dropdownMenu.classList.contains('show');
+                const nextState = typeof forceState === 'boolean' ? forceState : !isOpen;
+                dropdownMenu.classList.toggle('show', nextState);
+                dropdownToggle.setAttribute('aria-expanded', nextState ? 'true' : 'false');
+            };
+
+            const handleDocumentClick = (event) => {
+                if (dropdownWrapper && !dropdownWrapper.contains(event.target)) {
+                    toggleDropdown(false);
+                }
+            };
+
+            dropdownToggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleDropdown();
+            });
+
+            document.addEventListener('click', handleDocumentClick);
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    toggleDropdown(false);
+                }
+            });
+        }
     }
     
     generateHeaderHTML() {
@@ -1056,30 +1155,24 @@ class LpkClientHeader {
         
         // Get initials for avatar
         const initials = firstName.length > 0 ? firstName.charAt(0).toUpperCase() : 'U';
+        const placementClass = this.options.placement === 'footer' ? ' footer-placement' : '';
+        const dropdownDirectionClass = this.options.placement === 'footer' ? ' dropup' : '';
         
         let html = `
         <!-- Floating Header Design - No Solid Bar -->
-        <div class="floating-header-container">
+        <div class="floating-header-container${placementClass}">
             <!-- Floating Logo Card -->
             <div class="floating-logo-card glass-card-float">
                 <a class="floating-brand-link" href="client-dashboard.html">
                     <div class="floating-logo-wrapper">
-                        <div class="logo-orb">
-                            <img src="assets/images/cropped-Logo-mark.png.png" alt="Laapak" class="floating-logo-img">
-                            <div class="orb-glow"></div>
-                            <div class="orb-particles">
-                                <span class="orb-particle"></span>
-                                <span class="orb-particle"></span>
-                                <span class="orb-particle"></span>
-                            </div>
-                        </div>
+                        <img src="assets/images/cropped-Logo-mark.png.png" alt="Laapak" class="floating-logo-img">
                         <div class="floating-brand-text">
                             <h3 class="floating-brand-title">Laapak</h3>
                             <span class="floating-brand-subtitle d-none d-md-inline">نظام التقارير</span>
                         </div>
                     </div>
-                        </a>
-                    </div>
+                </a>
+            </div>
                     
             <!-- Floating User Card -->
             <div class="floating-user-card glass-card-float">
@@ -1089,8 +1182,8 @@ class LpkClientHeader {
                         <div class="floating-user-name">${firstName}</div>
                         <div class="floating-user-badge">عميل</div>
                     </div>
-                    <div class="dropdown floating-dropdown">
-                        <button class="floating-dropdown-btn" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="dropdown floating-dropdown${dropdownDirectionClass}">
+                        <button class="floating-dropdown-btn" type="button" id="userDropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="fas fa-ellipsis-v"></i>
                             </button>
                         <ul class="dropdown-menu dropdown-menu-end glass-dropdown floating-dropdown-menu" aria-labelledby="userDropdown">
@@ -1157,12 +1250,27 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Error parsing client info:', e);
     }
     
-    // Initialize if header container exists
-    if (document.getElementById('client-header-container')) {
+    // Initialize header or footer placement based on DOM
+    const headerContainer = document.getElementById('client-header-container');
+    const footerContainer = document.getElementById('client-footer-container');
+    let initializationTarget = null;
+    let placement = 'header';
+
+    if (headerContainer) {
+        initializationTarget = 'client-header-container';
+        placement = 'header';
+    } else if (footerContainer) {
+        initializationTarget = 'client-footer-container';
+        placement = 'footer';
+    }
+
+    if (initializationTarget) {
         new LpkClientHeader({
-            clientName: clientName
+            clientName: clientName,
+            placement,
+            containerId: initializationTarget
         });
-        console.log('🎯 Client Header Component initialized successfully!');
+        console.log(`🎯 Client Header Component initialized successfully! Placement: ${placement}`);
         console.log('👤 Client name:', clientName);
     }
 });

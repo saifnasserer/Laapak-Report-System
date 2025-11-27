@@ -10,11 +10,35 @@
  * - Invoice integration
  */
 
-// Pagination settings
+/**
+ * Get API base URL from config or auto-detect
+ * @returns {string} The API base URL
+ */
+function getApiBaseUrl() {
+    if (window.config && window.config.api && window.config.api.baseUrl) {
+        return window.config.api.baseUrl;
+    }
+    // Auto-detect based on hostname
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3001';
+    }
+    return 'https://reports.laapak.com';
+}
+
+// Pagination settings - Load More style
 const REPORTS_PER_PAGE = 20;
-let currentPage = 1;
+let displayedReportsCount = 0; // How many reports are currently displayed
 let totalReports = 0;
 let allReports = [];
+
+// Filter state
+let currentFilters = {
+    startDate: null,
+    endDate: null,
+    status: '',
+    invoiceStatus: '',
+    period: 'month' // Default to current month
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is authenticated
@@ -31,14 +55,17 @@ document.addEventListener('DOMContentLoaded', function() {
         activeItem: 'reports',
     });
     
+    // Initialize filters
+    initFilters();
+    
     // Initialize reports functionality
     initReports();
     
     // Initialize search form
     initSearchForm();
     
-    // Initialize pagination
-    initPagination();
+    // Initialize load more functionality
+    initLoadMore();
 });
 
 /**
@@ -118,42 +145,40 @@ function formatReportStatus(status, reportId) {
  * @returns {string} HTML string with invoice link or status
  */
 function getInvoiceLink(report) {
-    // Check if report has invoices array
-    if (report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0) {
-        // Get the first invoice (assuming one invoice per report for now)
-        const invoice = report.invoices[0];
-        const statusBadge = getInvoiceStatusBadge(invoice.paymentStatus);
+    // Priority 1: Check relatedInvoices (from backend association)
+    let invoice = null;
+    if (report.relatedInvoices && Array.isArray(report.relatedInvoices) && report.relatedInvoices.length > 0) {
+        invoice = report.relatedInvoices[0];
+    }
+    // Priority 2: Check invoices array (legacy format)
+    else if (report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0) {
+        invoice = report.invoices[0];
+    }
+    
+    if (invoice) {
+        const paymentStatus = invoice.paymentStatus || invoice.payment_status || invoice.status;
         
         // Check if payment is completed
-        const isCompleted = invoice.paymentStatus && (
-            invoice.paymentStatus.toLowerCase() === 'completed' || 
-            invoice.paymentStatus.toLowerCase() === 'paid' ||
-            invoice.paymentStatus === 'مكتمل' ||
-            invoice.paymentStatus === 'مدفوع'
+        const isCompleted = paymentStatus && (
+            paymentStatus.toLowerCase() === 'completed' || 
+            paymentStatus.toLowerCase() === 'paid' ||
+            paymentStatus === 'مكتمل' ||
+            paymentStatus === 'مدفوع'
         );
         
         if (isCompleted) {
-            return `<div class="d-flex flex-column gap-1">
-                <a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-success">
-                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
-                </a>
-                                 <!-- ${statusBadge} -->
-
-            </div>`;
+            return `<a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-success">
+                <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+            </a>`;
         } else {
-            return `<div class="d-flex flex-column gap-1">
-                <a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
-                </a>
-                <!-- ${statusBadge} -->
-            </div>`;
+            return `<a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+            </a>`;
         }
     }
     
     // Check if report has invoice_id (direct invoice reference)
     if (report.invoice_id && report.invoice_id !== null) {
-        const statusBadge = getInvoiceStatusBadge(report.invoice_status);
-        
         // Check if payment is completed
         const isCompleted = report.invoice_status && (
             report.invoice_status.toLowerCase() === 'completed' || 
@@ -163,26 +188,18 @@ function getInvoiceLink(report) {
         );
         
         if (isCompleted) {
-            return `<div class="d-flex flex-column gap-1">
-                <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-success">
-                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
-                </a>
-                <!-- ${statusBadge} -->
-            </div>`;
+            return `<a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-success">
+                <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+            </a>`;
         } else {
-            return `<div class="d-flex flex-column gap-1">
-                <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
-                </a>
-                <!-- ${statusBadge} -->
-            </div>`;
+            return `<a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+            </a>`;
         }
     }
     
     // Check if report has invoice_created flag
     if (report.invoice_created === true && report.invoice_id) {
-        const statusBadge = getInvoiceStatusBadge(report.invoice_status);
-        
         // Check if payment is completed
         const isCompleted = report.invoice_status && (
             report.invoice_status.toLowerCase() === 'completed' || 
@@ -192,20 +209,13 @@ function getInvoiceLink(report) {
         );
         
         if (isCompleted) {
-            return `<div class="d-flex flex-column gap-1">
-                <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-success">
-                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
-                </a>
-                <!-- ${statusBadge} -->
-            </div>`;
+            return `<a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-success">
+                <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+            </a>`;
         } else {
-            return `<div class="d-flex flex-column gap-1">
-                <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
-                </a>
-                                <!-- ${statusBadge} -->
-
-            </div>`;
+            return `<a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
+            </a>`;
         }
     }
     
@@ -302,6 +312,262 @@ function sortReportsByDate(reports) {
 }
 
 /**
+ * Initialize filters with default current month
+ */
+function initFilters() {
+    // Set default to current month
+    setCurrentMonthFilter();
+    
+    // Filter panel toggle
+    const filterHeader = document.getElementById('filterHeader');
+    const filterPanel = document.getElementById('filterPanel');
+    
+    if (filterHeader && filterPanel) {
+        filterHeader.addEventListener('click', function() {
+            filterPanel.classList.toggle('collapsed');
+            filterHeader.classList.toggle('collapsed');
+        });
+    }
+    
+    // Quick filter buttons
+    const quickFilterBtns = document.querySelectorAll('.quick-filter-btn');
+    quickFilterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all buttons
+            quickFilterBtns.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            const period = this.dataset.period;
+            applyQuickFilter(period);
+        });
+    });
+    
+    // Apply filters button
+    const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', function() {
+            applyFilters();
+        });
+    }
+    
+    // Reset filters button
+    const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', function() {
+            resetFilters();
+        });
+    }
+    
+    // Update active filters count
+    updateActiveFiltersCount();
+}
+
+/**
+ * Set current month as default filter
+ */
+function setCurrentMonthFilter() {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Format dates as YYYY-MM-DD
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+    currentFilters.startDate = formatDate(firstDay);
+    currentFilters.endDate = formatDate(lastDay);
+    currentFilters.period = 'month';
+    
+    console.log('=== CURRENT MONTH FILTER DEBUG ===');
+    console.log('Current date:', now);
+    console.log('Filter start date:', currentFilters.startDate);
+    console.log('Filter end date:', currentFilters.endDate);
+    console.log('First day object:', firstDay);
+    console.log('Last day object:', lastDay);
+    console.log('=== END CURRENT MONTH FILTER DEBUG ===');
+    
+    // Update date inputs
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (startDateInput) startDateInput.value = currentFilters.startDate;
+    if (endDateInput) endDateInput.value = currentFilters.endDate;
+}
+
+/**
+ * Apply quick filter (today, week, month, all)
+ */
+function applyQuickFilter(period) {
+    const now = new Date();
+    let startDate, endDate;
+    
+    switch (period) {
+        case 'today':
+            startDate = new Date(now);
+            endDate = new Date(now);
+            break;
+        case 'week':
+            const dayOfWeek = now.getDay();
+            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Monday
+            startDate = new Date(now.setDate(diff));
+            endDate = new Date(now);
+            endDate.setDate(endDate.getDate() + 6); // Sunday
+            break;
+        case 'month':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+        case 'all':
+            startDate = null;
+            endDate = null;
+            break;
+        default:
+            return;
+    }
+    
+    // Format dates
+    const formatDate = (date) => {
+        if (!date) return null;
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+    currentFilters.startDate = formatDate(startDate);
+    currentFilters.endDate = formatDate(endDate);
+    currentFilters.period = period;
+    
+    // Update date inputs
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (startDateInput) startDateInput.value = currentFilters.startDate || '';
+    if (endDateInput) endDateInput.value = currentFilters.endDate || '';
+    
+    // Apply filters
+    applyFilters();
+}
+
+/**
+ * Apply filters from form
+ */
+function applyFilters() {
+    // Get filter values from form
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const statusFilter = document.getElementById('statusFilter');
+    const invoiceStatusFilter = document.getElementById('invoiceStatusFilter');
+    
+    currentFilters.startDate = startDateInput ? startDateInput.value : null;
+    currentFilters.endDate = endDateInput ? endDateInput.value : null;
+    currentFilters.status = statusFilter ? statusFilter.value : '';
+    currentFilters.invoiceStatus = invoiceStatusFilter ? invoiceStatusFilter.value : '';
+    
+    // Update active filters count
+    updateActiveFiltersCount();
+    
+    // Update title
+    updateReportsTitle();
+    
+    // Reset to first page
+    currentPage = 1;
+    
+    // Reload reports with filters
+    initReports();
+}
+
+/**
+ * Reset all filters to default (current month)
+ * Made global for use in HTML onclick handlers
+ */
+window.resetFilters = function() {
+    // Reset filter state
+    currentFilters = {
+        startDate: null,
+        endDate: null,
+        status: '',
+        invoiceStatus: '',
+        period: 'month'
+    };
+    
+    // Set to current month
+    setCurrentMonthFilter();
+    
+    // Reset form
+    const statusFilter = document.getElementById('statusFilter');
+    const invoiceStatusFilter = document.getElementById('invoiceStatusFilter');
+    
+    if (statusFilter) statusFilter.value = '';
+    if (invoiceStatusFilter) invoiceStatusFilter.value = '';
+    
+    // Update quick filter buttons
+    const quickFilterBtns = document.querySelectorAll('.quick-filter-btn');
+    quickFilterBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.period === 'month') {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Update active filters count
+    updateActiveFiltersCount();
+    
+    // Update title
+    updateReportsTitle();
+    
+    // Reset to first page
+    currentPage = 1;
+    
+    // Reload reports
+    initReports();
+};
+
+/**
+ * Update active filters count badge
+ */
+function updateActiveFiltersCount() {
+    let count = 0;
+    
+    if (currentFilters.startDate || currentFilters.endDate) count++;
+    if (currentFilters.status) count++;
+    if (currentFilters.invoiceStatus) count++;
+    
+    const badge = document.getElementById('activeFiltersCount');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+}
+
+/**
+ * Update reports title based on active filters
+ */
+function updateReportsTitle() {
+    const titleElement = document.getElementById('reportsTitle');
+    if (!titleElement) return;
+    
+    let title = 'جميع التقارير';
+    
+    if (currentFilters.period === 'month') {
+        title = 'تقارير هذا الشهر';
+    } else if (currentFilters.period === 'week') {
+        title = 'تقارير هذا الأسبوع';
+    } else if (currentFilters.period === 'today') {
+        title = 'تقارير اليوم';
+    } else if (currentFilters.startDate || currentFilters.endDate) {
+        title = 'التقارير المصفاة';
+    }
+    
+    titleElement.textContent = title;
+}
+
+/**
  * Initialize reports listing functionality
  */
 function initReports() {
@@ -321,8 +587,32 @@ function initReports() {
                 throw new Error('لا يمكن الاتصال بالخادم. الخادم غير متوفر حاليًا.');
             }
             
-            // If connected, fetch reports from API
-            return apiService.getReports({ fetch_mode: 'all_reports' });
+            // Build filter parameters
+            const filterParams = {
+                fetch_mode: 'all_reports'
+            };
+            
+            // Always add date filters if they are set (including default current month)
+            if (currentFilters.startDate) {
+                filterParams.startDate = currentFilters.startDate;
+            }
+            if (currentFilters.endDate) {
+                filterParams.endDate = currentFilters.endDate;
+            }
+            
+            // Add status filter if set
+            if (currentFilters.status) {
+                filterParams.status = currentFilters.status;
+            }
+            
+            console.log('=== API REQUEST DEBUG ===');
+            console.log('Filter params being sent:', filterParams);
+            console.log('Current filters state:', currentFilters);
+            console.log('Start date:', currentFilters.startDate);
+            console.log('End date:', currentFilters.endDate);
+            
+            // If connected, fetch reports from API with filters
+            return apiService.getReports(filterParams);
         })
         .catch(error => {
             // If server connection fails, try to load from cache first
@@ -377,24 +667,103 @@ function initReports() {
                 reports = data.reports || data.data || [];
             }
             
-            console.log('Reports data:', reports);
+            console.log('=== REPORTS DEBUG ===');
+            console.log('Total reports fetched:', reports.length);
+            console.log('Current filters:', currentFilters);
+            
+            // Debug: Show status breakdown
+            const statusBreakdown = {};
+            reports.forEach(report => {
+                const status = report.status || 'undefined';
+                statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
+            });
+            console.log('Status breakdown:', statusBreakdown);
+            
+            // Debug: Show reports with pending status
+            const pendingReports = reports.filter(r => {
+                const status = (r.status || '').toLowerCase();
+                return status === 'pending' || status === 'قيد الانتظار' || status === 'active' || !status;
+            });
+            console.log('Pending reports found:', pendingReports.length);
+            if (pendingReports.length > 0) {
+                console.log('Sample pending reports:', pendingReports.slice(0, 3).map(r => ({
+                    id: r.id,
+                    status: r.status,
+                    inspection_date: r.inspection_date,
+                    created_at: r.created_at,
+                    order_number: r.order_number
+                })));
+            }
+            
+            // Debug: Show date information
+            const reportsWithDates = reports.map(r => ({
+                id: r.id,
+                status: r.status,
+                inspection_date: r.inspection_date,
+                created_at: r.created_at,
+                inRange: checkDateInRange(r, currentFilters.startDate, currentFilters.endDate)
+            }));
+            console.log('Date range check (first 5):', reportsWithDates.slice(0, 5));
+            console.log('=== END REPORTS DEBUG ===');
             
             // Cache the reports for offline access
             cacheReports(reports);
             
+            // Apply client-side filters (invoice status, etc.)
+            let filteredReports = applyClientSideFilters(reports);
+            
+            // If no reports after filtering with current month, check if we should show all
+            // This handles cases where reports are in different months/years
+            if (filteredReports.length === 0 && currentFilters.period === 'month') {
+                console.log('No reports found for current month, checking if we should show all reports...');
+                
+                // Check if there are any reports at all
+                if (reports.length > 0) {
+                    // Find the date range of all reports
+                    const allDates = reports
+                        .map(r => r.inspection_date || r.inspectionDate || r.created_at || r.createdAt)
+                        .filter(d => d)
+                        .map(d => new Date(d))
+                        .filter(d => !isNaN(d.getTime()));
+                    
+                    if (allDates.length > 0) {
+                        const minDate = new Date(Math.min(...allDates));
+                        const maxDate = new Date(Math.max(...allDates));
+                        
+                        console.log(`Reports date range: ${minDate.toISOString()} to ${maxDate.toISOString()}`);
+                        console.log(`Current month filter: ${currentFilters.startDate} to ${currentFilters.endDate}`);
+                        
+                        // If all reports are outside current month, suggest showing all
+                        const currentMonthStart = new Date(currentFilters.startDate);
+                        const currentMonthEnd = new Date(currentFilters.endDate + 'T23:59:59');
+                        
+                        if (maxDate < currentMonthStart || minDate > currentMonthEnd) {
+                            console.log('All reports are outside current month range. Consider showing all reports.');
+                            // Don't auto-change, but log the suggestion
+                        }
+                    }
+                }
+            }
+            
+            // Update reports count
+            updateReportsCount(filteredReports.length);
+            
             // Check if reports array is empty
-            if (reports.length === 0) {
+            if (filteredReports.length === 0) {
                 // Show empty state message
                 const reportsTableBody = document.getElementById('reportsTableBody');
                 if (reportsTableBody) {
                     reportsTableBody.innerHTML = `
                         <tr>
-                            <td colspan="5" class="text-center py-5">
+                            <td colspan="7" class="text-center py-5">
                                 <div class="empty-state">
                                     <i class="fas fa-file-alt fa-3x mb-3 text-muted"></i>
                                     <h5>لا توجد تقارير</h5>
-                                    <p class="text-muted">لم يتم العثور على أي تقارير في قاعدة البيانات.</p>
-                                    <a href="create-report.html" class="btn btn-primary mt-3">
+                                    <p class="text-muted">لم يتم العثور على أي تقارير تطابق معايير التصفية المحددة.</p>
+                                    <button class="btn btn-outline-primary mt-2" onclick="resetFilters()">
+                                        <i class="fas fa-redo me-2"></i> إعادة تعيين التصفية
+                                    </button>
+                                    <a href="create-report.html" class="btn btn-primary mt-2">
                                         <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
                                     </a>
                                 </div>
@@ -404,7 +773,7 @@ function initReports() {
                 }
             } else {
                 // Populate reports table with data
-                populateReportsTable(reports);
+                populateReportsTable(filteredReports);
             }
             
             // Add event listeners for status dropdown after populating table
@@ -528,19 +897,19 @@ function populateReportsTable(reports, updatePagination = true) {
     // Sort reports by date (newest first)
     const sortedReports = sortReportsByDate(reports);
     
-    // Store all reports for pagination
+    // Store all reports
     if (updatePagination) {
         allReports = sortedReports;
         totalReports = sortedReports.length;
-        // Reset to first page when new data is loaded
-        currentPage = 1;
+        // Reset displayed count when new data is loaded
+        displayedReportsCount = 0;
     }
-    
-    // Clear existing rows
-    reportsTableBody.innerHTML = '';
     
     // Check if reports array is empty
     if (!reports || reports.length === 0) {
+        // Clear existing rows
+        reportsTableBody.innerHTML = '';
+        
         const noDataRow = document.createElement('tr');
         noDataRow.innerHTML = `
             <td colspan="7" class="text-center py-5">
@@ -556,32 +925,37 @@ function populateReportsTable(reports, updatePagination = true) {
         `;
         reportsTableBody.appendChild(noDataRow);
         
-        // Hide pagination if no reports
-        const paginationContainer = document.querySelector('nav[aria-label="Page navigation"]');
-        if (paginationContainer) {
-            paginationContainer.classList.add('d-none');
+        // Hide load more button
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+            loadMoreBtn.style.display = 'none';
         }
         return;
     }
     
-    // Show pagination if we have reports
-    const paginationContainer = document.querySelector('nav[aria-label="Page navigation"]');
-    if (paginationContainer) {
-        paginationContainer.classList.remove('d-none');
-    }
+    // Calculate how many reports to display
+    let reportsToDisplay;
+    let reportsToAdd;
     
-    // Calculate pagination
-    const startIndex = (currentPage - 1) * REPORTS_PER_PAGE;
-    const endIndex = Math.min(startIndex + REPORTS_PER_PAGE, reports.length);
-    const paginatedReports = reports.slice(startIndex, endIndex);
-    
-    // Update pagination controls if needed
     if (updatePagination) {
-        updatePaginationControls();
+        // Reset: show first page
+        displayedReportsCount = 0;
+        reportsToDisplay = Math.min(REPORTS_PER_PAGE, reports.length);
+        reportsToAdd = reports.slice(0, reportsToDisplay);
+        displayedReportsCount = reportsToDisplay;
+        
+        // Clear existing rows when resetting
+        reportsTableBody.innerHTML = '';
+    } else {
+        // Load more: append next batch
+        const startIndex = displayedReportsCount;
+        const endIndex = Math.min(displayedReportsCount + REPORTS_PER_PAGE, reports.length);
+        reportsToAdd = reports.slice(startIndex, endIndex);
+        displayedReportsCount = endIndex;
     }
     
-    // Add report rows for current page only
-    paginatedReports.forEach(report => {
+    // Add report rows (append if loading more, replace if resetting)
+    reportsToAdd.forEach(report => {
         const row = document.createElement('tr');
         
         // Map backend field names to frontend expected names
@@ -598,13 +972,25 @@ function populateReportsTable(reports, updatePagination = true) {
             invoice_id: null // Will be set below if invoice exists
         };
         
-        // Check if report has associated invoices
-        if (report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0) {
-            // Get the first invoice (assuming one invoice per report for now)
-            const firstInvoice = report.invoices[0];
+        // Check if report has associated invoices (check both invoices and relatedInvoices)
+        let firstInvoice = null;
+        
+        // Priority 1: Check relatedInvoices (from backend association)
+        if (report.relatedInvoices && Array.isArray(report.relatedInvoices) && report.relatedInvoices.length > 0) {
+            firstInvoice = report.relatedInvoices[0];
+            console.log('Using relatedInvoices for report', report.id, ':', firstInvoice);
+        }
+        // Priority 2: Check invoices array (legacy format)
+        else if (report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0) {
+            firstInvoice = report.invoices[0];
+            console.log('Using invoices array for report', report.id, ':', firstInvoice);
+        }
+        
+        if (firstInvoice) {
             mappedReport.invoice_id = firstInvoice.id;
-            mappedReport.invoice_number = firstInvoice.invoice_number;
-            mappedReport.invoice_status = firstInvoice.paymentStatus; // Use paymentStatus instead of status
+            mappedReport.invoice_number = firstInvoice.invoice_number || firstInvoice.id;
+            mappedReport.invoice_status = firstInvoice.paymentStatus || firstInvoice.payment_status || firstInvoice.status;
+            console.log('Set invoice status for report', report.id, ':', mappedReport.invoice_status);
         }
         
         // Format date if available
@@ -657,6 +1043,9 @@ function populateReportsTable(reports, updatePagination = true) {
         
         reportsTableBody.appendChild(row);
     });
+    
+    // Update load more button
+    updateLoadMoreButton();
     
     // Cache reports for offline use
     cacheReports(reports);
@@ -792,6 +1181,248 @@ function setupMinimalSearchBar() {
 }
 
 /**
+ * Check if a report's date is within the specified range
+ */
+function checkDateInRange(report, startDate, endDate) {
+    const inspectionDate = report.inspection_date || report.inspectionDate;
+    const createdDate = report.created_at || report.createdAt;
+    const reportDate = inspectionDate || createdDate;
+    
+    if (!reportDate) return true; // Include reports without dates
+    
+    const dateObj = new Date(reportDate);
+    if (isNaN(dateObj.getTime())) return true;
+    
+    if (startDate) {
+        const start = new Date(startDate);
+        if (dateObj < start) return false;
+    }
+    
+    if (endDate) {
+        const end = new Date(endDate + 'T23:59:59');
+        if (dateObj > end) return false;
+    }
+    
+    return true;
+}
+
+/**
+ * Apply client-side filters (invoice status, etc.)
+ * @param {Array} reports - Array of reports to filter
+ * @returns {Array} Filtered reports
+ */
+function applyClientSideFilters(reports) {
+    console.log('=== CLIENT-SIDE FILTER DEBUG ===');
+    console.log('Input reports count:', reports.length);
+    console.log('Active filters:', currentFilters);
+    
+    let filtered = [...reports];
+    
+    // Filter by invoice status
+    if (currentFilters.invoiceStatus) {
+        switch (currentFilters.invoiceStatus) {
+            case 'with_invoice':
+                filtered = filtered.filter(report => {
+                    return (report.relatedInvoices && report.relatedInvoices.length > 0) ||
+                           (report.invoices && report.invoices.length > 0) || 
+                           (report.invoice_id && report.invoice_id !== null) ||
+                           (report.invoice_created === true);
+                });
+                break;
+            case 'without_invoice':
+                filtered = filtered.filter(report => {
+                    return (!report.relatedInvoices || report.relatedInvoices.length === 0) &&
+                           (!report.invoices || report.invoices.length === 0) && 
+                           (!report.invoice_id || report.invoice_id === null) &&
+                           (report.invoice_created !== true);
+                });
+                break;
+            case 'paid':
+                filtered = filtered.filter(report => {
+                    // Check relatedInvoices first
+                    if (report.relatedInvoices && report.relatedInvoices.length > 0) {
+                        return report.relatedInvoices.some(inv => {
+                            const status = inv.paymentStatus || inv.payment_status || inv.status;
+                            return status && (
+                                status.toLowerCase() === 'paid' || 
+                                status.toLowerCase() === 'completed' ||
+                                status === 'مدفوع' ||
+                                status === 'مكتمل'
+                            );
+                        });
+                    }
+                    // Check invoices array (legacy)
+                    if (report.invoices && report.invoices.length > 0) {
+                        return report.invoices.some(inv => {
+                            const status = inv.paymentStatus || inv.payment_status || inv.status;
+                            return status && (
+                                status.toLowerCase() === 'paid' || 
+                                status.toLowerCase() === 'completed' ||
+                                status === 'مدفوع' ||
+                                status === 'مكتمل'
+                            );
+                        });
+                    }
+                    // Check invoice_status field
+                    if (report.invoice_status) {
+                        const status = report.invoice_status.toLowerCase();
+                        return status === 'paid' || status === 'completed' || 
+                               status === 'مدفوع' || status === 'مكتمل';
+                    }
+                    return false;
+                });
+                break;
+            case 'unpaid':
+                filtered = filtered.filter(report => {
+                    // Check relatedInvoices first
+                    if (report.relatedInvoices && report.relatedInvoices.length > 0) {
+                        return report.relatedInvoices.some(inv => {
+                            const status = inv.paymentStatus || inv.payment_status || inv.status;
+                            return status && (
+                                status.toLowerCase() === 'unpaid' || 
+                                status.toLowerCase() === 'pending' ||
+                                status === 'غير مدفوع' ||
+                                status === 'قيد الانتظار'
+                            );
+                        });
+                    }
+                    // Check invoices array (legacy)
+                    if (report.invoices && report.invoices.length > 0) {
+                        return report.invoices.some(inv => {
+                            const status = inv.paymentStatus || inv.payment_status || inv.status;
+                            return status && (
+                                status.toLowerCase() === 'unpaid' || 
+                                status.toLowerCase() === 'pending' ||
+                                status === 'غير مدفوع' ||
+                                status === 'قيد الانتظار'
+                            );
+                        });
+                    }
+                    // Check invoice_status field
+                    if (report.invoice_status) {
+                        const status = report.invoice_status.toLowerCase();
+                        return status === 'unpaid' || status === 'pending' || 
+                               status === 'غير مدفوع' || status === 'قيد الانتظار';
+                    }
+                    return false;
+                });
+                break;
+        }
+    }
+    
+    // Filter by date range (client-side fallback if backend didn't filter)
+    // IMPORTANT: Don't filter pending/active reports by date - show ALL of them
+    if (currentFilters.startDate || currentFilters.endDate) {
+        const beforeDateFilter = filtered.length;
+        
+        console.log('=== DATE FILTER DEBUG ===');
+        console.log('Filter start date:', currentFilters.startDate);
+        console.log('Filter end date:', currentFilters.endDate);
+        
+        filtered = filtered.filter(report => {
+            // Check if this is a pending/active report - if so, always include it
+            const status = report.status || '';
+            const isPending = status === 'قيد الانتظار' || 
+                            status === 'pending' || 
+                            status === 'active' || 
+                            status === null || 
+                            status === '';
+            
+            if (isPending) {
+                console.log(`Report ${report.id} (status: ${status}) is PENDING - INCLUDING (no date filter)`);
+                return true; // Always include pending reports
+            }
+            
+            // For completed/cancelled reports, apply date filter
+            // Try multiple date fields, prefer inspection_date, fallback to created_at
+            const inspectionDate = report.inspection_date || report.inspectionDate;
+            const createdDate = report.created_at || report.createdAt;
+            const reportDate = inspectionDate || createdDate;
+            
+            // If no date at all, include it (don't filter out reports without dates)
+            if (!reportDate) {
+                console.log(`Report ${report.id} (status: ${report.status}) has no date - INCLUDING`);
+                return true;
+            }
+            
+            const dateObj = new Date(reportDate);
+            if (isNaN(dateObj.getTime())) {
+                console.log(`Report ${report.id} (status: ${report.status}) has invalid date - INCLUDING`);
+                return true; // Invalid date, include it
+            }
+            
+            dateObj.setHours(0, 0, 0, 0);
+            
+            if (currentFilters.startDate) {
+                const startDate = new Date(currentFilters.startDate);
+                startDate.setHours(0, 0, 0, 0);
+                
+                // Debug date comparison
+                const dateComparison = dateObj.getTime() - startDate.getTime();
+                const daysDiff = Math.floor(dateComparison / (1000 * 60 * 60 * 24));
+                
+                if (dateObj < startDate) {
+                    console.log(`Report ${report.id} (status: ${report.status}, date: ${reportDate}, dateObj: ${dateObj.toISOString()}) BEFORE start date (${startDate.toISOString()}) by ${daysDiff} days - EXCLUDING`);
+                    return false;
+                }
+            }
+            
+            if (currentFilters.endDate) {
+                const endDate = new Date(currentFilters.endDate);
+                endDate.setHours(23, 59, 59, 999);
+                
+                if (dateObj > endDate) {
+                    const dateComparison = dateObj.getTime() - endDate.getTime();
+                    const daysDiff = Math.floor(dateComparison / (1000 * 60 * 60 * 24));
+                    console.log(`Report ${report.id} (status: ${report.status}, date: ${reportDate}, dateObj: ${dateObj.toISOString()}) AFTER end date (${endDate.toISOString()}) by ${daysDiff} days - EXCLUDING`);
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        console.log(`Date filter: ${beforeDateFilter} -> ${filtered.length} reports`);
+        console.log('=== END DATE FILTER DEBUG ===');
+    }
+    
+    // Filter by status (client-side fallback if backend didn't filter)
+    if (currentFilters.status) {
+        const beforeStatusFilter = filtered.length;
+        filtered = filtered.filter(report => {
+            const reportStatus = report.status || '';
+            const matches = reportStatus === currentFilters.status;
+            if (!matches) {
+                console.log(`Report ${report.id} status '${reportStatus}' doesn't match filter '${currentFilters.status}' - EXCLUDING`);
+            }
+            return matches;
+        });
+        console.log(`Status filter: ${beforeStatusFilter} -> ${filtered.length} reports`);
+    }
+    
+    // Final status breakdown
+    const finalStatusBreakdown = {};
+    filtered.forEach(report => {
+        const status = report.status || 'undefined';
+        finalStatusBreakdown[status] = (finalStatusBreakdown[status] || 0) + 1;
+    });
+    console.log('Final filtered status breakdown:', finalStatusBreakdown);
+    console.log('Output reports count:', filtered.length);
+    console.log('=== END CLIENT-SIDE FILTER DEBUG ===');
+    
+    return filtered;
+}
+
+/**
+ * Update reports count display
+ */
+function updateReportsCount(count) {
+    const countElement = document.getElementById('reportsCount');
+    if (countElement) {
+        countElement.textContent = `(${count} ${count === 1 ? 'تقرير' : 'تقرير'})`;
+    }
+}
+
+/**
  * Filter reports based on search term
  * @param {string} searchTerm - The search term to filter by
  */
@@ -824,18 +1455,23 @@ function filterReportsBySearch(searchTerm) {
         });
     }
     
+    // Apply client-side filters first
+    filteredReports = applyClientSideFilters(filteredReports);
+    
     // Sort filtered reports by date
     filteredReports = sortReportsByDate(filteredReports);
     
-    // Reset to first page when filtering
-    currentPage = 1;
+    // Reset displayed count when filtering
+    displayedReportsCount = 0;
     
-    // Populate table with filtered results
-    populateReportsTable(filteredReports, false);
+    // Update reports count
+    updateReportsCount(filteredReports.length);
     
-    // Update pagination for filtered results
+    // Populate table with filtered results (reset to show first page)
+    populateReportsTable(filteredReports, true);
+    
+    // Update total for load more button
     totalReports = filteredReports.length;
-    updatePaginationControls();
     
     // Show search results count
     if (searchTerm.length > 0) {
@@ -856,107 +1492,78 @@ function showErrorMessage(message) {
 }
 
 /**
- * Initialize pagination functionality
+ * Initialize Load More functionality
  */
-function initPagination() {
-    // Get pagination elements
-    const prevPageBtn = document.querySelector('.pagination .page-item:first-child .page-link');
-    const nextPageBtn = document.querySelector('.pagination .page-item:last-child .page-link');
+function initLoadMore() {
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
     
-    // Add event listeners for pagination controls
-    if (prevPageBtn) {
-        prevPageBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            if (currentPage > 1) {
-                currentPage--;
-                populateReportsTable(allReports, false);
-                updatePaginationControls();
-            }
-        });
-    }
-    
-    if (nextPageBtn) {
-        nextPageBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const totalPages = Math.ceil(totalReports / REPORTS_PER_PAGE);
-            if (currentPage < totalPages) {
-                currentPage++;
-                populateReportsTable(allReports, false);
-                updatePaginationControls();
-            }
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function() {
+            loadMoreReports();
         });
     }
 }
 
 /**
- * Update pagination controls based on current page and total reports
+ * Load more reports
  */
-function updatePaginationControls() {
-    const paginationContainer = document.querySelector('.pagination');
-    if (!paginationContainer) return;
+function loadMoreReports() {
+    if (!allReports || allReports.length === 0) return;
     
-    // Calculate total pages
-    const totalPages = Math.ceil(totalReports / REPORTS_PER_PAGE);
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const loadMoreText = document.getElementById('loadMoreText');
     
-    // Clear existing page number buttons (keep prev/next buttons)
-    const pageItems = paginationContainer.querySelectorAll('.page-item');
-    for (let i = 1; i < pageItems.length - 1; i++) {
-        pageItems[i].remove();
-    }
-    
-    // Get prev/next buttons
-    const prevPageItem = paginationContainer.querySelector('.page-item:first-child');
-    const nextPageItem = paginationContainer.querySelector('.page-item:last-child');
-    
-    // Create page number buttons
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
-    // Adjust if we're near the end
-    if (endPage - startPage + 1 < maxVisiblePages && startPage > 1) {
-        startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-    
-    // Create page number elements
-    for (let i = startPage; i <= endPage; i++) {
-        const pageItem = document.createElement('li');
-        pageItem.className = `page-item${i === currentPage ? ' active' : ''}`;
-        
-        const pageLink = document.createElement('a');
-        pageLink.className = 'page-link';
-        pageLink.href = '#';
-        pageLink.textContent = i;
-        
-        // Add click event
-        pageLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            currentPage = i;
-            populateReportsTable(allReports, false);
-            updatePaginationControls();
-        });
-        
-        pageItem.appendChild(pageLink);
-        
-        // Insert before the next button
-        paginationContainer.insertBefore(pageItem, nextPageItem);
-    }
-    
-    // Update prev/next button states
-    if (prevPageItem) {
-        if (currentPage <= 1) {
-            prevPageItem.classList.add('disabled');
-        } else {
-            prevPageItem.classList.remove('disabled');
+    if (loadMoreBtn) {
+        loadMoreBtn.disabled = true;
+        if (loadMoreText) {
+            loadMoreText.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري التحميل...';
         }
     }
     
-    if (nextPageItem) {
-        if (currentPage >= totalPages) {
-            nextPageItem.classList.add('disabled');
-        } else {
-            nextPageItem.classList.remove('disabled');
+    // Small delay for better UX
+    setTimeout(() => {
+        // Load more reports by appending to existing table
+        populateReportsTable(allReports, false);
+        
+        // Re-enable button and restore text (updateLoadMoreButton will handle this)
+        if (loadMoreBtn) {
+            loadMoreBtn.disabled = false;
         }
+        
+        // Update button will restore the text
+        updateLoadMoreButton();
+    }, 300);
+}
+
+/**
+ * Update Load More button visibility and text
+ */
+function updateLoadMoreButton() {
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const loadMoreText = document.getElementById('loadMoreText');
+    const loadMoreCount = document.getElementById('loadMoreCount');
+    
+    if (!loadMoreBtn) return;
+    
+    const remaining = totalReports - displayedReportsCount;
+    
+    if (remaining > 0) {
+        // Show button if there are more reports to load
+        loadMoreBtn.style.display = 'inline-flex';
+        loadMoreBtn.classList.remove('d-none');
+        loadMoreBtn.disabled = false;
+        
+        if (loadMoreText) {
+            loadMoreText.textContent = 'تحميل المزيد';
+        }
+        
+        if (loadMoreCount) {
+            loadMoreCount.textContent = `(${remaining} متبقي)`;
+        }
+    } else {
+        // Hide button if all reports are displayed
+        loadMoreBtn.style.display = 'none';
+        loadMoreBtn.classList.add('d-none');
     }
 }
 
@@ -1056,7 +1663,7 @@ function shareReport(reportId) {
     
     // Create the message
     const message = `التقرير الخاص بحضرتك دلوقتي جاهز تقدر تشوف تفاصيله كامله دلوقتي من هنا
-https://reports.laapak.com
+${getApiBaseUrl()}
 
 Username: ${clientPhone}
 Password: ${orderNumber}`;
@@ -1163,8 +1770,11 @@ async function updateReportStatus(reportId, newStatus, skipInvoiceSync = false) 
             throw new Error('No authentication token found');
         }
         
+        // Get API base URL
+        const apiBaseUrl = getApiBaseUrl();
+        
         // Update via API
-        const response = await fetch(`https://reports.laapak.com/api/reports/${reportId}`, {
+        const response = await fetch(`${apiBaseUrl}/api/reports/${reportId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -1200,6 +1810,8 @@ async function updateReportStatus(reportId, newStatus, skipInvoiceSync = false) 
         
         // Handle status synchronization with linked invoices (only if not skipping)
         if (!skipInvoiceSync) {
+            // Wait a bit for backend to save the report update first
+            await new Promise(resolve => setTimeout(resolve, 500));
             await handleReportInvoiceStatusSync(reportId, newStatus);
         }
         
@@ -1239,31 +1851,78 @@ async function handleReportInvoiceStatusSync(reportId, newStatus) {
     try {
         console.log(`Starting invoice sync for report ${reportId} with status: ${newStatus}`);
         
-        // Find the report in cached data to get invoice information
-        const cachedReports = JSON.parse(localStorage.getItem('cachedReports') || '[]');
-        console.log('Cached reports count:', cachedReports.length);
-        
-        const report = cachedReports.find(r => r.id == reportId);
-        console.log('Found report:', report);
+        // Fetch fresh report data from backend to get latest invoice information
+        let report = null;
+        try {
+            const reportResponse = await apiService.getReport(reportId);
+            console.log('Raw report response:', reportResponse);
+            
+            // Handle different response formats
+            if (reportResponse && reportResponse.report) {
+                report = reportResponse.report;
+            } else if (reportResponse && reportResponse.id) {
+                report = reportResponse;
+            } else if (reportResponse && reportResponse.success && reportResponse.report) {
+                report = reportResponse.report;
+            } else {
+                report = reportResponse;
+            }
+            
+            console.log('Fetched fresh report data:', report);
+            console.log('Report keys:', Object.keys(report || {}));
+            console.log('Report relatedInvoices (direct):', report?.relatedInvoices);
+            console.log('Report relatedInvoices type:', typeof report?.relatedInvoices);
+            console.log('Report relatedInvoices isArray:', Array.isArray(report?.relatedInvoices));
+        } catch (fetchError) {
+            console.error('Error fetching fresh report data, falling back to cache:', fetchError);
+            // Fallback to cached data
+            const cachedReports = JSON.parse(localStorage.getItem('cachedReports') || '[]');
+            report = cachedReports.find(r => r.id == reportId);
+        }
         
         if (!report) {
-            console.log('Report not found in cache');
+            console.log('Report not found in backend or cache');
             return;
         }
         
         console.log('Report invoices:', report.invoices);
         console.log('Report invoice_id:', report.invoice_id);
+        console.log('Report relatedInvoices:', report.relatedInvoices);
         
-        // Check for different invoice data structures
+        // Check for different invoice data structures - prioritize fresh data
         let invoices = [];
-        if (report.invoices && Array.isArray(report.invoices)) {
-            invoices = report.invoices;
-        } else if (report.invoice_id) {
-            // Single invoice case
-            invoices = [{ id: report.invoice_id, paymentStatus: report.invoice_status }];
-        } else if (report.invoice) {
-            // Direct invoice object
-            invoices = [report.invoice];
+        
+        // Check relatedInvoices (from backend association)
+        if (report.relatedInvoices && Array.isArray(report.relatedInvoices) && report.relatedInvoices.length > 0) {
+            invoices = report.relatedInvoices.map(inv => ({
+                id: inv.id,
+                paymentStatus: inv.paymentStatus
+            }));
+            console.log('Using relatedInvoices from backend:', invoices);
+        }
+        // Check invoices array
+        else if (report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0) {
+            invoices = report.invoices.map(inv => ({
+                id: inv.id || inv.invoiceId,
+                paymentStatus: inv.paymentStatus || inv.payment_status
+            }));
+            console.log('Using invoices array:', invoices);
+        }
+        // Check invoice_id (direct reference)
+        else if (report.invoice_id) {
+            invoices = [{ 
+                id: report.invoice_id, 
+                paymentStatus: report.invoice_status || report.invoiceStatus || 'pending'
+            }];
+            console.log('Using invoice_id:', invoices);
+        }
+        // Check direct invoice object
+        else if (report.invoice) {
+            invoices = [{
+                id: report.invoice.id || report.invoice.invoiceId,
+                paymentStatus: report.invoice.paymentStatus || report.invoice.payment_status
+            }];
+            console.log('Using direct invoice object:', invoices);
         }
         
         console.log('Processed invoices:', invoices);
@@ -1356,13 +2015,24 @@ async function updateInvoiceStatus(invoiceId, newStatus, skipReportSync = false)
             throw new Error('No authentication token found for invoice update');
         }
         
-        const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
+        // Get API base URL
+        const apiBaseUrl = getApiBaseUrl();
+        
+        // Prepare update data - always set paymentMethod to 'cash' when status changes
+        const updateData = {
+            paymentStatus: newStatus,
+            paymentMethod: 'cash' // Auto-set payment method to cash when status is changed
+        };
+        
+        console.log(`Updating invoice with data:`, updateData);
+        
+        const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'x-auth-token': token
             },
-            body: JSON.stringify({ paymentStatus: newStatus })
+            body: JSON.stringify(updateData)
         });
         
         console.log(`Invoice update response status: ${response.status}`);

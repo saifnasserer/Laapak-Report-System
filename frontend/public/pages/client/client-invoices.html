@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الفواتير | Laapak</title>
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/client.css">
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/client-dashboard.css">
+    <link rel="manifest" href="../../manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <meta name="theme-color" content="#0a3622">
+</head>
+<body class="bg-light">
+    <div class="particles" id="particles"></div>
+    <div class="offline-alert" id="offlineAlert">
+        <i class="fas fa-wifi-slash"></i>
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 welcome-card-glass">
+                    <div class="card-body">
+                        <h5 class="mb-0">مرحباً <span id="welcomeClientName"></span>،</h5>
+                        <p class="text-muted mb-0">يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <ul class="nav client-nav" id="clientTabs" role="navigation">
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-reports.html">
+                            <i class="fas fa-laptop-medical me-2"></i> تقارير الفحص
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-warranty.html">
+                            <i class="fas fa-shield-alt me-2"></i> تفاصيل الضمان
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-maintenance.html">
+                            <i class="fas fa-tools me-2"></i> مواعيد الصيانة الدورية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="client-invoices.html" aria-current="page">
+                            <i class="fas fa-dollar-sign me-2"></i> الفواتير
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="row" id="invoicesList">
+            <!-- Invoices will be loaded here by JavaScript -->
+            <div class="col-12">
+                <div class="enhanced-empty-state">
+                    <div class="empty-state-icon-wrapper">
+                        <i class="fas fa-file-invoice-dollar empty-state-icon pulse"></i>
+                        <div class="empty-state-ripple"></div>
+                    </div>
+                    <h4 class="empty-state-title">لا توجد فواتير حالياً</h4>
+                    <p class="empty-state-message">لم يتم إنشاء أي فواتير بعد. سيتم عرض الفواتير هنا عند توفرها.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-laptop-medical me-2"></i> تفاصيل التقرير</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="reportModalContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printReportBtn">
+                        <i class="fas fa-print me-2"></i> طباعة التقرير
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> تفاصيل الفاتورة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="invoiceModalContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                        <i class="fas fa-print me-2"></i> طباعة الفاتورة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="client-footer-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../scripts/core/config.js"></script>
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/core/auth-check.js"></script>
+    <script src="../../scripts/components/client-header-component.js"></script>
+    <script src="../../scripts/pages/client/modules/DashboardStateManager.js"></script>
+    <script src="../../scripts/pages/client/modules/EventBus.js"></script>
+    <script src="../../scripts/pages/client/modules/NotificationManager.js"></script>
+    <script src="../../scripts/pages/client/modules/DataManager.js"></script>
+    <script src="../../scripts/pages/client/modules/components/QuickStats.js"></script>
+    <script src="../../scripts/pages/client/modules/components/SearchAndFilter.js"></script>
+    <script src="../../scripts/pages/client/modules/Dashboard.js"></script>
+    <script src="../../scripts/pages/client/client-display.js"></script>
+    <script src="../../scripts/pages/client/client-warranty.js"></script>
+    <script src="../../scripts/pages/client/client-maintenance.js"></script>
+    <script src="../../scripts/pages/client/client-dashboard.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                if (!particlesContainer) return;
+                
+                const particleCount = 30;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 20 + 's';
+                    particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            createParticles();
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isClientLoggedIn()) {
+                    window.location.href = 'index.html';
+                }
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const printReportBtn = document.getElementById('printReportBtn');
+            if (printReportBtn) {
+                printReportBtn.addEventListener('click', function() {
+                    const originalContent = document.body.innerHTML;
+                    const reportContent = document.getElementById('reportModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${reportContent}
+                        </div>
+                    `;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    location.reload();
+                });
+            }
+
+            const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+            if (printInvoiceBtn) {
+                printInvoiceBtn.addEventListener('click', function() {
+                    const originalContent = document.body.innerHTML;
+                    const invoiceContent = document.getElementById('invoiceModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${invoiceContent}
+                        </div>
+                    `;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    location.reload();
+                });
+            }
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+

@@ -73,6 +73,15 @@ The Laapak Report System now features three unified header components with enhan
 <script src="js/client-header-component.js"></script>
 ```
 
+To render the same floating client chrome as a footer, place:
+
+```html
+<div id="client-footer-container"></div>
+<script src="js/client-header-component.js"></script>
+```
+
+The component auto-detects whichever container is present and fixes the layout to the top or bottom accordingly.
+
 ## 🎨 **Enhanced Styling Features**
 
 ### Visual Effects

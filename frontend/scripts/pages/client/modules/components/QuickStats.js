@@ -52,7 +52,7 @@ class QuickStats {
                         <div class="stat-icon"><i class="fas fa-laptop-medical"></i></div>
                         <div class="stat-content">
                             <div class="stat-value" id="statReports">0</div>
-                            <div class="stat-label">تقارير الصيانة</div>
+                            <div class="stat-label">تقارير الفحص</div>
                         </div>
                         <div class="stat-wave"></div>
                     </div>

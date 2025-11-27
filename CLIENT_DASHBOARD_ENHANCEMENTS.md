@@ -170,3 +170,5 @@ function switchTabWithAnimation(targetTab) {
 - Test on mobile devices
 - Maintain backward compatibility
 
+
+

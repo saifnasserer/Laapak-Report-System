@@ -25,20 +25,39 @@ router.get('/count', auth, async (req, res) => {
         
         // If date range is provided
         if (startDate && endDate) {
+            const start = new Date(startDate);
+            // Ensure end date includes the full day (23:59:59.999)
+            const end = new Date(endDate);
+            // If end date doesn't already include time, add end of day
+            if (!endDate.includes('T') || endDate.endsWith('T00:00:00.000Z')) {
+                end.setHours(23, 59, 59, 999);
+            }
             whereClause[dateFieldToUse] = {
-                [Op.between]: [new Date(startDate), new Date(endDate)]
+                [Op.between]: [start, end]
             };
+            console.log(`[COUNT] status=${status || 'all'}, dateField=${dateFieldToUse}, start=${start.toISOString()}, end=${end.toISOString()}`);
         } else if (startDate) {
+            const start = new Date(startDate);
             whereClause[dateFieldToUse] = {
-                [Op.gte]: new Date(startDate)
+                [Op.gte]: start
             };
+            console.log(`[COUNT] status=${status || 'all'}, dateField=${dateFieldToUse}, startDate=${start.toISOString()}`);
         } else if (endDate) {
+            const end = new Date(endDate);
+            // Ensure end date includes the full day
+            if (!endDate.includes('T') || endDate.endsWith('T00:00:00.000Z')) {
+                end.setHours(23, 59, 59, 999);
+            }
             whereClause[dateFieldToUse] = {
-                [Op.lte]: new Date(endDate)
+                [Op.lte]: end
             };
+            console.log(`[COUNT] status=${status || 'all'}, dateField=${dateFieldToUse}, endDate=${end.toISOString()}`);
+        } else {
+            console.log(`[COUNT] status=${status || 'all'}, no date filter`);
         }
         
         const count = await Report.count({ where: whereClause });
+        console.log(`[COUNT] Result: ${count} reports found`);
         
         res.json({ count });
     } catch (error) {
@@ -116,28 +135,172 @@ router.get('/', async (req, res) => {
       const { Invoice } = require('../models'); // Assuming Invoice is already destructured or add it.
 
       const whereClause = {}; // Start with an empty where clause
+      const whereConditions = []; // Array to collect all conditions
 
       // Handle 'billing_enabled' filter
       if (req.query.billing_enabled !== undefined) {
         const beParam = req.query.billing_enabled.toString().toLowerCase();
         if (beParam === 'false' || beParam === '0') {
-          whereClause.billing_enabled = false;
+          whereConditions.push({ billing_enabled: false });
         } else if (beParam === 'true' || beParam === '1') {
-          whereClause.billing_enabled = true;
+          whereConditions.push({ billing_enabled: true });
         }
+      }
+
+      // Handle date range filters
+      // Special logic: Show ALL pending reports regardless of date (they're still active work)
+      // For completed/cancelled reports, filter by date range
+      if (req.query.startDate || req.query.endDate) {
+        const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+        const endDate = req.query.endDate ? new Date(req.query.endDate + 'T23:59:59') : null;
+        
+        // Build date range condition for inspection_date
+        let inspectionDateCondition = {};
+        if (startDate && endDate) {
+          inspectionDateCondition = { [Op.between]: [startDate, endDate] };
+        } else if (startDate) {
+          inspectionDateCondition = { [Op.gte]: startDate };
+        } else if (endDate) {
+          inspectionDateCondition = { [Op.lte]: endDate };
+        }
+        
+        // Build date range condition for created_at
+        let createdDateCondition = {};
+        if (startDate && endDate) {
+          createdDateCondition = { [Op.between]: [startDate, endDate] };
+        } else if (startDate) {
+          createdDateCondition = { [Op.gte]: startDate };
+        } else if (endDate) {
+          createdDateCondition = { [Op.lte]: endDate };
+        }
+        
+        // Show ALL pending/active reports (regardless of date) OR completed/cancelled reports within date range
+        // Split into two separate conditions to avoid complex nesting
+        const pendingStatusCondition = {
+          [Op.or]: [
+            { status: 'قيد الانتظار' },
+            { status: 'pending' },
+            { status: 'active' },
+            { status: null }
+          ]
+        };
+        
+        const completedStatusCondition = {
+          [Op.or]: [
+            { status: 'مكتمل' },
+            { status: 'completed' },
+            { status: 'ملغي' },
+            { status: 'ملغى' },
+            { status: 'cancelled' },
+            { status: 'canceled' }
+          ]
+        };
+        
+        const dateRangeCondition = {
+          [Op.or]: [
+            { inspection_date: inspectionDateCondition },
+            {
+              [Op.and]: [
+                { inspection_date: { [Op.is]: null } },
+                { created_at: createdDateCondition }
+              ]
+            }
+          ]
+        };
+        
+        // Show: (ALL pending) OR (completed/cancelled in date range)
+        whereConditions.push({
+          [Op.or]: [
+            // All pending reports - no date restriction
+            pendingStatusCondition,
+            // Completed/cancelled reports in date range
+            {
+              [Op.and]: [
+                completedStatusCondition,
+                dateRangeCondition
+              ]
+            }
+          ]
+        });
+      }
+
+      // Handle status filter
+      if (req.query.status) {
+        whereConditions.push({ status: req.query.status });
       }
 
       // Handle 'fetch_mode' for invoiced reports
       // Default: exclude invoiced reports (e.g., for create-invoice page)
       // If fetch_mode is 'all_reports', then don't add this Op.notIn condition.
       if (req.query.fetch_mode !== 'all_reports') {
-        whereClause.id = { // Report ID
-          [Op.notIn]: [
-            Sequelize.literal(`SELECT report_id FROM invoice_reports WHERE report_id IS NOT NULL`)
-          ]
-        };
+        whereConditions.push({
+          id: { // Report ID
+            [Op.notIn]: [
+              Sequelize.literal(`SELECT report_id FROM invoice_reports WHERE report_id IS NOT NULL`)
+            ]
+          }
+        });
+      }
+      
+      // Combine all conditions with AND
+      if (whereConditions.length > 0) {
+        whereClause[Op.and] = whereConditions;
       }
 
+      // Debug logging
+      console.log('=== BACKEND REPORTS QUERY DEBUG ===');
+      console.log('Query parameters:', req.query);
+      console.log('Where conditions array length:', whereConditions.length);
+      console.log('Where conditions:', JSON.stringify(whereConditions, null, 2));
+      console.log('Final where clause:', JSON.stringify(whereClause, null, 2));
+      
+      // First, let's check what statuses exist in the database for current month
+      if (req.query.startDate && req.query.endDate) {
+        const startDate = new Date(req.query.startDate);
+        const endDate = new Date(req.query.endDate + 'T23:59:59');
+        
+        // Check pending reports in date range
+        const pendingInRange = await Report.findAll({
+          where: {
+            [Op.or]: [
+              { inspection_date: { [Op.between]: [startDate, endDate] } },
+              {
+                [Op.and]: [
+                  { inspection_date: { [Op.is]: null } },
+                  { created_at: { [Op.between]: [startDate, endDate] } }
+                ]
+              },
+              { created_at: { [Op.between]: [startDate, endDate] } }
+            ],
+            [Op.or]: [
+              { status: 'قيد الانتظار' },
+              { status: 'pending' },
+              { status: 'active' },
+              { status: null }
+            ]
+          },
+          attributes: ['id', 'status', 'inspection_date', 'created_at'],
+          raw: true
+        });
+        console.log(`Pending reports in date range (${req.query.startDate} to ${req.query.endDate}):`, pendingInRange.length);
+        if (pendingInRange.length > 0) {
+          console.log('Sample pending reports:', pendingInRange.slice(0, 5));
+        }
+      }
+      
+      // Check all unique statuses in database
+      const allStatuses = await Report.findAll({
+        attributes: ['status'],
+        group: ['status'],
+        raw: true
+      });
+      console.log('All unique statuses in database:', allStatuses.map(s => s.status || 'NULL'));
+      
+      // Log the where clause structure before query
+      console.log('=== BEFORE QUERY ===');
+      console.log('Where clause structure:', JSON.stringify(whereClause, null, 2));
+      console.log('Where clause keys:', Object.keys(whereClause));
+      
       const reports = await Report.findAll({
         where: whereClause,
         include: [
@@ -155,8 +318,105 @@ router.get('/', async (req, res) => {
           }
         ],
         order: [['created_at', 'DESC']],
+        logging: (sql) => {
+          console.log('=== SQL QUERY ===');
+          console.log(sql);
+          console.log('=== END SQL QUERY ===');
+        }
+      });
+      
+      // Debug: Status breakdown
+      const statusBreakdown = {};
+      reports.forEach(report => {
+        const status = report.status || 'undefined';
+        statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
       });
       console.log(`Found ${reports.length} reports`);
+      console.log('Status breakdown:', statusBreakdown);
+      
+      // Debug: Show pending reports
+      const pendingReports = reports.filter(r => {
+        const status = r.status;
+        return status === 'pending' || 
+               status === 'قيد الانتظار' || 
+               status === 'active' || 
+               status === null || 
+               status === undefined ||
+               status === '';
+      });
+      console.log('Pending reports in result:', pendingReports.length);
+      console.log('All statuses in result:', [...new Set(reports.map(r => r.status))]);
+      if (pendingReports.length > 0) {
+        console.log('Sample pending reports:', pendingReports.slice(0, 5).map(r => ({
+          id: r.id,
+          status: r.status,
+          inspection_date: r.inspection_date,
+          created_at: r.created_at,
+          order_number: r.order_number,
+          hasInspectionDate: !!r.inspection_date,
+          inspectionDateInRange: r.inspection_date ? checkDateInRange(r.inspection_date, req.query.startDate, req.query.endDate) : 'N/A',
+          createdDateInRange: r.created_at ? checkDateInRange(r.created_at, req.query.startDate, req.query.endDate) : 'N/A'
+        })));
+      } else {
+        console.log('⚠️ NO PENDING REPORTS IN RESULT!');
+        // Check if there are pending reports in DB for this month
+        if (req.query.startDate && req.query.endDate) {
+          const startDate = new Date(req.query.startDate);
+          const endDate = new Date(req.query.endDate + 'T23:59:59');
+          
+          const allPendingThisMonth = await Report.findAll({
+            where: {
+              [Op.or]: [
+                { status: 'قيد الانتظار' },
+                { status: 'pending' },
+                { status: 'active' },
+                { status: null }
+              ]
+            },
+            attributes: ['id', 'status', 'inspection_date', 'created_at'],
+            raw: true
+          });
+          
+          const pendingInMonth = allPendingThisMonth.filter(r => {
+            const inspDate = r.inspection_date ? new Date(r.inspection_date) : null;
+            const crDate = r.created_at ? new Date(r.created_at) : null;
+            const dateToCheck = inspDate || crDate;
+            if (!dateToCheck) return false;
+            return dateToCheck >= startDate && dateToCheck <= endDate;
+          });
+          
+          console.log(`Total pending reports in DB: ${allPendingThisMonth.length}`);
+          console.log(`Pending reports in current month range: ${pendingInMonth.length}`);
+          if (pendingInMonth.length > 0) {
+            console.log('Pending reports that should be included:', pendingInMonth.slice(0, 5));
+          }
+        }
+      }
+      
+      // Helper function to check if date is in range
+      function checkDateInRange(dateStr, startStr, endStr) {
+        if (!dateStr) return false;
+        const date = new Date(dateStr);
+        if (startStr) {
+          const start = new Date(startStr);
+          if (date < start) return false;
+        }
+        if (endStr) {
+          const end = new Date(endStr + 'T23:59:59');
+          if (date > end) return false;
+        }
+        return true;
+      }
+      
+      // Debug: Show date information for first few reports
+      console.log('Sample reports with dates:', reports.slice(0, 5).map(r => ({
+        id: r.id,
+        status: r.status,
+        inspection_date: r.inspection_date,
+        created_at: r.created_at
+      })));
+      console.log('=== END BACKEND REPORTS QUERY DEBUG ===');
+      
       res.json(reports);
     } catch (error) {
       console.error('Failed to fetch all reports:', error);
@@ -170,18 +430,34 @@ router.get('/:id', async (req, res) => {
   try {
     console.log(`Fetching report with ID: ${req.params.id}`);
     const report = await Report.findByPk(req.params.id, {
-      include: {
-        model: Client,
-        as: 'client',
-        attributes: ['id', 'name', 'phone', 'email', 'address'],
-      },
+      include: [
+        {
+          model: Client,
+          as: 'client',
+          attributes: ['id', 'name', 'phone', 'email', 'address'],
+        },
+        {
+          model: Invoice,
+          as: 'relatedInvoices',
+          through: { attributes: [] }, // Don't include junction table attributes
+          attributes: ['id', 'total', 'paymentStatus', 'paymentMethod', 'date'],
+          required: false // Left join to include reports without invoices
+        }
+      ],
     });
     if (!report) {
       console.log(`Report with ID ${req.params.id} not found`);
       return res.status(404).json({ error: 'Report not found' });
     }
     console.log(`Found report: ${report.id}`);
-    res.json({ success: true, report: report });
+    console.log(`Report has ${report.relatedInvoices ? report.relatedInvoices.length : 0} linked invoices`);
+    
+    // Ensure relatedInvoices is properly serialized
+    const reportData = report.toJSON ? report.toJSON() : report;
+    console.log('Report data keys:', Object.keys(reportData));
+    console.log('Report data relatedInvoices:', reportData.relatedInvoices);
+    
+    res.json({ success: true, report: reportData });
   } catch (error) {
     console.error('Failed to fetch report:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
@@ -339,9 +615,70 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
 
+    const oldStatus = report.status;
     await report.save();
     
     console.log(`Report ${req.params.id} updated successfully`);
+    
+    // Sync invoice status if report status changed to completed or cancelled
+    if (req.body.status && req.body.status !== oldStatus) {
+      try {
+        const newStatus = req.body.status;
+        console.log(`Report status changed from '${oldStatus}' to '${newStatus}', syncing invoices...`);
+        
+        // Map Arabic report status to invoice payment status
+        let invoicePaymentStatus = null;
+        if (newStatus === 'مكتمل' || newStatus === 'completed') {
+          invoicePaymentStatus = 'completed';
+        } else if (newStatus === 'ملغي' || newStatus === 'ملغى' || newStatus === 'cancelled' || newStatus === 'canceled') {
+          invoicePaymentStatus = 'cancelled';
+        } else if (newStatus === 'قيد الانتظار' || newStatus === 'pending' || newStatus === 'active') {
+          invoicePaymentStatus = 'pending';
+        }
+        
+        if (invoicePaymentStatus) {
+          // Find all invoices linked to this report through InvoiceItem
+          const { InvoiceItem, Invoice } = require('../models');
+          
+          // Find invoice items for this report
+          const invoiceItems = await InvoiceItem.findAll({
+            where: { report_id: report.id },
+            attributes: ['invoiceId']
+          });
+          
+          // Get unique invoice IDs
+          const invoiceIds = [...new Set(invoiceItems.map(item => item.invoiceId).filter(id => id))];
+          
+          console.log(`Found ${invoiceIds.length} unique invoice(s) linked to report ${report.id}`);
+          
+          if (invoiceIds.length > 0) {
+            // Find all invoices
+            const invoices = await Invoice.findAll({
+              where: { id: { [Op.in]: invoiceIds } },
+              attributes: ['id', 'paymentStatus']
+            });
+            
+            // Update each linked invoice
+            let updatedCount = 0;
+            for (const invoice of invoices) {
+              if (invoice.paymentStatus !== invoicePaymentStatus) {
+                console.log(`Updating invoice ${invoice.id} paymentStatus from '${invoice.paymentStatus}' to '${invoicePaymentStatus}'`);
+                await invoice.update({ paymentStatus: invoicePaymentStatus });
+                updatedCount++;
+              } else {
+                console.log(`Invoice ${invoice.id} already has status '${invoice.paymentStatus}', skipping`);
+              }
+            }
+            
+            console.log(`Synchronized ${updatedCount} invoice(s) to status '${invoicePaymentStatus}'`);
+          }
+        }
+      } catch (syncError) {
+        console.error('Error syncing invoice status (non-fatal):', syncError);
+        // Don't fail the report update if invoice sync fails
+      }
+    }
+    
     res.json({ 
       message: 'Report updated successfully',
       report: report 

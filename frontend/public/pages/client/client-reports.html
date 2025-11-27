@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laapak Reports</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/client.css">
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/client-dashboard.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+</head>
+<body class="bg-light">
+    <!-- Particle Background Effect -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- Offline Alert - Enhanced Glass Style -->
+    <div class="offline-alert" id="offlineAlert">
+        <i class="fas fa-wifi-slash"></i>
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+    
+    <div class="container py-4">
+        <!-- Welcome Message -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 welcome-card-glass">
+                    <div class="card-body">
+                        <h5 class="mb-0">مرحباً <span id="welcomeClientName"></span>،</h5>
+                        <p class="text-muted mb-0">يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <ul class="nav client-nav" id="clientTabs" role="navigation">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="client-reports.html" aria-current="page">
+                            <i class="fas fa-laptop-medical me-2"></i> تقارير الفحص
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-warranty.html">
+                            <i class="fas fa-shield-alt me-2"></i> تفاصيل الضمان
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-maintenance.html">
+                            <i class="fas fa-tools me-2"></i> مواعيد الصيانة الدورية
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="client-invoices.html">
+                            <i class="fas fa-dollar-sign me-2"></i> الفواتير
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="row" id="reportsList">
+            <!-- Reports will be loaded here by JavaScript -->
+            <div class="col-12">
+                <div class="enhanced-empty-state">
+                    <div class="empty-state-icon-wrapper">
+                        <i class="fas fa-laptop-medical empty-state-icon bounce"></i>
+                        <div class="empty-state-ripple"></div>
+                    </div>
+                    <h4 class="empty-state-title">لا توجد تقارير صيانة حالياً</h4>
+                    <p class="empty-state-message">لم يتم إنشاء أي تقارير صيانة بعد. سيتم عرض التقارير هنا عند توفرها.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-laptop-medical me-2"></i> تفاصيل التقرير</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="reportModalContent">
+                    <!-- Report content will be loaded here by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printReportBtn">
+                        <i class="fas fa-print me-2"></i> طباعة التقرير
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Invoice Modal -->
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> تفاصيل الفاتورة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="invoiceModalContent">
+                    <!-- Invoice content will be loaded here by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                        <i class="fas fa-print me-2"></i> طباعة الفاتورة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Footer Container -->
+    <div id="client-footer-container"></div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Configuration -->
+    <script src="../../scripts/core/config.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/core/auth-check.js"></script>
+    <script src="../../scripts/components/client-header-component.js"></script>
+    
+    <!-- Dashboard Modules -->
+    <script src="../../scripts/pages/client/modules/DashboardStateManager.js"></script>
+    <script src="../../scripts/pages/client/modules/EventBus.js"></script>
+    <script src="../../scripts/pages/client/modules/NotificationManager.js"></script>
+    <script src="../../scripts/pages/client/modules/DataManager.js"></script>
+    <script src="../../scripts/pages/client/modules/components/QuickStats.js"></script>
+    <script src="../../scripts/pages/client/modules/components/SearchAndFilter.js"></script>
+    <script src="../../scripts/pages/client/modules/Dashboard.js"></script>
+    
+    <!-- Legacy Display Functions -->
+    <script src="../../scripts/pages/client/client-display.js"></script>
+    <script src="../../scripts/pages/client/client-warranty.js"></script>
+    <script src="../../scripts/pages/client/client-maintenance.js"></script>
+    <script src="../../scripts/pages/client/client-dashboard.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script>
+
+    <!-- Creative Interactive Effects -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                if (!particlesContainer) return;
+                
+                const particleCount = 30;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 20 + 's';
+                    particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            createParticles();
+        });
+    </script>
+
+    <!-- Authentication Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isClientLoggedIn()) {
+                    window.location.href = 'index.html';
+                }
+            }
+        });
+    </script>
+
+    <!-- Print functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const printReportBtn = document.getElementById('printReportBtn');
+            if (printReportBtn) {
+                printReportBtn.addEventListener('click', function() {
+                    const originalContent = document.body.innerHTML;
+                    const reportContent = document.getElementById('reportModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${reportContent}
+                        </div>
+                    `;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    location.reload();
+                });
+            }
+    
+            const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+            if (printInvoiceBtn) {
+                printInvoiceBtn.addEventListener('click', function() {
+                    const originalContent = document.body.innerHTML;
+                    const invoiceContent = document.getElementById('invoiceModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${invoiceContent}
+                        </div>
+                    `;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    location.reload();
+                });
+            }
+        });
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laapak Reports</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/client.css">
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+
+        <link rel="stylesheet" href="../../styles/pages/client-dashboard.css">
+
+</head>
+<body class="bg-light">
+    <!-- Particle Background Effect -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- Offline Alert - Enhanced Glass Style -->
+    <div class="offline-alert" id="offlineAlert">
+        <i class="fas fa-wifi-slash"></i>
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+    
+    
+    <!-- Main Content -->
+    <div class="container py-4">
+        <!-- Welcome Message -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 welcome-card-glass">
+                    <div class="card-body">
+                        <h5 class="mb-0">مرحباً <span id="welcomeClientName"></span>،</h5>
+                        <p class="text-muted mb-0">يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-info-circle text-primary me-2"></i> معلومات الضمان</h5>
+                                <p class="card-text">تقدم Laapak ثلاثة أنواع من الضمانات لعملائها:</p>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 border-success border-start border-5">
+                                            <div class="card-body">
+                                                <h6 class="card-title text-success">
+                                                    <i class="fas fa-cog me-2"></i> ضمان عيوب الصناعة
+                                                </h6>
+                                                <p class="card-text">ضمان لمدة 6 أشهر ضد عيوب الصناعة منذ تاريخ إنشاء التقرير</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 border-warning border-start border-5">
+                                            <div class="card-body">
+                                                <h6 class="card-title text-warning">
+                                                    <i class="fas fa-exchange-alt me-2"></i> ضمان الاستبدال
+                                                </h6>
+                                                <p class="card-text">ضمان استبدال لمدة 14 يوم من تاريخ استلام الجهاز</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 border-info border-start border-5">
+                                            <div class="card-body">
+                                                <h6 class="card-title text-info">
+                                                    <i class="fas fa-tools me-2"></i> ضمان الصيانة الدورية
+                                                </h6>
+                                                <p class="card-text">ضمان صيانة دورية لمدة سنة كاملة (مرة كل 6 أشهر)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title mb-4"><i class="fas fa-exclamation-triangle text-warning me-2"></i> شروط الضمان الأساسية</h5>
+                                
+                                <div class="alert alert-warning">
+                                    <h6 class="fw-bold"><i class="fas fa-ban me-2"></i> استثناءات الضمان:</h6>
+                                    <p class="mb-0">لا يسري الضمان في حال وجود سوء استخدام، الكسر، أو الأضرار الناتجة عن الكهرباء ذات الجهد العالي أو ما شابه.</p>
+                                </div>
+                                
+                                <div class="alert alert-danger">
+                                    <h6 class="fw-bold"><i class="fas fa-unlock-alt me-2"></i> الاستثناء عند فتح الجهاز:</h6>
+                                    <p class="mb-0">لا يسري الضمان في حال تم إزالة الاستيكر الخاص بالشركة أو في حالة محاولة فتح أو صيانة الجهاز خارج الشركة.</p>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <h6 class="fw-bold"><i class="fas fa-info-circle me-2"></i> عيوب الصناعة فقط:</h6>
+                                    <p class="mb-0">يشمل الضمان فقط العيوب الناتجة عن التصنيع ولا يشمل الأعطال الناتجة عن البرمجيات أو أي مشاكل غير متعلقة بالأجزاء المادية.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row" id="warrantyList">
+                    <!-- Warranty cards will be loaded here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Maintenance Tab -->
+            <div class="tab-pane fade" id="maintenance" role="tabpanel">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-calendar-check text-primary me-2"></i> مواعيد الصيانة الدورية</h5>
+                                <p class="card-text">تتم الصيانة الدورية مرة كل 6 أشهر من تاريخ إنشاء التقرير ولمدة سنة كاملة.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-5">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                            <div class="card-header bg-success text-white p-4">
+                                <h5 class="card-title mb-0 d-flex align-items-center">
+                                    <i class="fas fa-tools me-3 fa-lg"></i> 
+                                    <span>مراحل الصيانة الدورية في Laapak</span>
+                                </h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <!-- Timeline style maintenance steps -->
+                                <div class="maintenance-timeline p-4">
+                                    <div class="timeline-item d-flex mb-4">
+                                        <div class="timeline-icon bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                            <i class="fas fa-temperature-high"></i>
+                                        </div>
+                                        <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                            <h5 class="fw-bold">استبدال المعجون الحراري</h5>
+                                            <p class="text-muted">باستخدام نوع عالي الجودة ومناسب لطبيعة الجهاز لضمان أفضل تبريد ممكن.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="timeline-item d-flex mb-4">
+                                        <div class="timeline-icon bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                            <i class="fas fa-fan"></i>
+                                        </div>
+                                        <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                            <h5 class="fw-bold">إزالة الأكسدة من نظام التبريد</h5>
+                                            <p class="text-muted">لتحسين نقل الحرارة بكفاءة، حيث تؤثر الأكسدة على كفاءة التبريد بنسبة قد تصل إلى 40%.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="timeline-item d-flex mb-4">
+                                        <div class="timeline-icon bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                            <i class="fas fa-tachometer-alt"></i>
+                                        </div>
+                                        <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                            <h5 class="fw-bold">فحص سرعة مراوح التبريد</h5>
+                                            <p class="text-muted">وفي حالة تأثرها بالأتربة، يتم تنظيفها وإعادتها لحالتها الطبيعية لضمان التهوية المثالية.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="timeline-item d-flex mb-4">
+                                        <div class="timeline-icon bg-info text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                            <i class="fas fa-microchip"></i>
+                                        </div>
+                                        <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                            <h5 class="fw-bold">تنظيف اللوحة الأم بالكامل</h5>
+                                            <p class="text-muted">شاملاً تنظيف جميع الفلاتات والوصلات بدقة لضمان استقرار الأداء.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="timeline-item d-flex mb-4">
+                                        <div class="timeline-icon bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                            <i class="fas fa-search"></i>
+                                        </div>
+                                        <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                            <h5 class="fw-bold">إجراء فحص شامل لكل مكونات الجهاز</h5>
+                                            <p class="text-muted">لاكتشاف أي أعطال محتملة مبكرًا واتخاذ الإجراءات الوقائية اللازمة.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="timeline-item d-flex">
+                                        <div class="timeline-icon bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                            <i class="fas fa-spray-can"></i>
+                                        </div>
+                                        <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                            <h5 class="fw-bold">تنظيف خارجي كامل للجهاز</h5>
+                                            <p class="text-muted mb-0">لإعادة مظهره كالجديد تمامًا، مما يعزز من تجربة الاستخدام والانطباع العام.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" id="maintenanceList">
+                    <!-- Maintenance cards will be loaded here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Invoices Tab -->
+            <div class="tab-pane fade" id="invoices" role="tabpanel">
+                <div class="row" id="invoicesList">
+                    <!-- Invoices will be loaded here by JavaScript -->
+                    <div class="col-12 text-center py-5" id="noInvoicesMessage">
+                        <i class="fas fa-dollar-sign fa-3x mb-3 text-muted"></i>
+                        <h5 class="text-muted">لا توجد فواتير حالياً</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-laptop-medical me-2"></i> تفاصيل التقرير</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="reportModalContent">
+                    <!-- Report content will be loaded here by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printReportBtn">
+                        <i class="fas fa-print me-2"></i> طباعة التقرير
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Invoice Modal -->
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> تفاصيل الفاتورة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="invoiceModalContent">
+                    <!-- Invoice content will be loaded here by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                        <i class="fas fa-print me-2"></i> طباعة الفاتورة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Footer Container - will be populated by client-header-component.js -->
+    <div id="client-footer-container"></div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Configuration -->
+    <script src="../../scripts/core/config.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../../scripts/core/auth-middleware.js"></script> <!-- Defines how auth token is handled -->
+    <script src="../../scripts/core/api-service.js"></script>    <!-- Defines ApiService, must be before scripts that use it -->
+    <script src="../../scripts/core/auth-check.js"></script>      <!-- Performs auth checks, likely uses ApiService -->
+    <script src="../../scripts/components/client-header-component.js"></script> <!-- UI component -->
+    
+    <!-- Dashboard Modules (New Modular Architecture) -->
+    <script src="../../scripts/pages/client/modules/DashboardStateManager.js"></script>
+    <script src="../../scripts/pages/client/modules/EventBus.js"></script>
+    <script src="../../scripts/pages/client/modules/NotificationManager.js"></script>
+    <script src="../../scripts/pages/client/modules/DataManager.js"></script>
+    <script src="../../scripts/pages/client/modules/components/QuickStats.js"></script>
+    <script src="../../scripts/pages/client/modules/components/SearchAndFilter.js"></script>
+    <script src="../../scripts/pages/client/modules/Dashboard.js"></script>
+    
+    <!-- Client Display Functions (Legacy - for compatibility) -->
+    <script src="../../scripts/pages/client/client-display.js"></script>   <!-- Functions to display reports/invoices -->
+    <script src="../../scripts/pages/client/client-warranty.js"></script>  <!-- Warranty related functions -->
+    <script src="../../scripts/pages/client/client-maintenance.js"></script> <!-- Maintenance related functions -->
+    <script src="../../scripts/pages/client/client-dashboard.js"></script>  <!-- Main initialization - now uses Dashboard class -->
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script> <!-- Other utilities -->
+    
+    <!-- Creative Interactive Effects -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create floating particles
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                if (!particlesContainer) return;
+                
+                const particleCount = 30;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 20 + 's';
+                    particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            // Initialize effects
+            createParticles();
+        });
+    </script>
+
+    <!-- Authentication Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication first before initializing anything
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isClientLoggedIn()) {
+                    console.log('Client not authenticated, redirecting to login page');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                console.log('Client authenticated, proceeding with dashboard initialization');
+            }
+        });
+    </script>
+
+    <!-- Print functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Print report functionality
+            const printReportBtn = document.getElementById('printReportBtn');
+            if (printReportBtn) {
+                printReportBtn.addEventListener('click', function() {
+                    // Store the current body content
+                    const originalContent = document.body.innerHTML;
+                    
+                    // Replace with just the report content for printing
+                    const reportContent = document.getElementById('reportModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${reportContent}
+                        </div>
+                    `;
+                    
+                    // Print
+                    window.print();
+                    
+                    // Restore original content
+                    document.body.innerHTML = originalContent;
+                    
+                    // Reattach event listeners
+                    location.reload();
+                });
+            }
+            
+            // Print invoice functionality
+            const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+            if (printInvoiceBtn) {
+                printInvoiceBtn.addEventListener('click', function() {
+                    // Store the current body content
+                    const originalContent = document.body.innerHTML;
+                    
+                    // Replace with just the invoice content for printing
+                    const invoiceContent = document.getElementById('invoiceModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${invoiceContent}
+                        </div>
+                    `;
+                    
+                    // Print
+                    window.print();
+                    
+                    // Restore original content
+                    document.body.innerHTML = originalContent;
+                    
+                    // Reattach event listeners
+                    location.reload();
+                });
+            }
+        });
+    </script>
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
