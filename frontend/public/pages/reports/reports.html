@@ -19,6 +19,12 @@
     <link rel="stylesheet" href="../../styles/base/styles.css">
     <link rel="stylesheet" href="../../styles/components/custom-admin.css">
     
+    <!-- Apple Glass Theme -->
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    
+    <!-- Reports Glass Styles -->
+    <link rel="stylesheet" href="../../styles/pages/reports-glass.css">
+    
     <!-- PWA manifest -->
     <link rel="manifest" href="../../manifest.json">
     
@@ -32,12 +38,11 @@
     <meta name="theme-color" content="#0a3622">
     
     <style>
-        /* Custom utility class for smaller font size on mobile */
+        /* Header-specific styles (keep for compatibility) */
         .fs-sm-6 {
             font-size: 0.875rem;
         }
         
-        /* Style for nav icons similar to header-component-new.js */
         .nav-item .nav-link.rounded-circle {
             width: 36px;
             height: 36px;
@@ -52,13 +57,11 @@
                 font-size: 0.75rem;
             }
             
-            /* Match exact styling from header-component-new.js */
             .nav-item .nav-link.rounded-circle {
                 width: 32px !important;
                 height: 32px !important;
             }
             
-            /* Reduce horizontal spacing on mobile */
             .nav-item {
                 margin-left: 4px !important;
                 margin-right: 4px !important;
@@ -69,178 +72,22 @@
                 margin-right: 2px !important;
             }
             
-            /* Ensure header component styles match */
             #header-container .navbar-nav .nav-link {
                 width: 32px !important;
                 height: 32px !important;
             }
             
-            /* Make sure profile button is also responsive */
             #userDropdown {
                 padding: 0.25rem 0.5rem;
                 font-size: 0.75rem;
             }
-            
-            /* Responsive search bar */
-            .search-container .input-group {
-                width: 250px !important;
-            }
-        }
-        
-        @media (max-width: 576px) {
-            .search-container .input-group {
-                width: 200px !important;
-            }
-        }
-        
-        /* Search bar animations */
-        .search-container .form-control {
-            transition: all 0.3s ease;
-        }
-        
-        .search-container .form-control:focus {
-            transform: scale(1.02);
-        }
-        
-        .search-container .btn {
-            transition: all 0.2s ease;
-        }
-        
-        .search-container .btn:hover {
-            transform: scale(1.1);
-        }
-        
-        /* Filter Panel Styles */
-        .filter-panel {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .filter-panel.collapsed {
-            display: none;
-        }
-        
-        .filter-header {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem;
-            background: white;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .filter-header:hover {
-            background: #e9ecef;
-        }
-        
-        .filter-header i {
-            transition: transform 0.3s ease;
-        }
-        
-        .filter-header.collapsed i {
-            transform: rotate(-90deg);
-        }
-        
-        .quick-filters {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-bottom: 1rem;
-        }
-        
-        .quick-filter-btn {
-            padding: 0.5rem 1rem;
-            border: 1px solid #dee2e6;
-            background: white;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .quick-filter-btn:hover {
-            background: #e9ecef;
-            border-color: #007553;
-        }
-        
-        .quick-filter-btn.active {
-            background: #007553;
-            color: white;
-            border-color: #007553;
-        }
-        
-        .filter-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .filter-group label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: #495057;
-        }
-        
-        .filter-actions {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: flex-end;
-            margin-top: 1rem;
-        }
-        
-        /* Load More Button Styles */
-        #loadMoreBtn {
-            min-width: 200px;
-            padding: 0.75rem 2rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        #loadMoreBtn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 117, 83, 0.3);
-        }
-        
-        #loadMoreBtn:active {
-            transform: translateY(0);
-        }
-        
-        #loadMoreBtn i {
-            transition: transform 0.3s ease;
-        }
-        
-        #loadMoreBtn:hover i {
-            transform: translateY(2px);
-        }
-        
-        @media (max-width: 768px) {
-            .filter-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .quick-filters {
-                flex-direction: column;
-            }
-            
-            .quick-filter-btn {
-                width: 100%;
-            }
         }
     </style>
 </head>
-<body>
+<body class="reports-page">
+    <!-- Glass Background -->
+    <div class="glass-background"></div>
+    
     <!-- Offline Alert -->
     <div class="offline-alert" id="offlineAlert">
         أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
@@ -249,49 +96,39 @@
     <!-- Header Container - will be populated by header-component.js -->
     <div id="header-container"></div>
     
-    <div class="container-fluid p-2">
+    <div class="container-fluid p-4">
         <!-- Main Content -->
         <div class="admin-content">
                 <!-- Reports Content -->
                 <div class="container-fluid">
-                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                        <h2 class="mb-0">قائمة التقارير</h2>
-                        
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="reports-page-header">
+                        <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap" style="width: 100%; max-width: 600px; margin: 0 auto;">
                             <!-- Minimal Round Search Bar -->
-                            <div class="search-container position-relative">
-                                <div class="input-group" style="width: 300px;">
-                                    <input type="text" class="form-control rounded-pill border-0 shadow-sm" 
-                                           id="searchReport" placeholder="البحث في التقارير، رقم الهاتف، العميل..." 
-                                           style="padding-left: 45px; padding-right: 15px; background-color: #f8f9fa;">
-                                    <div class="position-absolute start-0 top-50 translate-middle-y ms-3">
-                                        <i class="fas fa-search text-muted"></i>
-                                    </div>
-                                    <button type="button" class="btn btn-outline-secondary rounded-pill position-absolute end-0 top-50 translate-middle-y me-2 d-none" 
-                                            id="clearReportSearchBtn" style="width: 24px; height: 24px; padding: 0;">
+                            <div class="search-container">
+                                <div class="input-group">
+                                    <span class="input-group-text search-icon-wrapper">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" 
+                                           id="searchReport" placeholder="البحث في التقارير، رقم الهاتف، العميل...">
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill d-none" 
+                                            id="clearReportSearchBtn" style="width: 24px; height: 24px; padding: 0; margin-right: 0.5rem;">
                                         <i class="fas fa-times" style="font-size: 10px;"></i>
                                     </button>
                                 </div>
                             </div>
-                            <a href="create-report.html" class="btn btn-primary">
-                                <i class="fas fa-plus-circle me-2"></i> إنشاء تقرير جديد
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <!-- Filters Panel -->
-                    <div class="card mb-4 shadow-sm">
-                        <div class="card-body p-0">
-                            <div class="filter-header" id="filterHeader">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-filter text-primary"></i>
-                                    <h6 class="mb-0 fw-bold">تصفية التقارير</h6>
-                                    <span class="badge bg-primary" id="activeFiltersCount">0</span>
-                                </div>
-                                <i class="fas fa-chevron-down text-muted"></i>
-                            </div>
                             
-                            <div class="filter-panel" id="filterPanel" style="display: block;">
+                            <!-- Filter Icon Button with Dropdown -->
+                            <div class="position-relative">
+                                <button type="button" class="btn btn-outline-primary filter-icon-btn" id="filterIconBtn" title="تصفية التقارير">
+                                    <i class="fas fa-filter"></i>
+                                    <span class="filter-badge" id="activeFiltersCount">0</span>
+                                </button>
+                                
+                                <!-- Filters Panel Dropdown -->
+                                <div class="filter-dropdown-container" id="filterDropdown" style="display: none;">
+                            <div class="filter-panel-card">
+                                <div class="filter-panel" id="filterPanel">
                                 <!-- Quick Date Filters -->
                                 <div class="quick-filters">
                                     <button type="button" class="quick-filter-btn" data-period="today">
@@ -361,19 +198,22 @@
                                         </button>
                                     </div>
                                 </form>
+                                </div>
                             </div>
+                        </div>
+                    </div>
                         </div>
                     </div>
                     
                     <!-- Reports Table -->
-                    <div class="card mb-4 shadow">
-                        <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #007553 0%, #004d35 100%); color: white;">
-                            <h5 class="mb-0 fw-bold">
+                    <div class="reports-table-card">
+                        <div class="reports-table-header">
+                            <h5 class="mb-0 text-center">
                                 <span id="reportsTitle">تقارير هذا الشهر</span>
-                                <small class="ms-2 opacity-75" id="reportsCount">(0 تقرير)</small>
+                                <small class="ms-2" id="reportsCount">(0 تقرير)</small>
                             </h5>
                         </div>
-                        <div class="card-body">
+                        <div class="reports-table-body">
                             <div class="table-responsive">
                                 <!-- Loading Indicator -->
                                 <div id="loadingIndicator" class="text-center py-5 d-none">
@@ -389,10 +229,10 @@
                                 <table class="table table-hover align-middle">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>رقم الطلب</th>
-                                            <th>اسم العميل</th>
-                                            <th>نوع الجهاز</th>
-                                            <th>
+                                            <th class="text-center">رقم الطلب</th>
+                                            <th class="text-center">اسم العميل</th>
+                                            <th class="text-center">نوع الجهاز</th>
+                                            <th class="text-center">
                                                 تاريخ الفحص
                                                 <i class="fas fa-sort-down ms-1 text-primary" title="مرتب حسب التاريخ (الأحدث أولاً)"></i>
                                             </th>

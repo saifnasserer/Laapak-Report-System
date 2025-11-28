@@ -47,8 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // showErrorMessage function moved to global scope
     
     // Check for offline status with enhanced glass-style alert
-    
-
     // Initial check
     updateOfflineStatus();
 
@@ -56,9 +54,44 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('online', updateOfflineStatus);
     window.addEventListener('offline', updateOfflineStatus);
     
-    // Load client data
-    loadClientReports();
+    // Load client data only if not on a dedicated page (reports, warranty, etc.)
+    // Dedicated pages handle their own data loading
+    const currentPage = window.location.pathname;
+    const isDedicatedPage = currentPage.includes('client-reports.html') || 
+                           currentPage.includes('client-warranty.html') || 
+                           currentPage.includes('client-maintenance.html') || 
+                           currentPage.includes('client-invoices.html');
+    
+    if (!isDedicatedPage) {
+        loadClientReports();
+    }
 });
+
+/**
+ * Handle 401 Unauthorized errors by logging out and redirecting
+ */
+function handleUnauthorizedError() {
+    console.log('Unauthorized access detected. Logging out user...');
+    
+    // Clear authentication data
+    if (typeof authMiddleware !== 'undefined') {
+        authMiddleware.logout();
+    } else {
+        // Fallback: manually clear tokens
+        localStorage.removeItem('clientToken');
+        localStorage.removeItem('clientInfo');
+        sessionStorage.removeItem('clientToken');
+        sessionStorage.removeItem('clientInfo');
+    }
+    
+    // Show message and redirect to login
+    if (typeof showGlassNotification === 'function') {
+        showGlassNotification('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.', 'warning', 3000);
+    }
+    setTimeout(() => {
+        window.location.href = 'index.html';
+    }, 1500);
+}
 
 /**
  * Get client info from storage
@@ -86,6 +119,70 @@ function getClientInfo() {
 function logout() {
     sessionStorage.removeItem('clientInfo');
     localStorage.removeItem('clientInfo');
+}
+
+/**
+ * Check for offline status with enhanced glass-style alert
+ */
+function updateOfflineStatus() {
+    const offlineAlert = document.getElementById('offlineAlert');
+    if (offlineAlert) {
+        if (navigator.onLine) {
+            offlineAlert.style.display = 'none';
+        } else {
+            offlineAlert.style.display = 'block';
+        }
+    }
+}
+
+/**
+ * Show glass-style notification (error, success, warning)
+ * Must be defined before showErrorMessage
+ */
+function showGlassNotification(message, type = 'info', duration = 5000) {
+    // Create notification container if it doesn't exist
+    let container = document.getElementById('glass-notifications');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'glass-notifications';
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        `;
+        document.body.appendChild(container);
+    }
+
+    // Create notification element with glass style
+    const notification = document.createElement('div');
+    const alertClass = type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+    notification.className = `alert alert-${alertClass} alert-dismissible fade show`;
+    notification.style.cssText = `
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    `;
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+    // Add to container
+    container.appendChild(notification);
+
+    // Auto-remove after duration
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 150);
+        }
+    }, duration);
+
+    // Also log to console
+    console.log(`${type.toUpperCase()}:`, message);
 }
 
 /**
@@ -258,10 +355,21 @@ function showSkeletonLoaders(containerId, count = 3) {
     }
 }
 
+// Flag to prevent duplicate API calls
+let isLoadingReports = false;
+
 /**
  * Load client reports and related data
  */
 async function loadClientReports() {
+    // Prevent duplicate calls
+    if (isLoadingReports) {
+        console.log('loadClientReports already in progress, skipping...');
+        return;
+    }
+    
+    isLoadingReports = true;
+    
     try {
         showLoading(true, 'جاري تحميل البيانات...');
         
@@ -307,6 +415,11 @@ async function loadClientReports() {
                 }
             } catch (invoiceError) {
                 console.error('Error fetching client invoices:', invoiceError);
+                // Handle 401 Unauthorized for invoices too
+                if (invoiceError.status === 401 || invoiceError.unauthorized || (invoiceError.message && invoiceError.message.includes('Token is not valid'))) {
+                    handleUnauthorizedError();
+                    return;
+                }
                 // Optionally show a non-blocking error for invoices, or proceed with empty invoicesArray
             }
             
@@ -316,10 +429,7 @@ async function loadClientReports() {
             // Cache reports and invoices for offline use
             cacheReportsForOffline(reportsArray, invoicesArray); // Pass both arrays
             
-            // Show success notification if data loaded successfully
-            if (reportsArray.length > 0 || invoicesArray.length > 0) {
-                showGlassNotification(`تم تحميل ${reportsArray.length} تقرير و ${invoicesArray.length} فاتورة`, 'success', 3000);
-            }
+            // Success - data loaded (notification removed per user request)
         } else {
             console.error('API response did not contain a valid reports array:', apiResponse);
             showErrorMessage('فشل في معالجة بيانات التقارير من الخادم.');
@@ -327,6 +437,12 @@ async function loadClientReports() {
     } catch (error) {
         console.error('Error loading client reports:', error);
         showLoading(false);
+        
+        // Handle 401 Unauthorized - log user out and redirect to login
+        if (error.status === 401 || error.unauthorized || (error.message && error.message.includes('Token is not valid'))) {
+            handleUnauthorizedError();
+            return;
+        }
         
         // Show error message with glass notification
         const errorMsg = navigator.onLine 
@@ -336,6 +452,9 @@ async function loadClientReports() {
         
         // Try to load cached reports if offline
         loadCachedReports();
+    } finally {
+        // Reset flag when done
+        isLoadingReports = false;
     }
 }
 

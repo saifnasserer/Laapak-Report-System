@@ -318,14 +318,30 @@ function initFilters() {
     // Set default to current month
     setCurrentMonthFilter();
     
-    // Filter panel toggle
-    const filterHeader = document.getElementById('filterHeader');
-    const filterPanel = document.getElementById('filterPanel');
+    // Filter icon button toggle
+    const filterIconBtn = document.getElementById('filterIconBtn');
+    const filterDropdown = document.getElementById('filterDropdown');
     
-    if (filterHeader && filterPanel) {
-        filterHeader.addEventListener('click', function() {
-            filterPanel.classList.toggle('collapsed');
-            filterHeader.classList.toggle('collapsed');
+    if (filterIconBtn && filterDropdown) {
+        filterIconBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isVisible = filterDropdown.style.display !== 'none';
+            filterDropdown.style.display = isVisible ? 'none' : 'block';
+            
+            // Add active state to button
+            if (!isVisible) {
+                filterIconBtn.classList.add('active');
+            } else {
+                filterIconBtn.classList.remove('active');
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (filterDropdown && !filterDropdown.contains(e.target) && !filterIconBtn.contains(e.target)) {
+                filterDropdown.style.display = 'none';
+                filterIconBtn.classList.remove('active');
+            }
         });
     }
     
@@ -348,6 +364,13 @@ function initFilters() {
     if (applyFiltersBtn) {
         applyFiltersBtn.addEventListener('click', function() {
             applyFilters();
+            // Close dropdown after applying filters
+            if (filterDropdown) {
+                filterDropdown.style.display = 'none';
+                if (filterIconBtn) {
+                    filterIconBtn.classList.remove('active');
+                }
+            }
         });
     }
     
@@ -356,6 +379,13 @@ function initFilters() {
     if (resetFiltersBtn) {
         resetFiltersBtn.addEventListener('click', function() {
             resetFilters();
+            // Close dropdown after resetting filters
+            if (filterDropdown) {
+                filterDropdown.style.display = 'none';
+                if (filterIconBtn) {
+                    filterIconBtn.classList.remove('active');
+                }
+            }
         });
     }
     
@@ -541,7 +571,14 @@ function updateActiveFiltersCount() {
     const badge = document.getElementById('activeFiltersCount');
     if (badge) {
         badge.textContent = count;
-        badge.style.display = count > 0 ? 'inline-block' : 'none';
+        // Show badge if count > 0, hide if 0
+        if (count > 0) {
+            badge.style.display = 'flex';
+            badge.classList.remove('d-none');
+        } else {
+            badge.style.display = 'none';
+            badge.classList.add('d-none');
+        }
     }
 }
 
@@ -745,8 +782,8 @@ function initReports() {
                 }
             }
             
-            // Update reports count
-            updateReportsCount(filteredReports.length);
+            // Update reports count - filter by current month date range
+            updateReportsCount(filteredReports.length, reports);
             
             // Check if reports array is empty
             if (filteredReports.length === 0) {
@@ -1026,23 +1063,45 @@ function populateReportsTable(reports, updatePagination = true) {
             <td class="text-center">${formatReportStatus(mappedReport.status, mappedReport.id)}</td>
             <td class="text-center">${getInvoiceLink(mappedReport)}</td>
             <td class="text-center">
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-light rounded-circle p-1 border-0 shadow-sm" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
-                        <i class="fas fa-ellipsis-v" style="font-size: 12px;"></i>
+                <div class="d-flex justify-content-center align-items-center gap-2">
+                    <a href="report.html?id=${mappedReport.id}" class="btn btn-sm btn-outline-primary rounded-circle" title="عرض التقرير" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                        <i class="fas fa-eye" style="font-size: 12px;"></i>
+                    </a>
+                    <a href="create-report.html?id=${mappedReport.id}" class="btn btn-sm btn-outline-success rounded-circle" title="تعديل التقرير" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                        <i class="fas fa-edit" style="font-size: 12px;"></i>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-info rounded-circle" onclick="shareReport('${mappedReport.id}'); return false;" title="مشاركة التقرير" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                        <i class="fas fa-share-alt" style="font-size: 12px;"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                        <li><a class="dropdown-item py-2" href="report.html?id=${mappedReport.id}"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
-                        <li><a class="dropdown-item py-2" href="create-report.html?id=${mappedReport.id}"><i class="fas fa-edit me-2 text-success"></i> تعديل</a></li>
-                        <li><a class="dropdown-item py-2" href="#" onclick="shareReport('${mappedReport.id}'); return false;"><i class="fas fa-share-alt me-2 text-info"></i> مشاركة</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item py-2" href="#" onclick="deleteReport('${mappedReport.id}'); return false;"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
-                    </ul>
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" onclick="deleteReport('${mappedReport.id}'); return false;" title="حذف التقرير" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                        <i class="fas fa-trash" style="font-size: 12px;"></i>
+                    </button>
                 </div>
             </td>
         `;
         
         reportsTableBody.appendChild(row);
     });
+    
+    // Initialize Bootstrap dropdowns for newly added rows (status dropdowns)
+    // This ensures dropdowns work after dynamic content is added
+    if (typeof bootstrap !== 'undefined') {
+        const dropdownElementList = reportsTableBody.querySelectorAll('.status-badge[data-bs-toggle="dropdown"]');
+        if (dropdownElementList && dropdownElementList.length > 0) {
+            // Bootstrap 5 dropdown initialization for status badges
+            dropdownElementList.forEach(dropdownToggleEl => {
+                // Only initialize if not already initialized
+                if (!dropdownToggleEl._dropdown) {
+                    try {
+                        const dropdown = new bootstrap.Dropdown(dropdownToggleEl);
+                        dropdownToggleEl._dropdown = dropdown;
+                    } catch (error) {
+                        console.warn('Error initializing status dropdown:', error);
+                    }
+                }
+            });
+        }
+    }
     
     // Update load more button
     updateLoadMoreButton();
@@ -1413,13 +1472,47 @@ function applyClientSideFilters(reports) {
 }
 
 /**
- * Update reports count display
+ * Update reports count display - only count reports within current month date range
  */
-function updateReportsCount(count) {
+function updateReportsCount(count, allReports = []) {
     const countElement = document.getElementById('reportsCount');
-    if (countElement) {
-        countElement.textContent = `(${count} ${count === 1 ? 'تقرير' : 'تقرير'})`;
+    if (!countElement) return;
+    
+    // If we have allReports array, filter by current month date range
+    let filteredCount = count;
+    if (allReports && allReports.length > 0) {
+        // Get current month date range
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        // Set time to start/end of day
+        firstDay.setHours(0, 0, 0, 0);
+        lastDay.setHours(23, 59, 59, 999);
+        
+        // Filter reports within current month
+        filteredCount = allReports.filter(report => {
+            // Get report date (prefer inspection_date, fallback to created_at)
+            const reportDate = report.inspection_date || report.inspectionDate || report.created_at || report.createdAt;
+            if (!reportDate) return false;
+            
+            const date = new Date(reportDate);
+            date.setHours(0, 0, 0, 0);
+            
+            // Include pending/active reports regardless of date, or completed/cancelled within month
+            const status = (report.status || '').toLowerCase();
+            const isPending = status === 'pending' || status === 'قيد الانتظار' || status === 'active' || !status;
+            
+            if (isPending) {
+                return true; // Always include pending reports
+            }
+            
+            // For completed/cancelled, check if within current month
+            return date >= firstDay && date <= lastDay;
+        }).length;
     }
+    
+    countElement.textContent = `(${filteredCount} ${filteredCount === 1 ? 'تقرير' : 'تقرير'})`;
 }
 
 /**
@@ -1464,8 +1557,8 @@ function filterReportsBySearch(searchTerm) {
     // Reset displayed count when filtering
     displayedReportsCount = 0;
     
-    // Update reports count
-    updateReportsCount(filteredReports.length);
+    // Update reports count - filter by current month date range
+    updateReportsCount(filteredReports.length, allReports);
     
     // Populate table with filtered results (reset to show first page)
     populateReportsTable(filteredReports, true);

@@ -569,7 +569,7 @@ function initializeQuickStats() {
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="statReports">0</div>
-                        <div class="stat-label">تقارير الفحص</div>
+                        <div class="stat-label">تقرير الفحص</div>
                     </div>
                     <div class="stat-wave"></div>
                 </div>

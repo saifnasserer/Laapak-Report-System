@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="../../styles/base/styles.css">
     <link rel="stylesheet" href="../../styles/components/client.css">
     <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
-    <link rel="stylesheet" href="../../styles/pages/client-dashboard.css">
+    <link rel="stylesheet" href="../../styles/pages/reports-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/client-invoices.css">
     <link rel="manifest" href="../../manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -19,53 +20,24 @@
     <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
     <meta name="theme-color" content="#0a3622">
 </head>
-<body class="bg-light">
+<body class="reports-page">
     <div class="particles" id="particles"></div>
     <div class="offline-alert" id="offlineAlert">
         <i class="fas fa-wifi-slash"></i>
         أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
     </div>
 
-    <div class="container py-4">
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-0 welcome-card-glass">
-                    <div class="card-body">
-                        <h5 class="mb-0">مرحباً <span id="welcomeClientName"></span>،</h5>
-                        <p class="text-muted mb-0">يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا.</p>
-                    </div>
-                </div>
-            </div>
+    <div class="container py-5">
+        <!-- Page Header -->
+        <div class="reports-page-header mb-4">
+            <h1 class="reports-page-title">
+                <i class="fas fa-file-invoice me-2"></i>
+                الفواتير
+            </h1>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-12">
-                <ul class="nav client-nav" id="clientTabs" role="navigation">
-                    <li class="nav-item">
-                        <a class="nav-link" href="client-reports.html">
-                            <i class="fas fa-laptop-medical me-2"></i> تقارير الفحص
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="client-warranty.html">
-                            <i class="fas fa-shield-alt me-2"></i> تفاصيل الضمان
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="client-maintenance.html">
-                            <i class="fas fa-tools me-2"></i> مواعيد الصيانة الدورية
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="client-invoices.html" aria-current="page">
-                            <i class="fas fa-dollar-sign me-2"></i> الفواتير
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="row" id="invoicesList">
+        <!-- Invoices List -->
+        <div class="row g-4" id="invoicesList">
             <!-- Invoices will be loaded here by JavaScript -->
             <div class="col-12">
                 <div class="enhanced-empty-state">
@@ -163,8 +135,41 @@
             if (typeof authMiddleware !== 'undefined') {
                 if (!authMiddleware.isClientLoggedIn()) {
                     window.location.href = 'index.html';
+                    return;
                 }
             }
+        });
+    </script>
+
+    <!-- Load Invoices Data -->
+    <script>
+        window.addEventListener('load', async function() {
+            let attempts = 0;
+            const maxAttempts = 10;
+            let dataLoaded = false;
+            
+            const tryLoadReports = async () => {
+                if (dataLoaded) return;
+                
+                attempts++;
+                
+                if (typeof loadClientReports === 'function') {
+                    try {
+                        dataLoaded = true;
+                        await loadClientReports();
+                    } catch (error) {
+                        console.error('Error loading invoices:', error);
+                        dataLoaded = false;
+                    }
+                } else if (attempts < maxAttempts) {
+                    setTimeout(tryLoadReports, 100);
+                } else {
+                    console.error('loadClientReports function not found');
+                }
+            };
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            tryLoadReports();
         });
     </script>
 

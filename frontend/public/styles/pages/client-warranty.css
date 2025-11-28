@@ -1,0 +1,226 @@
+/**
+ * Client Warranty Page - Glass Style
+ */
+
+/* Warranty Info Cards */
+.warranty-info-card {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-glass);
+    padding: 1.25rem;
+    text-align: center;
+    transition: var(--transition-standard);
+    height: 100%;
+}
+
+.warranty-info-card:hover {
+    box-shadow: 
+        0 0 30px rgba(14, 175, 84, 0.25),
+        0 0 60px rgba(10, 110, 53, 0.15),
+        var(--shadow-inner-highlight);
+    transform: translateY(-2px);
+}
+
+.warranty-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.warranty-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1.125rem;
+    margin-bottom: 0.75rem;
+}
+
+.warranty-description {
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Glass Card */
+.glass-card {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-glass);
+    margin-bottom: 1.5rem;
+}
+
+.glass-card .card-body {
+    padding: 1.5rem;
+}
+
+.glass-alert {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+.glass-alert:last-child {
+    margin-bottom: 0;
+}
+
+/* Warranty List Cards */
+#warrantyList .card {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: 
+        0 0 20px rgba(14, 175, 84, 0.15),
+        0 0 40px rgba(10, 110, 53, 0.1),
+        var(--shadow-inner-highlight);
+    transition: var(--transition-standard);
+    height: 100%;
+}
+
+#warrantyList .card:hover {
+    box-shadow: 
+        0 0 30px rgba(14, 175, 84, 0.25),
+        0 0 60px rgba(10, 110, 53, 0.15),
+        var(--shadow-inner-highlight);
+    transform: translateY(-2px);
+    border-color: var(--laapak-medium-green);
+}
+
+#warrantyList .card-body {
+    padding: 1.5rem;
+    background: transparent;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .reports-page-title {
+        font-size: 2.5rem !important;
+        text-align: center !important;
+        width: 100%;
+        margin-bottom: 1.5rem;
+    }
+    
+    .reports-page-header {
+        justify-content: center !important;
+        text-align: center;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    /* Glass Cards - Mobile */
+    .glass-card {
+        margin-bottom: 1rem;
+        border-radius: var(--radius-lg);
+    }
+    
+    .glass-card .card-body {
+        padding: 1rem;
+    }
+    
+    .glass-card .card-title {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .glass-card .card-text {
+        font-size: 0.875rem;
+    }
+    
+    .glass-alert {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .glass-alert h6 {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .glass-alert p {
+        font-size: 0.8rem;
+    }
+    
+    /* Warranty Info Cards - Mobile */
+    .warranty-info-card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .warranty-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .warranty-title {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .warranty-description {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 576px) {
+    /* Container adjustments */
+    .container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    
+    .glass-card .card-body {
+        padding: 0.875rem;
+    }
+    
+    .glass-card .card-title {
+        font-size: 0.95rem;
+    }
+    
+    .warranty-info-card {
+        padding: 0.875rem;
+    }
+    
+    .warranty-icon-wrapper {
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+    }
+    
+    .warranty-title {
+        font-size: 0.95rem;
+    }
+    
+    .warranty-description {
+        font-size: 0.8rem;
+    }
+    
+    .glass-alert {
+        padding: 0.625rem;
+    }
+    
+    .glass-alert h6 {
+        font-size: 0.8rem;
+    }
+    
+    .glass-alert p {
+        font-size: 0.75rem;
+    }
+}
+

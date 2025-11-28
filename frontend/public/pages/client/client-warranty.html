@@ -19,7 +19,8 @@
     <link rel="stylesheet" href="../../styles/base/styles.css">
     <link rel="stylesheet" href="../../styles/components/client.css">
     <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
-    <link rel="stylesheet" href="../../styles/pages/client-dashboard.css">
+    <link rel="stylesheet" href="../../styles/pages/reports-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/client-warranty.css">
     
     <!-- PWA manifest -->
     <link rel="manifest" href="../../manifest.json">
@@ -33,112 +34,71 @@
     <!-- Theme color for browser -->
     <meta name="theme-color" content="#0a3622">
 </head>
-<body class="bg-light">
+<body class="reports-page">
     <div class="particles" id="particles"></div>
     <div class="offline-alert" id="offlineAlert">
         <i class="fas fa-wifi-slash"></i>
         أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
     </div>
 
-    <div class="container py-4">
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-0 welcome-card-glass">
-                    <div class="card-body">
-                        <h5 class="mb-0">مرحباً <span id="welcomeClientName"></span>،</h5>
-                        <p class="text-muted mb-0">يمكنك متابعة تفاصيل الصيانة والضمان والفواتير لأجهزتك من هنا.</p>
+    <div class="container py-5">
+        <!-- Page Header -->
+        <div class="reports-page-header mb-4">
+            <h1 class="reports-page-title">
+                <i class="fas fa-shield-alt me-2"></i>
+                تفاصيل الضمان
+            </h1>
+        </div>
+
+        <!-- Warranty Info Cards -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="warranty-info-card">
+                    <div class="warranty-icon-wrapper bg-success">
+                        <i class="fas fa-cog"></i>
                     </div>
+                    <h6 class="warranty-title">ضمان عيوب الصناعة</h6>
+                    <p class="warranty-description">ضمان لمدة 6 أشهر ضد عيوب الصناعة منذ تاريخ إنشاء التقرير</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="warranty-info-card">
+                    <div class="warranty-icon-wrapper bg-warning">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h6 class="warranty-title">ضمان الاستبدال</h6>
+                    <p class="warranty-description">ضمان استبدال لمدة 14 يوم من تاريخ استلام الجهاز</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="warranty-info-card">
+                    <div class="warranty-icon-wrapper bg-info">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <h6 class="warranty-title">ضمان الصيانة الدورية</h6>
+                    <p class="warranty-description">ضمان صيانة دورية لمدة سنة كاملة (مرة كل 6 أشهر)</p>
                 </div>
             </div>
         </div>
 
-        <div class="row mb-4">
+        <!-- Warranty Terms -->
+        <div class="row mb-3">
             <div class="col-12">
-                <ul class="nav client-nav" id="clientTabs" role="navigation">
-                    <li class="nav-item">
-                        <a class="nav-link" href="client-reports.html">
-                            <i class="fas fa-laptop-medical me-2"></i> تقارير الفحص
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="client-warranty.html" aria-current="page">
-                            <i class="fas fa-shield-alt me-2"></i> تفاصيل الضمان
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="client-maintenance.html">
-                            <i class="fas fa-tools me-2"></i> مواعيد الصيانة الدورية
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="client-invoices.html">
-                            <i class="fas fa-dollar-sign me-2"></i> الفواتير
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
+                <div class="glass-card">
                     <div class="card-body">
-                        <h5 class="card-title"><i class="fas fa-info-circle text-primary me-2"></i> معلومات الضمان</h5>
-                        <p class="card-text">تقدم Laapak ثلاثة أنواع من الضمانات لعملائها:</p>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100 border-success border-start border-5">
-                                    <div class="card-body">
-                                        <h6 class="card-title text-success">
-                                            <i class="fas fa-cog me-2"></i> ضمان عيوب الصناعة
-                                        </h6>
-                                        <p class="card-text">ضمان لمدة 6 أشهر ضد عيوب الصناعة منذ تاريخ إنشاء التقرير</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100 border-warning border-start border-5">
-                                    <div class="card-body">
-                                        <h6 class="card-title text-warning">
-                                            <i class="fas fa-exchange-alt me-2"></i> ضمان الاستبدال
-                                        </h6>
-                                        <p class="card-text">ضمان استبدال لمدة 14 يوم من تاريخ استلام الجهاز</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100 border-info border-start border-5">
-                                    <div class="card-body">
-                                        <h6 class="card-title text-info">
-                                            <i class="fas fa-tools me-2"></i> ضمان الصيانة الدورية
-                                        </h6>
-                                        <p class="card-text">ضمان صيانة دورية لمدة سنة كاملة (مرة كل 6 أشهر)</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title mb-4"><i class="fas fa-exclamation-triangle text-warning me-2"></i> شروط الضمان الأساسية</h5>
+                        <h5 class="card-title mb-3"><i class="fas fa-exclamation-triangle text-warning me-2"></i> شروط الضمان الأساسية</h5>
                         
-                        <div class="alert alert-warning">
+                        <div class="alert alert-warning glass-alert">
                             <h6 class="fw-bold"><i class="fas fa-ban me-2"></i> استثناءات الضمان:</h6>
                             <p class="mb-0">لا يسري الضمان في حال وجود سوء استخدام، الكسر، أو الأضرار الناتجة عن الكهرباء ذات الجهد العالي أو ما شابه.</p>
                         </div>
                         
-                        <div class="alert alert-danger">
+                        <div class="alert alert-danger glass-alert">
                             <h6 class="fw-bold"><i class="fas fa-unlock-alt me-2"></i> الاستثناء عند فتح الجهاز:</h6>
                             <p class="mb-0">لا يسري الضمان في حال تم إزالة الاستيكر الخاص بالشركة أو في حالة محاولة فتح أو صيانة الجهاز خارج الشركة.</p>
                         </div>
                         
-                        <div class="alert alert-info">
+                        <div class="alert alert-info glass-alert">
                             <h6 class="fw-bold"><i class="fas fa-info-circle me-2"></i> عيوب الصناعة فقط:</h6>
                             <p class="mb-0">يشمل الضمان فقط العيوب الناتجة عن التصنيع ولا يشمل الأعطال الناتجة عن البرمجيات أو أي مشاكل غير متعلقة بالأجزاء المادية.</p>
                         </div>
@@ -147,7 +107,8 @@
             </div>
         </div>
 
-        <div class="row" id="warrantyList">
+        <!-- Warranty List -->
+        <div class="row g-4" id="warrantyList">
             <!-- Warranty cards will be loaded here by JavaScript -->
         </div>
     </div>
@@ -239,8 +200,41 @@
             if (typeof authMiddleware !== 'undefined') {
                 if (!authMiddleware.isClientLoggedIn()) {
                     window.location.href = 'index.html';
+                    return;
                 }
             }
+        });
+    </script>
+
+    <!-- Load Warranty Data -->
+    <script>
+        window.addEventListener('load', async function() {
+            let attempts = 0;
+            const maxAttempts = 10;
+            let dataLoaded = false;
+            
+            const tryLoadReports = async () => {
+                if (dataLoaded) return;
+                
+                attempts++;
+                
+                if (typeof loadClientReports === 'function') {
+                    try {
+                        dataLoaded = true;
+                        await loadClientReports();
+                    } catch (error) {
+                        console.error('Error loading warranty data:', error);
+                        dataLoaded = false;
+                    }
+                } else if (attempts < maxAttempts) {
+                    setTimeout(tryLoadReports, 100);
+                } else {
+                    console.error('loadClientReports function not found');
+                }
+            };
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            tryLoadReports();
         });
     </script>
 

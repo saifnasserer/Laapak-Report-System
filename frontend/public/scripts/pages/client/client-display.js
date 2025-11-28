@@ -138,13 +138,13 @@ function displayReports(reports) {
             document.head.appendChild(style);
         }
         
-        // Create simplified premium report card
+        // Create glass-style report card
         col.innerHTML = `
             <div class="card h-100 border-0 ${isNewest ? 'shadow-lg' : 'shadow-sm'}">
-                <div class="card-body p-4">
-                    ${isNewest ? '<div class="position-absolute end-0 top-0 mt-2 me-3"><i class="fas fa-circle text-warning"></i></div>' : ''}
+                <div class="card-body">
+                    ${isNewest ? '<div class="position-absolute end-0 top-0 mt-2 me-3"><i class="fas fa-circle"></i></div>' : ''}
                     
-                    <h5 class="mb-3 fw-bold">${report.device_model || 'جهاز غير محدد'}</h5>
+                    <h5 class="mb-3">${report.device_model || 'جهاز غير محدد'}</h5>
                     
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="text-muted">
@@ -152,7 +152,7 @@ function displayReports(reports) {
                         </span>
                         <span class="badge ${report.status === 'active' ? 'bg-success' : 
                                          report.status === 'completed' ? 'bg-primary' : 
-                                         report.status === 'in-progress' ? 'bg-warning' : 'bg-secondary'} rounded-pill px-3">
+                                         report.status === 'in-progress' ? 'bg-warning' : 'bg-secondary'} rounded-pill">
                             ${report.status === 'active' ? 'نشط' : 
                              report.status === 'completed' ? 'مكتمل' : 
                              report.status === 'in-progress' ? 'قيد التنفيذ' : report.status || 'غير محدد'}
@@ -170,8 +170,8 @@ function displayReports(reports) {
                         ${report.notes.length > 80 ? report.notes.substring(0, 80) + '...' : report.notes}
                     </div>` : ''}
                 </div>
-                <div class="card-footer border-0 bg-transparent pb-4 px-4">
-                    <a href="report.html?id=${report.id}" class="btn btn-sm ${isNewest ? 'btn-warning' : 'btn-outline-primary'} w-100">
+                <div class="card-footer border-0 bg-transparent">
+                    <a href="report.html?id=${report.id}" class="btn ${isNewest ? 'btn-warning' : 'btn-outline-primary'} w-100">
                         <i class="fas fa-eye me-1"></i> عرض التقرير
                     </a>
                 </div>

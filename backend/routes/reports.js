@@ -235,9 +235,9 @@ router.get('/', async (req, res) => {
       if (req.query.fetch_mode !== 'all_reports') {
         whereConditions.push({
           id: { // Report ID
-            [Op.notIn]: [
-              Sequelize.literal(`SELECT report_id FROM invoice_reports WHERE report_id IS NOT NULL`)
-            ]
+          [Op.notIn]: [
+            Sequelize.literal(`SELECT report_id FROM invoice_reports WHERE report_id IS NOT NULL`)
+          ]
           }
         });
       }
@@ -300,7 +300,7 @@ router.get('/', async (req, res) => {
       console.log('=== BEFORE QUERY ===');
       console.log('Where clause structure:', JSON.stringify(whereClause, null, 2));
       console.log('Where clause keys:', Object.keys(whereClause));
-      
+
       const reports = await Report.findAll({
         where: whereClause,
         include: [
@@ -432,10 +432,10 @@ router.get('/:id', async (req, res) => {
     const report = await Report.findByPk(req.params.id, {
       include: [
         {
-          model: Client,
-          as: 'client',
-          attributes: ['id', 'name', 'phone', 'email', 'address'],
-        },
+        model: Client,
+        as: 'client',
+        attributes: ['id', 'name', 'phone', 'email', 'address'],
+      },
         {
           model: Invoice,
           as: 'relatedInvoices',

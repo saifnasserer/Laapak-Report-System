@@ -126,6 +126,34 @@ app.get('/client-login-test.html', (req, res) => {
     res.sendFile(clientLoginTestPath);
 });
 
+app.get('/client-reports.html', (req, res) => {
+    const clientReportsPath = path.join(__dirname, '../frontend/public/pages/client/client-reports.html');
+    console.log('Serving client-reports.html from:', clientReportsPath);
+    console.log('File exists:', require('fs').existsSync(clientReportsPath));
+    res.sendFile(clientReportsPath);
+});
+
+app.get('/client-warranty.html', (req, res) => {
+    const clientWarrantyPath = path.join(__dirname, '../frontend/public/pages/client/client-warranty.html');
+    console.log('Serving client-warranty.html from:', clientWarrantyPath);
+    console.log('File exists:', require('fs').existsSync(clientWarrantyPath));
+    res.sendFile(clientWarrantyPath);
+});
+
+app.get('/client-maintenance.html', (req, res) => {
+    const clientMaintenancePath = path.join(__dirname, '../frontend/public/pages/client/client-maintenance.html');
+    console.log('Serving client-maintenance.html from:', clientMaintenancePath);
+    console.log('File exists:', require('fs').existsSync(clientMaintenancePath));
+    res.sendFile(clientMaintenancePath);
+});
+
+app.get('/client-invoices.html', (req, res) => {
+    const clientInvoicesPath = path.join(__dirname, '../frontend/public/pages/client/client-invoices.html');
+    console.log('Serving client-invoices.html from:', clientInvoicesPath);
+    console.log('File exists:', require('fs').existsSync(clientInvoicesPath));
+    res.sendFile(clientInvoicesPath);
+});
+
 // Serve reports pages
 app.get('/reports.html', (req, res) => {
     const reportsPath = path.join(__dirname, '../frontend/public/pages/reports/reports.html');
@@ -234,6 +262,8 @@ app.get('/offline.html', (req, res) => {
 // Use the built public assets so paths like /styles/... and /scripts/... work in production
 app.use('/styles', express.static(path.join(__dirname, '../frontend/public/styles')));
 app.use('/scripts', express.static(path.join(__dirname, '../frontend/public/scripts')));
+// Also serve from source scripts directory for modules that might not be in public
+app.use('/scripts', express.static(path.join(__dirname, '../frontend/scripts')));
 app.use('/assets', express.static(path.join(__dirname, '../frontend/public/assets')));
 app.use('/pages', express.static(path.join(__dirname, '../frontend/public/pages')));
 app.use(express.static(path.join(__dirname, '../frontend/public')));

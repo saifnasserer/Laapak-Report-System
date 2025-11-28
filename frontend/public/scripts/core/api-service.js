@@ -112,6 +112,13 @@ class ApiService {
             }
 
             if (!response.ok) {
+                // Handle 401 Unauthorized - token is invalid or expired
+                if (response.status === 401) {
+                    const error = new Error('Token is not valid');
+                    error.status = 401;
+                    error.unauthorized = true;
+                    throw error;
+                }
                 // Enhanced error message for database issues
                 if (response.status === 500) {
                     if (method === 'POST' && endpoint === '/api/reports') {
