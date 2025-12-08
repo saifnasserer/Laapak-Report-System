@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // const paymentDateEl = document.getElementById('paymentDate'); // Removed payment date field
 
     const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    const printInvoiceBtn = document.getElementById('printInvoiceBtn');
     const invoiceContainerToPrint = document.getElementById('invoiceContainerToPrint');
 
     if (!invoiceIdParam) {
@@ -284,6 +285,53 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadPdfBtn.addEventListener('click', () => {
             console.log('Print button clicked - triggering print dialog');
             window.print();
+        });
+    }
+
+    // Print Invoice - Open print-ready page
+    if (printInvoiceBtn) {
+        printInvoiceBtn.addEventListener('click', () => {
+            if (!invoiceIdParam) {
+                alert('رقم الفاتورة غير متوفر');
+                return;
+            }
+            
+            // Get token from storage (admin or client token)
+            let userToken = null;
+            if (typeof authMiddleware !== 'undefined') {
+                if (authMiddleware.isAdminLoggedIn()) {
+                    userToken = authMiddleware.getAdminToken();
+                } else if (authMiddleware.isClientLoggedIn()) {
+                    userToken = authMiddleware.getClientToken();
+                }
+            } else {
+                // Direct access from storage as fallback
+                userToken = localStorage.getItem('adminToken') || 
+                           sessionStorage.getItem('adminToken') ||
+                           localStorage.getItem('clientToken') ||
+                           sessionStorage.getItem('clientToken');
+            }
+            
+            if (!userToken) {
+                alert('يرجى تسجيل الدخول أولاً لطباعة الفواتير');
+                return;
+            }
+            
+            // Determine base URL
+            const baseUrl = (window.config && window.config.api && window.config.api.baseUrl) || 
+                          (typeof apiService !== 'undefined' && apiService.baseUrl) ||
+                          window.location.origin;
+            
+            // Build print URL with token
+            const printUrl = `${baseUrl}/api/invoices/${invoiceIdParam}/print?token=${encodeURIComponent(userToken)}`;
+            
+            // Open in new window
+            const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
+            
+            if (!printWindow) {
+                alert('يرجى السماح للنافذة المنبثقة لطباعة الفاتورة');
+                return;
+            }
         });
     }
 

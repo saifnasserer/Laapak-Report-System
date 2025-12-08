@@ -217,7 +217,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Admin login response status:', response.status);
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
+                    // Check if response is JSON or HTML (502 errors often return HTML)
+                    const contentType = response.headers.get('content-type');
+                    let errorData;
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        errorData = await response.json();
+                    } else {
+                        // Response is HTML (likely a proxy error page)
+                        const htmlText = await response.text();
+                        console.error('Received HTML instead of JSON:', htmlText.substring(0, 200));
+                        
+                        // Provide helpful error message based on status code
+                        if (response.status === 502) {
+                            throw new Error('خطأ في الاتصال بالخادم. يرجى التحقق من أن الخادم يعمل على المنفذ الصحيح (3001)');
+                        } else if (response.status === 503) {
+                            throw new Error('الخادم غير متاح حاليًا. يرجى المحاولة لاحقًا');
+                        } else {
+                            throw new Error(`خطأ في الخادم (${response.status}). يرجى التحقق من الاتصال`);
+                        }
+                    }
+                    
                     console.error('Admin login error:', errorData);
                     throw new Error(errorData.message || 'خطأ في اسم المستخدم أو كلمة المرور');
                 }
@@ -227,6 +247,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return data;
             } catch (error) {
                 console.error('Admin login fetch error:', error);
+                
+                // Provide more helpful error messages
+                if (error.message.includes('Failed to fetch') || error.message.includes('ECONNREFUSED')) {
+                    throw new Error('لا يمكن الاتصال بالخادم. يرجى التحقق من أن الخادم يعمل على http://localhost:3001');
+                } else if (error.message.includes('Unexpected token')) {
+                    throw new Error('الخادم يعيد استجابة غير صحيحة. يرجى التحقق من إعدادات الخادم');
+                }
+                
                 throw error;
             }
         },

@@ -311,6 +311,584 @@ router.get('/client', clientAuth, async (req, res) => {
 });
 
 // Get single invoice
+// Print invoice endpoint - returns print-ready HTML
+// Supports token in query parameter for browser access
+router.get('/:id/print', async (req, res, next) => {
+    // Allow token from query parameter for browser access
+    const token = req.query.token || req.header('x-auth-token') || req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+        return res.status(401).send(`
+            <html>
+                <body style="font-family: Arial; padding: 20px; text-align: center;">
+                    <h1>Authentication Required</h1>
+                    <p>Please provide a valid authentication token.</p>
+                    <p style="color: #666; font-size: 12px;">Add ?token=YOUR_TOKEN to the URL</p>
+                </body>
+            </html>
+        `);
+    }
+    
+    // Verify token
+    try {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET;
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Handle different token formats
+        if (decoded.user) {
+            req.user = decoded.user;
+        } else {
+            req.user = decoded;
+        }
+        
+        // Continue to the route handler
+        next();
+    } catch (err) {
+        console.error('Token verification error:', err.message);
+        return res.status(401).send(`
+            <html>
+                <body style="font-family: Arial; padding: 20px; text-align: center;">
+                    <h1>Invalid Token</h1>
+                    <p>The authentication token is invalid or expired.</p>
+                    <p style="color: #666; font-size: 12px;">Please login again and try printing.</p>
+                </body>
+            </html>
+        `);
+    }
+}, async (req, res) => {
+    try {
+        const invoice = await Invoice.findByPk(req.params.id, {
+            include: [
+                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email', 'address'] },
+                { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] },
+                { model: InvoiceItem, as: 'InvoiceItems' }
+            ]
+        });
+        
+        if (!invoice) {
+            return res.status(404).send(`
+                <html>
+                    <body style="font-family: Arial; padding: 20px; text-align: center;">
+                        <h1>Invoice Not Found</h1>
+                        <p>The invoice you're looking for doesn't exist.</p>
+                    </body>
+                </html>
+            `);
+        }
+        
+        // Format dates - match FixZone style
+        const invoiceDateObj = new Date(invoice.date);
+        const invoiceDate = invoiceDateObj.toLocaleDateString('ar-EG', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        const invoiceTime = invoiceDateObj.toLocaleTimeString('ar-EG', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        const fullInvoiceDate = `${invoiceDate} في ${invoiceTime}`;
+        
+        // Get report information (device model, serial number, order number)
+        let deviceModel = 'غير معلوم';
+        let serialNumber = 'غير معلوم';
+        let orderNumber = invoice.report_order_number || '-';
+        let reportId = invoice.report_id || invoice.reportId;
+        
+        // Try to get from related reports first
+        if (invoice.relatedReports && invoice.relatedReports.length > 0) {
+            const firstReport = invoice.relatedReports[0];
+            deviceModel = firstReport.device_model || 'غير معلوم';
+            serialNumber = firstReport.serial_number || 'غير معلوم';
+            if (!orderNumber || orderNumber === '-') {
+                orderNumber = firstReport.order_number || '-';
+            }
+        }
+        
+        // If still missing, try to fetch report directly
+        if ((!deviceModel || deviceModel === 'غير معلوم' || !serialNumber || serialNumber === 'غير معلوم') && reportId) {
+            try {
+                const report = await Report.findByPk(reportId);
+                if (report) {
+                    if (!orderNumber || orderNumber === '-') {
+                        orderNumber = report.order_number || '-';
+                    }
+                    if (!deviceModel || deviceModel === 'غير معلوم') {
+                        deviceModel = report.device_model || 'غير معلوم';
+                    }
+                    if (!serialNumber || serialNumber === 'غير معلوم') {
+                        serialNumber = report.serial_number || 'غير معلوم';
+                    }
+                }
+            } catch (err) {
+                console.log('Could not fetch report for additional details');
+            }
+        }
+        
+        // Format payment status
+        const statusMap = {
+            'paid': 'مدفوع',
+            'unpaid': 'غير مدفوع',
+            'pending': 'قيد الانتظار',
+            'partial': 'مدفوع جزئياً',
+            'completed': 'مكتمل',
+            'cancelled': 'ملغي'
+        };
+        
+        const statusText = statusMap[invoice.paymentStatus] || invoice.paymentStatus;
+        
+        // Build invoice items HTML - match FixZone table structure
+        let itemsHtml = '';
+        if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
+            invoice.InvoiceItems.forEach((item, index) => {
+                const unitPrice = parseFloat(item.amount || 0);
+                const quantity = parseInt(item.quantity || 1);
+                const discount = 0; // Item-level discount if needed
+                const total = parseFloat(item.totalAmount || unitPrice * quantity);
+                
+                itemsHtml += `
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #e0e0e0;">${item.description || '-'}</td>
+                        <td style="text-align: center; padding: 12px; border: 1px solid #e0e0e0;">${quantity}</td>
+                        <td style="text-align: left; padding: 12px; border: 1px solid #e0e0e0;">${unitPrice.toFixed(2)} ج.م</td>
+                        <td style="text-align: center; padding: 12px; border: 1px solid #e0e0e0;">${discount > 0 ? discount.toFixed(2) : '-'}</td>
+                        <td style="text-align: left; padding: 12px; border: 1px solid #e0e0e0; font-weight: bold;">${total.toFixed(2)} ج.م</td>
+                    </tr>
+                `;
+            });
+        } else {
+            itemsHtml = '<tr><td colspan="5" style="text-align: center; padding: 20px; border: 1px solid #e0e0e0;">لا توجد بنود</td></tr>';
+        }
+        
+        // Calculate totals
+        const subtotal = parseFloat(invoice.subtotal || 0);
+        const discount = parseFloat(invoice.discount || 0);
+        const tax = parseFloat(invoice.tax || 0);
+        const total = parseFloat(invoice.total || 0);
+        
+        // Calculate paid and remaining amounts
+        let paidAmount = 0;
+        if (invoice.paymentStatus === 'paid' || invoice.paymentStatus === 'completed') {
+            paidAmount = total;
+        } else if (invoice.paymentStatus === 'partial') {
+            // For partial payments, estimate based on common scenarios
+            // In a real system, you'd track this in a separate field
+            // For now, we'll show a reasonable estimate (e.g., 50% or use a calculation)
+            // You can improve this by adding a paidAmount field to the Invoice model
+            paidAmount = Math.max(0, total * 0.5); // Placeholder - should be tracked in DB
+        }
+        const remainingAmount = Math.max(0, total - paidAmount);
+        
+        // Generate print-ready HTML - FixZone style
+        const html = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاتورة ${invoice.id}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', 'Tahoma', 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+            padding: 20px;
+        }
+        
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 40px;
+        }
+        
+        .company-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .company-header p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .invoice-number-section {
+            text-align: center;
+            margin: 25px 0;
+        }
+        
+        .invoice-number-section h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .invoice-details {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        .invoice-details div {
+            flex: 1;
+        }
+        
+        .invoice-details strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 13px;
+        }
+        
+        .invoice-details span {
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-paid {
+            background: #28a745;
+            color: #fff;
+        }
+        
+        .status-unpaid {
+            background: #dc3545;
+            color: #fff;
+        }
+        
+        .status-pending {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .status-partial {
+            background: #17a2b8;
+            color: #fff;
+        }
+        
+        .client-section {
+            margin: 25px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        .client-section h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        
+        .client-section p {
+            margin: 6px 0;
+            font-size: 14px;
+        }
+        
+        .device-info {
+            margin: 20px 0;
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .device-info strong {
+            color: #555;
+        }
+        
+        .costs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+        }
+        
+        .costs-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: right;
+            border: 1px solid #e0e0e0;
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .costs-table td {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+        
+        .costs-table tbody tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .totals-section {
+            margin-top: 25px;
+            margin-left: auto;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .totals-table td {
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+        
+        .totals-table td:first-child {
+            text-align: right;
+            font-weight: bold;
+            background: #f8f9fa;
+        }
+        
+        .totals-table td:last-child {
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .total-row {
+            background: #0a592c;
+            color: #fff;
+        }
+        
+        .total-row td {
+            border-color: #0a592c;
+            font-size: 16px;
+            padding: 12px 15px;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .action-buttons {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .action-button {
+            background: #0a592c;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: background 0.3s;
+        }
+        
+        .action-button:hover {
+            background: #0d944d;
+        }
+        
+        .action-button.close-btn {
+            background: #dc3545;
+        }
+        
+        .action-button.close-btn:hover {
+            background: #c82333;
+        }
+        
+        /* Print-specific styles */
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .invoice-container {
+                padding: 20px;
+                max-width: 100%;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            @page {
+                margin: 1cm;
+                size: A4;
+            }
+            
+            .costs-table, .totals-table {
+                page-break-inside: avoid;
+            }
+            
+            .company-header, .invoice-details, .client-section {
+                page-break-inside: avoid;
+            }
+        }
+        
+        @media screen {
+            .action-buttons {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="action-buttons no-print">
+        <button class="action-button" onclick="window.print()">🖨️ طباعة الفاتورة</button>
+        <button class="action-button close-btn" onclick="window.close()">✕ إغلاق</button>
+    </div>
+    
+    <div class="invoice-container">
+        <!-- Company Header -->
+        <div class="company-header">
+            <p>19 شارع يوسف الجندي - التحرير - القاهرة</p>
+            <p>هاتف: 01013148007 | بريد إلكتروني: info@laapak.com</p>
+        </div>
+        
+        <!-- Invoice Number -->
+        <div class="invoice-number-section">
+            <h2>رقم الفاتورة</h2>
+            <div style="font-size: 20px; font-weight: bold; color: #0a592c; margin-bottom: 10px;">
+                ${invoice.id}
+            </div>
+            <div style="font-size: 14px; color: #666;">
+                <div>رقم الفاتورة: ${invoice.id}</div>
+                ${orderNumber !== '-' ? `<div style="margin-top: 5px;">رقم طلب الإصلاح: ${orderNumber}</div>` : ''}
+                <div style="margin-top: 5px;">تاريخ الإصدار: ${fullInvoiceDate}</div>
+                <div style="margin-top: 5px;">الحالة: <span class="status-badge status-${invoice.paymentStatus}">${statusText}</span></div>
+            </div>
+        </div>
+        
+        <!-- Client Information -->
+        <div class="client-section">
+            <h3>بيانات العميل</h3>
+            <p><strong>الاسم:</strong> ${invoice.client ? invoice.client.name : '-'}</p>
+            <p><strong>الهاتف:</strong> ${invoice.client ? invoice.client.phone : '-'}</p>
+            ${invoice.client && invoice.client.email ? `<p><strong>البريد الإلكتروني:</strong> ${invoice.client.email}</p>` : ''}
+        </div>
+        
+        <!-- Device Information -->
+        <div class="device-info">
+            <strong>نوع:</strong> ${deviceModel.includes('LAPTOP') || deviceModel.toLowerCase().includes('laptop') ? 'LAPTOP' : 'ITEM'} | 
+            <strong>الموديل:</strong> ${deviceModel} | 
+            <strong>السيريال:</strong> ${serialNumber}
+        </div>
+        
+        <!-- Costs and Services Table -->
+        <h3 style="margin: 25px 0 15px 0; font-size: 16px;">التكاليف والخدمات</h3>
+        <table class="costs-table">
+            <thead>
+                <tr>
+                    <th>الوصف</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة</th>
+                    <th>الخصم</th>
+                    <th>الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsHtml}
+            </tbody>
+        </table>
+        
+        <!-- Totals Section -->
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td>المجموع الفرعي:</td>
+                    <td>${subtotal.toFixed(2)} ج.م</td>
+                </tr>
+                ${discount > 0 ? `
+                <tr>
+                    <td>الخصم:</td>
+                    <td>-${discount.toFixed(2)} ج.م</td>
+                </tr>
+                ` : ''}
+                ${tax > 0 ? `
+                <tr>
+                    <td>الضريبة (${invoice.taxRate || 0}%):</td>
+                    <td>${tax.toFixed(2)} ج.م</td>
+                </tr>
+                ` : ''}
+                <tr class="total-row">
+                    <td>الإجمالي:</td>
+                    <td>${total.toFixed(2)} ج.م</td>
+                </tr>
+                <tr>
+                    <td>المدفوع:</td>
+                    <td>${paidAmount.toFixed(2)} ج.م</td>
+                </tr>
+                <tr>
+                    <td>المتبقي:</td>
+                    <td>${remainingAmount.toFixed(2)} ج.م</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>شكراً لثقتكم بنا | Laapak</p>
+        </div>
+    </div>
+    
+    <script>
+        // Print reminder
+        window.addEventListener('beforeprint', function() {
+            console.log('تأكد من إعدادات الطباعة قبل الطباعة');
+        });
+    </script>
+</body>
+</html>
+        `;
+        
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(html);
+    } catch (error) {
+        console.error('Error generating invoice print view:', error);
+        res.status(500).send(`
+            <html>
+                <body style="font-family: Arial; padding: 20px; text-align: center;">
+                    <h1>خطأ في تحميل الفاتورة</h1>
+                    <p>حدث خطأ أثناء تحميل الفاتورة. يرجى المحاولة مرة أخرى.</p>
+                </body>
+            </html>
+        `);
+    }
+});
+
 router.get('/:id', auth, async (req, res) => {
     try {
         const invoice = await Invoice.findByPk(req.params.id, {

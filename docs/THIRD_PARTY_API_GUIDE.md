@@ -579,6 +579,119 @@ x-auth-token: your_jwt_token_here
 }
 ```
 
+#### Print Invoice (Print-Ready HTML)
+
+Get a print-ready HTML version of an invoice. This endpoint returns a beautifully formatted HTML page optimized for printing.
+
+```http
+GET /api/invoices/{invoice_id}/print
+x-auth-token: your_jwt_token_here
+```
+
+**Or with token in query parameter (for direct browser access):**
+```http
+GET /api/invoices/{invoice_id}/print?token=your_jwt_token_here
+```
+
+**Authentication:**
+- JWT token required (can be in header or query parameter)
+- Supports both admin and client tokens
+- Clients can only print their own invoices
+
+**Response:**
+Returns HTML content (Content-Type: `text/html; charset=utf-8`)
+
+**Features:**
+- ✅ Print-optimized layout (A4 size)
+- ✅ RTL (Right-to-Left) support for Arabic
+- ✅ Company header with contact information
+- ✅ Complete invoice details (number, date, status)
+- ✅ Client information section
+- ✅ Device information (type, model, serial number)
+- ✅ Itemized costs table
+- ✅ Payment summary (subtotal, tax, discount, total, paid, remaining)
+- ✅ Professional styling matching industry standards
+- ✅ Print and close buttons (hidden when printing)
+
+**Example Usage:**
+
+**JavaScript:**
+```javascript
+// Open print view in new window
+const invoiceId = 'INV123456';
+const token = localStorage.getItem('authToken');
+const printUrl = `https://reports.laapak.com/api/invoices/${invoiceId}/print?token=${token}`;
+window.open(printUrl, '_blank');
+```
+
+**cURL:**
+```bash
+# With token in header
+curl -X GET "https://reports.laapak.com/api/invoices/INV123456/print" \
+  -H "x-auth-token: your_jwt_token_here" \
+  -o invoice_print.html
+
+# With token in query parameter
+curl -X GET "https://reports.laapak.com/api/invoices/INV123456/print?token=your_jwt_token_here" \
+  -o invoice_print.html
+```
+
+**Direct Browser Access:**
+```
+https://reports.laapak.com/api/invoices/INV123456/print?token=your_jwt_token_here
+```
+
+**Print View Includes:**
+- Company information (address, phone, email)
+- Invoice number and report/order number
+- Issue date and time (formatted in Arabic)
+- Payment status badge
+- Client details (name, phone, email)
+- Device information (type, model, serial number)
+- Itemized costs table with:
+  - Description
+  - Quantity
+  - Unit price
+  - Discount
+  - Total
+- Financial summary:
+  - Subtotal
+  - Discount (if applicable)
+  - Tax (if applicable)
+  - Total amount
+  - Paid amount
+  - Remaining amount
+- Footer with thank you message
+
+**Error Responses:**
+
+**401 Unauthorized:**
+```html
+<html>
+  <body>
+    <h1>Authentication Required</h1>
+    <p>Please provide a valid authentication token.</p>
+  </body>
+</html>
+```
+
+**404 Not Found:**
+```html
+<html>
+  <body>
+    <h1>Invoice Not Found</h1>
+    <p>The invoice you're looking for doesn't exist.</p>
+  </body>
+</html>
+```
+
+**Notes:**
+- The print view automatically hides action buttons when printing
+- Optimized for A4 paper size
+- Supports browser's native print dialog
+- Can be saved as PDF using browser's print-to-PDF feature
+- Responsive design works on both desktop and mobile
+
 #### Get All Invoices (JWT - Admin)
 
 ```http

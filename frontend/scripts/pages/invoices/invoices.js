@@ -838,7 +838,17 @@ function setupEventListeners() {
     // Print invoice button
     const printInvoiceBtn = document.getElementById('printInvoiceBtn');
     if (printInvoiceBtn) {
-        printInvoiceBtn.addEventListener('click', printInvoice);
+        printInvoiceBtn.addEventListener('click', function() {
+            // Get invoice ID from data attribute or from URL
+            const invoiceId = this.dataset.id || 
+                            new URLSearchParams(window.location.search).get('id') ||
+                            document.getElementById('editInvoiceId')?.value;
+            if (invoiceId) {
+                printInvoice(invoiceId);
+            } else {
+                showToast('معرف الفاتورة غير متوفر', 'error');
+            }
+        });
     }
     
     // Confirm delete invoice button
@@ -1480,6 +1490,10 @@ async function viewInvoice(invoiceId) {
         const printButton = document.getElementById('printInvoiceBtn');
         if (printButton) {
             printButton.dataset.id = invoiceId;
+            // Also update onclick to ensure it works
+            printButton.onclick = function() {
+                printInvoice(invoiceId);
+            };
         }
         
         // Show modal
@@ -1592,18 +1606,65 @@ async function editInvoice(invoiceId) {
 }
 
 /**
- * Print invoice
+ * Print invoice - opens print-ready invoice page
  * @param {string} invoiceId - ID of the invoice to print
  */
 function printInvoice(invoiceId) {
+    console.log('printInvoice called with invoiceId:', invoiceId);
+    
     if (!invoiceId) {
+        console.error('Invoice ID is missing');
         showToast('معرف الفاتورة غير صالح', 'error');
         return;
     }
     
-    // Redirect to view page with print parameter
-    window.open(`view-invoice.html?id=${invoiceId}&print=true`, '_blank');
+    // Get token from storage (admin or client token)
+    let token = null;
+    if (typeof authMiddleware !== 'undefined') {
+        if (authMiddleware.isAdminLoggedIn()) {
+            token = authMiddleware.getAdminToken();
+        } else if (authMiddleware.isClientLoggedIn()) {
+            token = authMiddleware.getClientToken();
+        }
+    } else {
+        // Direct access from storage as fallback
+        token = localStorage.getItem('adminToken') || 
+                 sessionStorage.getItem('adminToken') ||
+                 localStorage.getItem('clientToken') ||
+                 sessionStorage.getItem('clientToken');
+    }
+    
+    if (!token) {
+        console.error('No authentication token found');
+        showToast('يرجى تسجيل الدخول أولاً لطباعة الفواتير', 'error');
+        return;
+    }
+    
+    // Determine base URL
+    const baseUrl = (window.config && window.config.api && window.config.api.baseUrl) || 
+                    (typeof apiService !== 'undefined' && apiService.baseUrl) ||
+                    window.location.origin;
+    
+    // Build print URL with token
+    const printUrl = `${baseUrl}/api/invoices/${invoiceId}/print?token=${encodeURIComponent(token)}`;
+    
+    console.log('Opening print URL:', printUrl);
+    
+    // Open in new window
+    const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
+    
+    if (!printWindow) {
+        console.error('Failed to open print window - popup blocked?');
+        showToast('يرجى السماح للنافذة المنبثقة لطباعة الفاتورة', 'error');
+        return;
+    }
+    
+    // Show success message
+    showToast('جارٍ فتح صفحة الطباعة...', 'success');
 }
+
+// Make printInvoice globally accessible
+window.printInvoice = printInvoice;
 
 /**
  * Confirm delete invoice
