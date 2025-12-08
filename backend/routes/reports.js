@@ -502,6 +502,147 @@ router.get('/client/me', clientAuth, async (req, res) => {
   }
 });
 
+// GET /reports/me - get reports for the authenticated client (JWT only)
+// Supports filtering, pagination, and sorting
+router.get('/me', auth, async (req, res) => {
+  try {
+    // Extract client_id from JWT token
+    // The auth middleware sets req.user, which contains the decoded token
+    const userId = req.user.id;
+    const userType = req.user.type || (req.user.isClient ? 'client' : 'admin');
+    
+    // Only clients can use this endpoint to get their own reports
+    if (userType !== 'client') {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. This endpoint is for clients only.' 
+      });
+    }
+    
+    const clientId = userId;
+    if (!clientId) {
+      console.error('Client ID not found in token after auth middleware');
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication error: Client ID missing.' 
+      });
+    }
+
+    console.log(`Fetching reports for authenticated client ID: ${clientId}`);
+    
+    // Build where clause
+    const whereClause = { client_id: clientId };
+    
+    // Handle status filter
+    if (req.query.status) {
+      whereClause.status = req.query.status;
+    }
+    
+    // Handle device model filter
+    if (req.query.deviceModel) {
+      whereClause.device_model = { [Op.like]: `%${req.query.deviceModel}%` };
+    }
+    
+    // Handle date range filters
+    if (req.query.startDate || req.query.endDate) {
+      const dateCondition = {};
+      if (req.query.startDate) {
+        dateCondition[Op.gte] = new Date(req.query.startDate);
+      }
+      if (req.query.endDate) {
+        const endDate = new Date(req.query.endDate);
+        // Ensure end date includes the full day
+        if (!req.query.endDate.includes('T')) {
+          endDate.setHours(23, 59, 59, 999);
+        }
+        dateCondition[Op.lte] = endDate;
+      }
+      whereClause.inspection_date = dateCondition;
+    }
+    
+    // Handle pagination
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100); // Default 50, max 100
+    const offset = parseInt(req.query.offset) || 0;
+    
+    // Handle sorting
+    const sortBy = req.query.sortBy || 'created_at';
+    const sortOrder = (req.query.sortOrder || 'DESC').toUpperCase();
+    const validSortFields = ['created_at', 'inspection_date', 'status', 'device_model'];
+    const validSortOrder = ['ASC', 'DESC'];
+    
+    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+    const finalSortOrder = validSortOrder.includes(sortOrder) ? sortOrder : 'DESC';
+    
+    // Get total count for pagination
+    const total = await Report.count({ where: whereClause });
+    
+    // Fetch reports
+    const reports = await Report.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Client,
+          as: 'client',
+          attributes: ['id', 'name', 'phone', 'email', 'address'],
+        },
+        {
+          model: Invoice,
+          as: 'relatedInvoices',
+          through: { attributes: [] },
+          attributes: ['id', 'total', 'paymentStatus'],
+          required: false
+        }
+      ],
+      order: [[finalSortBy, finalSortOrder]],
+      limit: limit,
+      offset: offset,
+    });
+    
+    // Format response to match recommendation
+    const formattedReports = reports.map(report => {
+      const reportData = report.toJSON ? report.toJSON() : report;
+      return {
+        id: reportData.id,
+        device_model: reportData.device_model,
+        serial_number: reportData.serial_number,
+        inspection_date: reportData.inspection_date,
+        hardware_status: reportData.hardware_status,
+        external_images: reportData.external_images,
+        notes: reportData.notes,
+        status: reportData.status,
+        billing_enabled: reportData.billing_enabled,
+        amount: reportData.amount ? reportData.amount.toString() : '0.00',
+        invoice_created: reportData.invoice_created || (reportData.relatedInvoices && reportData.relatedInvoices.length > 0),
+        invoice_id: reportData.invoice_id || (reportData.relatedInvoices && reportData.relatedInvoices.length > 0 ? reportData.relatedInvoices[0].id : null),
+        created_at: reportData.created_at
+      };
+    });
+    
+    const hasMore = offset + limit < total;
+    
+    console.log(`Found ${reports.length} reports for client ID ${clientId} (total: ${total})`);
+    
+    res.json({
+      success: true,
+      reports: formattedReports,
+      pagination: {
+        total: total,
+        limit: limit,
+        offset: offset,
+        hasMore: hasMore
+      }
+    });
+
+  } catch (error) {
+    console.error('Failed to fetch reports for authenticated client:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Internal server error', 
+      error: error.message 
+    });
+  }
+});
+
 // POST /reports - create a new report
 router.post('/', async (req, res) => {
   try {
