@@ -382,6 +382,62 @@ x-auth-token: your_jwt_token_here
 }
 ```
 
+#### Get My Reports (JWT - Client Only)
+
+```http
+GET /api/reports/me
+x-auth-token: your_jwt_token_here
+```
+
+**Description:**
+- Automatically identifies the client from the JWT token
+- Returns only reports belonging to the authenticated client
+- No need to pass client_id in the URL
+- More secure and efficient than fetching all reports
+
+**Query Parameters:**
+- `status`: Filter by status (`active`, `completed`, `cancelled`, etc.)
+- `startDate`: Filter from date (`2024-01-01`)
+- `endDate`: Filter to date (`2024-01-31`)
+- `deviceModel`: Filter by device model (partial match)
+- `limit`: Number of results (default: 50, max: 100)
+- `offset`: Pagination offset (default: 0)
+- `sortBy`: Sort field (`created_at`, `inspection_date`, `status`, `device_model`)
+- `sortOrder`: Sort direction (`ASC`, `DESC`)
+
+**Example:**
+```bash
+curl -X GET "https://reports.laapak.com/api/reports/me?status=active&limit=10&sortBy=created_at&sortOrder=DESC" \
+  -H "x-auth-token: your_jwt_token_here"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "reports": [
+    {
+      "id": "RPT123456",
+      "device_model": "iPhone 15 Pro",
+      "serial_number": "ABC123456789",
+      "inspection_date": "2024-01-15T10:00:00Z",
+      "status": "active",
+      "billing_enabled": true,
+      "amount": "500.00",
+      "invoice_created": true,
+      "invoice_id": "INV123456",
+      "created_at": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 5,
+    "limit": 10,
+    "offset": 0,
+    "hasMore": false
+  }
+}
+```
+
 #### Get All Reports (JWT - Admin)
 
 ```http

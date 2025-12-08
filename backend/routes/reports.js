@@ -425,85 +425,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /reports/:id - get report by ID
-router.get('/:id', async (req, res) => {
-  try {
-    console.log(`Fetching report with ID: ${req.params.id}`);
-    const report = await Report.findByPk(req.params.id, {
-      include: [
-        {
-        model: Client,
-        as: 'client',
-        attributes: ['id', 'name', 'phone', 'email', 'address'],
-      },
-        {
-          model: Invoice,
-          as: 'relatedInvoices',
-          through: { attributes: [] }, // Don't include junction table attributes
-          attributes: ['id', 'total', 'paymentStatus', 'paymentMethod', 'date'],
-          required: false // Left join to include reports without invoices
-        }
-      ],
-    });
-    if (!report) {
-      console.log(`Report with ID ${req.params.id} not found`);
-      return res.status(404).json({ error: 'Report not found' });
-    }
-    console.log(`Found report: ${report.id}`);
-    console.log(`Report has ${report.relatedInvoices ? report.relatedInvoices.length : 0} linked invoices`);
-    
-    // Ensure relatedInvoices is properly serialized
-    const reportData = report.toJSON ? report.toJSON() : report;
-    console.log('Report data keys:', Object.keys(reportData));
-    console.log('Report data relatedInvoices:', reportData.relatedInvoices);
-    
-    res.json({ success: true, report: reportData });
-  } catch (error) {
-    console.error('Failed to fetch report:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
-  }
-});
-
-// GET /reports/client/me - get reports for the authenticated client
-router.get('/client/me', clientAuth, async (req, res) => {
-  try {
-    const clientId = req.user.id; // clientAuth middleware sets req.user
-    if (!clientId) {
-      console.error('Client ID not found in token after auth middleware');
-      return res.status(401).json({ error: 'Authentication error: Client ID missing.' });
-    }
-
-    console.log(`Fetching reports for authenticated client ID: ${clientId}`);
-    const reports = await Report.findAll({
-      where: { client_id: clientId }, // Ensure 'client_id' matches your Report model's foreign key field name
-      include: [
-        {
-          model: Client,
-          as: 'client',
-          attributes: ['id', 'name', 'phone', 'email', 'address'],
-        },
-        // Optional: Include ReportTechnicalTest if needed for client dashboard preview
-        // {
-        //   model: ReportTechnicalTest,
-        //   as: 'technical_tests',
-        //   attributes: ['componentName', 'status', 'notes', 'type', 'icon'],
-        // }
-      ],
-      order: [['inspection_date', 'DESC']], // Order by inspection_date, or 'created_at' if preferred
-    });
-
-    // It's not an error if a client has no reports, return empty array
-    console.log(`Found ${reports ? reports.length : 0} reports for client ID ${clientId}`);
-    res.json({ success: true, data: reports || [] });
-
-  } catch (error) {
-    console.error('Failed to fetch reports for authenticated client:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
-  }
-});
-
 // GET /reports/me - get reports for the authenticated client (JWT only)
 // Supports filtering, pagination, and sorting
+// IMPORTANT: This route must come BEFORE /:id to avoid route conflicts
 router.get('/me', auth, async (req, res) => {
   try {
     // Extract client_id from JWT token
@@ -640,6 +564,83 @@ router.get('/me', auth, async (req, res) => {
       message: 'Internal server error', 
       error: error.message 
     });
+  }
+});
+
+// GET /reports/:id - get report by ID
+router.get('/:id', async (req, res) => {
+  try {
+    console.log(`Fetching report with ID: ${req.params.id}`);
+    const report = await Report.findByPk(req.params.id, {
+      include: [
+        {
+        model: Client,
+        as: 'client',
+        attributes: ['id', 'name', 'phone', 'email', 'address'],
+      },
+        {
+          model: Invoice,
+          as: 'relatedInvoices',
+          through: { attributes: [] }, // Don't include junction table attributes
+          attributes: ['id', 'total', 'paymentStatus', 'paymentMethod', 'date'],
+          required: false // Left join to include reports without invoices
+        }
+      ],
+    });
+    if (!report) {
+      console.log(`Report with ID ${req.params.id} not found`);
+      return res.status(404).json({ error: 'Report not found' });
+    }
+    console.log(`Found report: ${report.id}`);
+    console.log(`Report has ${report.relatedInvoices ? report.relatedInvoices.length : 0} linked invoices`);
+    
+    // Ensure relatedInvoices is properly serialized
+    const reportData = report.toJSON ? report.toJSON() : report;
+    console.log('Report data keys:', Object.keys(reportData));
+    console.log('Report data relatedInvoices:', reportData.relatedInvoices);
+    
+    res.json({ success: true, report: reportData });
+  } catch (error) {
+    console.error('Failed to fetch report:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// GET /reports/client/me - get reports for the authenticated client
+router.get('/client/me', clientAuth, async (req, res) => {
+  try {
+    const clientId = req.user.id; // clientAuth middleware sets req.user
+    if (!clientId) {
+      console.error('Client ID not found in token after auth middleware');
+      return res.status(401).json({ error: 'Authentication error: Client ID missing.' });
+    }
+
+    console.log(`Fetching reports for authenticated client ID: ${clientId}`);
+    const reports = await Report.findAll({
+      where: { client_id: clientId }, // Ensure 'client_id' matches your Report model's foreign key field name
+      include: [
+        {
+          model: Client,
+          as: 'client',
+          attributes: ['id', 'name', 'phone', 'email', 'address'],
+        },
+        // Optional: Include ReportTechnicalTest if needed for client dashboard preview
+        // {
+        //   model: ReportTechnicalTest,
+        //   as: 'technical_tests',
+        //   attributes: ['componentName', 'status', 'notes', 'type', 'icon'],
+        // }
+      ],
+      order: [['inspection_date', 'DESC']], // Order by inspection_date, or 'created_at' if preferred
+    });
+
+    // It's not an error if a client has no reports, return empty array
+    console.log(`Found ${reports ? reports.length : 0} reports for client ID ${clientId}`);
+    res.json({ success: true, data: reports || [] });
+
+  } catch (error) {
+    console.error('Failed to fetch reports for authenticated client:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
