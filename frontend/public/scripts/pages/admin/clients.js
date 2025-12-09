@@ -57,20 +57,128 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form submission for client search
     const searchForm = document.getElementById('searchForm');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    
     if (searchForm) {
         searchForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const searchName = document.getElementById('searchName').value;
-            const searchStatus = document.getElementById('searchStatus').value;
-            const searchDate = document.getElementById('searchDate').value;
-            
-            // Search clients with filters
-            loadClients({
-                name: searchName,
-                status: searchStatus,
-                date: searchDate
+            performSearch();
+        });
+        
+        // Also trigger search on Enter key in input fields
+        const searchInputs = searchForm.querySelectorAll('input, select');
+        searchInputs.forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    performSearch();
+                }
             });
         });
+    }
+    
+    // Clear search functionality
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            clearSearch();
+        });
+    }
+    
+    /**
+     * Perform client search with current form values
+     */
+    function performSearch() {
+        const searchName = document.getElementById('searchName')?.value.trim() || '';
+        const searchStatus = document.getElementById('searchStatus')?.value || '';
+        const searchEmail = document.getElementById('searchEmail')?.value.trim() || '';
+        
+        // Build search filters
+        const filters = {};
+        if (searchName) {
+            filters.name = searchName;
+        }
+        if (searchStatus) {
+            filters.status = searchStatus;
+        }
+        if (searchEmail) {
+            filters.email = searchEmail;
+        }
+        
+        // Apply client-side filtering if we have clientsData loaded
+        if (clientsData && clientsData.length > 0) {
+            filterClientsLocally(filters);
+        } else {
+            // If no data loaded, try API search
+            loadClients(filters);
+        }
+    }
+    
+    /**
+     * Clear search and reset filters
+     */
+    function clearSearch() {
+        // Clear all search inputs
+        const searchName = document.getElementById('searchName');
+        const searchStatus = document.getElementById('searchStatus');
+        const searchEmail = document.getElementById('searchEmail');
+        
+        if (searchName) searchName.value = '';
+        if (searchStatus) searchStatus.value = '';
+        if (searchEmail) searchEmail.value = '';
+        
+        // Reset to show all clients
+        currentPage = 1;
+        totalClients = clientsData.length;
+        displayClients(clientsData);
+        updatePaginationControls();
+    }
+    
+    /**
+     * Filter clients locally based on search criteria
+     * @param {Object} filters - Search filters (name, status, email)
+     */
+    function filterClientsLocally(filters) {
+        if (!clientsData || clientsData.length === 0) {
+            return;
+        }
+        
+        let filteredClients = clientsData.filter(client => {
+            // Filter by name or phone
+            if (filters.name) {
+                const searchTerm = filters.name.toLowerCase();
+                const nameMatch = (client.name || '').toLowerCase().includes(searchTerm);
+                const phoneMatch = (client.phone || '').toLowerCase().includes(searchTerm);
+                if (!nameMatch && !phoneMatch) {
+                    return false;
+                }
+            }
+            
+            // Filter by status
+            if (filters.status) {
+                if (client.status !== filters.status) {
+                    return false;
+                }
+            }
+            
+            // Filter by email
+            if (filters.email) {
+                const emailTerm = filters.email.toLowerCase();
+                const emailMatch = (client.email || '').toLowerCase().includes(emailTerm);
+                if (!emailMatch) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        
+        // Update pagination to reflect filtered results
+        totalClients = filteredClients.length;
+        currentPage = 1;
+        
+        // Update display with filtered results
+        displayClients(filteredClients);
+        updatePaginationControls();
     }
 
     // Form submission for adding a new client
@@ -289,16 +397,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Check if data has clients property or if the response is an array
+            let allClients = [];
             if (Array.isArray(data)) {
-                clientsData = data;
+                allClients = data;
             } else if (data && data.clients && Array.isArray(data.clients)) {
-                clientsData = data.clients;
+                allClients = data.clients;
             } else {
                 console.warn('Unexpected clients data format:', data);
-                clientsData = [];
+                allClients = [];
             }
             
-            displayClients(clientsData);
+            // Store all clients for client-side filtering
+            clientsData = allClients;
+            
+            // Apply client-side filters if provided
+            if (Object.keys(filters).length > 0) {
+                filterClientsLocally(filters);
+            } else {
+                displayClients(clientsData);
+            }
         } catch (error) {
             console.error('Error loading clients:', error);
             // If API fails, try to load from mock data

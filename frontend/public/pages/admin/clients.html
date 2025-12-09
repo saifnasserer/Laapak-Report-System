@@ -65,40 +65,51 @@
     <!-- Main Content -->
     <div class="container-fluid p-4 mt-2">
         <!-- Clients Content Header -->
-        <div class="d-flex justify-content-center align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
             <h2 class="text-dark fw-bold">إدارة العملاء</h2>
-            
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                <i class="fas fa-plus-circle me-2"></i>إضافة عميل جديد
+            </button>
         </div>
-<!--         
-        Search & Filter
+        
+        <!-- Search & Filter -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body p-4">
                 <h5 class="fw-bold mb-3" style="color: #007553;">بحث وتصفية</h5>
                 <form id="searchForm">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <input type="text" class="form-control" id="searchName" placeholder="اسم العميل أو رقم الهاتف">
+                            <label for="searchName" class="form-label small text-muted">اسم العميل أو رقم الهاتف</label>
+                            <input type="text" class="form-control" id="searchName" placeholder="ابحث بالاسم أو رقم الهاتف...">
                         </div>
                         <div class="col-md-3">
+                            <label for="searchStatus" class="form-label small text-muted">حالة العميل</label>
                             <select class="form-select" id="searchStatus">
-                                <option value="">حالة العميل</option>
+                                <option value="">جميع الحالات</option>
                                 <option value="active">نشط</option>
                                 <option value="inactive">غير نشط</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <input type="date" class="form-control" id="searchDate" placeholder="تاريخ التسجيل">
+                            <label for="searchEmail" class="form-label small text-muted">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="searchEmail" placeholder="البحث بالبريد الإلكتروني...">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">
                                 <i class="fas fa-search me-2"></i> بحث
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSearchBtn">
+                                <i class="fas fa-times me-2"></i>مسح البحث
                             </button>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
-         -->
         <!-- Clients Table -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body p-0">
