@@ -15,6 +15,12 @@
     <link rel="stylesheet" href="../../styles/base/styles.css">
     <link rel="stylesheet" href="../../styles/components/custom-admin.css">
     
+    <!-- Apple Glass Theme -->
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    
+    <!-- Clients Glass Styles -->
+    <link rel="stylesheet" href="../../styles/pages/clients-glass.css">
+    
     <!-- PWA manifest -->
     <link rel="manifest" href="../../manifest.json">
     
@@ -53,7 +59,10 @@
         }
     </style>
 </head>
-<body>
+<body class="clients-page">
+    <!-- Glass Background -->
+    <div class="glass-background"></div>
+    
     <!-- Offline Alert -->
     <div class="offline-alert" id="offlineAlert">
         أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
@@ -63,17 +72,20 @@
     <div id="header-container"></div>
     
     <!-- Main Content -->
-    <div class="container-fluid p-4 mt-2">
-        <!-- Clients Content Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-            <h2 class="text-dark fw-bold">إدارة العملاء</h2>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
-                <i class="fas fa-plus-circle me-2"></i>إضافة عميل جديد
-            </button>
-        </div>
-        
-        <!-- Search & Filter -->
-        <div class="card border-0 shadow-sm mb-4">
+    <div class="container-fluid p-4">
+        <div class="admin-content">
+            <!-- Clients Content Header -->
+            <div class="clients-page-header">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <h2 class="clients-page-title mb-0">إدارة العملاء</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                        <i class="fas fa-plus-circle me-2"></i>إضافة عميل جديد
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search & Filter -->
+            <div class="glass-card mb-4">
             <div class="card-body p-4">
                 <h5 class="fw-bold mb-3" style="color: #007553;">بحث وتصفية</h5>
                 <form id="searchForm">
@@ -111,11 +123,14 @@
             </div>
         </div>
         <!-- Clients Table -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-0">
+        <div class="clients-table-card mb-4">
+            <div class="clients-table-header">
+                <h5 class="mb-0 text-center">قائمة العملاء</h5>
+            </div>
+            <div class="clients-table-body">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="clientsTable">
-                        <thead style="background-color: #f8f9fa;">
+                    <table class="table table-hover align-middle mb-0" id="clientsTable">
+                        <thead class="table-light">
                             <tr>
                                 <th class="py-3">رقم</th>
                                 <th class="py-3">اسم العميل</th>
@@ -134,20 +149,23 @@
                 </div>
                 
                 <!-- Pagination -->
-                <nav aria-label="Page navigation" class="p-3 border-top">
-                    <ul class="pagination justify-content-center m-0" id="clientsPagination">
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">السابق</a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#">2</a></li>
-                        <li class="page-item"><a class="page-link" href="#">3</a></li>
-                        <li class="page-item">
-                            <a class="page-link" href="#">التالي</a>
-                        </li>
-                    </ul>
-                </nav>
+                <div class="clients-table-footer">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center m-0" id="clientsPagination">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">السابق</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">التالي</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
             </div>
+        </div>
         </div>
     </div>
     

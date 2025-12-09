@@ -6,16 +6,34 @@ const { sequelize } = require('../config/db');
 
 const router = express.Router();
 
-// Base attributes for Report queries (excluding new fields until migration runs)
-// TODO: After migration 016_add_device_specs_to_reports.sql runs successfully, 
-// add 'cpu', 'gpu', 'ram', 'storage' to this array and remove the attributes from individual queries
+// Base attributes for Report queries (includes all fields including device specs)
 const REPORT_BASE_ATTRIBUTES = [
   'id', 'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
-  'order_number', 'device_model', 'serial_number', 'inspection_date',
-  'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
+  'order_number', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
+  'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
   'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id',
   'created_at', 'updated_at'
 ];
+
+/**
+ * Check if device spec columns exist in the database
+ * @returns {Promise<boolean>} True if columns exist, false otherwise
+ */
+async function checkDeviceSpecColumnsExist() {
+  try {
+    const [results] = await sequelize.query(`
+      SELECT COLUMN_NAME 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = 'reports' 
+      AND COLUMN_NAME IN ('cpu', 'gpu', 'ram', 'storage')
+    `);
+    return results.length === 4; // All 4 columns must exist
+  } catch (error) {
+    console.error('Error checking device spec columns:', error);
+    return false;
+  }
+}
 
 // GET /reports/count - get count of reports
 router.get('/count', auth, async (req, res) => {
@@ -694,7 +712,19 @@ router.post('/', async (req, res) => {
     if (req.body.client_id && req.body.device_model) {
       try {
         // Direct database schema format
-        const reportData = req.body;
+        const reportData = { ...req.body };
+        
+        // Remove device spec fields if columns don't exist yet (migration not run)
+        // This prevents errors when creating reports before migration runs
+        const deviceSpecFields = ['cpu', 'gpu', 'ram', 'storage'];
+        const hasDeviceSpecColumns = await checkDeviceSpecColumnsExist();
+        
+        if (!hasDeviceSpecColumns) {
+          console.warn('Device spec columns (cpu, gpu, ram, storage) do not exist. Migration may not have run yet. Omitting these fields.');
+          deviceSpecFields.forEach(field => {
+            delete reportData[field];
+          });
+        }
         
         // Log the data being used to create the report
         console.log('Creating report with direct schema:', reportData);
@@ -705,6 +735,22 @@ router.post('/', async (req, res) => {
       } catch (error) {
         console.error('Failed to create report with direct schema:', error.message);
         console.error('Error stack:', error.stack);
+        
+        // Check if error is about missing columns
+        if (error.message && (
+          error.message.includes("Unknown column 'cpu'") ||
+          error.message.includes("Unknown column 'gpu'") ||
+          error.message.includes("Unknown column 'ram'") ||
+          error.message.includes("Unknown column 'storage'")
+        )) {
+          console.error('Database migration not run. Please restart the server to run migrations.');
+          return res.status(500).json({ 
+            error: 'Database schema mismatch', 
+            details: 'The database columns for CPU, GPU, RAM, and Storage do not exist. Please restart the server to run the migration.',
+            migration_required: true
+          });
+        }
+        
         if (error.name === 'SequelizeValidationError') {
           return res.status(400).json({ error: 'Validation error', details: error.errors.map(e => e.message) });
         } else if (error.name === 'SequelizeDatabaseError') {
@@ -762,17 +808,42 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     // Update all fields that can be updated
-    const updateFields = [
+    // Base fields (always available)
+    const baseUpdateFields = [
       'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
-      'order_number', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
+      'order_number', 'device_model', 'serial_number',
       'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'status'
     ];
-
-    updateFields.forEach(field => {
+    
+    // New device spec fields (may not exist until migration runs)
+    const deviceSpecFields = ['cpu', 'gpu', 'ram', 'storage'];
+    
+    // First, update base fields
+    baseUpdateFields.forEach(field => {
       if (req.body[field] !== undefined) {
         report[field] = req.body[field];
       }
     });
+    
+    // Check if device spec columns exist in database before trying to update them
+    const hasDeviceSpecColumns = await checkDeviceSpecColumnsExist();
+    
+    // Then, conditionally update device spec fields only if columns exist
+    if (hasDeviceSpecColumns) {
+      deviceSpecFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          report[field] = req.body[field];
+        }
+      });
+    } else {
+      // Columns don't exist - log warning but don't fail
+      // Don't set these fields on the report object at all
+      deviceSpecFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          console.warn(`Field ${field} received but column does not exist in database. Migration may not have run yet. Skipping this field.`);
+        }
+      });
+    }
 
     // Handle special fields
     if (req.body.inspection_date) {
@@ -801,7 +872,46 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     const oldStatus = report.status;
-    await report.save();
+    
+    // Build update object with only fields that should be updated
+    const updateData = {};
+    baseUpdateFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = report[field]; // Use the value we already set
+      }
+    });
+    
+    // Only include device spec fields if columns exist
+    if (hasDeviceSpecColumns) {
+      deviceSpecFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          updateData[field] = report[field]; // Use the value we already set
+        }
+      });
+    }
+    
+    // Use update() with explicit fields to avoid trying to update non-existent columns
+    try {
+      await report.update(updateData, {
+        fields: Object.keys(updateData) // Only update the fields we specify
+      });
+    } catch (saveError) {
+      // Check if error is about missing columns
+      if (saveError.message && (
+        saveError.message.includes("Unknown column 'cpu'") ||
+        saveError.message.includes("Unknown column 'gpu'") ||
+        saveError.message.includes("Unknown column 'ram'") ||
+        saveError.message.includes("Unknown column 'storage'")
+      )) {
+        console.error('Database migration not run. Please restart the server to run migrations.');
+        return res.status(500).json({ 
+          error: 'Database schema mismatch', 
+          details: 'The database columns for CPU, GPU, RAM, and Storage do not exist. Please restart the server to run the migration, or run: node backend/scripts/database/run-migration-016.js',
+          migration_required: true
+        });
+      }
+      throw saveError;
+    }
     
     console.log(`Report ${req.params.id} updated successfully`);
     

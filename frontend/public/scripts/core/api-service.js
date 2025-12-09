@@ -466,6 +466,10 @@ class ApiService {
             order_number: reportData.order_number || reportData.orderNumber || '',
             device_model: reportData.device_model || reportData.deviceModel || '',
             serial_number: reportData.serial_number || reportData.serialNumber || '',
+            cpu: reportData.cpu || '',
+            gpu: reportData.gpu || '',
+            ram: reportData.ram || '',
+            storage: reportData.storage || '',
             inspection_date: reportData.inspection_date instanceof Date ? 
                 reportData.inspection_date.toISOString() : 
                 new Date(reportData.inspection_date || reportData.inspectionDate || Date.now()).toISOString(),

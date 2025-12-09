@@ -18,6 +18,12 @@
     <link rel="stylesheet" href="../../styles/base/styles.css">
     <link rel="stylesheet" href="../../styles/components/custom-admin.css">
     
+    <!-- Apple Glass Theme -->
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    
+    <!-- Invoices Glass Styles -->
+    <link rel="stylesheet" href="../../styles/pages/invoices-glass.css">
+    
     <style>
         .invoice-container {
             background-color: white;
@@ -82,7 +88,10 @@
     <!-- Theme color for browser -->
     <meta name="theme-color" content="#0a3622">
 </head>
-<body>
+<body class="invoices-page">
+    <!-- Glass Background -->
+    <div class="glass-background"></div>
+    
     <!-- Offline Alert -->
     <div class="offline-alert" id="offlineAlert">
         أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
@@ -92,15 +101,18 @@
     <div id="header-container"></div>
     
     <!-- Main Content -->
-    <div class="container-fluid p-4 mt-2">
-        <!-- Page Header -->
-        <div class="d-flex justify-content-center align-items-center mb-4">
-            <h2 class="text-dark fw-bold">إنشاء فاتورة</h2>
-        </div>
-        
-        <!-- Create Invoice Button Section -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-4">
+    <div class="container-fluid p-4">
+        <div class="admin-content">
+            <!-- Page Header -->
+            <div class="invoices-page-header">
+                <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap" style="width: 100%; max-width: 600px; margin: 0 auto;">
+                    <h2 class="invoices-page-title mb-0">إنشاء فاتورة</h2>
+                </div>
+            </div>
+            
+            <!-- Create Invoice Button Section -->
+            <div class="glass-card mb-4">
+                <div class="p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-2"><i class="fas fa-file-invoice me-2 text-success"></i>إنشاء فاتورة جديدة</h5>
@@ -156,18 +168,13 @@
             </div>
         </div> -->
         <!-- Reports List Section -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-light py-3">
-                <div class="d-flex justify-content-center align-items-center">
-                    <h6 class="mb-0">التقارير بدون فواتير</h6>
-                    <div>
-                        <!-- Global Select All checkbox removed -->
-                    </div>
-                </div>
+        <div class="invoices-table-card mb-4">
+            <div class="invoices-table-header">
+                <h5 class="mb-0 text-center">التقارير بدون فواتير</h5>
             </div>
-            <div class="card-body p-0">
+            <div class="invoices-table-body">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
                                 <th width="50" class="text-center">
@@ -195,7 +202,7 @@
                     </table>
                 </div>
             </div>
-            <div class="card-footer bg-white p-3">
+            <div class="invoices-table-footer">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="ms-2" id="selectedCount">0</span>
@@ -228,8 +235,8 @@
     
     <!-- Invoice Preview Section (initially hidden) -->
     <div id="invoicePreviewSection" class="container-fluid p-4" style="display: none;">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-light py-3">
+        <div class="glass-card mb-4">
+            <div class="invoices-table-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">معاينة الفاتورة</h5>
                     <div>
@@ -259,11 +266,12 @@
                     </div>
                 </div>
             </div>
-            <div class="card-body p-4">
+            <div class="invoices-table-body p-4">
                 <div id="invoicePreviewContainer">
                     <!-- Invoice content will be inserted here by JavaScript -->
                 </div>
             </div>
+        </div>
         </div>
     </div>
     
