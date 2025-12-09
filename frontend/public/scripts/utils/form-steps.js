@@ -91,7 +91,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         deviceModel: document.getElementById('deviceModel')?.value || '',
                         serialNumber: document.getElementById('serialNumber')?.value || '',
                         // Preserve existing device price or use value from input if available
-                        devicePrice: devicePriceInput?.value ? parseFloat(devicePriceInput.value) : existingDevicePrice
+                        devicePrice: devicePriceInput?.value ? parseFloat(devicePriceInput.value) : existingDevicePrice,
+                        cpu: document.getElementById('deviceCPU')?.value || '',
+                        gpu: document.getElementById('deviceGPU')?.value || '',
+                        ram: document.getElementById('deviceRAM')?.value || '',
+                        storage: document.getElementById('deviceStorage')?.value || ''
                     };
                     
                     console.log('Updated globalDeviceDetails with price:', window.globalDeviceDetails);

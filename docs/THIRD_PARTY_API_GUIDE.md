@@ -327,6 +327,10 @@ curl -X GET "https://reports.laapak.com/api/v2/external/clients/1/reports?status
       "id": "RPT123456",
       "device_model": "iPhone 15 Pro",
       "serial_number": "ABC123456789",
+      "cpu": "Apple A17 Pro",
+      "gpu": "Apple GPU (6-core)",
+      "ram": "8GB",
+      "storage": "256GB NVMe SSD",
       "inspection_date": "2024-01-15T10:00:00Z",
       "status": "active",
       "billing_enabled": true,
@@ -370,6 +374,10 @@ x-auth-token: your_jwt_token_here
     "order_number": "ORD123456",
     "device_model": "iPhone 15 Pro",
     "serial_number": "ABC123456789",
+    "cpu": "Apple A17 Pro",
+    "gpu": "Apple GPU (6-core)",
+    "ram": "8GB",
+    "storage": "256GB NVMe SSD",
     "inspection_date": "2024-01-15T10:00:00Z",
     "hardware_status": "[{\"component\": \"screen\", \"status\": \"good\"}]",
     "external_images": "[\"image1.jpg\", \"image2.jpg\"]",
@@ -420,6 +428,10 @@ curl -X GET "https://reports.laapak.com/api/reports/me?status=active&limit=10&so
       "id": "RPT123456",
       "device_model": "iPhone 15 Pro",
       "serial_number": "ABC123456789",
+      "cpu": "Apple A17 Pro",
+      "gpu": "Apple GPU (6-core)",
+      "ram": "8GB",
+      "storage": "256GB NVMe SSD",
       "inspection_date": "2024-01-15T10:00:00Z",
       "status": "active",
       "billing_enabled": true,
@@ -463,6 +475,10 @@ Content-Type: application/json
   "client_id": 1,
   "device_model": "iPhone 15",
   "serial_number": "ABC123",
+  "cpu": "Apple A16 Bionic",
+  "gpu": "Apple GPU (5-core)",
+  "ram": "6GB",
+  "storage": "128GB NVMe SSD",
   "inspection_date": "2024-01-15T10:00:00Z",
   "hardware_status": "[{\"component\": \"screen\", \"status\": \"good\"}]",
   "external_images": "[\"image1.jpg\"]",
@@ -473,6 +489,8 @@ Content-Type: application/json
 }
 ```
 
+**Note:** The `cpu`, `gpu`, `ram`, and `storage` fields are optional. If not provided, they will be set to `null`.
+
 #### Update Report (JWT - Admin)
 
 ```http
@@ -482,9 +500,15 @@ Content-Type: application/json
 
 {
   "status": "completed",
-  "notes": "Repair completed successfully"
+  "notes": "Repair completed successfully",
+  "cpu": "Apple A17 Pro",
+  "gpu": "Apple GPU (6-core)",
+  "ram": "8GB",
+  "storage": "256GB NVMe SSD"
 }
 ```
+
+**Note:** All fields are optional. Only include the fields you want to update. The `cpu`, `gpu`, `ram`, and `storage` fields can be updated along with other report fields.
 
 #### Search Reports
 
@@ -607,7 +631,7 @@ Returns HTML content (Content-Type: `text/html; charset=utf-8`)
 - ✅ Company header with contact information
 - ✅ Complete invoice details (number, date, status)
 - ✅ Client information section
-- ✅ Device information (type, model, serial number)
+- ✅ Device information (type, model, serial number, CPU, GPU, RAM, Storage)
 - ✅ Itemized costs table
 - ✅ Payment summary (subtotal, tax, discount, total, paid, remaining)
 - ✅ Professional styling matching industry standards
@@ -647,7 +671,7 @@ https://reports.laapak.com/api/invoices/INV123456/print?token=your_jwt_token_her
 - Issue date and time (formatted in Arabic)
 - Payment status badge
 - Client details (name, phone, email)
-- Device information (type, model, serial number)
+- Device information (type, model, serial number, CPU, GPU, RAM, Storage)
 - Itemized costs table with:
   - Description
   - Quantity
@@ -1538,6 +1562,16 @@ Content-Type: application/json
 Some fields are stored as JSON strings and need parsing:
 - `hardware_status`: Array of component statuses
 - `external_images`: Array of image URLs
+
+### Device Specification Fields
+
+Reports include optional device specification fields:
+- `cpu`: Processor/CPU specification (e.g., "Apple A17 Pro", "Intel Core i7-11800H")
+- `gpu`: Graphics processing unit specification (e.g., "Apple GPU (6-core)", "NVIDIA GeForce RTX 3060")
+- `ram`: Memory/RAM specification (e.g., "8GB", "16GB DDR4")
+- `storage`: Storage specification (e.g., "256GB NVMe SSD", "512GB NVMe SSD")
+
+These fields are optional and can be `null` if not provided when creating or updating a report.
 
 ---
 

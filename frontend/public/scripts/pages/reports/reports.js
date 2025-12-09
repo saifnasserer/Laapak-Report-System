@@ -1249,16 +1249,36 @@ function checkDateInRange(report, startDate, endDate) {
     
     if (!reportDate) return true; // Include reports without dates
     
-    const dateObj = new Date(reportDate);
+    // Parse date consistently to avoid timezone issues
+    let dateObj;
+    if (typeof reportDate === 'string') {
+        const dateStr = reportDate.split('T')[0]; // Get just the date part
+        const [year, month, day] = dateStr.split('-').map(Number);
+        if (year && month && day) {
+            // Create date in local timezone to avoid UTC parsing issues
+            dateObj = new Date(year, month - 1, day);
+        } else {
+            dateObj = new Date(reportDate);
+        }
+    } else {
+        dateObj = new Date(reportDate);
+    }
+    
     if (isNaN(dateObj.getTime())) return true;
     
+    dateObj.setHours(0, 0, 0, 0);
+    
     if (startDate) {
-        const start = new Date(startDate);
+        const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+        const start = new Date(startYear, startMonth - 1, startDay);
+        start.setHours(0, 0, 0, 0);
         if (dateObj < start) return false;
     }
     
     if (endDate) {
-        const end = new Date(endDate + 'T23:59:59');
+        const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+        const end = new Date(endYear, endMonth - 1, endDay);
+        end.setHours(23, 59, 59, 999);
         if (dateObj > end) return false;
     }
     
@@ -1404,16 +1424,35 @@ function applyClientSideFilters(reports) {
                 return true;
             }
             
-            const dateObj = new Date(reportDate);
+            // Parse date consistently to avoid timezone issues
+            // Extract date parts from string or use Date object
+            let dateObj;
+            if (typeof reportDate === 'string') {
+                // If it's a string like "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss"
+                const dateStr = reportDate.split('T')[0]; // Get just the date part
+                const [year, month, day] = dateStr.split('-').map(Number);
+                if (year && month && day) {
+                    // Create date in local timezone to avoid UTC parsing issues
+                    dateObj = new Date(year, month - 1, day);
+                } else {
+                    dateObj = new Date(reportDate);
+                }
+            } else {
+                dateObj = new Date(reportDate);
+            }
+            
             if (isNaN(dateObj.getTime())) {
                 console.log(`Report ${report.id} (status: ${report.status}) has invalid date - INCLUDING`);
                 return true; // Invalid date, include it
             }
             
+            // Normalize to start of day for comparison
             dateObj.setHours(0, 0, 0, 0);
             
             if (currentFilters.startDate) {
-                const startDate = new Date(currentFilters.startDate);
+                // Parse start date consistently - extract YYYY-MM-DD parts
+                const [startYear, startMonth, startDay] = currentFilters.startDate.split('-').map(Number);
+                const startDate = new Date(startYear, startMonth - 1, startDay);
                 startDate.setHours(0, 0, 0, 0);
                 
                 // Debug date comparison
@@ -1427,7 +1466,9 @@ function applyClientSideFilters(reports) {
             }
             
             if (currentFilters.endDate) {
-                const endDate = new Date(currentFilters.endDate);
+                // Parse end date consistently - extract YYYY-MM-DD parts
+                const [endYear, endMonth, endDay] = currentFilters.endDate.split('-').map(Number);
+                const endDate = new Date(endYear, endMonth - 1, endDay);
                 endDate.setHours(23, 59, 59, 999);
                 
                 if (dateObj > endDate) {

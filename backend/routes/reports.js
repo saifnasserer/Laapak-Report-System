@@ -6,6 +6,17 @@ const { sequelize } = require('../config/db');
 
 const router = express.Router();
 
+// Base attributes for Report queries (excluding new fields until migration runs)
+// TODO: After migration 016_add_device_specs_to_reports.sql runs successfully, 
+// add 'cpu', 'gpu', 'ram', 'storage' to this array and remove the attributes from individual queries
+const REPORT_BASE_ATTRIBUTES = [
+  'id', 'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
+  'order_number', 'device_model', 'serial_number', 'inspection_date',
+  'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
+  'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id',
+  'created_at', 'updated_at'
+];
+
 // GET /reports/count - get count of reports
 router.get('/count', auth, async (req, res) => {
     try {
@@ -79,6 +90,7 @@ router.get('/', async (req, res) => {
     try {
       console.log(`Fetching report with ID from query: ${id}`);
       const reportInstance = await Report.findByPk(id, {
+        attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
         include: [
           {
             model: Client,
@@ -108,6 +120,10 @@ router.get('/', async (req, res) => {
           inspection_date: reportInstance.inspection_date,
           device_model: reportInstance.device_model,
           device_serial: reportInstance.serial_number,
+          cpu: reportInstance.cpu || null,
+          gpu: reportInstance.gpu || null,
+          ram: reportInstance.ram || null,
+          storage: reportInstance.storage || null,
           status_badge: reportInstance.status, // Map DB 'status' to 'status_badge'
           external_images: reportInstance.external_images, // Will be parsed by frontend
           hardware_status: reportInstance.hardware_status, // Will be parsed by frontend
@@ -303,6 +319,7 @@ router.get('/', async (req, res) => {
 
       const reports = await Report.findAll({
         where: whereClause,
+        attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
         include: [
           {
           model: Client,
@@ -420,6 +437,23 @@ router.get('/', async (req, res) => {
       res.json(reports);
     } catch (error) {
       console.error('Failed to fetch all reports:', error);
+      
+      // Check if error is related to missing columns (migration not run)
+      if (error.message && (
+        error.message.includes("Unknown column 'cpu'") ||
+        error.message.includes("Unknown column 'gpu'") ||
+        error.message.includes("Unknown column 'ram'") ||
+        error.message.includes("Unknown column 'storage'")
+      )) {
+        console.error('Database migration not run. Please restart the server to run migrations.');
+        res.status(500).json({ 
+          error: 'Database schema mismatch', 
+          details: 'The database columns for CPU, GPU, RAM, and Storage do not exist. Please restart the server to run the migration.',
+          migration_required: true
+        });
+        return;
+      }
+      
       res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   }
@@ -503,6 +537,7 @@ router.get('/me', auth, async (req, res) => {
     // Fetch reports
     const reports = await Report.findAll({
       where: whereClause,
+      attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
       include: [
         {
           model: Client,
@@ -522,25 +557,29 @@ router.get('/me', auth, async (req, res) => {
       offset: offset,
     });
     
-    // Format response to match recommendation
-    const formattedReports = reports.map(report => {
-      const reportData = report.toJSON ? report.toJSON() : report;
-      return {
-        id: reportData.id,
-        device_model: reportData.device_model,
-        serial_number: reportData.serial_number,
-        inspection_date: reportData.inspection_date,
-        hardware_status: reportData.hardware_status,
-        external_images: reportData.external_images,
-        notes: reportData.notes,
-        status: reportData.status,
-        billing_enabled: reportData.billing_enabled,
-        amount: reportData.amount ? reportData.amount.toString() : '0.00',
-        invoice_created: reportData.invoice_created || (reportData.relatedInvoices && reportData.relatedInvoices.length > 0),
-        invoice_id: reportData.invoice_id || (reportData.relatedInvoices && reportData.relatedInvoices.length > 0 ? reportData.relatedInvoices[0].id : null),
-        created_at: reportData.created_at
-      };
-    });
+      // Format response to match recommendation
+      const formattedReports = reports.map(report => {
+        const reportData = report.toJSON ? report.toJSON() : report;
+        return {
+          id: reportData.id,
+          device_model: reportData.device_model,
+          serial_number: reportData.serial_number,
+          cpu: reportData.cpu || null,
+          gpu: reportData.gpu || null,
+          ram: reportData.ram || null,
+          storage: reportData.storage || null,
+          inspection_date: reportData.inspection_date,
+          hardware_status: reportData.hardware_status,
+          external_images: reportData.external_images,
+          notes: reportData.notes,
+          status: reportData.status,
+          billing_enabled: reportData.billing_enabled,
+          amount: reportData.amount ? reportData.amount.toString() : '0.00',
+          invoice_created: reportData.invoice_created || (reportData.relatedInvoices && reportData.relatedInvoices.length > 0),
+          invoice_id: reportData.invoice_id || (reportData.relatedInvoices && reportData.relatedInvoices.length > 0 ? reportData.relatedInvoices[0].id : null),
+          created_at: reportData.created_at
+        };
+      });
     
     const hasMore = offset + limit < total;
     
@@ -572,6 +611,7 @@ router.get('/:id', async (req, res) => {
   try {
     console.log(`Fetching report with ID: ${req.params.id}`);
     const report = await Report.findByPk(req.params.id, {
+      attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
       include: [
         {
         model: Client,
@@ -618,6 +658,7 @@ router.get('/client/me', clientAuth, async (req, res) => {
     console.log(`Fetching reports for authenticated client ID: ${clientId}`);
     const reports = await Report.findAll({
       where: { client_id: clientId }, // Ensure 'client_id' matches your Report model's foreign key field name
+      attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
       include: [
         {
           model: Client,
@@ -713,7 +754,9 @@ router.put('/:id', auth, async (req, res) => {
   try {
     console.log(`Updating report ${req.params.id} with data:`, req.body);
     
-    const report = await Report.findByPk(req.params.id);
+    const report = await Report.findByPk(req.params.id, {
+      attributes: REPORT_BASE_ATTRIBUTES // Explicitly exclude cpu, gpu, ram, storage until migration runs
+    });
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });
     }
@@ -721,8 +764,8 @@ router.put('/:id', auth, async (req, res) => {
     // Update all fields that can be updated
     const updateFields = [
       'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
-      'order_number', 'device_model', 'serial_number', 'inspection_date',
-      'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'status'
+      'order_number', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
+      'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'status'
     ];
 
     updateFields.forEach(field => {
@@ -876,6 +919,7 @@ router.get('/search', async (req, res) => {
 
     const reports = await Report.findAll({
       where: whereClause,
+      attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
       include: {
         model: Client,
         attributes: ['id', 'name', 'phone', 'email'],
@@ -1056,6 +1100,7 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
 
         // Get all reports with their clients
         const reports = await Report.findAll({
+            attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
             include: [
                 {
                     model: Client,

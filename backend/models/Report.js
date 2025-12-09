@@ -47,6 +47,30 @@ const Report = sequelize.define('Report', {
         allowNull: true,
         field: 'serial_number'
     },
+    cpu: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'cpu',
+        comment: 'CPU specification'
+    },
+    gpu: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'gpu',
+        comment: 'GPU specification'
+    },
+    ram: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'ram',
+        comment: 'RAM specification'
+    },
+    storage: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'storage',
+        comment: 'Storage specification'
+    },
     inspection_date: {
         type: DataTypes.DATE,
         allowNull: false,

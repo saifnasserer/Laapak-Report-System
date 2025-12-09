@@ -13,7 +13,11 @@ window.globalDeviceDetails = window.globalDeviceDetails || {
     inspectionDate: '',
     deviceModel: '',
     serialNumber: '',
-    devicePrice: ''
+    devicePrice: '',
+    cpu: '',
+    gpu: '',
+    ram: '',
+    storage: ''
 };
 
 // Global client details object for storing selected client information
@@ -330,6 +334,31 @@ function populateGeneralInformation(report) {
     if (serialNumberInput) {
         serialNumberInput.value = report.serial_number || report.serialNumber || '';
         console.log('Set serialNumberInput value to:', serialNumberInput.value);
+    }
+    
+    // Device specifications
+    const cpuInput = document.getElementById('deviceCPU');
+    if (cpuInput) {
+        cpuInput.value = report.cpu || '';
+        console.log('Set deviceCPU value to:', cpuInput.value);
+    }
+    
+    const gpuInput = document.getElementById('deviceGPU');
+    if (gpuInput) {
+        gpuInput.value = report.gpu || '';
+        console.log('Set deviceGPU value to:', gpuInput.value);
+    }
+    
+    const ramInput = document.getElementById('deviceRAM');
+    if (ramInput) {
+        ramInput.value = report.ram || '';
+        console.log('Set deviceRAM value to:', ramInput.value);
+    }
+    
+    const storageInput = document.getElementById('deviceStorage');
+    if (storageInput) {
+        storageInput.value = report.storage || '';
+        console.log('Set deviceStorage value to:', storageInput.value);
     }
     
     // Update global device details
@@ -726,7 +755,11 @@ function clearFormData() {
         inspectionDate: '',
         deviceModel: '',
         serialNumber: '',
-        devicePrice: ''
+        devicePrice: '',
+        cpu: '',
+        gpu: '',
+        ram: '',
+        storage: ''
     };
     
     // Clear test screenshots
@@ -765,7 +798,7 @@ function initializeFormComponents() {
     console.log('Initializing form components...');
     
     // Add event listeners to update global device details when input values change
-    const deviceInputs = ['orderNumber', 'inspectionDate', 'deviceModel', 'serialNumber'];
+    const deviceInputs = ['orderNumber', 'inspectionDate', 'deviceModel', 'serialNumber', 'deviceCPU', 'deviceGPU', 'deviceRAM', 'deviceStorage'];
     deviceInputs.forEach(inputId => {
         const input = document.getElementById(inputId);
         if (input) {
@@ -945,7 +978,11 @@ function updateGlobalDeviceDetails() {
         inspectionDate: document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0],
         deviceModel: document.getElementById('deviceModel')?.value || '',
         serialNumber: document.getElementById('serialNumber')?.value || '',
-        devicePrice: parseFloat(document.getElementById('devicePrice')?.value || '250')
+        devicePrice: parseFloat(document.getElementById('devicePrice')?.value || '250'),
+        cpu: document.getElementById('deviceCPU')?.value || '',
+        gpu: document.getElementById('deviceGPU')?.value || '',
+        ram: document.getElementById('deviceRAM')?.value || '',
+        storage: document.getElementById('deviceStorage')?.value || ''
     };
     console.log('Global device details updated:', window.globalDeviceDetails);
 }
@@ -1514,7 +1551,11 @@ function collectGeneralInfo() {
         order_number: document.getElementById('orderNumber')?.value || '',
         inspection_date: document.getElementById('inspectionDate')?.value || '',
         device_model: document.getElementById('deviceModel')?.value || '',
-        serial_number: document.getElementById('serialNumber')?.value || ''
+        serial_number: document.getElementById('serialNumber')?.value || '',
+        cpu: document.getElementById('deviceCPU')?.value || '',
+        gpu: document.getElementById('deviceGPU')?.value || '',
+        ram: document.getElementById('deviceRAM')?.value || '',
+        storage: document.getElementById('deviceStorage')?.value || ''
     };
     
     return {

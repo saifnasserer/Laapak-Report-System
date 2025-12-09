@@ -73,6 +73,10 @@ const runMigrations = async () => {
                         else if (errorCode === 'ER_DUP_ENTRY' || errorMsg.includes('Duplicate entry')) {
                             console.log(`  Statement ${i + 1}: Duplicate entry, skipping`);
                         }
+                        // If column already exists (ALTER TABLE ADD COLUMN), that's okay
+                        else if (errorMsg.includes('Duplicate column name') || errorCode === 'ER_DUP_FIELDNAME') {
+                            console.log(`  Statement ${i + 1}: Column already exists, skipping`);
+                        }
                         // If foreign key constraint fails but table exists, continue
                         else if (errorCode === 'ER_NO_REFERENCED_ROW_2' && errorMsg.includes('expense_categories')) {
                             console.log(`  Statement ${i + 1}: Foreign key constraint (table may not exist yet), skipping`);
