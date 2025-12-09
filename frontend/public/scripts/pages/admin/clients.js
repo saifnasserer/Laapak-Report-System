@@ -249,10 +249,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const clientPhone = document.getElementById('editClientPhone').value;
             const clientEmail = document.getElementById('editClientEmail').value;
             const clientAddress = document.getElementById('editClientAddress').value;
+            const clientOrderCode = document.getElementById('editClientOrderCode').value;
             const clientStatus = document.querySelector('input[name="editClientStatus"]:checked').value;
             
             if (!clientId || !clientName || !clientPhone) {
-                alert('الرجاء ملء جميع الحقول المطلوبة');
+                alert('الرجاء ملء جميع الحقول المطلوبة (الاسم ورقم الهاتف)');
                 return;
             }
             
@@ -261,14 +262,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('غير مصرح لك بتعديل بيانات العملاء');
                 }
                 
-                // Use ApiService's updateClient method
-                const updatedClient = await apiService.updateClient(clientId, {
+                // Build update object
+                const updateData = {
                     name: clientName,
                     phone: clientPhone,
                     email: clientEmail,
                     address: clientAddress,
                     status: clientStatus
-                });
+                };
+                
+                // Only include orderCode if it's been changed (not empty)
+                if (clientOrderCode && clientOrderCode.trim()) {
+                    updateData.orderCode = clientOrderCode.trim();
+                }
+                
+                // Use ApiService's updateClient method
+                const updatedClient = await apiService.updateClient(clientId, updateData);
                 
                 // Show success message and close modal
                 alert('تم تحديث بيانات العميل بنجاح');
@@ -587,6 +596,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('editClientPhone').value = client.phone || '';
         document.getElementById('editClientEmail').value = client.email || '';
         document.getElementById('editClientAddress').value = client.address || '';
+        document.getElementById('editClientOrderCode').value = client.orderCode || client.order_code || '';
         
         // Set status radio button
         if (client.status === 'active') {
