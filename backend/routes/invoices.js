@@ -9,6 +9,45 @@ const { Invoice, InvoiceItem, Report, Client, InvoiceReport, sequelize } = requi
 const { auth, adminAuth, clientAuth } = require('../middleware/auth');
 const { Op } = require('sequelize');
 const { handleInvoiceCreation, handleInvoicePaymentStatusChange, handleInvoiceDeletion } = require('./invoice-hooks');
+const path = require('path');
+const fs = require('fs');
+
+// Load print settings helper
+function loadPrintSettings() {
+  try {
+    const p = path.join(__dirname, '..', 'config', 'print-settings.json');
+    const raw = fs.readFileSync(p, 'utf8');
+    return JSON.parse(raw);
+  } catch (e) {
+    return {
+      title: 'فاتورة',
+      showLogo: false,
+      logoUrl: '',
+      margins: { top: 16, right: 16, bottom: 16, left: 16 },
+      dateDisplay: 'both',
+      companyName: 'Laapak'
+    };
+  }
+}
+
+// Format dates helper
+function formatDates(dateObj, mode) {
+  const formats = { gregorian: '', hijri: '' };
+  try {
+    formats.gregorian = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full', timeStyle: 'short' }).format(dateObj);
+  } catch (_) {
+    formats.gregorian = dateObj.toLocaleString('ar-EG');
+  }
+  try {
+    formats.hijri = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', { dateStyle: 'full' }).format(dateObj);
+  } catch (_) {
+    formats.hijri = '';
+  }
+  const selected = (mode || 'both').toLowerCase();
+  if (selected === 'gregorian') return { primary: formats.gregorian, secondary: '' };
+  if (selected === 'hijri') return { primary: formats.hijri || formats.gregorian, secondary: '' };
+  return { primary: formats.gregorian, secondary: formats.hijri };
+}
 
 // Get invoice statistics by payment method
 router.get('/stats/payment-methods', adminAuth, async (req, res) => {
@@ -357,536 +396,791 @@ router.get('/:id/print', async (req, res, next) => {
         `);
     }
 }, async (req, res) => {
-    try {
-        const invoice = await Invoice.findByPk(req.params.id, {
-            include: [
-                { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email', 'address'] },
-                { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number'] },
-                { model: InvoiceItem, as: 'InvoiceItems' }
-            ]
-        });
-        
-        if (!invoice) {
-            return res.status(404).send(`
-                <html>
-                    <body style="font-family: Arial; padding: 20px; text-align: center;">
-                        <h1>Invoice Not Found</h1>
-                        <p>The invoice you're looking for doesn't exist.</p>
-                    </body>
-                </html>
-            `);
-        }
-        
-        // Format dates - match FixZone style
-        const invoiceDateObj = new Date(invoice.date);
-        const invoiceDate = invoiceDateObj.toLocaleDateString('ar-EG', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        const invoiceTime = invoiceDateObj.toLocaleTimeString('ar-EG', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
-        const fullInvoiceDate = `${invoiceDate} في ${invoiceTime}`;
-        
-        // Get report information (device model, serial number, order number)
-        let deviceModel = 'غير معلوم';
-        let serialNumber = 'غير معلوم';
-        let orderNumber = invoice.report_order_number || '-';
-        let reportId = invoice.report_id || invoice.reportId;
-        
-        // Try to get from related reports first
-        if (invoice.relatedReports && invoice.relatedReports.length > 0) {
-            const firstReport = invoice.relatedReports[0];
-            deviceModel = firstReport.device_model || 'غير معلوم';
-            serialNumber = firstReport.serial_number || 'غير معلوم';
-            if (!orderNumber || orderNumber === '-') {
-                orderNumber = firstReport.order_number || '-';
-            }
-        }
-        
-        // If still missing, try to fetch report directly
-        if ((!deviceModel || deviceModel === 'غير معلوم' || !serialNumber || serialNumber === 'غير معلوم') && reportId) {
-            try {
-                const report = await Report.findByPk(reportId);
-                if (report) {
-                    if (!orderNumber || orderNumber === '-') {
-                        orderNumber = report.order_number || '-';
-                    }
-                    if (!deviceModel || deviceModel === 'غير معلوم') {
-                        deviceModel = report.device_model || 'غير معلوم';
-                    }
-                    if (!serialNumber || serialNumber === 'غير معلوم') {
-                        serialNumber = report.serial_number || 'غير معلوم';
-                    }
-                }
-            } catch (err) {
-                console.log('Could not fetch report for additional details');
-            }
-        }
-        
-        // Format payment status
-        const statusMap = {
-            'paid': 'مدفوع',
-            'unpaid': 'غير مدفوع',
-            'pending': 'قيد الانتظار',
-            'partial': 'مدفوع جزئياً',
-            'completed': 'مكتمل',
-            'cancelled': 'ملغي'
-        };
-        
-        const statusText = statusMap[invoice.paymentStatus] || invoice.paymentStatus;
-        
-        // Build invoice items HTML - match FixZone table structure
-        let itemsHtml = '';
-        if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
-            invoice.InvoiceItems.forEach((item, index) => {
-                const unitPrice = parseFloat(item.amount || 0);
-                const quantity = parseInt(item.quantity || 1);
-                const discount = 0; // Item-level discount if needed
-                const total = parseFloat(item.totalAmount || unitPrice * quantity);
-                
-                itemsHtml += `
-                    <tr>
-                        <td style="padding: 12px; border: 1px solid #e0e0e0;">${item.description || '-'}</td>
-                        <td style="text-align: center; padding: 12px; border: 1px solid #e0e0e0;">${quantity}</td>
-                        <td style="text-align: left; padding: 12px; border: 1px solid #e0e0e0;">${unitPrice.toFixed(2)} ج.م</td>
-                        <td style="text-align: center; padding: 12px; border: 1px solid #e0e0e0;">${discount > 0 ? discount.toFixed(2) : '-'}</td>
-                        <td style="text-align: left; padding: 12px; border: 1px solid #e0e0e0; font-weight: bold;">${total.toFixed(2)} ج.م</td>
-                    </tr>
-                `;
-            });
-        } else {
-            itemsHtml = '<tr><td colspan="5" style="text-align: center; padding: 20px; border: 1px solid #e0e0e0;">لا توجد بنود</td></tr>';
-        }
-        
-        // Calculate totals
-        const subtotal = parseFloat(invoice.subtotal || 0);
-        const discount = parseFloat(invoice.discount || 0);
-        const tax = parseFloat(invoice.tax || 0);
-        const total = parseFloat(invoice.total || 0);
-        
-        // Calculate paid and remaining amounts
-        let paidAmount = 0;
-        if (invoice.paymentStatus === 'paid' || invoice.paymentStatus === 'completed') {
-            paidAmount = total;
-        } else if (invoice.paymentStatus === 'partial') {
-            // For partial payments, estimate based on common scenarios
-            // In a real system, you'd track this in a separate field
-            // For now, we'll show a reasonable estimate (e.g., 50% or use a calculation)
-            // You can improve this by adding a paidAmount field to the Invoice model
-            paidAmount = Math.max(0, total * 0.5); // Placeholder - should be tracked in DB
-        }
-        const remainingAmount = Math.max(0, total - paidAmount);
-        
-        // Generate print-ready HTML - FixZone style
-        const html = `
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فاتورة ${invoice.id}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Arial', 'Tahoma', 'Segoe UI', sans-serif;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #333;
-            background: #fff;
-            padding: 20px;
-        }
-        
-        .invoice-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 40px;
-        }
-        
-        .company-header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-        
-        .company-header p {
-            margin: 5px 0;
-            color: #666;
-            font-size: 13px;
-        }
-        
-        .invoice-number-section {
-            text-align: center;
-            margin: 25px 0;
-        }
-        
-        .invoice-number-section h2 {
-            font-size: 24px;
-            color: #333;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        
-        .invoice-details {
-            display: flex;
-            justify-content: space-between;
-            margin: 20px 0;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 5px;
-        }
-        
-        .invoice-details div {
-            flex: 1;
-        }
-        
-        .invoice-details strong {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-size: 13px;
-        }
-        
-        .invoice-details span {
-            color: #333;
-            font-size: 14px;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .status-paid {
-            background: #28a745;
-            color: #fff;
-        }
-        
-        .status-unpaid {
-            background: #dc3545;
-            color: #fff;
-        }
-        
-        .status-pending {
-            background: #ffc107;
-            color: #333;
-        }
-        
-        .status-partial {
-            background: #17a2b8;
-            color: #fff;
-        }
-        
-        .client-section {
-            margin: 25px 0;
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 5px;
-        }
-        
-        .client-section h3 {
-            font-size: 16px;
-            margin-bottom: 12px;
-            color: #333;
-        }
-        
-        .client-section p {
-            margin: 6px 0;
-            font-size: 14px;
-        }
-        
-        .device-info {
-            margin: 20px 0;
-            padding: 12px;
-            background: #f0f0f0;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        
-        .device-info strong {
-            color: #555;
-        }
-        
-        .costs-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 25px 0;
-        }
-        
-        .costs-table th {
-            background: #f8f9fa;
-            padding: 12px;
-            text-align: right;
-            border: 1px solid #e0e0e0;
-            font-weight: bold;
-            font-size: 13px;
-            color: #333;
-        }
-        
-        .costs-table td {
-            padding: 12px;
-            border: 1px solid #e0e0e0;
-            font-size: 14px;
-        }
-        
-        .costs-table tbody tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-        
-        .totals-section {
-            margin-top: 25px;
-            margin-left: auto;
-            width: 100%;
-            max-width: 400px;
-        }
-        
-        .totals-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .totals-table td {
-            padding: 10px 15px;
-            border: 1px solid #e0e0e0;
-            font-size: 14px;
-        }
-        
-        .totals-table td:first-child {
-            text-align: right;
-            font-weight: bold;
-            background: #f8f9fa;
-        }
-        
-        .totals-table td:last-child {
-            text-align: left;
-            font-weight: bold;
-        }
-        
-        .total-row {
-            background: #0a592c;
-            color: #fff;
-        }
-        
-        .total-row td {
-            border-color: #0a592c;
-            font-size: 16px;
-            padding: 12px 15px;
-        }
-        
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #e0e0e0;
-            text-align: center;
-            color: #666;
-            font-size: 13px;
-        }
-        
-        .action-buttons {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            gap: 10px;
-            z-index: 1000;
-        }
-        
-        .action-button {
-            background: #0a592c;
-            color: #fff;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            transition: background 0.3s;
-        }
-        
-        .action-button:hover {
-            background: #0d944d;
-        }
-        
-        .action-button.close-btn {
-            background: #dc3545;
-        }
-        
-        .action-button.close-btn:hover {
-            background: #c82333;
-        }
-        
-        /* Print-specific styles */
-        @media print {
-            body {
-                padding: 0;
-            }
-            
-            .invoice-container {
-                padding: 20px;
-                max-width: 100%;
-            }
-            
-            .no-print {
-                display: none !important;
-            }
-            
-            @page {
-                margin: 1cm;
-                size: A4;
-            }
-            
-            .costs-table, .totals-table {
-                page-break-inside: avoid;
-            }
-            
-            .company-header, .invoice-details, .client-section {
-                page-break-inside: avoid;
-            }
-        }
-        
-        @media screen {
-            .action-buttons {
-                display: flex;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="action-buttons no-print">
-        <button class="action-button" onclick="window.print()">🖨️ طباعة الفاتورة</button>
-        <button class="action-button close-btn" onclick="window.close()">✕ إغلاق</button>
-    </div>
+  try {
+    const settings = loadPrintSettings();
+    const invoiceSettings = settings.invoice || {};
     
-    <div class="invoice-container">
-        <!-- Company Header -->
-        <div class="company-header">
-            <p>19 شارع يوسف الجندي - التحرير - القاهرة</p>
-            <p>هاتف: 01013148007 | بريد إلكتروني: info@laapak.com</p>
-        </div>
+    // Helper function to get settings with fallback
+    const getSetting = (key, defaultValue) => {
+      if (key.includes('.')) {
+        const parts = key.split('.');
+        let value = invoiceSettings;
+        let found = true;
         
-        <!-- Invoice Number -->
-        <div class="invoice-number-section">
-            <h2>رقم الفاتورة</h2>
-            <div style="font-size: 20px; font-weight: bold; color: #0a592c; margin-bottom: 10px;">
-                ${invoice.id}
-            </div>
-            <div style="font-size: 14px; color: #666;">
-                <div>رقم الفاتورة: ${invoice.id}</div>
-                ${orderNumber !== '-' ? `<div style="margin-top: 5px;">رقم طلب الإصلاح: ${orderNumber}</div>` : ''}
-                <div style="margin-top: 5px;">تاريخ الإصدار: ${fullInvoiceDate}</div>
-                <div style="margin-top: 5px;">الحالة: <span class="status-badge status-${invoice.paymentStatus}">${statusText}</span></div>
-            </div>
-        </div>
+        for (let i = 0; i < parts.length; i++) {
+          if (value && typeof value === 'object' && value[parts[i]] !== undefined) {
+            value = value[parts[i]];
+          } else {
+            found = false;
+            break;
+          }
+        }
         
-        <!-- Client Information -->
-        <div class="client-section">
-            <h3>بيانات العميل</h3>
-            <p><strong>الاسم:</strong> ${invoice.client ? invoice.client.name : '-'}</p>
-            <p><strong>الهاتف:</strong> ${invoice.client ? invoice.client.phone : '-'}</p>
-            ${invoice.client && invoice.client.email ? `<p><strong>البريد الإلكتروني:</strong> ${invoice.client.email}</p>` : ''}
-        </div>
+        if (found && value !== undefined) {
+          if (typeof value === 'boolean') return value;
+          if (value !== null && value !== '') return value;
+        }
         
-        <!-- Device Information -->
-        <div class="device-info">
-            <strong>نوع:</strong> ${deviceModel.includes('LAPTOP') || deviceModel.toLowerCase().includes('laptop') ? 'LAPTOP' : 'ITEM'} | 
-            <strong>الموديل:</strong> ${deviceModel} | 
-            <strong>السيريال:</strong> ${serialNumber}
-        </div>
+        value = settings;
+        found = true;
+        for (let i = 0; i < parts.length; i++) {
+          if (value && typeof value === 'object' && value[parts[i]] !== undefined) {
+            value = value[parts[i]];
+          } else {
+            found = false;
+            break;
+          }
+        }
         
-        <!-- Costs and Services Table -->
-        <h3 style="margin: 25px 0 15px 0; font-size: 16px;">التكاليف والخدمات</h3>
-        <table class="costs-table">
-            <thead>
-                <tr>
-                    <th>الوصف</th>
-                    <th>الكمية</th>
-                    <th>سعر الوحدة</th>
-                    <th>الخصم</th>
-                    <th>الإجمالي</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${itemsHtml}
-            </tbody>
-        </table>
+        if (found && value !== undefined) {
+          if (typeof value === 'boolean') return value;
+          if (value !== null && value !== '') return value;
+        }
         
-        <!-- Totals Section -->
-        <div class="totals-section">
-            <table class="totals-table">
-                <tr>
-                    <td>المجموع الفرعي:</td>
-                    <td>${subtotal.toFixed(2)} ج.م</td>
-                </tr>
-                ${discount > 0 ? `
-                <tr>
-                    <td>الخصم:</td>
-                    <td>-${discount.toFixed(2)} ج.م</td>
-                </tr>
-                ` : ''}
-                ${tax > 0 ? `
-                <tr>
-                    <td>الضريبة (${invoice.taxRate || 0}%):</td>
-                    <td>${tax.toFixed(2)} ج.م</td>
-                </tr>
-                ` : ''}
-                <tr class="total-row">
-                    <td>الإجمالي:</td>
-                    <td>${total.toFixed(2)} ج.م</td>
-                </tr>
-                <tr>
-                    <td>المدفوع:</td>
-                    <td>${paidAmount.toFixed(2)} ج.م</td>
-                </tr>
-                <tr>
-                    <td>المتبقي:</td>
-                    <td>${remainingAmount.toFixed(2)} ج.م</td>
-                </tr>
-            </table>
-        </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <p>شكراً لثقتكم بنا | Laapak</p>
-        </div>
-    </div>
+        return defaultValue;
+      }
+      
+      if (invoiceSettings[key] !== undefined) {
+        if (typeof invoiceSettings[key] === 'boolean') return invoiceSettings[key];
+        if (invoiceSettings[key] !== null && invoiceSettings[key] !== '') return invoiceSettings[key];
+      }
+      if (settings[key] !== undefined) {
+        if (typeof settings[key] === 'boolean') return settings[key];
+        if (settings[key] !== null && settings[key] !== '') return settings[key];
+      }
+      return defaultValue;
+    };
     
-    <script>
-        // Print reminder
-        window.addEventListener('beforeprint', function() {
-            console.log('تأكد من إعدادات الطباعة قبل الطباعة');
-        });
-    </script>
-</body>
-</html>
-        `;
-        
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(html);
-    } catch (error) {
-        console.error('Error generating invoice print view:', error);
-        res.status(500).send(`
-            <html>
-                <body style="font-family: Arial; padding: 20px; text-align: center;">
-                    <h1>خطأ في تحميل الفاتورة</h1>
-                    <p>حدث خطأ أثناء تحميل الفاتورة. يرجى المحاولة مرة أخرى.</p>
-                </body>
-            </html>
-        `);
+    const invoice = await Invoice.findByPk(req.params.id, {
+      include: [
+        { model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email', 'address'] },
+        { 
+          model: Report, 
+          as: 'relatedReports', 
+          attributes: ['id', 'device_model', 'serial_number', 'order_number', 'created_at', 'updated_at']
+        },
+        { model: InvoiceItem, as: 'InvoiceItems' }
+      ]
+    });
+    
+    if (!invoice) {
+      return res.status(404).send(`
+        <html dir="rtl">
+          <body style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
+            <h1>الفاتورة غير موجودة</h1>
+          </body>
+        </html>
+      `);
     }
+        
+    // Get invoice items
+    const items = invoice.InvoiceItems || [];
+    
+    console.log(`[INVOICE PRINT] Invoice ID: ${req.params.id}, Items found: ${items.length}`);
+    if (items.length > 0) {
+      console.log(`[INVOICE PRINT] First item:`, items[0]);
+    }
+
+    // Calculate totals from items
+    let subtotal = 0;
+    items.forEach(item => {
+      const itemTotal = (item.totalAmount !== null && item.totalAmount !== undefined)
+        ? Number(item.totalAmount)
+        : ((Number(item.quantity) || 1) * (Number(item.amount) || 0));
+      subtotal += itemTotal;
+    });
+    
+    // Tax: only use invoice tax value, initialize to 0 by default
+    let taxAmount = Number(invoice.tax) || 0;
+    
+    const discountAmount = Number(invoice.discount) || 0;
+    const shippingAmount = 0; // Not used in current schema
+    
+    // Calculate final total
+    const showShipping = getSetting('financial.showShipping', true);
+    const total = subtotal - discountAmount + taxAmount + (showShipping ? shippingAmount : 0);
+    
+    // Calculate amount paid
+    let amountPaid = 0;
+    if (invoice.paymentStatus === 'paid' || invoice.paymentStatus === 'completed') {
+      amountPaid = total;
+    } else if (invoice.paymentStatus === 'partial') {
+      amountPaid = Math.max(0, total * 0.5); // Estimate - should be tracked in DB
+    }
+    const remaining = total - amountPaid;
+
+    // Status text mapping
+    const statusTextMap = {
+      'draft': 'مسودة',
+      'sent': 'تم الإرسال',
+      'paid': 'مدفوعة',
+      'unpaid': 'غير مدفوعة',
+      'pending': 'قيد الانتظار',
+      'partially_paid': 'مدفوعة جزئياً',
+      'completed': 'مكتمل',
+      'overdue': 'متأخرة',
+      'cancelled': 'ملغاة'
+    };
+    const statusText = statusTextMap[invoice.paymentStatus] || invoice.paymentStatus;
+
+    const invoiceDate = new Date(invoice.date || invoice.createdAt || Date.now());
+    
+    // Generate repair request number if report exists
+    let repairRequestNumber = null;
+    if (invoice.relatedReports && invoice.relatedReports.length > 0) {
+      const firstReport = invoice.relatedReports[0];
+      const reportCreatedAt = firstReport.created_at || firstReport.createdAt;
+      if (reportCreatedAt) {
+        const repairDate = new Date(reportCreatedAt);
+        repairRequestNumber = `REP-${repairDate.getFullYear()}${String(repairDate.getMonth() + 1).padStart(2, '0')}${String(repairDate.getDate()).padStart(2, '0')}-${String(firstReport.id).padStart(3, '0')}`;
+      }
+    }
+    
+    // Generate invoice number
+    const invoiceNumber = `INV-${invoiceDate.getFullYear()}${String(invoiceDate.getMonth() + 1).padStart(2, '0')}${String(invoiceDate.getDate()).padStart(2, '0')}-${String(invoice.id).padStart(3, '0')}`;
+
+    // Format dates - always show only Gregorian
+    const dateDisplayMode = 'gregorian';
+    const dates = formatDates(invoiceDate, dateDisplayMode);
+    
+    // System brand colors
+    const systemColors = {
+      primary: getSetting('colors', {}).primary || '#053887',
+      primaryLight: '#3B82F6',
+      success: '#10B981',
+      secondary: getSetting('colors', {}).secondary || '#475569',
+      border: getSetting('colors', {}).border || '#E5E7EB',
+      textPrimary: getSetting('colors', {}).primary || '#0F172A',
+      textSecondary: getSetting('colors', {}).secondary || '#64748B',
+      background: '#FFFFFF',
+      surface: '#F9FAFB',
+      surfaceLight: '#F8FAFC'
+    };
+
+    const formattedDate = dates.primary;
+    
+    // Get device information
+    let deviceModel = 'غير محدد';
+    let serialNumber = 'غير محدد';
+    let deviceType = 'غير محدد';
+    
+    if (invoice.relatedReports && invoice.relatedReports.length > 0) {
+      const firstReport = invoice.relatedReports[0];
+      deviceModel = firstReport.device_model || 'غير محدد';
+      serialNumber = firstReport.serial_number || 'غير محدد';
+    }
+    
+    // Prepare customer data
+    const customerName = invoice.client ? invoice.client.name : 'غير محدد';
+    const customerPhone = invoice.client ? invoice.client.phone : 'غير محدد';
+    const customerEmail = invoice.client ? invoice.client.email : null;
+    const customerAddress = invoice.client ? invoice.client.address : null;
+    
+    // Prepare payment method
+    const paymentMethod = invoice.paymentMethod || 'cash';
+    
+    // Generate comprehensive HTML template matching invoicesSimple.js style
+    const html = `
+<!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>فاتورة - ${invoiceNumber}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&family=Tajawal:wght@200;300;400;500;700;800;900&display=swap" rel="stylesheet" />
+      <style>
+        @page {
+          size: ${getSetting('paperSize', 'A4')} ${getSetting('orientation', 'portrait') === 'landscape' ? 'landscape' : 'portrait'};
+          margin: ${getSetting('margins', {}).top || 15}mm ${getSetting('margins', {}).right || 15}mm ${getSetting('margins', {}).bottom || 15}mm ${getSetting('margins', {}).left || 15}mm;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { 
+          font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; 
+          font-size:${getSetting('fontSize', 14)}px; 
+          line-height:${getSetting('lineHeight', 1.7)}; 
+          color:${systemColors.textPrimary}; 
+          background:#fff; 
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          direction: rtl;
+          text-align: right;
+        }
+        .container { 
+          max-width: ${getSetting('paperSize', 'A4') === 'A4' ? '210mm' : getSetting('paperSize', 'A4') === 'A5' ? '148mm' : '216mm'};
+          min-height: ${getSetting('paperSize', 'A4') === 'A4' ? '297mm' : getSetting('paperSize', 'A4') === 'A5' ? '210mm' : '279mm'};
+          margin: 0 auto;
+          padding: ${getSetting('margins', {}).top || 20}mm ${getSetting('margins', {}).right || 20}mm ${getSetting('margins', {}).bottom || 20}mm ${getSetting('margins', {}).left || 20}mm;
+          background: #fff;
+        }
+        .header { 
+          margin-bottom: ${getSetting('spacing', {}).section || 32}px;
+          padding-bottom: ${getSetting('spacing', {}).section || 20}px;
+          border-bottom: 1px solid ${systemColors.border};
+        }
+        .header-top {
+          text-align: center;
+          margin-bottom: 16px;
+        }
+        .header-bottom {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 20px;
+        }
+        .logo { 
+          font-size:${getSetting('titleFontSize', 24)}px; 
+          font-weight:500; 
+          color:${systemColors.textPrimary}; 
+          margin-bottom:4px;
+        }
+        .company-info { 
+          font-size:${getSetting('fontSize', 13)}px; 
+          color:${systemColors.textSecondary};
+          line-height: 1.6;
+          font-weight: 400;
+          flex: 1;
+        }
+        .invoice-number-section {
+          text-align: left;
+          flex-shrink: 0;
+        }
+        .invoice-number-label {
+          font-size: 11px;
+          color: ${systemColors.textSecondary};
+          font-weight: 400;
+          margin-bottom: 4px;
+        }
+        .invoice-number-value {
+          font-size: ${getSetting('titleFontSize', 16)}px;
+          font-weight: 500;
+          color: ${systemColors.textPrimary};
+          font-family: 'Courier New', monospace;
+        }
+        .qr-code-container {
+          text-align: center;
+          width: ${Math.min(getSetting('qrCodeSize', 80), 100)}px;
+          height: auto;
+          flex-shrink: 0;
+        }
+        .qr-code-label {
+          font-size: 9px;
+          color: ${getSetting('colors', {}).secondary || '#6b7280'};
+          margin-top: 4px;
+          line-height: 1.2;
+        }
+        .barcode-container {
+          text-align: center;
+          margin: ${getSetting('spacing', {}).section || 20}px 0;
+        }
+        .barcode-container canvas {
+          border: 1px solid ${getSetting('colors', {}).border || '#e5e7eb'};
+          border-radius: 4px;
+          padding: 8px;
+        }
+        .invoice-info { 
+          display:grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 15px;
+          margin-bottom: 12px;
+        }
+        .invoice-details, .customer-details { 
+          background: ${systemColors.background};
+          padding: 16px;
+          border-radius: 0;
+          border: 1px solid ${systemColors.border};
+        }
+        .invoice-details {
+          text-align: right;
+          direction: rtl;
+        }
+        .invoice-details .section-title {
+          text-align: right;
+          direction: rtl;
+        }
+        .invoice-details .info-row {
+          flex-direction: row;
+          justify-content: space-between;
+        }
+        .invoice-details .info-row .value {
+          text-align: left;
+          direction: ltr;
+          unicode-bidi: embed;
+        }
+        .section-title { 
+          font-size: ${getSetting('sectionTitleFontSize', 15)}px;
+          font-weight:600; 
+          color:${systemColors.textPrimary}; 
+          margin-bottom:${getSetting('spacing', {}).item || 10}px; 
+          padding-bottom:6px;
+          border-bottom: 1px solid ${systemColors.border};
+        }
+        .info-row { 
+          margin-bottom:6px;
+          display: flex;
+          justify-content: space-between;
+        }
+        .info-row:last-child {
+          margin-bottom: 0;
+        }
+        .label { 
+          font-weight:400; 
+          color:${systemColors.textSecondary};
+          font-size: 13px;
+        }
+        .value {
+          font-weight: 500;
+          color: ${systemColors.textPrimary};
+          font-size: 14px;
+        }
+        .table { 
+          width:100%; 
+          border-collapse: collapse;
+          margin:20px 0;
+          background: ${systemColors.background};
+          border: 1px solid ${systemColors.border};
+        }
+        .table th, .table td { 
+          padding:10px 12px; 
+          text-align:right; 
+          border-bottom:1px solid ${systemColors.border};
+        }
+        .table th { 
+          background: ${systemColors.surface};
+          color: ${systemColors.textPrimary};
+          font-weight:500;
+          font-size: ${getSetting('tableFontSize', 13)}px;
+        }
+        .table tbody tr:nth-child(even) {
+          background: ${getSetting('tableStyle', 'bordered') === 'striped' ? systemColors.surfaceLight : 'transparent'};
+        }
+        .table tbody td {
+          font-weight: 400;
+          color: ${systemColors.textPrimary};
+        }
+        ${getSetting('pageBreak', {}).avoidItems ? `
+        .table tbody tr {
+          page-break-inside: avoid;
+        }
+        ` : ''}
+        ${getSetting('pageBreak', {}).avoidCustomerInfo ? `
+        .customer-details, .invoice-details {
+          page-break-inside: avoid;
+        }
+        ` : ''}
+        .table .number { 
+          text-align:center; 
+          font-family:'Courier New', monospace;
+          font-weight: 400;
+          font-size: ${getSetting('tableFontSize', 13)}px;
+          color: ${systemColors.textPrimary};
+        }
+        .totals { 
+          margin-top:12px;
+          display: flex;
+          justify-content: flex-end;
+        }
+        .totals-table { 
+          width:380px;
+          border-collapse: collapse;
+          background: ${systemColors.background};
+          border: 1px solid ${systemColors.border};
+        }
+        .totals-table td { 
+          padding:8px 16px;
+          border-bottom: 1px solid ${systemColors.border};
+        }
+        .totals-table td:first-child {
+          text-align: right;
+          color: ${systemColors.textSecondary};
+          font-weight: 400;
+          font-size: 14px;
+        }
+        .totals-table td:last-child {
+          text-align: left;
+          font-weight: 500;
+          color: ${systemColors.textPrimary};
+          font-size: 14px;
+          font-family: 'Courier New', monospace;
+        }
+        .total-row { 
+          font-weight:600; 
+          font-size:${getSetting('sectionTitleFontSize', 16)}px; 
+          border-top:1px solid ${systemColors.textPrimary};
+          background: ${systemColors.surface};
+        }
+        .total-row td {
+          color: ${systemColors.textPrimary};
+          font-size: ${getSetting('sectionTitleFontSize', 16)}px;
+          font-weight: 600;
+        }
+        .footer { 
+          text-align:center; 
+          margin-top:32px; 
+          padding-top:16px;
+          border-top:1px solid ${systemColors.border}; 
+          font-size:12px; 
+          color:${systemColors.textSecondary};
+          line-height: 1.6;
+          font-weight: 400;
+        }
+        @media print { 
+          .no-print { display:none !important; }
+          body { 
+            margin: 0;
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .container { 
+            padding: 0;
+            margin: 0;
+            max-width: 100%;
+            min-height: auto;
+            box-shadow: none;
+          }
+          .header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            page-break-after: avoid;
+          }
+          .invoice-info {
+            page-break-inside: avoid;
+            margin-bottom: 20px;
+          }
+          .invoice-details, .customer-details {
+            page-break-inside: avoid;
+          }
+          .table {
+            page-break-inside: auto;
+          }
+          .table thead {
+            display: table-header-group;
+          }
+          .table tbody tr {
+            page-break-inside: avoid;
+          }
+          .totals {
+            page-break-inside: avoid;
+          }
+          .totals-table {
+            page-break-inside: avoid;
+          }
+          .section-title {
+            page-break-after: avoid;
+          }
+          .footer {
+            page-break-inside: avoid;
+            position: relative;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          .invoice-number-box {
+            box-shadow: none !important;
+            background: ${systemColors.primary} !important;
+          }
+          .table, .totals-table, .invoice-details, .customer-details {
+            box-shadow: none !important;
+            border: 1px solid ${systemColors.border} !important;
+          }
+          * {
+            box-shadow: none !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        ${getSetting('watermark', {}).enabled ? `
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(-45deg); font-size:48px; color:${systemColors.primary}; opacity:${getSetting('watermark', {}).opacity || 0.1}; pointer-events:none; white-space:nowrap; z-index:1;">
+          ${getSetting('watermark', {}).text || 'مسودة'}
+        </div>
+        ` : ''}
+        <div class="header">
+          <div class="header-top">
+            ${getSetting('showLogo', false) && getSetting('logoUrl', '') ? `
+            <div style="margin-bottom:12px; text-align:center;">
+              <img src="${getSetting('logoUrl', '')}" alt="Logo" style="height:${getSetting('logoHeight', 50)}px; max-width:100%; object-fit:contain;" />
+            </div>
+            ` : `
+            <div style="margin-bottom:12px; text-align:center;">
+              <img src="/assets/images/logo.png" alt="Laapak Logo" style="height:${getSetting('logoHeight', 60)}px; max-width:100%; object-fit:contain;" onerror="this.onerror=null; this.src='/assets/images/logo.png'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='block';};" />
+              <div class="logo" style="display:none;">${getSetting('showCompanyInfo', true) ? (getSetting('companyName', settings.companyName || 'Laapak')) : getSetting('title', 'فاتورة')}</div>
+            </div>
+            `}
+          </div>
+          <div class="header-bottom">
+            ${getSetting('showCompanyInfo', true) ? `
+            <div class="company-info">
+              ${getSetting('branchAddress', getSetting('address', settings.branchAddress || settings.address || '19 شارع يوسف الجندي - التحرير - القاهرة'))}<br>
+              ${getSetting('branchPhone', getSetting('phone', settings.branchPhone || settings.phone || '01013148007')) ? `هاتف: ${getSetting('branchPhone', getSetting('phone', settings.branchPhone || settings.phone || '01013148007'))}` : ''} ${getSetting('email', settings.email || 'info@laapak.com') ? `| بريد إلكتروني: ${getSetting('email', settings.email || 'info@laapak.com')}` : ''}
+            </div>
+            ` : '<div></div>'}
+            ${getSetting('showInvoiceNumber', true) ? `
+            <div class="invoice-number-section">
+              <div class="invoice-number-label">رقم الفاتورة</div>
+              <div class="invoice-number-value">${invoiceNumber}</div>
+            </div>
+            ` : ''}
+          </div>
+          ${getSetting('showQrCode', false) ? `
+          <div style="text-align:center; margin-top:16px;">
+            <div class="qr-code-container" style="width:${Math.min(getSetting('qrCodeSize', 80), 100)}px; height:auto; display:inline-block;">
+              <canvas id="qrCanvas" width="${Math.min(getSetting('qrCodeSize', 80), 100)}" height="${Math.min(getSetting('qrCodeSize', 80), 100)}" style="border:1px solid ${systemColors.border}; padding:4px; max-width:100%; height:auto;"></canvas>
+              <div class="qr-code-label" style="font-size:9px; color:${systemColors.textSecondary}; margin-top:4px;">تتبع</div>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+        
+            ${getSetting('showHeader', true) && getSetting('headerText', '') ? `
+        <div style="text-align:center; margin-bottom:${getSetting('spacing', {}).section || 20}px; font-size:${getSetting('headerFontSize', 20)}px; font-weight:500; color:${systemColors.textPrimary};">
+          ${getSetting('headerText', 'فاتورة')}
+        </div>
+        ` : ''}
+
+        <div class="invoice-info">
+          ${getSetting('showInvoiceNumber', true) || getSetting('showInvoiceDate', true) ? `
+          <div class="invoice-details">
+            ${getSetting('showHeader', true) ? `<div class="section-title">تفاصيل الفاتورة</div>` : ''}
+            ${getSetting('showInvoiceNumber', true) ? `<div class="info-row"><span class="label">رقم الفاتورة:</span><span class="value">${invoiceNumber}</span></div>` : ''}
+            ${repairRequestNumber ? `<div class="info-row"><span class="label">كود التقرير:</span><span class="value">${repairRequestNumber}</span></div>` : ''}
+            ${getSetting('showInvoiceDate', true) ? `<div class="info-row"><span class="label">تاريخ الإصدار:</span><span class="value">${dates.primary}</span></div>` : ''}
+            ${getSetting('showDueDate', true) && invoice.dueDate ? `<div class="info-row"><span class="label">تاريخ الاستحقاق:</span><span class="value">${formatDates(new Date(invoice.dueDate), 'gregorian').primary}</span></div>` : ''}
+            <div class="info-row"><span class="label">الحالة:</span><span class="value">${statusText}</span></div>
+          </div>
+          ` : ''}
+          ${getSetting('showCustomerInfo', true) ? `
+          <div class="customer-details">
+            <div class="section-title">بيانات العميل</div>
+            <div class="info-row"><span class="label">الاسم:</span><span class="value">${customerName}</span></div>
+            <div class="info-row"><span class="label">الهاتف:</span><span class="value">${customerPhone}</span></div>
+            ${customerEmail ? `<div class="info-row"><span class="label">البريد:</span><span class="value">${customerEmail}</span></div>` : ''}
+            ${customerAddress ? `<div class="info-row"><span class="label">العنوان:</span><span class="value">${customerAddress}</span></div>` : ''}
+          </div>
+          ` : ''}
+        </div>
+
+
+        ${getSetting('showItemsTable', true) ? `
+        <div class="section-title" style="margin-top: 5px; margin-bottom: 10px;">المشتريات</div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>اسم الجهاز</th>
+              <th>الرقم التسلسلي</th>
+              <th class="number">الكمية</th>
+              <th class="number">السعر</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(item => {
+              const itemTotal = (item.totalAmount !== null && item.totalAmount !== undefined)
+                ? Number(item.totalAmount)
+                : ((Number(item.quantity) || 1) * (Number(item.amount) || 0));
+              
+              // Get device info from related reports or item
+              let deviceName = item.description || 'غير محدد';
+              let itemSerialNumber = item.serialNumber || 'غير محدد';
+              
+              // Try to match with related reports using report_id first, then by serial number
+              if (invoice.relatedReports && invoice.relatedReports.length > 0) {
+                let matchingReport = null;
+                
+                // First try to match by report_id
+                if (item.report_id) {
+                  matchingReport = invoice.relatedReports.find(report => report.id === item.report_id);
+                }
+                
+                // If no match by report_id, try by serial number
+                if (!matchingReport && itemSerialNumber !== 'غير محدد') {
+                  matchingReport = invoice.relatedReports.find(report => 
+                    report.serial_number === itemSerialNumber
+                  );
+                }
+                
+                // If still no match, try by device model in description
+                if (!matchingReport) {
+                  matchingReport = invoice.relatedReports.find(report => 
+                    deviceName.includes(report.device_model) || report.device_model === deviceName
+                  );
+                }
+                
+                if (matchingReport) {
+                  deviceName = matchingReport.device_model || deviceName;
+                  itemSerialNumber = matchingReport.serial_number || itemSerialNumber;
+                }
+              }
+              
+              return `
+              <tr>
+                <td style="font-weight: 400; color: ${systemColors.textPrimary}; font-size: ${getSetting('tableFontSize', 13)}px;">${deviceName}</td>
+                <td style="font-weight: 400; color: ${systemColors.textPrimary}; font-size: ${getSetting('tableFontSize', 13)}px;">${itemSerialNumber}</td>
+                <td class="number">${Number(item.quantity) || 1}</td>
+                <td class="number">${(Number(item.amount) || 0).toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+              </tr>
+            `;
+            }).join('')}
+            ${items.length === 0 ? `<tr><td colspan="4" style="text-align:center; color:${systemColors.textSecondary};">لا توجد عناصر في الفاتورة</td></tr>` : ''}
+          </tbody>
+        </table>
+        ` : ''}
+
+        <div class="totals">
+          <table class="totals-table">
+            ${getSetting('showDiscount', true) && discountAmount > 0 ? `
+            <tr>
+              <td>الخصم:</td>
+              <td class="number">-${discountAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+            </tr>
+            ` : ''}
+            ${getSetting('financial.showTax', true) && taxAmount > 0 ? `
+            <tr>
+              <td>الضريبة:</td>
+              <td class="number">${taxAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+            </tr>
+            ` : ''}
+            ${getSetting('financial.showShipping', true) && shippingAmount > 0 ? `
+            <tr>
+              <td>الشحن:</td>
+              <td class="number">${shippingAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+            </tr>
+            ` : ''}
+            ${getSetting('showTotal', true) ? `
+            <tr class="total-row">
+              <td>الإجمالي:</td>
+              <td class="number">${total.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td>المدفوع:</td>
+              <td class="number">${amountPaid.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+            </tr>
+            <tr>
+              <td>المتبقي:</td>
+              <td class="number" style="font-weight: 500;">${remaining.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+            </tr>
+          </table>
+        </div>
+
+        ${getSetting('showPaymentMethod', false) || getSetting('showPaymentStatus', false) ? `
+        <div style="margin-top:${getSetting('spacing', {}).section || 16}px; margin-bottom:${getSetting('spacing', {}).section || 16}px; padding:12px 16px; background:${systemColors.background}; border:1px solid ${systemColors.border};">
+          ${getSetting('showPaymentMethod', false) ? `
+          <div style="margin-bottom:${getSetting('spacing', {}).item || 10}px; display:flex; justify-content:space-between; padding:8px 10px;">
+            <span style="font-weight:400; color:${systemColors.textSecondary}; font-size:13px;">طريقة الدفع:</span>
+            <span style="font-weight:500; color:${systemColors.textPrimary}; font-size:13px;">${paymentMethod === 'cash' ? 'نقد' : paymentMethod === 'card' ? 'بطاقة' : paymentMethod === 'bank_transfer' ? 'تحويل بنكي' : paymentMethod === 'check' ? 'شيك' : paymentMethod === 'instapay' ? 'Instapay' : paymentMethod || 'نقد'}</span>
+          </div>
+          ` : ''}
+          ${getSetting('showPaymentStatus', false) ? `
+          <div style="display:flex; justify-content:space-between; padding:8px 10px;">
+            <span style="font-weight:400; color:${systemColors.textSecondary}; font-size:13px;">حالة الدفع:</span>
+            <span style="font-weight:500; color:${systemColors.textPrimary}; font-size:13px;">${statusText}</span>
+          </div>
+          ` : ''}
+        </div>
+        ` : ''}
+
+        ${getSetting('showNotes', false) && invoice.notes ? `
+        <div style="margin-top:${getSetting('spacing', {}).section || 20}px; margin-bottom:${getSetting('spacing', {}).section || 20}px;">
+          <div class="section-title">${getSetting('notesLabel', 'ملاحظات')}</div>
+          <div style="background:${systemColors.surface}; padding:12px 14px; border:1px solid ${systemColors.border}; color:${systemColors.textSecondary};">
+            ${invoice.notes}
+          </div>
+        </div>
+        ` : ''}
+
+        ${getSetting('showTerms', false) && getSetting('termsText', '') ? `
+        <div style="margin-top:${getSetting('spacing', {}).section || 20}px; margin-bottom:${getSetting('spacing', {}).section || 20}px;">
+          <div class="section-title">${getSetting('termsLabel', 'الشروط والأحكام')}</div>
+          <div style="background:${systemColors.surface}; padding:12px 14px; border:1px solid ${systemColors.border}; color:${systemColors.textSecondary}; font-size:${getSetting('fontSize', 14) - 1}px; line-height:1.6;">
+            ${getSetting('termsText', '')}
+          </div>
+        </div>
+        ` : ''}
+
+        ${getSetting('showBarcode', false) ? `
+        <div class="barcode-container" style="text-align:${getSetting('barcodePosition', 'bottom') === 'top' ? 'center' : getSetting('barcodePosition', 'bottom') === 'bottom' ? 'center' : getSetting('barcodePosition', 'bottom')};">
+          <canvas id="barcodeCanvas" style="width:${getSetting('barcodeWidth', 2) * 100}px; height:${getSetting('barcodeHeight', 40)}px;"></canvas>
+        </div>
+        ` : ''}
+
+        ${getSetting('showFooter', true) ? `
+        <div class="footer">
+          شكراً لثقتكم بنا | ${getSetting('companyName', settings.companyName || 'Laapak')}
+          ${getSetting('footerText', '') ? `<br>${getSetting('footerText', '')}` : ''}
+        </div>
+        ` : ''}
+
+        <div class="no-print" style="text-align:center; margin-top:30px; padding:20px; background:${systemColors.surface}; border-radius:12px; border:1px solid ${systemColors.border};">
+          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            <button onclick="window.print()" style="padding:14px 32px; border:none; border-radius:6px; background:${systemColors.primary}; color:#fff; cursor:pointer; font-size:15px; font-weight:500;">
+              🖨️ طباعة الفاتورة
+            </button>
+            <button onclick="window.close()" style="padding:14px 32px; border:1px solid ${systemColors.border}; border-radius:10px; background:${systemColors.background}; color:${systemColors.textPrimary}; cursor:pointer; font-size:15px; font-weight:600; transition: all 0.2s ease;" onmouseover="this.style.background='${systemColors.surfaceLight}';" onmouseout="this.style.background='${systemColors.background}';">
+              ✕ إغلاق
+            </button>
+          </div>
+          <p style="margin-top:12px; color:${systemColors.textSecondary}; font-size:13px;">تأكد من إعدادات الطباعة قبل الطباعة</p>
+        </div>
+      </div>
+      ${getSetting('showQrCode', false) ? `
+      <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+      <script>
+        (function(){
+          try {
+            var canvas = document.getElementById('qrCanvas');
+            if (canvas && window.QRCode) {
+              var qrSize = Math.min(${getSetting('qrCodeSize', 80)}, 100);
+              var frontendUrl = window.location.origin;
+              var qrUrl = frontendUrl + '/invoices/${req.params.id}';
+              QRCode.toCanvas(canvas, qrUrl, { 
+                width: qrSize, 
+                margin: 1,
+                color: {
+                  dark: '${systemColors.primary}',
+                  light: '#ffffff'
+                }
+              }, function (error) { 
+                if (error) console.error(error); 
+              });
+            }
+          } catch (e) { console.error(e); }
+        })();
+      </script>
+      ` : ''}
+      ${getSetting('showBarcode', false) ? `
+      <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+      <script>
+        (function(){
+          try {
+            var canvas = document.getElementById('barcodeCanvas');
+            if (canvas && window.JsBarcode) {
+              JsBarcode(canvas, '${invoiceNumber}', {
+                format: "CODE128",
+                width: ${getSetting('barcodeWidth', 2)},
+                height: ${getSetting('barcodeHeight', 40)},
+                displayValue: true,
+                fontSize: 12,
+                margin: 10
+              });
+            }
+          } catch (e) { console.error(e); }
+        })();
+      </script>
+      ` : ''}
+    </body>
+    </html>`;
+    
+    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    return res.send(html);
+  } catch (err) {
+    console.error('Error printing invoice:', err);
+    console.error('Error stack:', err.stack);
+    console.error('Invoice ID:', req.params.id);
+    res.status(500).send(`<html dir="rtl"><body><h1>خطأ في الخادم</h1><p>${err.message || 'حدث خطأ أثناء الطباعة'}</p><pre>${err.stack || ''}</pre></body></html>`);
+  }
 });
 
 router.get('/:id', auth, async (req, res) => {
