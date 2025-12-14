@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مواعيد الصيانة | Laapak</title>
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/client.css">
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/reports-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/client-maintenance.css">
+    <link rel="manifest" href="../../manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <meta name="theme-color" content="#0a3622">
+</head>
+<body class="reports-page">
+    <div class="particles" id="particles"></div>
+    <div class="offline-alert" id="offlineAlert">
+        <i class="fas fa-wifi-slash"></i>
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <div class="container py-5">
+        <!-- Page Header -->
+        <div class="reports-page-header mb-4">
+            <h1 class="reports-page-title">
+                <i class="fas fa-tools me-2"></i>
+                مواعيد الصيانة الدورية
+            </h1>
+        </div>
+
+        <!-- Maintenance Info -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="glass-card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-2"><i class="fas fa-calendar-check text-primary me-2"></i> مواعيد الصيانة الدورية</h5>
+                        <p class="card-text mb-0">تتم الصيانة الدورية مرة كل 6 أشهر من تاريخ إنشاء التقرير ولمدة سنة كاملة.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maintenance Timeline -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="glass-card maintenance-timeline-card">
+                    <div class="card-header glass-header">
+                        <h5 class="card-title mb-0 d-flex align-items-center">
+                            <i class="fas fa-tools me-3 fa-lg"></i> 
+                            <span>مراحل الصيانة الدورية في Laapak</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="maintenance-timeline">
+                            <div class="timeline-item d-flex">
+                                <div class="timeline-icon bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                    <i class="fas fa-temperature-high"></i>
+                                </div>
+                                <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                    <h5 class="fw-bold">استبدال المعجون الحراري</h5>
+                                    <p class="text-muted">باستخدام نوع عالي الجودة ومناسب لطبيعة الجهاز لضمان أفضل تبريد ممكن.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item d-flex">
+                                <div class="timeline-icon bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                    <i class="fas fa-fan"></i>
+                                </div>
+                                <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                    <h5 class="fw-bold">إزالة الأكسدة من نظام التبريد</h5>
+                                    <p class="text-muted">لتحسين نقل الحرارة بكفاءة، حيث تؤثر الأكسدة على كفاءة التبريد بنسبة قد تصل إلى 40%.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item d-flex">
+                                <div class="timeline-icon bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                    <h5 class="fw-bold">فحص سرعة مراوح التبريد</h5>
+                                    <p class="text-muted">وفي حالة تأثرها بالأتربة، يتم تنظيفها وإعادتها لحالتها الطبيعية لضمان التهوية المثالية.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item d-flex">
+                                <div class="timeline-icon bg-info text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                    <i class="fas fa-microchip"></i>
+                                </div>
+                                <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                    <h5 class="fw-bold">تنظيف اللوحة الأم بالكامل</h5>
+                                    <p class="text-muted">شاملاً تنظيف جميع الفلاتات والوصلات بدقة لضمان استقرار الأداء.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item d-flex">
+                                <div class="timeline-icon bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                    <h5 class="fw-bold">إجراء فحص شامل لكل مكونات الجهاز</h5>
+                                    <p class="text-muted">لاكتشاف أي أعطال محتملة مبكرًا واتخاذ الإجراءات الوقائية اللازمة.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item d-flex">
+                                <div class="timeline-icon bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; min-width: 50px; z-index: 1;">
+                                    <i class="fas fa-spray-can"></i>
+                                </div>
+                                <div class="timeline-content ms-3 ps-3 border-start border-3 border-light" style="margin-top: 10px;">
+                                    <h5 class="fw-bold">تنظيف خارجي كامل للجهاز</h5>
+                                    <p class="text-muted mb-0">لإعادة مظهره كالجديد تمامًا، مما يعزز من تجربة الاستخدام والانطباع العام.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maintenance List -->
+        <div class="row g-4" id="maintenanceList">
+            <!-- Maintenance cards will be loaded here by JavaScript -->
+        </div>
+    </div>
+
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-laptop-medical me-2"></i> تفاصيل التقرير</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="reportModalContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printReportBtn">
+                        <i class="fas fa-print me-2"></i> طباعة التقرير
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> تفاصيل الفاتورة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="invoiceModalContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                        <i class="fas fa-print me-2"></i> طباعة الفاتورة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="client-footer-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../scripts/core/config.js"></script>
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/core/auth-check.js"></script>
+    <script src="../../scripts/components/client-header-component.js"></script>
+    <script src="../../scripts/pages/client/modules/DashboardStateManager.js"></script>
+    <script src="../../scripts/pages/client/modules/EventBus.js"></script>
+    <script src="../../scripts/pages/client/modules/NotificationManager.js"></script>
+    <script src="../../scripts/pages/client/modules/DataManager.js"></script>
+    <script src="../../scripts/pages/client/modules/components/QuickStats.js"></script>
+    <script src="../../scripts/pages/client/modules/components/SearchAndFilter.js"></script>
+    <script src="../../scripts/pages/client/modules/Dashboard.js"></script>
+    <script src="../../scripts/pages/client/client-display.js"></script>
+    <script src="../../scripts/pages/client/client-warranty.js"></script>
+    <script src="../../scripts/pages/client/client-maintenance.js"></script>
+    <script src="../../scripts/pages/client/client-dashboard.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                if (!particlesContainer) return;
+                
+                const particleCount = 30;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 20 + 's';
+                    particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            createParticles();
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isClientLoggedIn()) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+            }
+        });
+    </script>
+
+    <!-- Load Maintenance Data -->
+    <script>
+        window.addEventListener('load', async function() {
+            let attempts = 0;
+            const maxAttempts = 10;
+            let dataLoaded = false;
+            
+            const tryLoadReports = async () => {
+                if (dataLoaded) return;
+                
+                attempts++;
+                
+                if (typeof loadClientReports === 'function') {
+                    try {
+                        dataLoaded = true;
+                        await loadClientReports();
+                    } catch (error) {
+                        console.error('Error loading maintenance data:', error);
+                        dataLoaded = false;
+                    }
+                } else if (attempts < maxAttempts) {
+                    setTimeout(tryLoadReports, 100);
+                } else {
+                    console.error('loadClientReports function not found');
+                }
+            };
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            tryLoadReports();
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const printReportBtn = document.getElementById('printReportBtn');
+            if (printReportBtn) {
+                printReportBtn.addEventListener('click', function() {
+                    const originalContent = document.body.innerHTML;
+                    const reportContent = document.getElementById('reportModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${reportContent}
+                        </div>
+                    `;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    location.reload();
+                });
+            }
+
+            const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+            if (printInvoiceBtn) {
+                printInvoiceBtn.addEventListener('click', function() {
+                    const originalContent = document.body.innerHTML;
+                    const invoiceContent = document.getElementById('invoiceModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${invoiceContent}
+                        </div>
+                    `;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    location.reload();
+                });
+            }
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+

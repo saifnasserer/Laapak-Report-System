@@ -1,0 +1,991 @@
+/**
+ * Reports Page - Apple Glass Theme
+ * Elegant & Subtle Design inspired by Apple's Liquid Glass
+ */
+
+/* ============================================
+   BACKGROUND & LAYOUT
+   ============================================ */
+
+.reports-page {
+    font-family: var(--font-primary);
+    min-height: 100vh;
+    position: relative;
+    background: linear-gradient(
+        180deg,
+        #f5f7fa 0%,
+        #ffffff 50%,
+        #fafbfc 100%
+    );
+}
+
+.reports-page::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(10, 110, 53, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(14, 175, 84, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* ============================================
+   PAGE HEADER & TITLE
+   ============================================ */
+
+.reports-page-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.reports-page-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+/* ============================================
+   SEARCH BAR - Glass Style
+   ============================================ */
+
+.search-container {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+    min-width: 250px;
+}
+
+.search-container .input-group {
+    width: 100%;
+}
+
+.search-container .form-control {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-full);
+    padding: 0.875rem 1.5rem 0.875rem 3.5rem; /* Increased padding for better spacing */
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: var(--transition-standard);
+    box-shadow: var(--shadow-glass);
+    min-height: 44px; /* Ensure proper touch target size */
+}
+
+.search-container .form-control::placeholder {
+    color: var(--text-placeholder);
+}
+
+.search-container .form-control:focus {
+    background: var(--glass-bg-input-focus);
+    border-color: var(--laapak-medium-green);
+    box-shadow: 
+        var(--shadow-focus),
+        0 4px 12px rgba(10, 110, 53, 0.08);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.search-container .position-absolute.start-0 {
+    left: 1.5rem; /* Adjusted for increased padding */
+    color: var(--text-tertiary);
+    z-index: 5;
+}
+
+.search-container .form-control:focus + .position-absolute.start-0,
+.search-container .form-control:not(:placeholder-shown) ~ .position-absolute.start-0 {
+    color: var(--laapak-medium-green);
+}
+
+/* ============================================
+   CREATE BUTTON - Glass Style
+   ============================================ */
+
+/* Global button circular borders */
+.btn,
+.btn-primary,
+.btn-success,
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-sm,
+.btn-lg {
+    border-radius: var(--radius-full) !important;
+}
+
+.btn-primary.create-report-btn {
+    background: var(--laapak-medium-green);
+    border: none;
+    border-radius: var(--radius-full);
+    padding: 0.75rem 1.5rem;
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: var(--transition-standard);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary.create-report-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.2), 
+        transparent
+    );
+    transition: left 0.5s;
+}
+
+.btn-primary.create-report-btn:hover {
+    background: var(--laapak-dark-green);
+    transform: translateY(-1px);
+    box-shadow: 
+        0 6px 20px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary.create-report-btn:hover::before {
+    left: 100%;
+}
+
+.btn-primary.create-report-btn:active {
+    transform: translateY(0);
+}
+
+/* ============================================
+   FILTER ICON BUTTON
+   ============================================ */
+
+.filter-icon-btn {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--laapak-medium-green);
+    color: var(--laapak-medium-green);
+    border-radius: var(--radius-full);
+    transition: var(--transition-standard);
+    box-shadow: 0 2px 8px rgba(10, 110, 53, 0.1);
+}
+
+.filter-icon-btn:hover {
+    background: var(--laapak-medium-green);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(10, 110, 53, 0.2);
+}
+
+.filter-icon-btn.active {
+    background: var(--laapak-medium-green);
+    color: white;
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.filter-icon-btn i {
+    font-size: 1.125rem;
+}
+
+.filter-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--laapak-dark-green);
+    color: white;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.625rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.filter-badge:empty {
+    display: none;
+}
+
+/* ============================================
+   FILTER DROPDOWN CONTAINER
+   ============================================ */
+
+.filter-dropdown-container {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    right: 0;
+    z-index: 1000;
+    min-width: 500px;
+    max-width: 90vw;
+    animation: fadeInDown 0.3s ease-out;
+}
+
+@media (max-width: 768px) {
+    .filter-dropdown-container {
+        min-width: calc(100vw - 2rem);
+        right: -1rem;
+        left: -1rem;
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   FILTER PANEL - Glass Card
+   ============================================ */
+
+.filter-panel-card {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: 
+        var(--shadow-glass),
+        var(--shadow-inner-highlight);
+    overflow: hidden;
+    transition: var(--transition-standard);
+}
+
+.filter-panel-card:hover {
+    box-shadow: 
+        0 24px 70px 0 rgba(0, 0, 0, 0.1),
+        var(--shadow-inner-highlight);
+}
+
+.filter-panel {
+    padding: 1.5rem;
+    background: var(--glass-bg-secondary);
+}
+
+/* Quick Filter Buttons */
+.quick-filters {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.quick-filter-btn {
+    padding: 0.625rem 1.25rem;
+    border: 1px solid var(--glass-border-light);
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition-standard);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.quick-filter-btn:hover {
+    background: var(--glass-bg-input-focus);
+    border-color: var(--laapak-medium-green);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(10, 110, 53, 0.1);
+}
+
+.quick-filter-btn.active {
+    background: var(--laapak-medium-green);
+    color: white;
+    border-color: var(--laapak-medium-green);
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.quick-filter-btn.active:hover {
+    background: var(--laapak-dark-green);
+    transform: translateY(-1px);
+}
+
+/* Filter Form */
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.625rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group label i {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+}
+
+.filter-group .form-control,
+.filter-group .form-select {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-md);
+    padding: 0.625rem 1rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: var(--transition-standard);
+}
+
+.filter-group .form-control:focus,
+.filter-group .form-select:focus {
+    background: var(--glass-bg-input-focus);
+    border-color: var(--laapak-medium-green);
+    box-shadow: 
+        var(--shadow-focus),
+        0 4px 12px rgba(10, 110, 53, 0.08);
+    outline: none;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--glass-border-light);
+}
+
+.filter-actions .btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-full);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: var(--transition-standard);
+}
+
+.filter-actions .btn-outline-secondary {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    color: var(--text-primary);
+}
+
+.filter-actions .btn-outline-secondary:hover {
+    background: var(--glass-bg-input-focus);
+    border-color: var(--text-tertiary);
+    transform: translateY(-1px);
+}
+
+.filter-actions .btn-primary {
+    background: var(--laapak-medium-green);
+    border: none;
+    color: white;
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.filter-actions .btn-primary:hover {
+    background: var(--laapak-dark-green);
+    transform: translateY(-1px);
+    box-shadow: 
+        0 6px 20px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   REPORTS TABLE CARD - Glass Style
+   ============================================ */
+
+.reports-table-card {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: 
+        0 0 20px rgba(14, 175, 84, 0.15),
+        0 0 40px rgba(10, 110, 53, 0.1),
+        var(--shadow-inner-highlight);
+    margin-bottom: 2rem;
+    overflow: visible;
+    transition: var(--transition-standard);
+    position: relative;
+}
+
+.reports-table-card:hover {
+    box-shadow: 
+        0 0 30px rgba(14, 175, 84, 0.25),
+        0 0 60px rgba(10, 110, 53, 0.15),
+        var(--shadow-inner-highlight);
+}
+
+
+.reports-table-header {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--glass-border-light);
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+    position: relative;
+}
+
+.reports-table-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(135deg, var(--laapak-medium-green) 0%, var(--laapak-dark-green) 100%);
+}
+
+.reports-table-header h5 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.reports-table-header small {
+    opacity: 0.8;
+    font-weight: 400;
+}
+
+.reports-table-body {
+    padding: 0;
+    background: transparent;
+    overflow: visible;
+    position: relative;
+}
+
+/* Table Styles */
+.table-responsive {
+    border-radius: var(--radius-md);
+    overflow: visible;
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    position: relative;
+}
+
+.table {
+    margin-bottom: 0;
+    background: transparent;
+    border-collapse: separate;
+    border-spacing: 0;
+    position: relative;
+}
+
+.table tbody {
+    position: relative;
+}
+
+.table thead {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    position: relative;
+}
+
+.table thead::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(135deg, var(--laapak-medium-green) 0%, var(--laapak-dark-green) 100%);
+}
+
+.table thead th {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 1.25rem 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    position: relative;
+    white-space: nowrap;
+}
+
+.table thead th:not(:last-child) {
+    border-left: 1px solid var(--glass-border-light);
+}
+
+.table tbody {
+    background: transparent;
+    overflow: visible;
+    position: relative;
+}
+
+.table tbody tr {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border-light);
+    transition: var(--transition-standard);
+    position: relative;
+}
+
+.table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.table tbody tr:hover {
+    background: var(--glass-bg-elevated);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.table tbody tr:hover td {
+    color: var(--text-primary);
+}
+
+.table tbody td {
+    padding: 1.25rem 1rem;
+    color: var(--text-primary);
+    vertical-align: middle;
+    border: none;
+    border-left: 1px solid var(--glass-border-light);
+    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.table tbody td:first-child {
+    border-left: none;
+}
+
+.table tbody td:last-child {
+    border-left: 1px solid var(--glass-border-light);
+    position: relative;
+    overflow: visible;
+}
+
+/* Ensure dropdown in actions column appears above content */
+.table tbody td:last-child .dropdown {
+    position: relative;
+    z-index: 10;
+}
+
+.table tbody td:last-child .dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+    right: 0 !important;
+    left: auto !important;
+    top: 100% !important;
+    margin-top: 0.5rem;
+    transform: none !important;
+    min-width: 180px;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* When dropdown is shown, ensure it's above everything */
+.table tbody td:last-child .dropdown-menu.show {
+    z-index: 9999 !important;
+    display: block !important;
+    position: absolute !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Alternating row colors for better readability */
+.table tbody tr:nth-child(even) {
+    background: var(--glass-bg-secondary);
+}
+
+.table tbody tr:nth-child(even):hover {
+    background: var(--glass-bg-elevated);
+}
+
+/* Status Badge */
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-standard);
+    border: none;
+    display: inline-block;
+    min-width: 100px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Invoice Link Button */
+.btn-sm {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: var(--transition-standard);
+    min-width: 120px;
+    white-space: nowrap;
+}
+
+.btn-success {
+    background: var(--laapak-medium-green);
+    border: none;
+    color: white;
+    box-shadow: 
+        0 2px 8px rgba(10, 110, 53, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-success:hover {
+    background: var(--laapak-dark-green);
+    transform: translateY(-1px);
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-outline-primary {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--laapak-medium-green);
+    color: var(--laapak-medium-green);
+}
+
+.btn-outline-primary:hover {
+    background: var(--laapak-medium-green);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(10, 110, 53, 0.2);
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    background: var(--glass-bg-elevated);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-glass);
+    padding: 0.5rem;
+    min-width: 180px;
+    z-index: 1050 !important;
+    position: absolute !important;
+}
+
+.dropdown-item {
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dropdown-item:hover {
+    background: var(--glass-bg-input);
+    color: var(--text-primary);
+    transform: translateX(-2px);
+}
+
+.dropdown-item i {
+    width: 1.25rem;
+    text-align: center;
+}
+
+/* Ensure dropdown menu in table appears above content - consolidated rules */
+.table tbody td .dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
+
+.table tbody td .dropdown-menu.show {
+    display: block !important;
+    z-index: 9999 !important;
+    position: absolute !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Ensure dropdown button works properly */
+.table tbody td .dropdown-toggle::after {
+    display: none; /* Hide Bootstrap's default dropdown arrow */
+}
+
+/* Table cell content alignment and spacing */
+.table tbody td {
+    word-wrap: break-word;
+}
+
+/* Ensure consistent spacing and alignment */
+.table tbody td,
+.table thead th {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Allow text wrapping for longer content in specific columns */
+.table tbody td:nth-child(2),
+.table tbody td:nth-child(3) {
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Add subtle animation to table rows */
+@keyframes fadeInRow {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table tbody tr {
+    animation: fadeInRow 0.3s ease-out;
+}
+
+.table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+.table tbody tr:nth-child(2) { animation-delay: 0.1s; }
+.table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+.table tbody tr:nth-child(4) { animation-delay: 0.2s; }
+.table tbody tr:nth-child(5) { animation-delay: 0.25s; }
+
+/* ============================================
+   LOAD MORE BUTTON - Glass Style
+   ============================================ */
+
+#loadMoreContainer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+    border-top: 1px solid var(--glass-border-light);
+}
+
+#loadMoreBtn {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--laapak-medium-green);
+    color: var(--laapak-medium-green);
+    border-radius: var(--radius-full);
+    padding: 0.875rem 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+    min-width: 200px;
+    transition: var(--transition-standard);
+    box-shadow: 0 2px 8px rgba(10, 110, 53, 0.1);
+}
+
+#loadMoreBtn:hover {
+    background: var(--laapak-medium-green);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 
+        0 6px 20px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+#loadMoreBtn:active {
+    transform: translateY(0);
+}
+
+#loadMoreBtn i {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#loadMoreBtn:hover i {
+    transform: translateY(2px);
+}
+
+/* ============================================
+   LOADING & ERROR STATES
+   ============================================ */
+
+#loadingIndicator {
+    padding: 3rem 0;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.25rem;
+    border-color: var(--laapak-medium-green);
+    border-right-color: transparent;
+}
+
+#errorContainer {
+    background: rgba(220, 53, 69, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+    .reports-page-title {
+        font-size: 1.5rem;
+    }
+    
+    .search-container .input-group {
+        width: 100% !important;
+    }
+    
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-filters {
+        flex-direction: column;
+    }
+    
+    .quick-filter-btn {
+        width: 100%;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
+    }
+    
+    .filter-actions .btn {
+        width: 100%;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .table thead th,
+    .table tbody td {
+        padding: 0.75rem 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .reports-page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .reports-page-title {
+        font-size: 1.25rem;
+    }
+    
+    .search-container .form-control {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filter-panel-card,
+.reports-table-card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* ============================================
+   FALLBACK FOR BROWSERS WITHOUT BACKDROP-FILTER
+   ============================================ */
+
+@supports not (backdrop-filter: blur(10px)) {
+    .filter-panel-card,
+    .reports-table-card {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .filter-panel,
+    .reports-table-body {
+        background: rgba(255, 255, 255, 0.9);
+    }
+    
+    .search-container .form-control,
+    .filter-group .form-control,
+    .filter-group .form-select {
+        background: rgba(255, 255, 255, 0.9);
+    }
+}
+

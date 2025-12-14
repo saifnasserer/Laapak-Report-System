@@ -1,0 +1,400 @@
+/**
+ * Clients Page - Apple Glass Theme
+ * Elegant & Subtle Design inspired by Apple's Liquid Glass
+ */
+
+/* ============================================
+   BACKGROUND & LAYOUT
+   ============================================ */
+
+.clients-page {
+    font-family: var(--font-primary);
+    min-height: 100vh;
+    position: relative;
+    background: linear-gradient(
+        180deg,
+        #f5f7fa 0%,
+        #ffffff 50%,
+        #fafbfc 100%
+    );
+}
+
+.clients-page::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(10, 110, 53, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(14, 175, 84, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* ============================================
+   PAGE HEADER & TITLE
+   ============================================ */
+
+.clients-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.clients-page-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+/* ============================================
+   CLIENTS TABLE CARD - Glass Style
+   ============================================ */
+
+.clients-table-card {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: 
+        0 0 20px rgba(14, 175, 84, 0.15),
+        0 0 40px rgba(10, 110, 53, 0.1),
+        var(--shadow-inner-highlight);
+    margin-bottom: 2rem;
+    overflow: visible !important;
+    transition: var(--transition-standard);
+    position: relative;
+}
+
+.clients-table-card:hover {
+    box-shadow: 
+        0 0 30px rgba(14, 175, 84, 0.25),
+        0 0 60px rgba(10, 110, 53, 0.15),
+        var(--shadow-inner-highlight);
+}
+
+.clients-table-header {
+    background: linear-gradient(135deg, var(--laapak-medium-green) 0%, var(--laapak-dark-green) 100%);
+    border: none;
+    border-bottom: 2px solid var(--glass-border-light);
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+    position: relative;
+}
+
+.clients-table-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(135deg, var(--laapak-medium-green) 0%, var(--laapak-dark-green) 100%);
+}
+
+.clients-table-header h5 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.clients-table-body {
+    padding: 0;
+    background: transparent;
+    overflow: visible;
+    position: relative;
+}
+
+.clients-table-footer {
+    background: var(--glass-bg-secondary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--glass-border-light);
+    padding: 1rem 1.5rem;
+}
+
+/* Table Styles */
+.clients-table-card .table-responsive {
+    border-radius: var(--radius-md);
+    overflow: visible;
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    position: relative;
+}
+
+.clients-table-card .table {
+    margin-bottom: 0;
+    background: transparent;
+    border-collapse: separate;
+    border-spacing: 0;
+    position: relative;
+}
+
+.clients-table-card .table thead {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    position: relative;
+}
+
+.clients-table-card .table thead th {
+    background: transparent;
+    border: none;
+    border-bottom: none;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 1.25rem 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    position: relative;
+    white-space: nowrap;
+}
+
+.clients-table-card .table thead th:not(:last-child) {
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.clients-table-card .table tbody {
+    background: transparent;
+    overflow: visible;
+    position: relative;
+}
+
+.clients-table-card .table tbody tr {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border-light);
+    transition: var(--transition-standard);
+    position: relative;
+}
+
+.clients-table-card .table tbody tr:last-child {
+    border-bottom: 1px solid var(--glass-border-light);
+}
+
+.clients-table-card .table tbody tr:hover {
+    background: var(--glass-bg-elevated);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.clients-table-card .table tbody tr:hover td {
+    color: var(--text-primary);
+}
+
+.clients-table-card .table tbody td {
+    padding: 1.25rem 1rem;
+    color: var(--text-primary);
+    vertical-align: middle;
+    border: none;
+    border-left: 1px solid var(--glass-border-light);
+    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.clients-table-card .table tbody td:first-child {
+    border-left: none;
+}
+
+/* Alternating row colors for better readability */
+.clients-table-card .table tbody tr:nth-child(even) {
+    background: var(--glass-bg-secondary);
+}
+
+.clients-table-card .table tbody tr:nth-child(even):hover {
+    background: var(--glass-bg-elevated);
+}
+
+/* Action buttons styling */
+.clients-table-card .table tbody td:last-child .btn {
+    transition: all 0.2s ease;
+    border-width: 1.5px;
+    border-radius: 50% !important;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+.clients-table-card .table tbody td:last-child .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.clients-table-card .table tbody td:last-child .btn-outline-primary:hover {
+    background-color: var(--laapak-medium-green);
+    border-color: var(--laapak-medium-green);
+    color: white;
+}
+
+.clients-table-card .table tbody td:last-child .btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+/* ============================================
+   GLOBAL BUTTON STYLES - Circular Borders
+   ============================================ */
+
+/* Global button circular borders */
+.clients-page .btn,
+.clients-page .btn-primary,
+.clients-page .btn-success,
+.clients-page .btn-outline-primary,
+.clients-page .btn-outline-secondary,
+.clients-page .btn-sm,
+.clients-page .btn-lg {
+    border-radius: var(--radius-full) !important;
+}
+
+/* ============================================
+   PAGINATION STYLES
+   ============================================ */
+
+.clients-table-footer .pagination {
+    margin: 0;
+}
+
+.clients-table-footer .page-link {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border-light);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    transition: var(--transition-standard);
+}
+
+.clients-table-footer .page-link:hover {
+    background: var(--glass-bg-elevated);
+    border-color: var(--laapak-medium-green);
+    color: var(--laapak-medium-green);
+    transform: translateY(-1px);
+}
+
+.clients-table-footer .page-item.active .page-link {
+    background: var(--laapak-medium-green);
+    border-color: var(--laapak-medium-green);
+    color: white;
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.clients-table-footer .page-item.disabled .page-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--glass-bg-secondary);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+    .clients-page-title {
+        font-size: 1.5rem;
+    }
+    
+    .clients-page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .clients-table-card .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .clients-table-card .table thead th,
+    .clients-table-card .table tbody td {
+        padding: 0.75rem 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .clients-page-title {
+        font-size: 1.25rem;
+    }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+.clients-table-card,
+.glass-card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Add subtle animation to table rows */
+@keyframes fadeInRow {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.clients-table-card .table tbody tr {
+    animation: fadeInRow 0.3s ease-out;
+}
+
+.clients-table-card .table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+.clients-table-card .table tbody tr:nth-child(2) { animation-delay: 0.1s; }
+.clients-table-card .table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+.clients-table-card .table tbody tr:nth-child(4) { animation-delay: 0.2s; }
+.clients-table-card .table tbody tr:nth-child(5) { animation-delay: 0.25s; }
+
+/* ============================================
+   FALLBACK FOR BROWSERS WITHOUT BACKDROP-FILTER
+   ============================================ */
+
+@supports not (backdrop-filter: blur(10px)) {
+    .clients-table-card,
+    .glass-card {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .clients-table-body {
+        background: rgba(255, 255, 255, 0.9);
+    }
+}
+

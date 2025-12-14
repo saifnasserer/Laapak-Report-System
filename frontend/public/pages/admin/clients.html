@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة العملاء | Laapak</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/custom-admin.css">
+    
+    <!-- Apple Glass Theme -->
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    
+    <!-- Clients Glass Styles -->
+    <link rel="stylesheet" href="../../styles/pages/clients-glass.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+    
+    <style>
+        /* Custom utility class for smaller font size on mobile */
+        .fs-sm-6 {
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 767.98px) {
+            .fs-sm-6 {
+                font-size: 0.75rem;
+            }
+            
+            /* Smaller nav icons on mobile */
+            .nav-item .nav-link.rounded-circle {
+                width: 32px !important;
+                height: 32px !important;
+                padding: 0 !important;
+            }
+            
+            /* Reduce horizontal spacing on mobile */
+            .navbar-nav .nav-item {
+                margin-left: 2px !important;
+                margin-right: 2px !important;
+            }
+        }
+    </style>
+</head>
+<body class="clients-page">
+    <!-- Glass Background -->
+    <div class="glass-background"></div>
+    
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+    
+    <!-- Main Content -->
+    <div class="container-fluid p-4">
+        <div class="admin-content">
+            <!-- Clients Content Header -->
+            <div class="clients-page-header">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <h2 class="clients-page-title mb-0">إدارة العملاء</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                        <i class="fas fa-plus-circle me-2"></i>إضافة عميل جديد
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search & Filter -->
+            <div class="glass-card mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3" style="color: #007553;">بحث وتصفية</h5>
+                <form id="searchForm">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="searchName" class="form-label small text-muted">اسم العميل أو رقم الهاتف</label>
+                            <input type="text" class="form-control" id="searchName" placeholder="ابحث بالاسم أو رقم الهاتف...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="searchStatus" class="form-label small text-muted">حالة العميل</label>
+                            <select class="form-select" id="searchStatus">
+                                <option value="">جميع الحالات</option>
+                                <option value="active">نشط</option>
+                                <option value="inactive">غير نشط</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="searchEmail" class="form-label small text-muted">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="searchEmail" placeholder="البحث بالبريد الإلكتروني...">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-2"></i> بحث
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSearchBtn">
+                                <i class="fas fa-times me-2"></i>مسح البحث
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Clients Table -->
+        <div class="clients-table-card mb-4">
+            <div class="clients-table-header">
+                <h5 class="mb-0 text-center">قائمة العملاء</h5>
+            </div>
+            <div class="clients-table-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="clientsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-3">رقم</th>
+                                <th class="py-3">اسم العميل</th>
+                                <th class="py-3">رقم الهاتف</th>
+                                <th class="py-3">البريد الإلكتروني</th>
+                                <th class="py-3">العنوان</th>
+                                <th class="py-3">الحالة</th>
+                                <th class="py-3">تاريخ التسجيل</th>
+                                <th class="py-3">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientsTableBody">
+                            <!-- Client data will be loaded here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="clients-table-footer">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center m-0" id="clientsPagination">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">السابق</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">التالي</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+    
+    <!-- Add Client Modal -->
+    <div class="modal fade" id="addClientModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">إضافة عميل جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addClientForm">
+                        <div class="mb-3">
+                            <label for="clientName" class="form-label">اسم العميل</label>
+                            <input type="text" class="form-control" id="clientName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientPhone" class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="clientPhone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientEmail" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="clientEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientAddress" class="form-label">العنوان</label>
+                            <textarea class="form-control" id="clientAddress" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientOrderCode" class="form-label">كود الطلب</label>
+                            <input type="text" class="form-control" id="clientOrderCode" required>
+                            <div class="form-text">سيستخدم العميل هذا الكود للدخول إلى حسابه</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-block">الحالة</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="clientStatus" id="statusActive" value="active" checked>
+                                <label class="form-check-label" for="statusActive">نشط</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="clientStatus" id="statusInactive" value="inactive">
+                                <label class="form-check-label" for="statusInactive">غير نشط</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveClientBtn">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Client Modal -->
+    <div class="modal fade" id="editClientModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تعديل بيانات العميل</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editClientForm">
+                        <input type="hidden" id="editClientId">
+                        <div class="mb-3">
+                            <label for="editClientName" class="form-label">اسم العميل</label>
+                            <input type="text" class="form-control" id="editClientName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editClientPhone" class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="editClientPhone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editClientEmail" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="editClientEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editClientAddress" class="form-label">العنوان</label>
+                            <textarea class="form-control" id="editClientAddress" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editClientOrderCode" class="form-label">كود الطلب (كلمة المرور للدخول)</label>
+                            <input type="text" class="form-control" id="editClientOrderCode" placeholder="سيستخدم العميل هذا الكود للدخول إلى حسابه">
+                            <div class="form-text">هذا الكود يستخدم للدخول إلى حساب العميل</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-block">الحالة</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="editClientStatus" id="editStatusActive" value="active">
+                                <label class="form-check-label" for="editStatusActive">نشط</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="editClientStatus" id="editStatusInactive" value="inactive">
+                                <label class="form-check-label" for="editStatusInactive">غير نشط</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="updateClientBtn">حفظ التغييرات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/core/config.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/components/header-component.js"></script>
+    <script src="../../scripts/pages/admin/clients.js"></script>
+    <script src="../../scripts/core/auth-check.js"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

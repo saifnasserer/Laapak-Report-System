@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laapak Reports</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/client.css">
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+
+        <link rel="stylesheet" href="../../styles/pages/client-dashboard.css">
+
+</head>
+<body class="bg-light apple-glass-body">
+    <!-- Particle Background Effect -->
+    <div class="particles" id="particles"></div>
+    <div class="glass-background"></div>
+    
+    <!-- Offline Alert - Enhanced Glass Style -->
+    <div class="offline-alert" id="offlineAlert">
+        <i class="fas fa-wifi-slash"></i>
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+    
+    <!-- Full Screen Hero Section -->
+    <section class="hero-section" id="heroSection">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    مرحباً <span id="welcomeClientName" class="gradient-text">عزيزي العميل</span>
+                </h1>
+
+                <p class="hero-description">
+من هنا تقدر تتابع كل تفاصيل الضمان وتشوف تقارير جهاز والفواتير بتاعتك دايماً                </p>
+            </div>
+
+            <!-- Navigation Tiles -->
+            <div class="navigation-tiles">
+                <a href="client-reports.html" class="nav-tile">
+                    <div class="tile-icon">
+                        <i class="fas fa-laptop-medical"></i>
+                    </div>
+                    <h3 class="tile-title">تقرير الفحص</h3>
+                    <p class="tile-description">عرض جميع تقارير الفحص</p>
+                </a>
+                                
+                <a href="client-warranty.html" class="nav-tile">
+                    <div class="tile-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="tile-title">تفاصيل الضمان</h3>
+                    <p class="tile-description">معلومات الضمان</p>
+                </a>
+
+                <a href="client-maintenance.html" class="nav-tile">
+                    <div class="tile-icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <h3 class="tile-title">مواعيد الصيانة</h3>
+                    <p class="tile-description">جدولة الصيانة الدورية</p>
+                </a>
+                
+                <a href="client-invoices.html" class="nav-tile">
+                    <div class="tile-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <h3 class="tile-title">الفواتير</h3>
+                    <p class="tile-description">عرض وإدارة الفواتير</p>
+                </a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-laptop-medical me-2"></i> تفاصيل التقرير</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="reportModalContent">
+                    <!-- Report content will be loaded here by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printReportBtn">
+                        <i class="fas fa-print me-2"></i> طباعة التقرير
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Invoice Modal -->
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> تفاصيل الفاتورة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="invoiceModalContent">
+                    <!-- Invoice content will be loaded here by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                        <i class="fas fa-print me-2"></i> طباعة الفاتورة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Footer Container - will be populated by client-header-component.js -->
+    <div id="client-footer-container"></div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Configuration -->
+    <script src="../../scripts/core/config.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../../scripts/core/auth-middleware.js"></script> <!-- Defines how auth token is handled -->
+    <script src="../../scripts/core/api-service.js"></script>    <!-- Defines ApiService, must be before scripts that use it -->
+    <script src="../../scripts/core/auth-check.js"></script>      <!-- Performs auth checks, likely uses ApiService -->
+    <script src="../../scripts/components/client-header-component.js"></script> <!-- UI component -->
+    
+    <!-- Dashboard Modules (New Modular Architecture) -->
+    <script src="../../scripts/pages/client/modules/DashboardStateManager.js"></script>
+    <script src="../../scripts/pages/client/modules/EventBus.js"></script>
+    <script src="../../scripts/pages/client/modules/NotificationManager.js"></script>
+    <script src="../../scripts/pages/client/modules/DataManager.js"></script>
+    <script src="../../scripts/pages/client/modules/components/QuickStats.js"></script>
+    <script src="../../scripts/pages/client/modules/components/SearchAndFilter.js"></script>
+    <script src="../../scripts/pages/client/modules/Dashboard.js"></script>
+    
+    <!-- Client Display Functions (Legacy - for compatibility) -->
+    <script src="../../scripts/pages/client/client-display.js"></script>   <!-- Functions to display reports/invoices -->
+    <script src="../../scripts/pages/client/client-warranty.js"></script>  <!-- Warranty related functions -->
+    <script src="../../scripts/pages/client/client-maintenance.js"></script> <!-- Maintenance related functions -->
+    <script src="../../scripts/pages/client/client-dashboard.js"></script>  <!-- Main initialization - now uses Dashboard class -->
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script> <!-- Other utilities -->
+    
+    <!-- Creative Interactive Effects -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create floating particles
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                if (!particlesContainer) return;
+                
+                const particleCount = 30;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 20 + 's';
+                    particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            // Smooth tab transitions
+            const tabLinks = document.querySelectorAll('#clientTabs .nav-link');
+            tabLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('data-bs-target');
+                    const targetPane = document.querySelector(targetId);
+                    
+                    if (targetPane) {
+                        // Hide all panes
+                        document.querySelectorAll('.tab-pane').forEach(pane => {
+                            pane.classList.remove('show', 'active');
+                        });
+                        
+                        // Remove active from all tabs
+                        tabLinks.forEach(tab => tab.classList.remove('active'));
+                        
+                        // Show target pane with animation
+                        this.classList.add('active');
+                        setTimeout(() => {
+                            targetPane.classList.add('show', 'active');
+                        }, 50);
+                    }
+                });
+            });
+            
+            // Initialize effects
+            createParticles();
+            
+            // Hide swipe indicator on desktop, show on mobile
+            function initSwipeIndicator() {
+                const swipeIndicator = document.querySelector('.swipe-indicator');
+                if (!swipeIndicator) return;
+                
+                const isMobile = window.innerWidth <= 768;
+                if (!isMobile) {
+                    swipeIndicator.style.display = 'none';
+                }
+                
+                // Update on resize
+                window.addEventListener('resize', function() {
+                    const isMobileNow = window.innerWidth <= 768;
+                    swipeIndicator.style.display = isMobileNow ? 'block' : 'none';
+                });
+            }
+            
+            initSwipeIndicator();
+        });
+    </script>
+
+    <!-- Authentication Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication first before initializing anything
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isClientLoggedIn()) {
+                    console.log('Client not authenticated, redirecting to login page');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                console.log('Client authenticated, proceeding with dashboard initialization');
+            }
+        });
+    </script>
+
+    <!-- Print functionality -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Print report functionality
+            const printReportBtn = document.getElementById('printReportBtn');
+            if (printReportBtn) {
+                printReportBtn.addEventListener('click', function() {
+                    // Store the current body content
+                    const originalContent = document.body.innerHTML;
+                    
+                    // Replace with just the report content for printing
+                    const reportContent = document.getElementById('reportModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${reportContent}
+                        </div>
+                    `;
+                    
+                    // Print
+                    window.print();
+                    
+                    // Restore original content
+                    document.body.innerHTML = originalContent;
+                    
+                    // Reattach event listeners
+                    location.reload();
+                });
+            }
+            
+            // Print invoice functionality
+            const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+            if (printInvoiceBtn) {
+                printInvoiceBtn.addEventListener('click', function() {
+                    // Store the current body content
+                    const originalContent = document.body.innerHTML;
+                    
+                    // Replace with just the invoice content for printing
+                    const invoiceContent = document.getElementById('invoiceModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${invoiceContent}
+                        </div>
+                    `;
+                    
+                    // Print
+                    window.print();
+                    
+                    // Restore original content
+                    document.body.innerHTML = originalContent;
+                    
+                    // Reattach event listeners
+                    location.reload();
+                });
+            }
+        });
+    </script>
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء فاتورة | Laapak</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Toastr CSS for notifications -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/custom-admin.css">
+    
+    <!-- Apple Glass Theme -->
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    
+    <!-- Invoices Glass Styles -->
+    <link rel="stylesheet" href="../../styles/pages/invoices-glass.css">
+    
+    <style>
+        .invoice-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .invoice-container, .invoice-container * {
+                visibility: visible;
+            }
+            .invoice-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        /* Custom utility class for smaller font size on mobile */
+        .fs-sm-6 {
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 767.98px) {
+            .fs-sm-6 {
+                font-size: 0.75rem;
+            }
+            
+            /* Smaller nav icons on mobile */
+            .nav-item .nav-link.rounded-circle {
+                width: 32px !important;
+                height: 32px !important;
+                padding: 0 !important;
+            }
+            
+            /* Reduce horizontal spacing on mobile */
+            .navbar-nav .nav-item {
+                margin-left: 2px !important;
+                margin-right: 2px !important;
+            }
+        }
+    </style>
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+</head>
+<body class="invoices-page">
+    <!-- Glass Background -->
+    <div class="glass-background"></div>
+    
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+    
+    <!-- Main Content -->
+    <div class="container-fluid p-4">
+        <div class="admin-content">
+            <!-- Page Header -->
+            <div class="invoices-page-header">
+                <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap" style="width: 100%; max-width: 600px; margin: 0 auto;">
+                    <h2 class="invoices-page-title mb-0">إنشاء فاتورة</h2>
+                </div>
+            </div>
+            
+            <!-- Create Invoice Button Section -->
+            <div class="glass-card mb-4">
+                <div class="p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-2"><i class="fas fa-file-invoice me-2 text-success"></i>إنشاء فاتورة جديدة</h5>
+                        <p class="text-muted mb-0">حدد التقارير المطلوبة من الجدول أدناه ثم اضغط على زر إنشاء الفاتورة</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-success btn-lg" id="createInvoiceBtn" disabled>
+                            <i class="fas fa-plus-circle me-2"></i>إنشاء فاتورة
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-3" id="selectedReportsInfo" style="display: none;">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        تم تحديد <span id="selectedCountTop">0</span> تقرير بقيمة إجمالية <span id="totalAmountTop" class="fw-bold">0.00 جنية</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Search and Filter Section -->
+        <!-- <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h5 class="mb-3"><i class="fas fa-filter me-2" style="color: #0eaf54;"></i> بحث وتصفية</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="clientFilter" class="form-label">العميل</label>
+                        <select class="form-select" id="clientFilter">
+                            <option value="">جميع العملاء</option>
+                             Client options will be loaded dynamically 
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="deviceModelFilter" class="form-label">الجهاز</label>
+                        <input type="text" class="form-control" id="deviceModelFilter" placeholder="بحث بموديل الجهاز...">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="dateFromFilter" class="form-label">تاريخ التقرير</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control" id="dateFromFilter">
+                            <span class="input-group-text">إلى</span>
+                            <input type="date" class="form-control" id="dateToFilter">
+                        </div>
+                    </div>
+                </div> 
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-outline-secondary me-2" id="resetFiltersBtn">
+                        <i class="fas fa-undo me-1"></i> إعادة تعيين
+                    </button>
+                    <button class="btn btn-primary" id="applyFiltersBtn">
+                        <i class="fas fa-search me-1"></i> بحث
+                    </button>
+                </div>
+            </div>
+        </div> -->
+        <!-- Reports List Section -->
+        <div class="invoices-table-card mb-4">
+            <div class="invoices-table-header">
+                <h5 class="mb-0 text-center">التقارير بدون فواتير</h5>
+            </div>
+            <div class="invoices-table-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="50" class="text-center">
+                                    <i class="fas fa-check-square"></i>
+                                </th>
+                                <th>العميل</th>
+                                <th>رقم التقرير</th>
+                                <th>موديل الجهاز</th>
+                                <th>تاريخ التقرير</th>
+                                <th>حالة التقرير</th>
+                                <th width="100">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportsTableBody">
+                            <!-- Reports will be loaded dynamically -->
+                            <tr class="text-center">
+                                <td colspan="7" class="py-5 text-muted">
+                                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                                        <span class="visually-hidden">جاري التحميل...</span>
+                                    </div>
+                                    جاري تحميل التقارير...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="invoices-table-footer">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="ms-2" id="selectedCount">0</span>
+                        <span class="text-muted">تقرير</span>
+                    </div>
+                    <div>
+                        <span class="fw-bold">المجموع:</span>
+                        <span class="ms-2 text-success" id="totalAmount">0.00 جنية</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Selected Reports Section (initially hidden) -->
+    <!-- <div id="selectedReportsSection" class="container-fluid p-4" style="display: none;">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light py-3">
+                <h5 class="mb-0">التقارير المحددة</h5>
+            </div>
+            <div class="card-body p-3">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    تم تحديد <span id="selectedCount2">0</span> تقرير بقيمة إجمالية <span id="totalAmount2" class="fw-bold">0.00 جنية</span>.
+                    اضغط على زر "إنشاء فاتورة" لإنشاء فاتورة لهذه التقارير.
+                </div>
+            </div>
+        </div>
+    </div> -->
+    
+    <!-- Invoice Preview Section (initially hidden) -->
+    <div id="invoicePreviewSection" class="container-fluid p-4" style="display: none;">
+        <div class="glass-card mb-4">
+            <div class="invoices-table-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">معاينة الفاتورة</h5>
+                    <div>
+                        <!-- <button class="btn btn-success me-2" id="saveInvoiceBtn">
+                            <i class="fas fa-save me-1"></i> حفظ الفاتورة
+                        </button> -->
+                        <button class="btn btn-success" id="generateInvoiceBtn" disabled>
+                            <i class="fas fa-file-invoice me-2"></i> إنشاء فاتورة
+                        </button>
+                        <!-- <button class="btn btn-warning me-2" id="editItemsBtn">
+                            <i class="fas fa-edit me-1"></i> تعديل العناصر
+                        </button> -->
+                        <button class="btn btn-primary me-2" id="exportPdfBtn">
+                            <i class="fas fa-file-pdf me-1"></i> تصدير PDF
+                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-share-alt me-1"></i> مشاركة
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><button class="dropdown-item" id="shareEmailBtn"><i class="fas fa-envelope me-2"></i> بريد إلكتروني</button></li>
+                                <li><button class="dropdown-item" id="shareWhatsAppBtn"><i class="fab fa-whatsapp me-2"></i> واتساب</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item" id="copyLinkBtn"><i class="fas fa-copy me-2"></i> نسخ الرابط</button></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="invoices-table-body p-4">
+                <div id="invoicePreviewContainer">
+                    <!-- Invoice content will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+    
+    <!-- Invoice Settings Modal -->
+    <div class="modal fade" id="invoiceSettingsModal" tabindex="-1" aria-labelledby="invoiceSettingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="invoiceSettingsModalLabel">إعدادات الفاتورة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <p class="mb-1"><strong>العميل:</strong> <span id="invoiceClientName"></span></p>
+                        <p class="mb-1"><strong>عدد التقارير:</strong> <span id="invoiceReportCount"></span></p>
+                        <p class="mb-0"><strong>المبلغ الإجمالي:</strong> <span id="invoiceTotalAmount"></span></p>
+                    </div>
+                    
+                    <form>
+                        <div class="mb-3">
+                            <label for="invoiceTitle" class="form-label">عنوان الفاتورة</label>
+                            <input type="text" class="form-control" id="invoiceTitle" value="فاتورة صيانة">
+                        </div>
+                        <div class="mb-3">
+                            <label for="invoiceDate" class="form-label">تاريخ الفاتورة</label>
+                            <input type="date" class="form-control" id="invoiceDate">
+                        </div>
+                        <div class="mb-3">
+                            <label for="taxRate" class="form-label">ضريبة القيمة المضافة (%)</label>
+                            <input type="number" class="form-control" id="taxRate" min="0" max="100" value="14">
+                        </div>
+                        <div class="mb-3">
+                            <label for="discountRate" class="form-label">نسبة الخصم (%)</label>
+                            <input type="number" class="form-control" id="discountRate" min="0" max="100" value="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentMethod" class="form-label">طريقة الدفع</label>
+                            <select class="form-select" id="paymentMethod">
+                                <option value="cash">نقداً</option>
+                                <option value="instapay">Instapay</option>
+                                <option value="محفظة">محفظة رقمية</option>
+                                <option value="بنك">حساب بنكي</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentStatusSelect" class="form-label">حالة الدفع</label>
+                            <select class="form-select" id="paymentStatusSelect">
+                                <option value="pending" selected>قيد الانتظار</option>
+                                <option value="completed">مكتمل</option>
+                                <option value="cancelled">ملغى</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="invoiceNotes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="invoiceNotes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <div class="dropdown me-auto">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="templateDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-save me-1"></i> قوالب الفواتير
+                        </button>
+                        <ul class="dropdown-menu" id="templatesList">
+                            <li><h6 class="dropdown-header">القوالب المحفوظة</h6></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button class="dropdown-item" id="saveAsTemplateBtn"><i class="fas fa-plus me-2"></i> حفظ كقالب جديد</button></li>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="applySettingsBtn">تطبيق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- View Report Modal -->
+    <div class="modal fade" id="viewReportModal" tabindex="-1" aria-labelledby="viewReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewReportModalLabel">تفاصيل التقرير</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body" id="reportModalContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="mt-2">جاري تحميل تفاصيل التقرير...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <a href="#" class="btn btn-primary" id="openReportBtn" target="_blank">فتح التقرير</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Invoice Items Modal -->
+    <div class="modal fade" id="editItemsModal" tabindex="-1" aria-labelledby="editItemsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editItemsModalLabel">تعديل عناصر الفاتورة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="invoiceItemsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>الوصف</th>
+                                    <th>السيريال</th>
+                                    <th>السعر</th>
+                                    <th width="80">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoiceItemsTableBody">
+                                <!-- Items will be loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-success mt-3" id="addItemBtn">
+                        <i class="fas fa-plus me-1"></i> إضافة عنصر جديد
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveItemsBtn">حفظ التغييرات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Toastr JS for notifications -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    
+    <!-- html2pdf for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/core/auth-check.js"></script>
+    <script src="../../scripts/components/header-component.js"></script>
+    <script src="../../scripts/core/config.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/pages/invoices/create-invoice.js"></script>
+</body>
+</html>

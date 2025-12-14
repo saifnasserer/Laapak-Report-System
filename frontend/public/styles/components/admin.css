@@ -1,0 +1,146 @@
+/**
+ * Laapak Report System - Custom Admin Styles
+ * Brand colors: Dark green, gray, and white
+ */
+
+:root {
+    --laapak-dark-green: #0a6e35;
+    --laapak-medium-green: #0eaf54;
+    --laapak-light-green: #36d278;
+    --laapak-dark-gray: #343a40;
+    --laapak-medium-gray: #6c757d;
+    --laapak-light-gray: #f8f9fa;
+}
+
+/* Override Bootstrap colors */
+.bg-gradient-success {
+    background: linear-gradient(135deg, var(--laapak-medium-green), var(--laapak-dark-green));
+}
+
+.bg-success {
+    background-color: var(--laapak-medium-green) !important;
+}
+
+.text-success {
+    color: var(--laapak-medium-green) !important;
+}
+
+.btn-success {
+    background-color: var(--laapak-medium-green);
+    border-color: var(--laapak-medium-green);
+}
+
+.btn-success:hover {
+    background-color: var(--laapak-dark-green);
+    border-color: var(--laapak-dark-green);
+}
+
+.btn-outline-primary {
+    color: var(--laapak-medium-green);
+    border-color: var(--laapak-medium-green);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--laapak-medium-green);
+    border-color: var(--laapak-medium-green);
+}
+
+.nav-link.active {
+    background-color: var(--laapak-medium-green) !important;
+    color: white !important;
+}
+
+.bg-success.bg-opacity-10 {
+    background-color: rgba(14, 175, 84, 0.1) !important;
+}
+
+/* Admin Sidebar */
+.admin-sidebar {
+    background-color: var(--laapak-light-gray);
+    min-height: 100vh;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.admin-sidebar .nav-link {
+    color: var(--laapak-dark-gray);
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.admin-sidebar .nav-link:hover {
+    background-color: rgba(14, 175, 84, 0.1);
+    color: var(--laapak-medium-green);
+}
+
+/* Card designs */
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+/* Form Controls */
+.form-control:focus {
+    border-color: var(--laapak-medium-green);
+    box-shadow: 0 0 0 0.25rem rgba(14, 175, 84, 0.25);
+}
+
+.form-select:focus {
+    border-color: var(--laapak-medium-green);
+    box-shadow: 0 0 0 0.25rem rgba(14, 175, 84, 0.25);
+}
+
+.input-group-text {
+    background-color: var(--laapak-medium-green);
+    color: white;
+    border-color: var(--laapak-medium-green);
+}
+
+/* Client select dropdown */
+#clientSelect option[value="new"] {
+    font-weight: bold;
+    color: var(--laapak-medium-green);
+}
+
+/* Custom Button Styles */
+.btn-next-step, 
+.btn-success {
+    background-color: var(--laapak-medium-green);
+    border-color: var(--laapak-medium-green);
+}
+
+.btn-next-step:hover, 
+.btn-success:hover {
+    background-color: var(--laapak-dark-green);
+    border-color: var(--laapak-dark-green);
+}
+
+/* Step indicators */
+.step-button.btn-primary {
+    background-color: var(--laapak-medium-green);
+    border-color: var(--laapak-medium-green);
+}
+
+.step-button.btn-success {
+    background-color: var(--laapak-dark-green);
+    border-color: var(--laapak-dark-green);
+}
+
+.steps-progress-bar {
+    background-color: var(--laapak-medium-green);
+}
+
+/* Responsive tweaks */
+@media (max-width: 992px) {
+    .admin-content {
+        padding-bottom: 60px;
+    }
+}

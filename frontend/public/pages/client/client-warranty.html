@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل الضمان | Laapak</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/client.css">
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/reports-glass.css">
+    <link rel="stylesheet" href="../../styles/pages/client-warranty.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+</head>
+<body class="reports-page">
+    <div class="particles" id="particles"></div>
+    <div class="offline-alert" id="offlineAlert">
+        <i class="fas fa-wifi-slash"></i>
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <div class="container py-5">
+        <!-- Page Header -->
+        <div class="reports-page-header mb-4">
+            <h1 class="reports-page-title">
+                <i class="fas fa-shield-alt me-2"></i>
+                تفاصيل الضمان
+            </h1>
+        </div>
+
+        <!-- Warranty Info Cards -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="warranty-info-card">
+                    <div class="warranty-icon-wrapper bg-success">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <h6 class="warranty-title">ضمان عيوب الصناعة</h6>
+                    <p class="warranty-description">ضمان لمدة 6 أشهر ضد عيوب الصناعة منذ تاريخ إنشاء التقرير</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="warranty-info-card">
+                    <div class="warranty-icon-wrapper bg-warning">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h6 class="warranty-title">ضمان الاستبدال</h6>
+                    <p class="warranty-description">ضمان استبدال لمدة 14 يوم من تاريخ استلام الجهاز</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="warranty-info-card">
+                    <div class="warranty-icon-wrapper bg-info">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <h6 class="warranty-title">ضمان الصيانة الدورية</h6>
+                    <p class="warranty-description">ضمان صيانة دورية لمدة سنة كاملة (مرة كل 6 أشهر)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warranty Terms -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="glass-card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3"><i class="fas fa-exclamation-triangle text-warning me-2"></i> شروط الضمان الأساسية</h5>
+                        
+                        <div class="alert alert-warning glass-alert">
+                            <h6 class="fw-bold"><i class="fas fa-ban me-2"></i> استثناءات الضمان:</h6>
+                            <p class="mb-0">لا يسري الضمان في حال وجود سوء استخدام، الكسر، أو الأضرار الناتجة عن الكهرباء ذات الجهد العالي أو ما شابه.</p>
+                        </div>
+                        
+                        <div class="alert alert-danger glass-alert">
+                            <h6 class="fw-bold"><i class="fas fa-unlock-alt me-2"></i> الاستثناء عند فتح الجهاز:</h6>
+                            <p class="mb-0">لا يسري الضمان في حال تم إزالة الاستيكر الخاص بالشركة أو في حالة محاولة فتح أو صيانة الجهاز خارج الشركة.</p>
+                        </div>
+                        
+                        <div class="alert alert-info glass-alert">
+                            <h6 class="fw-bold"><i class="fas fa-info-circle me-2"></i> عيوب الصناعة فقط:</h6>
+                            <p class="mb-0">يشمل الضمان فقط العيوب الناتجة عن التصنيع ولا يشمل الأعطال الناتجة عن البرمجيات أو أي مشاكل غير متعلقة بالأجزاء المادية.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warranty List -->
+        <div class="row g-4" id="warrantyList">
+            <!-- Warranty cards will be loaded here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-laptop-medical me-2"></i> تفاصيل التقرير</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="reportModalContent">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printReportBtn">
+                        <i class="fas fa-print me-2"></i> طباعة التقرير
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Invoice Modal -->
+    <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i> تفاصيل الفاتورة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="invoiceModalContent">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                        <i class="fas fa-print me-2"></i> طباعة الفاتورة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="client-footer-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../scripts/core/config.js"></script>
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/core/auth-check.js"></script>
+    <script src="../../scripts/components/client-header-component.js"></script>
+    <script src="../../scripts/pages/client/modules/DashboardStateManager.js"></script>
+    <script src="../../scripts/pages/client/modules/EventBus.js"></script>
+    <script src="../../scripts/pages/client/modules/NotificationManager.js"></script>
+    <script src="../../scripts/pages/client/modules/DataManager.js"></script>
+    <script src="../../scripts/pages/client/modules/components/QuickStats.js"></script>
+    <script src="../../scripts/pages/client/modules/components/SearchAndFilter.js"></script>
+    <script src="../../scripts/pages/client/modules/Dashboard.js"></script>
+    <script src="../../scripts/pages/client/client-display.js"></script>
+    <script src="../../scripts/pages/client/client-warranty.js"></script>
+    <script src="../../scripts/pages/client/client-maintenance.js"></script>
+    <script src="../../scripts/pages/client/client-dashboard.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function createParticles() {
+                const particlesContainer = document.getElementById('particles');
+                if (!particlesContainer) return;
+                
+                const particleCount = 30;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 20 + 's';
+                    particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            createParticles();
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof authMiddleware !== 'undefined') {
+                if (!authMiddleware.isClientLoggedIn()) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+            }
+        });
+    </script>
+
+    <!-- Load Warranty Data -->
+    <script>
+        window.addEventListener('load', async function() {
+            let attempts = 0;
+            const maxAttempts = 10;
+            let dataLoaded = false;
+            
+            const tryLoadReports = async () => {
+                if (dataLoaded) return;
+                
+                attempts++;
+                
+                if (typeof loadClientReports === 'function') {
+                    try {
+                        dataLoaded = true;
+                        await loadClientReports();
+                    } catch (error) {
+                        console.error('Error loading warranty data:', error);
+                        dataLoaded = false;
+                    }
+                } else if (attempts < maxAttempts) {
+                    setTimeout(tryLoadReports, 100);
+                } else {
+                    console.error('loadClientReports function not found');
+                }
+            };
+            
+            await new Promise(resolve => setTimeout(resolve, 300));
+            tryLoadReports();
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const printReportBtn = document.getElementById('printReportBtn');
+            if (printReportBtn) {
+                printReportBtn.addEventListener('click', function() {
+                    const originalContent = document.body.innerHTML;
+                    const reportContent = document.getElementById('reportModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${reportContent}
+                        </div>
+                    `;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    location.reload();
+                });
+            }
+
+            const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+            if (printInvoiceBtn) {
+                printInvoiceBtn.addEventListener('click', function() {
+                    const originalContent = document.body.innerHTML;
+                    const invoiceContent = document.getElementById('invoiceModalContent').innerHTML;
+                    document.body.innerHTML = `
+                        <div class="container p-4">
+                            ${invoiceContent}
+                        </div>
+                    `;
+                    window.print();
+                    document.body.innerHTML = originalContent;
+                    location.reload();
+                });
+            }
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('service-worker.js')
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+

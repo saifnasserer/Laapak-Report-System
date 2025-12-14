@@ -1,0 +1,275 @@
+/* Laapak Report System - Custom CSS */
+
+:root {
+    /* Brand Colors */
+    --dark-green: #0a6e35;
+    --medium-green: #0eaf54;
+    --light-green: #36d278;
+    --primary-color: #0eaf54;
+    --dark-gray: #343a40;
+    --medium-gray: #666666;
+    --light-gray: #f8f9fa;
+    --white: #ffffff;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    
+    /* Font Families */
+    --font-primary: "Tajawal", "Segoe UI", sans-serif;
+}
+
+/* General Styles */
+body {
+    font-family: var(--font-primary);
+    background-color: #f8f9fa;
+    color: var(--dark-gray);
+}
+
+/* Custom Background Colors */
+.bg-dark-green {
+    background-color: var(--dark-green) !important;
+}
+
+.bg-medium-green {
+    background-color: var(--medium-green) !important;
+}
+
+.bg-light-green {
+    background-color: var(--light-green) !important;
+}
+
+/* Text colors */
+.text-dark-green {
+    color: var(--dark-green) !important;
+}
+
+.text-medium-green {
+    color: var(--medium-green) !important;
+}
+
+.text-light-green {
+    color: var(--light-green) !important;
+}
+
+/* Make all buttons circular */
+button {
+    border-radius: 50px;
+}
+
+/* Make circular buttons perfectly round */
+.btn-circle, .rounded-circle {
+    border-radius: 50% !important;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Custom Button Styles */
+.btn {
+    border-radius: 50px;
+}
+
+.btn-primary {
+    background-color: var(--medium-green);
+    border-color: var(--medium-green);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--dark-green);
+    border-color: var(--dark-green);
+}
+
+.btn-outline-primary {
+    color: var(--medium-green);
+    border-color: var(--medium-green);
+}
+
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+    background-color: var(--medium-green);
+    border-color: var(--medium-green);
+}
+
+/* Card Styles */
+.card {
+    border-radius: 8px;
+    overflow: hidden;
+    border: none;
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+/* Feature Icons */
+.feature-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+/* Report Components */
+.report-header {
+    background-color: var(--light-gray);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.report-section {
+    margin-bottom: 30px;
+}
+
+.test-result-card {
+    border-radius: 8px;
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+
+.test-result-card:hover {
+    transform: translateY(-5px);
+}
+
+.result-icon {
+    font-size: 1.75rem;
+    margin-bottom: 10px;
+}
+
+.result-success {
+    color: #28a745;
+}
+
+.result-warning {
+    color: #ffc107;
+}
+
+.result-failure {
+    color: #dc3545;
+}
+
+/* Image Gallery */
+.report-gallery {
+    margin-bottom: 30px;
+}
+
+.gallery-image {
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s;
+    margin-bottom: 15px;
+}
+
+.gallery-image:hover {
+    transform: scale(1.03);
+}
+
+/* QR Code */
+.qr-code-container {
+    text-align: center;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .report-header {
+        padding: 15px;
+    }
+    
+    .qr-code-container {
+        margin-top: 20px;
+    }
+}
+
+/* Admin Panel Styles */
+.admin-sidebar {
+    background-color: var(--dark-green);
+    color: white;
+    height: 100%;
+    min-height: 100vh;
+}
+
+.admin-content {
+    padding: 20px;
+}
+
+.admin-sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    padding: 10px 20px;
+    margin: 5px 0;
+    border-radius: 5px;
+}
+
+.admin-sidebar .nav-link:hover,
+.admin-sidebar .nav-link.active {
+    background-color: var(--medium-green);
+    color: white;
+}
+
+/* PWA Install Button */
+.pwa-install-button {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999;
+}
+
+/* Offline Mode Notification */
+.offline-alert {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--medium-green);
+    color: white;
+    padding: 10px;
+    text-align: center;
+    z-index: 9999;
+}
+
+/* Loader Animation */
+.loader {
+    border: 5px solid var(--light-gray);
+    border-top: 5px solid var(--medium-green);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Print Styles for PDF Generation */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    body {
+        background-color: white;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .card {
+        break-inside: avoid;
+    }
+}

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laapak Reports</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    <link rel="shortcut icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/custom-admin.css">
+    
+    <!-- Apple Glass Theme -->
+    <link rel="stylesheet" href="../../styles/themes/apple-glass.css">
+    
+    <!-- Reports Glass Styles -->
+    <link rel="stylesheet" href="../../styles/pages/reports-glass.css">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="../../manifest.json">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Laapak Reports">
+    <link rel="apple-touch-icon" href="../../assets/images/cropped-Logo-mark.png.png">
+    
+    <!-- Theme color for browser -->
+    <meta name="theme-color" content="#0a3622">
+    
+    <style>
+        /* Header-specific styles (keep for compatibility) */
+        .fs-sm-6 {
+            font-size: 0.875rem;
+        }
+        
+        .nav-item .nav-link.rounded-circle {
+            width: 36px;
+            height: 36px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @media (max-width: 767.98px) {
+            .fs-sm-6 {
+                font-size: 0.75rem;
+            }
+            
+            .nav-item .nav-link.rounded-circle {
+                width: 32px !important;
+                height: 32px !important;
+            }
+            
+            .nav-item {
+                margin-left: 4px !important;
+                margin-right: 4px !important;
+            }
+            
+            .nav-item.mx-sm-2 {
+                margin-left: 2px !important;
+                margin-right: 2px !important;
+            }
+            
+            #header-container .navbar-nav .nav-link {
+                width: 32px !important;
+                height: 32px !important;
+            }
+            
+            #userDropdown {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body class="reports-page">
+    <!-- Glass Background -->
+    <div class="glass-background"></div>
+    
+    <!-- Offline Alert -->
+    <div class="offline-alert" id="offlineAlert">
+        أنت حاليًا في وضع عدم الاتصال. سيتم حفظ التغييرات محليًا حتى استعادة الاتصال.
+    </div>
+
+    <!-- Header Container - will be populated by header-component.js -->
+    <div id="header-container"></div>
+    
+    <div class="container-fluid p-4">
+        <!-- Main Content -->
+        <div class="admin-content">
+                <!-- Reports Content -->
+                <div class="container-fluid">
+                    <div class="reports-page-header">
+                        <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap" style="width: 100%; max-width: 600px; margin: 0 auto;">
+                            <!-- Minimal Round Search Bar -->
+                            <div class="search-container">
+                                <div class="input-group">
+                                    <span class="input-group-text search-icon-wrapper">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" 
+                                           id="searchReport" placeholder="البحث في التقارير، رقم الهاتف، العميل...">
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill d-none" 
+                                            id="clearReportSearchBtn" style="width: 24px; height: 24px; padding: 0; margin-right: 0.5rem;">
+                                        <i class="fas fa-times" style="font-size: 10px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Filter Icon Button with Dropdown -->
+                            <div class="position-relative">
+                                <button type="button" class="btn btn-outline-primary filter-icon-btn" id="filterIconBtn" title="تصفية التقارير">
+                                    <i class="fas fa-filter"></i>
+                                    <span class="filter-badge" id="activeFiltersCount">0</span>
+                                </button>
+                                
+                                <!-- Filters Panel Dropdown -->
+                                <div class="filter-dropdown-container" id="filterDropdown" style="display: none;">
+                            <div class="filter-panel-card">
+                                <div class="filter-panel" id="filterPanel">
+                                <!-- Quick Date Filters -->
+                                <div class="quick-filters">
+                                    <button type="button" class="quick-filter-btn" data-period="today">
+                                        <i class="fas fa-calendar-day me-1"></i> اليوم
+                                    </button>
+                                    <button type="button" class="quick-filter-btn" data-period="week">
+                                        <i class="fas fa-calendar-week me-1"></i> هذا الأسبوع
+                                    </button>
+                                    <button type="button" class="quick-filter-btn active" data-period="month">
+                                        <i class="fas fa-calendar-alt me-1"></i> هذا الشهر
+                                    </button>
+                                    <button type="button" class="quick-filter-btn" data-period="all">
+                                        <i class="fas fa-calendar me-1"></i> الكل
+                                    </button>
+                                </div>
+                                
+                                <!-- Filter Form -->
+                                <form id="filterForm">
+                                    <div class="filter-row">
+                                        <div class="filter-group">
+                                            <label for="startDate">
+                                                <i class="fas fa-calendar me-1"></i> من تاريخ
+                                            </label>
+                                            <input type="date" class="form-control form-control-sm" id="startDate" name="startDate">
+                                        </div>
+                                        
+                                        <div class="filter-group">
+                                            <label for="endDate">
+                                                <i class="fas fa-calendar me-1"></i> إلى تاريخ
+                                            </label>
+                                            <input type="date" class="form-control form-control-sm" id="endDate" name="endDate">
+                                        </div>
+                                        
+                                        <div class="filter-group">
+                                            <label for="statusFilter">
+                                                <i class="fas fa-tag me-1"></i> حالة التقرير
+                                            </label>
+                                            <select class="form-select form-select-sm" id="statusFilter" name="status">
+                                                <option value="">جميع الحالات</option>
+                                                <option value="قيد الانتظار">قيد الانتظار</option>
+                                                <option value="قيد المعالجة">قيد المعالجة</option>
+                                                <option value="مكتمل">مكتمل</option>
+                                                <option value="ملغي">ملغي</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="filter-group">
+                                            <label for="invoiceStatusFilter">
+                                                <i class="fas fa-file-invoice me-1"></i> حالة الفاتورة
+                                            </label>
+                                            <select class="form-select form-select-sm" id="invoiceStatusFilter" name="invoiceStatus">
+                                                <option value="">جميع الفواتير</option>
+                                                <option value="with_invoice">مع فاتورة</option>
+                                                <option value="without_invoice">بدون فاتورة</option>
+                                                <option value="paid">مدفوع</option>
+                                                <option value="unpaid">غير مدفوع</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="filter-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="resetFiltersBtn">
+                                            <i class="fas fa-redo me-1"></i> إعادة تعيين
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-primary" id="applyFiltersBtn">
+                                            <i class="fas fa-check me-1"></i> تطبيق التصفية
+                                        </button>
+                                    </div>
+                                </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reports Table -->
+                    <div class="reports-table-card">
+                        <div class="reports-table-header">
+                            <h5 class="mb-0 text-center">
+                                <span id="reportsTitle">تقارير هذا الشهر</span>
+                                <small class="ms-2" id="reportsCount">(0 تقرير)</small>
+                            </h5>
+                        </div>
+                        <div class="reports-table-body">
+                            <div class="table-responsive">
+                                <!-- Loading Indicator -->
+                                <div id="loadingIndicator" class="text-center py-5 d-none">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">جاري التحميل...</span>
+                                    </div>
+                                    <p class="mt-2">جاري تحميل التقارير...</p>
+                                </div>
+                                
+                                <!-- Error Message -->
+                                <div id="errorContainer" class="alert alert-danger d-none" role="alert"></div>
+                                
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-center">رقم الطلب</th>
+                                            <th class="text-center">اسم العميل</th>
+                                            <th class="text-center">نوع الجهاز</th>
+                                            <th class="text-center">
+                                                تاريخ الفحص
+                                                <i class="fas fa-sort-down ms-1 text-primary" title="مرتب حسب التاريخ (الأحدث أولاً)"></i>
+                                            </th>
+                                            <th class="text-center">الحالة</th>
+                                            <th class="text-center">الفاتورة</th>
+                                            <th class="text-center">الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reportsTableBody">
+                                        <!-- Reports will be loaded dynamically via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Load More Button -->
+                            <div class="text-center mt-4" id="loadMoreContainer">
+                                <button type="button" class="btn btn-outline-primary btn-lg" id="loadMoreBtn" style="display: none;">
+                                    <i class="fas fa-chevron-down me-2"></i>
+                                    <span id="loadMoreText">تحميل المزيد</span>
+                                    <span id="loadMoreCount" class="ms-2 opacity-75"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../../scripts/core/main.js"></script>
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/core/config.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/components/header-component.js"></script>
+    <script src="../../scripts/pages/admin/admin.js"></script>
+    <script src="../../scripts/pages/reports/reports.js"></script>
+    
+    <!-- Service Worker Registration for PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

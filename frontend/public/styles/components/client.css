@@ -1,0 +1,171 @@
+/**
+ * Laapak Report System - Custom Client Styles
+ */
+
+:root {
+    --lpk-primary: #007553;
+    --lpk-primary-dark: #004d35;
+    --lpk-secondary: #6c757d;
+    --lpk-light: #f8f9fa;
+    --lpk-border-radius: 10px;
+}
+
+/* Client Header */
+.client-header {
+    background: linear-gradient(135deg, var(--lpk-primary) 0%, var(--lpk-primary-dark) 100%);
+    color: white;
+}
+
+/* Navigation Tabs */
+.client-nav {
+    border-radius: var(--lpk-border-radius);
+}
+
+.client-nav .nav-link {
+    color: var(--lpk-secondary);
+    border-radius: 0;
+    transition: all 0.3s ease;
+}
+
+.client-nav .nav-link.active {
+    background-color: var(--lpk-primary);
+    color: white;
+}
+
+.client-nav .nav-link:hover:not(.active) {
+    background-color: var(--lpk-light);
+}
+
+/* Report Cards */
+.report-card {
+    border: none;
+    border-radius: var(--lpk-border-radius);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.report-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* Warranty Badges */
+.warranty-badge {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 50px;
+}
+
+.warranty-active {
+    background-color: #d1e7dd;
+    color: var(--lpk-primary-dark);
+}
+
+.warranty-expired {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+/* Warranty Progress Bars */
+.warranty-progress {
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+/* Maintenance Badges */
+.maintenance-badge {
+    font-weight: bold;
+    padding: 8px 14px;
+    border-radius: 20px;
+}
+
+/* Logout Link */
+.logout-link {
+    color: #dc3545;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.logout-link:hover {
+    color: #bd2130;
+}
+
+/* Custom Buttons */
+.btn-primary {
+    background: linear-gradient(135deg, var(--lpk-primary) 0%, var(--lpk-primary-dark) 100%);
+    border: none;
+}
+
+.btn-outline-primary {
+    color: var(--lpk-primary);
+    border-color: var(--lpk-primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--lpk-primary);
+    border-color: var(--lpk-primary);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .client-header {
+        padding: 15px 0;
+    }
+    
+    .maintenance-badge, .warranty-badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+}
+
+/* Modal Customizations */
+.modal-content {
+    border-radius: var(--lpk-border-radius);
+}
+
+.modal-header {
+    border-top-left-radius: calc(var(--lpk-border-radius) - 1px);
+    border-top-right-radius: calc(var(--lpk-border-radius) - 1px);
+}
+
+/* Print Styling */
+@media print {
+    .client-header, .client-nav, .card-footer, .no-print {
+        display: none !important;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+}
+
+/* RTL Support Enhancements */
+[dir="rtl"] .dropdown-menu-end {
+    right: auto;
+    left: 0;
+}
+
+[dir="rtl"] .ms-auto {
+    margin-right: auto !important;
+    margin-left: 0 !important;
+}
+
+/* Offline Alert */
+.offline-alert {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #fd7e14;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    z-index: 9999;
+    display: none;
+}
