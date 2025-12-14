@@ -274,8 +274,9 @@ async function linkThroughReportInvoiceId(dryRun = false) {
                             invoice_id: report.invoice_id,
                             report_id: report.id
                         });
+                        linkedCount++;
                     }
-                    linkedCount++;
+                    // In dry-run, don't increment linkedCount
                 }
             } else {
                 skippedCount++;
@@ -283,12 +284,16 @@ async function linkThroughReportInvoiceId(dryRun = false) {
         }
 
         if (dryRun) {
-            console.log(`   Would create ${linkedCount} links`);
+            // Count what would be created (reports with valid invoice_id that don't have links)
+            const wouldCreate = reports.filter(r => {
+                return r.invoice_id !== null;
+            }).length;
+            console.log(`   Would create ${wouldCreate} links`);
+            return { linkedCount: 0, skippedCount, wouldCreate };
         } else {
             console.log(`   ✅ Created ${linkedCount} links through report invoice_id field`);
+            return { linkedCount, skippedCount };
         }
-
-        return { linkedCount, skippedCount };
     } catch (error) {
         console.error('❌ Error linking through report invoice_id:', error);
         throw error;
@@ -347,8 +352,9 @@ async function linkThroughSerialNumbers(dryRun = false) {
                             invoice_id: item.invoiceId,
                             report_id: report.id
                         });
+                        linkedCount++;
                     }
-                    linkedCount++;
+                    // In dry-run, don't increment linkedCount
                 } else {
                     skippedCount++;
                 }
@@ -356,12 +362,34 @@ async function linkThroughSerialNumbers(dryRun = false) {
         }
 
         if (dryRun) {
-            console.log(`   Would create ${linkedCount} links`);
+            // Count what would be created
+            let wouldCreate = 0;
+            for (const item of invoiceItems) {
+                if (!item.serialNumber || !item.invoice) continue;
+                const reports = await Report.findAll({
+                    where: {
+                        serial_number: item.serialNumber,
+                        client_id: item.invoice.client_id
+                    }
+                });
+                for (const report of reports) {
+                    const existingLink = await InvoiceReport.findOne({
+                        where: {
+                            invoice_id: item.invoiceId,
+                            report_id: report.id
+                        }
+                    });
+                    if (!existingLink) {
+                        wouldCreate++;
+                    }
+                }
+            }
+            console.log(`   Would create ${wouldCreate} links`);
+            return { linkedCount: 0, skippedCount, wouldCreate };
         } else {
             console.log(`   ✅ Created ${linkedCount} links through serial numbers`);
+            return { linkedCount, skippedCount };
         }
-
-        return { linkedCount, skippedCount };
     } catch (error) {
         console.error('❌ Error linking through serial numbers:', error);
         throw error;
@@ -423,8 +451,9 @@ async function linkThroughClientAndDate(dryRun = false, maxDaysDiff = 30) {
                             invoice_id: invoice.id,
                             report_id: report.id
                         });
+                        linkedCount++;
                     }
-                    linkedCount++;
+                    // In dry-run, don't increment linkedCount
                 } else {
                     skippedCount++;
                 }
@@ -432,12 +461,46 @@ async function linkThroughClientAndDate(dryRun = false, maxDaysDiff = 30) {
         }
 
         if (dryRun) {
-            console.log(`   Would create ${linkedCount} links`);
+            // Count what would be created
+            let wouldCreate = 0;
+            for (const invoice of unlinkedInvoices) {
+                const invoiceDate = new Date(invoice.date);
+                const startDate = new Date(invoiceDate);
+                startDate.setDate(startDate.getDate() - maxDaysDiff);
+                const endDate = new Date(invoiceDate);
+                endDate.setDate(endDate.getDate() + maxDaysDiff);
+
+                const reports = await Report.findAll({
+                    where: {
+                        client_id: invoice.client_id,
+                        inspection_date: {
+                            [Op.between]: [startDate, endDate]
+                        },
+                        invoice_created: false
+                    },
+                    order: [['inspection_date', 'DESC']],
+                    limit: 1
+                });
+
+                if (reports.length > 0) {
+                    const report = reports[0];
+                    const existingLink = await InvoiceReport.findOne({
+                        where: {
+                            invoice_id: invoice.id,
+                            report_id: report.id
+                        }
+                    });
+                    if (!existingLink) {
+                        wouldCreate++;
+                    }
+                }
+            }
+            console.log(`   Would create ${wouldCreate} links`);
+            return { linkedCount: 0, skippedCount, wouldCreate };
         } else {
             console.log(`   ✅ Created ${linkedCount} links through client and date matching`);
+            return { linkedCount, skippedCount };
         }
-
-        return { linkedCount, skippedCount };
     } catch (error) {
         console.error('❌ Error linking through client and date:', error);
         throw error;
