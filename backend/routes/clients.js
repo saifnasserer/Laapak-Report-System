@@ -124,7 +124,7 @@ router.post('/', [
 // @desc    Update a client
 // @access  Private (Admin only)
 router.put('/:id', adminAuth, (req, res) => {
-    const { name, phone, email, address, status } = req.body;
+    const { name, phone, email, address, status, orderCode } = req.body;
     
     // Find client
     Client.findByPk(req.params.id)
@@ -152,7 +152,8 @@ router.put('/:id', adminAuth, (req, res) => {
                 phone: phone || client.phone,
                 email: email !== undefined ? email : client.email,
                 address: address !== undefined ? address : client.address,
-                status: status || client.status
+                status: status || client.status,
+                orderCode: orderCode !== undefined ? orderCode : client.orderCode
             });
         })
         .then(updatedClient => {

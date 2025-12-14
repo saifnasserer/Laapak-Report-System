@@ -1,0 +1,228 @@
+/**
+ * Client Reports Page - Glass Style
+ * Matches reports-glass.css design
+ */
+
+/* ============================================
+   REPORT CARDS - Glass Style
+   ============================================ */
+
+#reportsList .card {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: 
+        0 0 20px rgba(14, 175, 84, 0.15),
+        0 0 40px rgba(10, 110, 53, 0.1),
+        var(--shadow-inner-highlight);
+    transition: var(--transition-standard);
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+}
+
+#reportsList .card:hover {
+    box-shadow: 
+        0 0 30px rgba(14, 175, 84, 0.25),
+        0 0 60px rgba(10, 110, 53, 0.15),
+        var(--shadow-inner-highlight);
+    transform: translateY(-2px);
+    border-color: var(--laapak-medium-green);
+}
+
+#reportsList .card-body {
+    padding: 1.5rem;
+    background: transparent;
+}
+
+#reportsList .card-footer {
+    background: transparent;
+    border-top: 1px solid var(--glass-border-light);
+    padding: 1rem 1.5rem;
+}
+
+#reportsList .card h5 {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+}
+
+#reportsList .card .text-muted {
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+}
+
+#reportsList .card .badge {
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+}
+
+#reportsList .card .btn {
+    border-radius: var(--radius-full);
+    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    transition: var(--transition-standard);
+}
+
+#reportsList .card .btn-outline-primary {
+    background: var(--glass-bg-input);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--laapak-medium-green);
+    color: var(--laapak-medium-green);
+}
+
+#reportsList .card .btn-outline-primary:hover {
+    background: var(--laapak-medium-green);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(10, 110, 53, 0.2);
+}
+
+#reportsList .card .btn-warning {
+    background: var(--laapak-medium-green);
+    border: none;
+    color: white;
+    box-shadow: 
+        0 4px 12px rgba(10, 110, 53, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+#reportsList .card .btn-warning:hover {
+    background: var(--laapak-dark-green);
+    transform: translateY(-1px);
+    box-shadow: 
+        0 6px 20px rgba(10, 110, 53, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Latest Report Highlight */
+#reportsList .card.shadow-lg {
+    border: 2px solid var(--laapak-medium-green);
+    box-shadow: 
+        0 0 30px rgba(14, 175, 84, 0.3),
+        0 0 60px rgba(10, 110, 53, 0.2),
+        var(--shadow-inner-highlight);
+}
+
+#reportsList .card.shadow-lg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(135deg, var(--laapak-medium-green) 0%, var(--laapak-dark-green) 100%);
+    z-index: 1;
+}
+
+#reportsList .card .position-absolute .fa-circle {
+    color: var(--laapak-medium-green);
+    filter: drop-shadow(0 2px 4px rgba(14, 175, 84, 0.3));
+}
+
+/* Empty State - Glass Style */
+.enhanced-empty-state {
+    background: var(--glass-bg-primary);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-glass);
+    padding: 4rem 2rem;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.empty-state-icon-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    color: var(--laapak-medium-green);
+    opacity: 0.8;
+}
+
+.empty-state-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.empty-state-message {
+    color: var(--text-tertiary);
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#reportsList .card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+#reportsList .card:nth-child(1) { animation-delay: 0.1s; }
+#reportsList .card:nth-child(2) { animation-delay: 0.2s; }
+#reportsList .card:nth-child(3) { animation-delay: 0.3s; }
+#reportsList .card:nth-child(4) { animation-delay: 0.4s; }
+#reportsList .card:nth-child(5) { animation-delay: 0.5s; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .reports-page-title {
+        font-size: 2.5rem !important;
+        text-align: center !important;
+        width: 100%;
+        margin-bottom: 2rem;
+    }
+    
+    .reports-page-header {
+        justify-content: center !important;
+        text-align: center;
+    }
+    
+    #reportsList .card-body {
+        padding: 1.25rem;
+    }
+    
+    .enhanced-empty-state {
+        padding: 3rem 1.5rem;
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+    }
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(10px)) {
+    #reportsList .card {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .enhanced-empty-state {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+}
+

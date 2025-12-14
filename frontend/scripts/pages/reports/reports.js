@@ -137,15 +137,18 @@ function getInvoiceLink(report) {
                 <a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-success">
                     <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
                 </a>
-                                 <!-- ${statusBadge} -->
-
+                <button onclick="printInvoice('${invoice.id}')" class="btn btn-sm btn-outline-dark" title="طباعة الفاتورة">
+                    <i class="fas fa-print me-1"></i>طباعة
+                </button>
             </div>`;
         } else {
             return `<div class="d-flex flex-column gap-1">
                 <a href="view-invoice.html?id=${invoice.id}" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
                 </a>
-                <!-- ${statusBadge} -->
+                <button onclick="printInvoice('${invoice.id}')" class="btn btn-sm btn-outline-dark" title="طباعة الفاتورة">
+                    <i class="fas fa-print me-1"></i>طباعة
+                </button>
             </div>`;
         }
     }
@@ -167,14 +170,18 @@ function getInvoiceLink(report) {
                 <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-success">
                     <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
                 </a>
-                <!-- ${statusBadge} -->
+                <button onclick="printInvoice('${report.invoice_id}')" class="btn btn-sm btn-outline-dark" title="طباعة الفاتورة">
+                    <i class="fas fa-print me-1"></i>طباعة
+                </button>
             </div>`;
         } else {
             return `<div class="d-flex flex-column gap-1">
                 <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
                 </a>
-                <!-- ${statusBadge} -->
+                <button onclick="printInvoice('${report.invoice_id}')" class="btn btn-sm btn-outline-dark" title="طباعة الفاتورة">
+                    <i class="fas fa-print me-1"></i>طباعة
+                </button>
             </div>`;
         }
     }
@@ -196,15 +203,18 @@ function getInvoiceLink(report) {
                 <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-success">
                     <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
                 </a>
-                <!-- ${statusBadge} -->
+                <button onclick="printInvoice('${report.invoice_id}')" class="btn btn-sm btn-outline-dark" title="طباعة الفاتورة">
+                    <i class="fas fa-print me-1"></i>طباعة
+                </button>
             </div>`;
         } else {
             return `<div class="d-flex flex-column gap-1">
                 <a href="view-invoice.html?id=${report.invoice_id}" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-file-invoice me-1"></i>عرض الفاتورة
                 </a>
-                                <!-- ${statusBadge} -->
-
+                <button onclick="printInvoice('${report.invoice_id}')" class="btn btn-sm btn-outline-dark" title="طباعة الفاتورة">
+                    <i class="fas fa-print me-1"></i>طباعة
+                </button>
             </div>`;
         }
     }
@@ -1393,4 +1403,45 @@ function showToast(message, type = 'info') {
         // Fallback to alert
         alert(message);
     }
+}
+
+/**
+ * Print invoice - opens print-ready invoice page
+ * @param {string} invoiceId - The invoice ID to print
+ */
+function printInvoice(invoiceId) {
+    if (!invoiceId) {
+        showToast('رقم الفاتورة غير صحيح', 'error');
+        return;
+    }
+    
+    // Get token from storage (admin or client token)
+    const token = localStorage.getItem('adminToken') || 
+                  sessionStorage.getItem('adminToken') ||
+                  localStorage.getItem('clientToken') ||
+                  sessionStorage.getItem('clientToken');
+    
+    if (!token) {
+        showToast('يرجى تسجيل الدخول أولاً لطباعة الفواتير', 'error');
+        return;
+    }
+    
+    // Determine base URL
+    const baseUrl = (window.config && window.config.api && window.config.api.baseUrl) || 
+                    (typeof apiService !== 'undefined' && apiService.baseUrl) ||
+                    window.location.origin;
+    
+    // Build print URL with token
+    const printUrl = `${baseUrl}/api/invoices/${invoiceId}/print?token=${encodeURIComponent(token)}`;
+    
+    // Open in new window
+    const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
+    
+    if (!printWindow) {
+        showToast('يرجى السماح للنافذة المنبثقة لطباعة الفاتورة', 'error');
+        return;
+    }
+    
+    // Show success message
+    showToast('جارٍ فتح صفحة الطباعة...', 'success');
 }

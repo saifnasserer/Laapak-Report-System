@@ -455,8 +455,8 @@ document.addEventListener('DOMContentLoaded', function () {
             paymentStatus: paymentStatusSelect.value,
             paymentMethod: paymentMethodSelect.value || null,
             paymentDate: null, // Removed payment date field - always null
-            discount: parseFloat(discountInput.value).toFixed(2),
-            taxRate: parseFloat(taxRateInput.value).toFixed(2),
+            discount: parseFloat(discountInput.value || 0).toFixed(2),
+            taxRate: parseFloat(taxRateInput.value || 14).toFixed(2),
             items: []
         };
 
@@ -469,10 +469,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const itemRows = invoiceItemsContainer.querySelectorAll('.invoice-item');
         itemRows.forEach(row => {
             const itemType = row.querySelector('.item-type').value;
+            const quantity = parseInt(row.querySelector('.item-quantity').value) || 1;
+            const amount = parseFloat(row.querySelector('.item-amount').value) || 0;
+            const totalAmount = quantity * amount;
+            
             const itemData = {
                 description: row.querySelector('.item-description').value,
-                quantity: parseInt(row.querySelector('.item-quantity').value),
-                amount: parseFloat(row.querySelector('.item-amount').value).toFixed(2),
+                quantity: quantity,
+                amount: amount.toFixed(2),
+                totalAmount: totalAmount.toFixed(2), // Calculate and include totalAmount
                 serialNumber: row.querySelector('.item-serial').value || null,
                 type: itemType, // Include the item type
                 report_id: row.querySelector('.item-report-id').value || null
@@ -494,6 +499,29 @@ document.addEventListener('DOMContentLoaded', function () {
         invoiceData.total = (subtotalAfterDiscount + currentTax).toFixed(2);
 
         try {
+            // Validate required fields before sending
+            if (!invoiceData.client_id) {
+                throw new Error('يجب اختيار عميل للفاتورة');
+            }
+            
+            if (!invoiceData.items || invoiceData.items.length === 0) {
+                throw new Error('يجب إضافة عنصر واحد على الأقل للفاتورة');
+            }
+            
+            // Validate each item
+            for (let i = 0; i < invoiceData.items.length; i++) {
+                const item = invoiceData.items[i];
+                if (!item.description || item.description.trim() === '') {
+                    throw new Error(`يجب إدخال وصف للعنصر رقم ${i + 1}`);
+                }
+                if (!item.amount || parseFloat(item.amount) <= 0) {
+                    throw new Error(`يجب إدخال سعر صحيح للعنصر رقم ${i + 1}`);
+                }
+                if (!item.quantity || parseInt(item.quantity) <= 0) {
+                    throw new Error(`يجب إدخال كمية صحيحة للعنصر رقم ${i + 1}`);
+                }
+            }
+            
             // Debug: Log the invoice data being sent
             console.log('Invoice data being sent:', invoiceData);
             console.log('Original date input value:', invoiceDateInput.value);

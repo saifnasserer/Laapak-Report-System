@@ -16,10 +16,10 @@ class ApiService {
         } 
         // For localhost development, use port 3001
         else if (isLocalhost) {
-            // Safely access config with fallback
+            // Safely access config with fallback to localhost:3001
             this.baseUrl = (window.config && window.config.api && window.config.api.baseUrl) || 
                           (typeof config !== 'undefined' && config.api && config.api.baseUrl) || 
-                          'https://reports.laapak.com';
+                          'http://localhost:3001';
         } 
         // For production, use the same origin but with /api
         else {
@@ -132,7 +132,7 @@ class ApiService {
             if (error.name === 'AbortError') {
                 throw new Error('طلب API انتهت مهلته. يرجى المحاولة مرة أخرى.');
             } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
-                throw new Error('لا يمكن الاتصال بالخادم. يرجى التأكد من تشغيل خادم Node.js على المنفذ 3000.');
+                throw new Error('لا يمكن الاتصال بالخادم. يرجى التأكد من تشغيل خادم Node.js على المنفذ 3001.');
             } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
                 throw new Error('فشل الاتصال بالخادم. يرجى التأكد من تشغيل خادم API.');
             } else if (error.message && error.message.includes('database')) {
@@ -1082,9 +1082,12 @@ var apiService;
         }
     } catch (error) {
         console.error('Error initializing apiService:', error);
-        // Create a fallback service with the production URL
-        apiService = new ApiService('https://reports.laapak.com');
+        // Create a fallback service - use localhost:3001 for localhost, otherwise production URL
+        const fallbackUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+            ? 'http://localhost:3001' 
+            : 'https://reports.laapak.com';
+        apiService = new ApiService(fallbackUrl);
         window.apiService = apiService;
-        console.log('Created fallback apiService with hardcoded URL');
+        console.log('Created fallback apiService with URL:', fallbackUrl);
     }
 })();

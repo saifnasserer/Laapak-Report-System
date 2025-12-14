@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رابط طباعة الفاتورة</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0a592c;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #0a592c;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0d944d;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            border-right: 4px solid #0a592c;
+        }
+        .link {
+            word-break: break-all;
+            color: #0a592c;
+            font-weight: bold;
+        }
+        .copy-btn {
+            background: #007bff;
+            margin-left: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .copy-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 رابط طباعة الفاتورة</h1>
+        
+        <div class="input-group">
+            <label for="invoiceId">رقم الفاتورة:</label>
+            <input type="text" id="invoiceId" value="INV1764279418642516" placeholder="أدخل رقم الفاتورة">
+        </div>
+        
+        <div class="input-group">
+            <label for="token">رمز المصادقة (Token):</label>
+            <input type="text" id="token" placeholder="سيتم الحصول عليه تلقائياً من localStorage">
+        </div>
+        
+        <button onclick="generateLink()">إنشاء الرابط</button>
+        <button onclick="openPrint()" style="background: #28a745;">فتح صفحة الطباعة</button>
+        
+        <div id="result" class="result" style="display: none;">
+            <strong>الرابط:</strong><br>
+            <span id="link" class="link"></span>
+            <button class="copy-btn" onclick="copyLink()">نسخ</button>
+        </div>
+    </div>
+
+    <script>
+        // Auto-fill token from localStorage
+        window.onload = function() {
+            const token = localStorage.getItem('adminToken') || 
+                         sessionStorage.getItem('adminToken') ||
+                         localStorage.getItem('clientToken') ||
+                         sessionStorage.getItem('clientToken');
+            
+            if (token) {
+                document.getElementById('token').value = token;
+            }
+        };
+
+        function generateLink() {
+            const invoiceId = document.getElementById('invoiceId').value.trim();
+            const token = document.getElementById('token').value.trim();
+            
+            if (!invoiceId) {
+                alert('يرجى إدخال رقم الفاتورة');
+                return;
+            }
+            
+            if (!token) {
+                alert('يرجى إدخال رمز المصادقة');
+                return;
+            }
+            
+            // Determine base URL
+            const baseUrl = window.location.origin;
+            const printUrl = `${baseUrl}/api/invoices/${invoiceId}/print?token=${encodeURIComponent(token)}`;
+            
+            // Display result
+            document.getElementById('link').textContent = printUrl;
+            document.getElementById('result').style.display = 'block';
+        }
+
+        function openPrint() {
+            const invoiceId = document.getElementById('invoiceId').value.trim();
+            const token = document.getElementById('token').value.trim();
+            
+            if (!invoiceId) {
+                alert('يرجى إدخال رقم الفاتورة');
+                return;
+            }
+            
+            if (!token) {
+                alert('يرجى إدخال رمز المصادقة');
+                return;
+            }
+            
+            // Determine base URL
+            const baseUrl = window.location.origin;
+            const printUrl = `${baseUrl}/api/invoices/${invoiceId}/print?token=${encodeURIComponent(token)}`;
+            
+            // Open in new window
+            window.open(printUrl, '_blank', 'width=800,height=600');
+        }
+
+        function copyLink() {
+            const linkText = document.getElementById('link').textContent;
+            navigator.clipboard.writeText(linkText).then(() => {
+                alert('تم نسخ الرابط!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = linkText;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('تم نسخ الرابط!');
+            });
+        }
+    </script>
+</body>
+</html>
+

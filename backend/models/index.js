@@ -5,6 +5,10 @@ const InvoiceItem = require('./InvoiceItem');
 const Report = require('./Report');
 const ReportTechnicalTest = require('./ReportTechnicalTest');
 const InvoiceReport = require('./invoicereport'); 
+const InvoiceReportSummary = require('./InvoiceReportSummary');
+const BudgetAllocation = require('./BudgetAllocation');
+const ApiKey = require('./ApiKey');
+const ApiUsageLog = require('./ApiUsageLog');
 const Goal = require('./Goal');
 const Achievement = require('./Achievement');
 
@@ -55,20 +59,6 @@ MoneyLocation.hasMany(Expense, { foreignKey: 'money_location_id', as: 'expenses'
 ProductCost.hasMany(InvoiceItem, { foreignKey: 'product_cost_id', as: 'invoiceItems' });
 InvoiceItem.belongsTo(ProductCost, { foreignKey: 'product_cost_id', as: 'productCost' });
 
-// Report and Invoice associations through InvoiceReport junction table
-Report.belongsToMany(Invoice, { 
-    through: InvoiceReport, 
-    foreignKey: 'report_id', 
-    otherKey: 'invoice_id',
-    as: 'invoices' 
-});
-Invoice.belongsToMany(Report, { 
-    through: InvoiceReport, 
-    foreignKey: 'invoice_id', 
-    otherKey: 'report_id',
-    as: 'reports' 
-});
-
 // Client associations
 Client.hasMany(Report, { foreignKey: 'client_id', as: 'reports' });
 Report.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
@@ -80,6 +70,37 @@ Invoice.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
 Invoice.hasMany(InvoiceItem, { foreignKey: 'invoiceId', as: 'InvoiceItems' });
 InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoiceId', as: 'invoice' });
 
+// Report and Invoice many-to-many associations through InvoiceReport junction table
+Report.belongsToMany(Invoice, { 
+    through: InvoiceReport, 
+    foreignKey: 'report_id', 
+    otherKey: 'invoice_id',
+    as: 'relatedInvoices' 
+});
+Invoice.belongsToMany(Report, { 
+    through: InvoiceReport, 
+    foreignKey: 'invoice_id', 
+    otherKey: 'report_id',
+    as: 'relatedReports' 
+});
+
+// BudgetAllocation associations
+Admin.hasMany(BudgetAllocation, { foreignKey: 'created_by', as: 'createdBudgetAllocations' });
+BudgetAllocation.belongsTo(Admin, { foreignKey: 'created_by', as: 'creator' });
+
+ExpenseCategory.hasMany(BudgetAllocation, { foreignKey: 'category_id', as: 'budgetAllocations' });
+BudgetAllocation.belongsTo(ExpenseCategory, { foreignKey: 'category_id', as: 'category' });
+
+// API Key associations
+Admin.hasMany(ApiKey, { foreignKey: 'created_by', as: 'createdApiKeys' });
+ApiKey.belongsTo(Admin, { foreignKey: 'created_by', as: 'creator' });
+
+Client.hasMany(ApiKey, { foreignKey: 'client_id', as: 'apiKeys' });
+ApiKey.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
+
+ApiKey.hasMany(ApiUsageLog, { foreignKey: 'api_key_id', as: 'usageLogs' });
+ApiUsageLog.belongsTo(ApiKey, { foreignKey: 'api_key_id', as: 'apiKey' });
+
 module.exports = {
   Admin,
   Client,
@@ -88,6 +109,10 @@ module.exports = {
   Report,
   ReportTechnicalTest,
   InvoiceReport, 
+  InvoiceReportSummary,
+  BudgetAllocation,
+  ApiKey,
+  ApiUsageLog,
   Goal,
   Achievement,
   // Financial Management Models

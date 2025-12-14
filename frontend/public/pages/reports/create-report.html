@@ -14,9 +14,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="../../../styles/base/styles.css">
-    <link rel="stylesheet" href="../../../styles/form-steps.css">
-    <link rel="stylesheet" href="../../../styles/custom-admin.css">
+    <link rel="stylesheet" href="../../styles/base/styles.css">
+    <link rel="stylesheet" href="../../styles/components/form-steps.css">
+    <link rel="stylesheet" href="../../styles/components/custom-admin.css">
     
     <!-- PWA manifest -->
     <link rel="manifest" href="../../manifest.json">
@@ -527,6 +527,38 @@
                                                         <span class="input-group-text">جنية</span>
                                                     </div>
                                                     <small class="text-muted">سيتم استخدام هذا السعر في الفاتورة</small>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Device Specifications -->
+                                            <div class="row g-3 mt-2">
+                                                <div class="col-md-6">
+                                                    <label for="deviceCPU" class="form-label">المعالج (CPU)</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="deviceCPU" placeholder="مثال: Intel Core i7-11800H">
+                                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-microchip"></i></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="deviceGPU" class="form-label">كرت الشاشة (GPU)</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="deviceGPU" placeholder="مثال: NVIDIA RTX 3060">
+                                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-video"></i></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="deviceRAM" class="form-label">الذاكرة (RAM)</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="deviceRAM" placeholder="مثال: 16GB DDR4">
+                                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-memory"></i></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="deviceStorage" class="form-label">التخزين (Storage)</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="deviceStorage" placeholder="مثال: 512GB SSD">
+                                                        <span class="input-group-text bg-light text-muted"><i class="fas fa-hdd"></i></span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1473,15 +1505,15 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JS Files -->
-    <script src="../../../scripts/offline-handler.js"></script>
-    <script src="../../../scripts/config.js"></script>
-    <script src="../../../scripts/api-service.js"></script>
-    <script src="../../../scripts/auth-middleware.js"></script>
-    <script src="../../../scripts/reset-service-worker.js"></script>
-    <script src="../../../scripts/header-component.js"></script>
-    <script src="../../../scripts/invoice-generator.js"></script>
-    <script src="../../../scripts/invoice-form.js"></script>
-    <script src="../../../scripts/component-tests.js"></script>
+    <script src="../../scripts/pwa/offline-handler.js"></script>
+    <script src="../../scripts/core/config.js"></script>
+    <script src="../../scripts/core/api-service.js"></script>
+    <script src="../../scripts/core/auth-middleware.js"></script>
+    <script src="../../scripts/pwa/reset-service-worker.js"></script>
+    <script src="../../scripts/components/header-component.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-form.js"></script>
+    <script src="../../scripts/utils/component-tests.js"></script>
     
     <!-- Print functionality -->
     <script>
@@ -1519,7 +1551,7 @@
             // Initialize the header component
             const header = new LpkHeader('header-container', {
                 showLogo: true,
-                logoPath: 'img/logo.png',
+                logoPath: 'assets/images/logo.png',
                 logoWidth: '100px',
                 showNavigation: true,
                 navigationItems: [
@@ -1579,12 +1611,12 @@
     </script>
 
     <!-- JavaScript Files -->
-    <script src="../../../scripts/form-steps-utils.js"></script>
-    <script src="../../../scripts/form-steps.js"></script>
-    <script src="../../../scripts/component-tests.js"></script>
-    <script src="../../../scripts/invoice-form.js"></script>
-    <script src="../../../scripts/invoice-generator.js"></script>
-    <script src="../../../scripts/create-report.js"></script>
+    <script src="../../scripts/utils/form-steps-utils.js"></script>
+    <script src="../../scripts/utils/form-steps.js"></script>
+    <script src="../../scripts/utils/component-tests.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-form.js"></script>
+    <script src="../../scripts/pages/invoices/invoice-generator.js"></script>
+    <script src="../../scripts/pages/reports/create-report.js"></script>
     
     <!-- Invoice toggle functionality -->
     <script>

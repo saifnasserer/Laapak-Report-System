@@ -47,6 +47,30 @@ const Report = sequelize.define('Report', {
         allowNull: true,
         field: 'serial_number'
     },
+    cpu: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'cpu',
+        comment: 'CPU specification'
+    },
+    gpu: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'gpu',
+        comment: 'GPU specification'
+    },
+    ram: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'ram',
+        comment: 'RAM specification'
+    },
+    storage: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'storage',
+        comment: 'Storage specification'
+    },
     inspection_date: {
         type: DataTypes.DATE,
         allowNull: false,
@@ -97,6 +121,12 @@ const Report = sequelize.define('Report', {
     status: {
         type: DataTypes.ENUM('قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى', 'pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active'),
         defaultValue: 'قيد الانتظار'
+    },
+    admin_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'admin_id',
+        comment: 'Admin who created or last modified this report'
     }
 }, {
     tableName: 'reports',

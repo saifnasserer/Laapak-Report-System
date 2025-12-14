@@ -3,23 +3,23 @@
  * Enables offline capabilities for the PWA
  */
 
-const CACHE_NAME = 'laapak-report-system-v1';
+const CACHE_NAME = 'laapak-report-system-v3-port3001';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/report.html',
+  '/pages/reports/report.html',
   '/admin.html',
-  '/invoices.html',
-  '/create-invoice.html',
-  '/css/styles.css',
-  '/css/custom-admin.css',
-  '/js/main.js',
-  '/js/report.js',
-  '/js/admin.js',
-  '/js/invoices.js',
-  '/js/header-component.js',
-  '/js/auth-middleware.js',
-  '/js/sw-register.js',
+  '/pages/invoices/invoices.html',
+  '/pages/invoices/create-invoice.html',
+  '/styles/base/styles.css',
+  '/styles/components/custom-admin.css',
+  '/scripts/core/main.js',
+  '/scripts/pages/reports/reports.js',
+  '/scripts/pages/admin/admin.js',
+  '/scripts/pages/invoices/invoices.js',
+  '/scripts/components/header-component.js',
+  '/scripts/core/auth-middleware.js',
+  '/scripts/pwa/sw-register.js',
   '/manifest.json',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
@@ -76,6 +76,35 @@ self.addEventListener('fetch', event => {
     return;
   }
   
+  // For navigation requests (HTML pages), use network-first strategy
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // If network succeeds, cache and return
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseToCache);
+            });
+            return response;
+          }
+          // If network fails, try cache
+          return caches.match(event.request).then(cachedResponse => {
+            return cachedResponse || caches.match('/index.html');
+          });
+        })
+        .catch(() => {
+          // Network failed, try cache
+          return caches.match(event.request).then(cachedResponse => {
+            return cachedResponse || caches.match('/index.html');
+          });
+        })
+    );
+    return;
+  }
+  
+  // For other assets (CSS, JS, images), use cache-first strategy
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -139,8 +168,8 @@ self.addEventListener('push', event => {
     const notificationData = event.data.json();
     const options = {
       body: notificationData.body,
-      icon: '/img/icons/icon-192x192.png',
-      badge: '/img/icons/badge-72x72.png',
+      icon: '/assets/images/icons/icon-192x192.png',
+      badge: '/assets/images/icons/badge-72x72.png',
       data: {
         url: notificationData.url
       }

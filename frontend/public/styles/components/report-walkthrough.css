@@ -1,0 +1,125 @@
+/* Laapak Report System - Report Walkthrough Styles */
+
+/* Step Indicators */
+.step-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* Icon Circles */
+.icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.step-indicator {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.step-indicator span {
+    font-weight: bold;
+    color: #666;
+}
+
+.step-indicator.active {
+    background-color: var(--dark-green);
+}
+
+.step-indicator.active span {
+    color: white;
+}
+
+.step-indicator.completed {
+    background-color: var(--medium-green);
+}
+
+.step-indicator.completed span {
+    color: white;
+}
+
+/* Step indicator connector lines */
+.step-indicator:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -10px;
+    width: 10px;
+    height: 2px;
+    background-color: #ddd;
+    transform: translateX(100%);
+}
+
+.step-indicator.completed:not(:last-child)::after {
+    background-color: var(--medium-green);
+}
+
+/* Step Description */
+.step-description {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 15px;
+    border-right: 4px solid var(--dark-green);
+}
+
+/* Section Highlight */
+.section-highlight {
+    border: 2px solid var(--dark-green) !important;
+    box-shadow: 0 0 15px rgba(14, 175, 84, 0.2) !important;
+    transition: all 0.3s ease;
+}
+
+/* Walkthrough Container */
+.walkthrough-container {
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.walkthrough-container .card-header {
+    padding: 12px 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .step-indicators {
+        gap: 5px;
+    }
+    
+    .step-indicator {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+    
+    .step-indicator:not(:last-child)::after {
+        right: -5px;
+        width: 5px;
+    }
+}
+
+/* Print styles - hide walkthrough when printing */
+@media print {
+    .walkthrough-container {
+        display: none !important;
+    }
+    
+    .section-highlight {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}

@@ -661,7 +661,7 @@ function createNewInvoiceForReport() {
         discount: parseFloat(document.getElementById('discount')?.value || 0),
         taxRate: parseFloat(document.getElementById('taxRate')?.value || 0),
         items: [{
-            description: `فحص وإصلاح ${document.getElementById('deviceModel')?.value || 'جهاز'}`,
+            description: `${document.getElementById('deviceModel')?.value || 'جهاز'}`,
             quantity: 1,
             amount: parseFloat(document.getElementById('devicePrice')?.value || 0),
             type: 'service'
@@ -1057,7 +1057,7 @@ function createImagePreview(imageUrl) {
     img.className = 'img-fluid';
     img.onerror = function() {
         this.onerror = null;
-        this.src = 'img/image-error.png'; // Fallback image
+        this.src = 'assets/images/image-error.png'; // Fallback image
         this.alt = 'Image failed to load';
     };
     
@@ -1223,7 +1223,7 @@ function addTestScreenshotPreview(url, component) {
     img.style.maxHeight = '100px';
     img.onerror = function() {
         this.onerror = null;
-        this.src = 'img/image-error.png';
+        this.src = 'assets/images/image-error.png';
         this.alt = 'Image failed to load';
     };
     
@@ -2261,7 +2261,7 @@ async function checkExistingInvoice(reportId) {
                 items: [
                     {
                         invoiceId: invoiceId, // Link item to invoice
-                        description: `فحص وإصلاح ${reportData.device_model || 'جهاز'}`,
+                        description: `${reportData.device_model || 'جهاز'}`,
                         quantity: 1,
                         amount: subtotal, // Use 'amount' instead of 'unitPrice'
                         totalAmount: subtotal, // Use 'totalAmount' instead of 'totalPrice'

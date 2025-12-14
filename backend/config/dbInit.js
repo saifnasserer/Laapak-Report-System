@@ -42,8 +42,54 @@ const runMigrations = async () => {
             const filePath = path.join(migrationsDir, file);
             const sql = await fs.readFile(filePath, 'utf8');
             
-            // Execute the SQL
-            await sequelize.query(sql);
+            // Split SQL into individual statements
+            // Remove comments and split by semicolons
+            const statements = sql
+                .split(';')
+                .map(stmt => stmt.trim())
+                .filter(stmt => {
+                    // Filter out empty statements and comments-only lines
+                    const cleaned = stmt.replace(/--.*$/gm, '').trim();
+                    return cleaned.length > 0 && !cleaned.match(/^\/\*/);
+                });
+            
+            // Execute each statement separately
+            for (let i = 0; i < statements.length; i++) {
+                const statement = statements[i];
+                if (statement) {
+                    try {
+                        await sequelize.query(statement);
+                        console.log(`  Executing statement ${i + 1}/${statements.length}`);
+                    } catch (error) {
+                        // Handle common errors gracefully
+                        const errorMsg = error.message || '';
+                        const errorCode = error.original?.code || '';
+                        
+                        // If table already exists (IF NOT EXISTS), that's okay
+                        if (errorMsg.includes('already exists') || errorCode === 'ER_TABLE_EXISTS_ERROR') {
+                            console.log(`  Statement ${i + 1}: Table already exists, skipping`);
+                        }
+                        // If duplicate entry (INSERT with existing data), that's okay
+                        else if (errorCode === 'ER_DUP_ENTRY' || errorMsg.includes('Duplicate entry')) {
+                            console.log(`  Statement ${i + 1}: Duplicate entry, skipping`);
+                        }
+                        // If column already exists (ALTER TABLE ADD COLUMN), that's okay
+                        else if (errorMsg.includes('Duplicate column name') || errorCode === 'ER_DUP_FIELDNAME') {
+                            console.log(`  Statement ${i + 1}: Column already exists, skipping`);
+                        }
+                        // If foreign key constraint fails but table exists, continue
+                        else if (errorCode === 'ER_NO_REFERENCED_ROW_2' && errorMsg.includes('expense_categories')) {
+                            console.log(`  Statement ${i + 1}: Foreign key constraint (table may not exist yet), skipping`);
+                        }
+                        // Otherwise, throw the error
+                        else {
+                            console.error(`  Error in statement ${i + 1}:`, errorMsg);
+                            throw error;
+                        }
+                    }
+                }
+            }
+            
             console.log(`Migration ${file} completed successfully`);
         }
         

@@ -77,6 +77,13 @@ const Invoice = sequelize.define('Invoice', {
         type: DataTypes.STRING(20),
         allowNull: true,
         comment: 'Copy of report order number for quick reference'
+    },
+    report_id: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        field: 'report_id',
+        references: { model: 'reports', key: 'id' },
+        comment: 'Alternative report reference field'
     }
 }, {
     tableName: 'invoices',

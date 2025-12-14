@@ -68,7 +68,7 @@ This document lists all client-related files in the Laapak Report System, organi
 
 ### Images
 - `img/logo.png` - Main Laapak logo
-- `img/cropped-Logo-mark.png.png` - Logo mark/icon
+- `assets/images/cropped-Logo-mark.png.png` - Logo mark/icon
 - `img/dashboard-illustration.svg` - Dashboard illustration
 
 ## Client Portal Structure (Organized)

@@ -43,22 +43,26 @@ function searchReports(reports, searchTerm) {
  */
 function displayReports(reports) {
     const reportsList = document.getElementById('reportsList');
-    const noReportsMessage = document.getElementById('noReportsMessage');
     
     if (!reportsList) {
         return;
     }
     
     if (reports.length === 0) {
-        if (noReportsMessage) {
-            noReportsMessage.classList.remove('d-none');
-        }
+        // Show enhanced empty state
+        reportsList.innerHTML = `
+            <div class="col-12">
+                <div class="enhanced-empty-state">
+                    <div class="empty-state-icon-wrapper">
+                        <i class="fas fa-laptop-medical empty-state-icon bounce"></i>
+                        <div class="empty-state-ripple"></div>
+                    </div>
+                    <h4 class="empty-state-title">لا توجد تقارير صيانة حالياً</h4>
+                    <p class="empty-state-message">لم يتم إنشاء أي تقارير صيانة بعد. سيتم عرض التقارير هنا عند توفرها.</p>
+                </div>
+            </div>
+        `;
         return;
-    }
-    
-    // Hide the "no reports" message if it exists
-    if (noReportsMessage) {
-        noReportsMessage.classList.add('d-none');
     }
     
     // Clear existing content
@@ -135,7 +139,7 @@ function displayReports(reports) {
         }
         
         // Create simplified premium report card
-        oncol.innerHTML = `
+        col.innerHTML = `
             <div class="card h-100 border-0 ${isNewest ? 'shadow-lg' : 'shadow-sm'}">
                 <div class="card-body p-4">
                     ${isNewest ? '<div class="position-absolute end-0 top-0 mt-2 me-3"><i class="fas fa-circle text-warning"></i></div>' : ''}
@@ -205,22 +209,26 @@ function formatGregorianDate(date) {
  */
 function displayInvoices(invoices) {
     const invoicesList = document.getElementById('invoicesList');
-    const noInvoicesMessage = document.getElementById('noInvoicesMessage');
     
     if (!invoicesList) {
         return;
     }
     
     if (invoices.length === 0) {
-        if (noInvoicesMessage) {
-            noInvoicesMessage.classList.remove('d-none');
-        }
+        // Show enhanced empty state
+        invoicesList.innerHTML = `
+            <div class="col-12">
+                <div class="enhanced-empty-state">
+                    <div class="empty-state-icon-wrapper">
+                        <i class="fas fa-file-invoice-dollar empty-state-icon pulse"></i>
+                        <div class="empty-state-ripple"></div>
+                    </div>
+                    <h4 class="empty-state-title">لا توجد فواتير حالياً</h4>
+                    <p class="empty-state-message">لم يتم إنشاء أي فواتير بعد. سيتم عرض الفواتير هنا عند توفرها.</p>
+                </div>
+            </div>
+        `;
         return;
-    }
-    
-    // Hide the "no invoices" message if it exists
-    if (noInvoicesMessage) {
-        noInvoicesMessage.classList.add('d-none');
     }
     
     // Clear existing content
@@ -341,7 +349,7 @@ function viewReportDetails(reportId) {
     if (reportModalContent) {
         reportModalContent.innerHTML = `
             <div class="mb-4 text-center">
-                <img src="img/logo.png" alt="Laapak" width="120" class="mb-3">
+                <img src="assets/images/logo.png" alt="Laapak" width="120" class="mb-3">
                 <h5 class="mb-0 fw-bold">تقرير صيانة</h5>
                 <p class="text-muted small">رقم التقرير: ${report.id}</p>
             </div>
@@ -457,7 +465,7 @@ function viewInvoiceDetails(invoiceId) {
     if (invoiceModalContent) {
         invoiceModalContent.innerHTML = `
             <div class="mb-4 text-center">
-                <img src="img/logo.png" alt="Laapak" width="120" class="mb-3">
+                <img src="assets/images/logo.png" alt="Laapak" width="120" class="mb-3">
                 <h5 class="mb-0 fw-bold">فاتورة صيانة</h5>
                 <p class="text-muted small">رقم الفاتورة: ${invoice.id}</p>
                 <p class="text-muted small"><a href="https://laapak.com/partner" target="_blank">للتحقق من الضمان: laapak.com/partner</a></p>

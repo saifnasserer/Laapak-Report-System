@@ -9,13 +9,13 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "img/cropped-Logo-mark.png.png",
+      "src": "assets/images/cropped-Logo-mark.png.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "img/cropped-Logo-mark.png.png",
+      "src": "assets/images/cropped-Logo-mark.png.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -23,13 +23,13 @@
   ],
   "screenshots": [
     {
-      "src": "img/screenshots/report-desktop.png",
+      "src": "assets/images/screenshots/report-desktop.png",
       "sizes": "1280x800",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "img/screenshots/report-mobile.png",
+      "src": "assets/images/screenshots/report-mobile.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"

@@ -112,23 +112,6 @@ INSERT INTO expense_categories (name, name_ar, description, color) VALUES
 ('Maintenance', 'الصيانة', 'Equipment maintenance and repairs', '#95a5a6'),
 ('Insurance', 'التأمين', 'Business insurance premiums', '#2c3e50'),
 ('Miscellaneous', 'متنوعة', 'Other business expenses', '#7f8c8d');
-DELIMITER ;
 
--- Add foreign key to link invoice items with product costs (optional enhancement)
-ALTER TABLE invoice_items ADD COLUMN product_cost_id INT DEFAULT NULL;
-ALTER TABLE invoice_items ADD FOREIGN KEY (product_cost_id) REFERENCES product_costs(id) ON DELETE SET NULL;
-
--- Add calculated profit fields to invoice_items table
-ALTER TABLE invoice_items ADD COLUMN cost_price DECIMAL(10,2) DEFAULT NULL;
-ALTER TABLE invoice_items ADD COLUMN profit_amount DECIMAL(10,2) GENERATED ALWAYS AS (
-    CASE 
-        WHEN cost_price IS NOT NULL THEN (amount - cost_price) * quantity
-        ELSE NULL 
-    END
-) STORED;
-ALTER TABLE invoice_items ADD COLUMN profit_margin DECIMAL(5,2) GENERATED ALWAYS AS (
-    CASE 
-        WHEN cost_price IS NOT NULL AND amount > 0 THEN ((amount - cost_price) / amount) * 100
-        ELSE NULL 
-    END
-) STORED; 
+-- Note: invoice_items table modifications will be handled in a separate migration
+-- to avoid conflicts with existing table structure 
