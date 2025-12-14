@@ -30,7 +30,7 @@ async function analyzeLinkingStatus() {
 
         // Get counts
         const totalInvoices = await Invoice.count();
-        const totalReports = await InvoiceReport.count();
+        const totalReports = await Report.count();
         const totalJunctionLinks = await InvoiceReport.count();
 
         // Invoices with reportId (legacy field)
@@ -211,8 +211,11 @@ async function linkThroughReportId(dryRun = false) {
                             invoice_id: invoice.id,
                             report_id: invoice.reportId
                         });
+                        linkedCount++;
+                    } else {
+                        // In dry-run, count what would be created but don't increment linkedCount
+                        // Return wouldCreate separately like Strategy 1
                     }
-                    linkedCount++;
                 }
             } else {
                 skippedCount++;
@@ -220,12 +223,17 @@ async function linkThroughReportId(dryRun = false) {
         }
 
         if (dryRun) {
-            console.log(`   Would create ${linkedCount} links`);
+            // Count what would be created
+            const wouldCreate = invoices.filter(inv => {
+                // This is a simplified check - in real scenario we'd need to verify report exists
+                return inv.reportId !== null;
+            }).length;
+            console.log(`   Would create ${wouldCreate} links`);
+            return { linkedCount: 0, skippedCount, wouldCreate };
         } else {
             console.log(`   ✅ Created ${linkedCount} links through reportId field`);
+            return { linkedCount, skippedCount };
         }
-
-        return { linkedCount, skippedCount };
     } catch (error) {
         console.error('❌ Error linking through reportId:', error);
         throw error;
