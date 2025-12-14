@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load dashboard data from API
     displayCurrentDate();
     loadTodaySummary();
-    loadDashboardStats();
     initializeCharts();
     loadReportsStatusChart();
     loadDeviceModelsInsights();
@@ -117,7 +116,7 @@ function initializeDeviceModelsFilter() {
 }
 
 /**
- * Load today's summary statistics
+ * Load week's summary statistics (Friday to Friday, 7 days)
  */
 function loadTodaySummary() {
     const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
@@ -142,129 +141,134 @@ function loadTodaySummary() {
         baseUrl = 'http://localhost:3001';
     }
     
-    // Get today's date range
+    // Calculate current week (Friday to Friday, 7 days)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const currentDay = today.getDay(); // 0 = Sunday, 5 = Friday
     
-    // Get yesterday's date range for comparison
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    // Find the most recent Friday (or today if it's Friday)
+    // Formula: (currentDay - 5 + 7) % 7 gives days to go back to last Friday
+    // Friday (5): 0 days back, Saturday (6): 1 day, Sunday (0): 2 days, etc.
+    const daysToLastFriday = (currentDay - 5 + 7) % 7;
+    
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - daysToLastFriday);
+    thisWeekStart.setHours(0, 0, 0, 0);
+    
+    const thisWeekEnd = new Date(thisWeekStart);
+    thisWeekEnd.setDate(thisWeekStart.getDate() + 7); // 7 days from Friday
+    thisWeekEnd.setHours(23, 59, 59, 999);
+    
+    // Calculate last week (previous Friday to Friday, 7 days)
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+    lastWeekStart.setHours(0, 0, 0, 0);
+    
+    const lastWeekEnd = new Date(thisWeekStart);
+    lastWeekEnd.setHours(23, 59, 59, 999);
     
     Promise.all([
-        // Reports today (use inspection_date for when reports were created/inspected)
-        fetch(`${baseUrl}/api/reports/count?dateField=inspection_date&startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
+        // Reports this week (use inspection_date for when reports were created/inspected)
+        fetch(`${baseUrl}/api/reports/count?dateField=inspection_date&startDate=${thisWeekStart.toISOString()}&endDate=${thisWeekEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) {
-                console.error(`Reports today failed: ${r.status}`, r.statusText);
+                console.error(`Reports this week failed: ${r.status}`, r.statusText);
                 return { count: 0 };
             }
             return r.json().then(data => {
-                console.log('Reports today response:', data);
+                console.log('Reports this week response:', data);
                 return data;
             });
         }),
-        // Reports yesterday (use inspection_date for when reports were created/inspected)
-        fetch(`${baseUrl}/api/reports/count?dateField=inspection_date&startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
-            headers: { 'x-auth-token': token }
-        }).then(r => {
-            if (!r.ok) throw new Error(`Reports yesterday failed: ${r.status}`);
-            return r.json();
-        }),
-        // Invoices today
-        fetch(`${baseUrl}/api/invoices/count?startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
+        // Reports last week (use inspection_date for when reports were created/inspected)
+        fetch(`${baseUrl}/api/reports/count?dateField=inspection_date&startDate=${lastWeekStart.toISOString()}&endDate=${lastWeekEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) {
-                console.error(`Invoices today failed: ${r.status} ${r.statusText}`);
+                console.error(`Reports last week failed: ${r.status}`, r.statusText);
                 return { count: 0 };
             }
             return r.json();
         }),
-        // Invoices yesterday
-        fetch(`${baseUrl}/api/invoices/count?startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
+        // Invoices this week
+        fetch(`${baseUrl}/api/invoices/count?startDate=${thisWeekStart.toISOString()}&endDate=${thisWeekEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) {
-                console.error(`Invoices yesterday failed: ${r.status} ${r.statusText}`);
+                console.error(`Invoices this week failed: ${r.status} ${r.statusText}`);
                 return { count: 0 };
             }
             return r.json();
         }),
-        // Completed reports today (status = completed, use updated_at to track when completed)
-        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`, {
+        // Invoices last week
+        fetch(`${baseUrl}/api/invoices/count?startDate=${lastWeekStart.toISOString()}&endDate=${lastWeekEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) {
-                console.error(`Completed reports today failed: ${r.status} ${r.statusText}`);
+                console.error(`Invoices last week failed: ${r.status} ${r.statusText}`);
                 return { count: 0 };
             }
             return r.json();
         }),
-        // Completed reports yesterday (use updated_at to track when completed)
-        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${yesterday.toISOString()}&endDate=${today.toISOString()}`, {
+        // Completed reports this week (status = completed, use updated_at to track when completed)
+        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${thisWeekStart.toISOString()}&endDate=${thisWeekEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) {
-                console.error(`Completed reports yesterday failed: ${r.status} ${r.statusText}`);
+                console.error(`Completed reports this week failed: ${r.status} ${r.statusText}`);
                 return { count: 0 };
             }
             return r.json();
         }),
-        // Pending reports (all pending reports regardless of date)
-        fetch(`${baseUrl}/api/reports/count?status=pending`, {
+        // Completed reports last week (use updated_at to track when completed)
+        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${lastWeekStart.toISOString()}&endDate=${lastWeekEnd.toISOString()}`, {
             headers: { 'x-auth-token': token }
         }).then(r => {
             if (!r.ok) {
-                console.error(`Pending reports count failed: ${r.status} ${r.statusText}`);
+                console.error(`Completed reports last week failed: ${r.status} ${r.statusText}`);
                 return { count: 0 };
             }
             return r.json();
         })
     ])
-    .then(([reportsToday, reportsYesterday, invoicesToday, invoicesYesterday, completedToday, completedYesterday, pendingCount]) => {
-        console.log('Today Summary Data:', {
-            reportsToday,
-            reportsYesterday,
-            invoicesToday,
-            invoicesYesterday,
-            completedToday,
-            completedYesterday,
-            pendingCount
+    .then(([reportsThisWeek, reportsLastWeek, invoicesThisWeek, invoicesLastWeek, completedThisWeek, completedLastWeek]) => {
+        console.log('Week Summary Data:', {
+            reportsThisWeek,
+            reportsLastWeek,
+            invoicesThisWeek,
+            invoicesLastWeek,
+            completedThisWeek,
+            completedLastWeek
         });
         
-        // Update today's summary
+        // Update week's summary
         const reportsTodayEl = document.getElementById('reports-today');
         const reportsTodayTrendEl = document.getElementById('reports-today-trend');
         const invoicesTodayEl = document.getElementById('invoices-today');
         const invoicesTodayTrendEl = document.getElementById('invoices-today-trend');
         const completedTodayEl = document.getElementById('completed-today');
         const completedTodayTrendEl = document.getElementById('completed-today-trend');
-        const attentionEl = document.getElementById('attention-needed');
         
-        const reportsTodayCount = reportsToday?.count ?? 0;
-        const reportsYesterdayCount = reportsYesterday?.count ?? 0;
-        const invoicesTodayCount = invoicesToday?.count ?? 0;
-        const invoicesYesterdayCount = invoicesYesterday?.count ?? 0;
-        const completedTodayCount = completedToday?.count ?? 0;
-        const completedYesterdayCount = completedYesterday?.count ?? 0;
-        const pendingReportsCount = pendingCount?.count ?? 0;
+        const reportsThisWeekCount = reportsThisWeek?.count ?? 0;
+        const reportsLastWeekCount = reportsLastWeek?.count ?? 0;
+        const invoicesThisWeekCount = invoicesThisWeek?.count ?? 0;
+        const invoicesLastWeekCount = invoicesLastWeek?.count ?? 0;
+        const completedThisWeekCount = completedThisWeek?.count ?? 0;
+        const completedLastWeekCount = completedLastWeek?.count ?? 0;
         
-        console.log('Today Summary Counts:', {
-            reportsTodayCount,
-            reportsYesterdayCount,
-            invoicesTodayCount,
-            invoicesYesterdayCount,
-            completedTodayCount,
-            completedYesterdayCount,
-            pendingReportsCount
+        console.log('Week Summary Counts:', {
+            reportsThisWeekCount,
+            reportsLastWeekCount,
+            invoicesThisWeekCount,
+            invoicesLastWeekCount,
+            completedThisWeekCount,
+            completedLastWeekCount
         });
         
-        if (reportsTodayEl) reportsTodayEl.textContent = reportsTodayCount;
+        if (reportsTodayEl) reportsTodayEl.textContent = reportsThisWeekCount;
         if (reportsTodayTrendEl) {
-            const diff = reportsTodayCount - reportsYesterdayCount;
+            const diff = reportsThisWeekCount - reportsLastWeekCount;
             if (diff > 0) {
                 reportsTodayTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${diff}</span>`;
             } else if (diff < 0) {
@@ -274,9 +278,9 @@ function loadTodaySummary() {
             }
         }
         
-        if (invoicesTodayEl) invoicesTodayEl.textContent = invoicesTodayCount;
+        if (invoicesTodayEl) invoicesTodayEl.textContent = invoicesThisWeekCount;
         if (invoicesTodayTrendEl) {
-            const diff = invoicesTodayCount - invoicesYesterdayCount;
+            const diff = invoicesThisWeekCount - invoicesLastWeekCount;
             if (diff > 0) {
                 invoicesTodayTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${diff}</span>`;
             } else if (diff < 0) {
@@ -286,9 +290,9 @@ function loadTodaySummary() {
             }
         }
         
-        if (completedTodayEl) completedTodayEl.textContent = completedTodayCount;
+        if (completedTodayEl) completedTodayEl.textContent = completedThisWeekCount;
         if (completedTodayTrendEl) {
-            const diff = completedTodayCount - completedYesterdayCount;
+            const diff = completedThisWeekCount - completedLastWeekCount;
             if (diff > 0) {
                 completedTodayTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${diff}</span>`;
             } else if (diff < 0) {
@@ -297,194 +301,26 @@ function loadTodaySummary() {
                 completedTodayTrendEl.innerHTML = `<span class="text-muted">=</span>`;
             }
         }
-        
-        // Update attention needed (pending reports)
-        if (attentionEl) {
-            attentionEl.textContent = pendingReportsCount;
-            console.log('Updated attention-needed with:', pendingReportsCount);
-        }
     })
     .catch(error => {
-        console.error('Error loading today summary:', error);
+        console.error('Error loading week summary:', error);
         
         // Set placeholder values on error
         const reportsTodayEl = document.getElementById('reports-today');
         const invoicesTodayEl = document.getElementById('invoices-today');
         const completedTodayEl = document.getElementById('completed-today');
-        const attentionEl = document.getElementById('attention-needed');
         
         if (reportsTodayEl) reportsTodayEl.textContent = '0';
         if (invoicesTodayEl) invoicesTodayEl.textContent = '0';
         if (completedTodayEl) completedTodayEl.textContent = '0';
-        if (attentionEl) attentionEl.textContent = '0';
         
         // Show error toast
         if (typeof toastr !== 'undefined') {
-            toastr.error('فشل في تحميل ملخص اليوم');
+            toastr.error('فشل في تحميل ملخص الأسبوع');
         }
     });
 }
 
-/**
- * Load dashboard statistics from API
- */
-function loadDashboardStats() {
-    console.log('Loading dashboard stats from API');
-    
-    // Get admin info from localStorage
-    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-    const authMiddleware = new AuthMiddleware();
-    const token = authMiddleware.getAdminToken() || adminInfo.token || '';
-    
-    console.log('Admin info:', adminInfo);
-    console.log('Token available:', !!token);
-    
-    // API base URL
-    // Get baseUrl with port 3001 enforcement for localhost
-    let baseUrl;
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (window.config && window.config.api && window.config.api.baseUrl) {
-        baseUrl = window.config.api.baseUrl;
-        // Override if config has wrong port for localhost
-        if (isLocalhost && baseUrl.includes(':3000')) {
-            baseUrl = 'http://localhost:3001';
-        }
-    } else if (isLocalhost) {
-        baseUrl = 'http://localhost:3001';
-    } else {
-        baseUrl = window.location.origin;
-    }
-    // Final safety check
-    if (isLocalhost && baseUrl.includes(':3000')) {
-        baseUrl = 'http://localhost:3001';
-    }
-    console.log('API Base URL:', baseUrl);
-    
-    // Get current month date range
-    const today = new Date();
-    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
-    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59);
-    
-    // Get current week date range
-    const currentWeekStart = new Date(today);
-    currentWeekStart.setDate(today.getDate() - today.getDay()); // Sunday
-    currentWeekStart.setHours(0, 0, 0, 0);
-    const currentWeekEnd = new Date(currentWeekStart);
-    currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
-    currentWeekEnd.setHours(23, 59, 59);
-    
-    const lastWeekStart = new Date(currentWeekStart);
-    lastWeekStart.setDate(currentWeekStart.getDate() - 7);
-    const lastWeekEnd = new Date(currentWeekStart);
-    lastWeekEnd.setDate(currentWeekStart.getDate() - 1);
-    lastWeekEnd.setHours(23, 59, 59);
-    
-    // Make simultaneous API requests to get statistics (only needed metrics)
-    Promise.all([
-        // Pending reports count
-        fetch(`${baseUrl}/api/reports/count?status=pending`, {
-            headers: { 'x-auth-token': token }
-        }).then(r => {
-            if (!r.ok) throw new Error(`Pending reports count failed: ${r.status}`);
-            return r.json();
-        }),
-        // Reports this month (only completed reports)
-        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${currentMonthStart.toISOString()}&endDate=${currentMonthEnd.toISOString()}`, {
-            headers: { 'x-auth-token': token }
-        }).then(r => {
-            if (!r.ok) throw new Error(`Reports this month failed: ${r.status}`);
-            return r.json();
-        }),
-        // Reports last month (only completed reports)
-        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${lastMonthStart.toISOString()}&endDate=${lastMonthEnd.toISOString()}`, {
-            headers: { 'x-auth-token': token }
-        }).then(r => {
-            if (!r.ok) throw new Error(`Reports last month failed: ${r.status}`);
-            return r.json();
-        }),
-        // Completed this week (use updated_at to get reports completed this week, not just inspected)
-        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${currentWeekStart.toISOString()}&endDate=${currentWeekEnd.toISOString()}`, {
-            headers: { 'x-auth-token': token }
-        }).then(r => {
-            if (!r.ok) throw new Error(`Completed this week failed: ${r.status}`);
-            return r.json();
-        }),
-        // Completed last week (use updated_at to get reports completed last week)
-        fetch(`${baseUrl}/api/reports/count?status=completed&dateField=updated_at&startDate=${lastWeekStart.toISOString()}&endDate=${lastWeekEnd.toISOString()}`, {
-            headers: { 'x-auth-token': token }
-        }).then(r => {
-            if (!r.ok) throw new Error(`Completed last week failed: ${r.status}`);
-            return r.json();
-        })
-    ])
-    .then(data => {
-        console.log('Dashboard stats data:', data);
-        // Process data [pendingReports, reportsThisMonth, reportsLastMonth, completedThisWeek, completedLastWeek]
-        const pendingReportsEl = document.getElementById('pending-reports');
-        const reportsThisMonthEl = document.getElementById('reports-this-month');
-        const reportsThisMonthTrendEl = document.getElementById('reports-this-month-trend');
-        const completedThisWeekEl = document.getElementById('completed-this-week');
-        const completedThisWeekTrendEl = document.getElementById('completed-this-week-trend');
-        
-        const pendingReports = data[0].count || 0;
-        const reportsThisMonth = data[1].count || 0;
-        const reportsLastMonth = data[2].count || 0;
-        const completedThisWeek = data[3].count || 0;
-        const completedLastWeek = data[4].count || 0;
-        
-        if (pendingReportsEl) pendingReportsEl.textContent = pendingReports;
-        if (reportsThisMonthEl) reportsThisMonthEl.textContent = reportsThisMonth;
-        if (completedThisWeekEl) completedThisWeekEl.textContent = completedThisWeek;
-        
-        // Calculate trends (simplified - comparing with previous period)
-        if (reportsThisMonthTrendEl) {
-            const diff = reportsThisMonth - reportsLastMonth;
-            if (diff > 0) {
-                const percent = reportsLastMonth > 0 ? Math.round((diff / reportsLastMonth) * 100) : 0;
-                reportsThisMonthTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${percent}%</span>`;
-            } else if (diff < 0) {
-                const percent = reportsLastMonth > 0 ? Math.round((Math.abs(diff) / reportsLastMonth) * 100) : 0;
-                reportsThisMonthTrendEl.innerHTML = `<span class="text-danger"><i class="fas fa-arrow-down"></i> -${percent}%</span>`;
-            } else {
-                reportsThisMonthTrendEl.innerHTML = `<span class="text-muted">=</span>`;
-            }
-        }
-        
-        if (completedThisWeekTrendEl) {
-            const diff = completedThisWeek - completedLastWeek;
-            if (diff > 0) {
-                const percent = completedLastWeek > 0 ? Math.round((diff / completedLastWeek) * 100) : 0;
-                completedThisWeekTrendEl.innerHTML = `<span class="text-success"><i class="fas fa-arrow-up"></i> +${percent}%</span>`;
-            } else if (diff < 0) {
-                const percent = completedLastWeek > 0 ? Math.round((Math.abs(diff) / completedLastWeek) * 100) : 0;
-                completedThisWeekTrendEl.innerHTML = `<span class="text-danger"><i class="fas fa-arrow-down"></i> -${percent}%</span>`;
-            } else {
-                completedThisWeekTrendEl.innerHTML = `<span class="text-muted">=</span>`;
-            }
-        }
-        
-        console.log('Updated dashboard elements with data');
-    })
-    .catch(error => {
-        console.error('Error loading dashboard stats:', error);
-        
-        // Set placeholder values on error (only if elements exist)
-        const pendingReportsEl = document.getElementById('pending-reports');
-        const reportsThisMonthEl = document.getElementById('reports-this-month');
-        const completedThisWeekEl = document.getElementById('completed-this-week');
-        
-        if (pendingReportsEl) pendingReportsEl.textContent = '0';
-        if (reportsThisMonthEl) reportsThisMonthEl.textContent = '0';
-        if (completedThisWeekEl) completedThisWeekEl.textContent = '0';
-        
-        // Show error toast
-        if (typeof toastr !== 'undefined') {
-            toastr.error('فشل في تحميل إحصائيات لوحة التحكم');
-        }
-    });
-}
 
 /**
  * Load recent reports from API
@@ -1950,8 +1786,8 @@ function loadDeviceModelsInsights(period = 'this-month') {
             endDate.setHours(23, 59, 59, 999);
     }
     
-    // Build API URL with date range
-    const url = `${baseUrl}/api/reports/insights/device-models?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+    // Build API URL with date range and status filter (only completed reports)
+    const url = `${baseUrl}/api/reports/insights/device-models?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&status=completed`;
     
     fetch(url, {
         headers: {

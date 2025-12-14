@@ -13,6 +13,10 @@
  *    - Through invoice_id field in reports
  */
 
+// Load environment variables - .env is in project root
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
+
 const { Sequelize, Op } = require('sequelize');
 const { sequelize } = require('../../config/db');
 const { Report, Invoice, Client, InvoiceReport, InvoiceItem } = require('../../models');

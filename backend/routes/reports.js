@@ -1056,7 +1056,7 @@ router.get('/search', async (req, res) => {
 // GET /reports/insights/device-models - get device models sold in a specific time period
 router.get('/insights/device-models', auth, async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, status } = req.query;
         
         let startDateObj, endDateObj;
         
@@ -1074,12 +1074,20 @@ router.get('/insights/device-models', auth, async (req, res) => {
             endDateObj.setHours(23, 59, 59, 999);
         }
 
+        // Build where clause
+        const whereClause = {
+            created_at: {
+                [Op.between]: [startDateObj, endDateObj]
+            }
+        };
+
+        // Add status filter if provided
+        if (status) {
+            whereClause.status = status;
+        }
+
         const deviceModels = await Report.findAll({
-            where: {
-                created_at: {
-                    [Op.between]: [startDateObj, endDateObj]
-                }
-            },
+            where: whereClause,
             attributes: [
                 'device_model',
                 [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
