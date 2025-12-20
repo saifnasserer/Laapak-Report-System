@@ -192,6 +192,7 @@ async function linkThroughReportId(dryRun = false) {
 
         let linkedCount = 0;
         let skippedCount = 0;
+        let wouldCreate = 0;
 
         for (const invoice of invoices) {
             // Check if link already exists
@@ -213,8 +214,8 @@ async function linkThroughReportId(dryRun = false) {
                         });
                         linkedCount++;
                     } else {
-                        // In dry-run, count what would be created but don't increment linkedCount
-                        // Return wouldCreate separately like Strategy 1
+                        // In dry-run, count what would be created
+                        wouldCreate++;
                     }
                 }
             } else {
@@ -223,11 +224,6 @@ async function linkThroughReportId(dryRun = false) {
         }
 
         if (dryRun) {
-            // Count what would be created
-            const wouldCreate = invoices.filter(inv => {
-                // This is a simplified check - in real scenario we'd need to verify report exists
-                return inv.reportId !== null;
-            }).length;
             console.log(`   Would create ${wouldCreate} links`);
             return { linkedCount: 0, skippedCount, wouldCreate };
         } else {
@@ -255,6 +251,7 @@ async function linkThroughReportInvoiceId(dryRun = false) {
 
         let linkedCount = 0;
         let skippedCount = 0;
+        let wouldCreate = 0;
 
         for (const report of reports) {
             // Check if link already exists
@@ -275,8 +272,10 @@ async function linkThroughReportInvoiceId(dryRun = false) {
                             report_id: report.id
                         });
                         linkedCount++;
+                    } else {
+                        // In dry-run, count what would be created
+                        wouldCreate++;
                     }
-                    // In dry-run, don't increment linkedCount
                 }
             } else {
                 skippedCount++;
@@ -284,10 +283,6 @@ async function linkThroughReportInvoiceId(dryRun = false) {
         }
 
         if (dryRun) {
-            // Count what would be created (reports with valid invoice_id that don't have links)
-            const wouldCreate = reports.filter(r => {
-                return r.invoice_id !== null;
-            }).length;
             console.log(`   Would create ${wouldCreate} links`);
             return { linkedCount: 0, skippedCount, wouldCreate };
         } else {
@@ -568,17 +563,28 @@ async function fixLinking(dryRun = false) {
         }
 
         // Summary
-        const totalLinked = Object.values(results).reduce((sum, r) => sum + r.linkedCount, 0);
-        const totalSkipped = Object.values(results).reduce((sum, r) => sum + r.skippedCount, 0);
+        const totalLinked = Object.values(results).reduce((sum, r) => sum + (r.linkedCount || 0), 0);
+        const totalSkipped = Object.values(results).reduce((sum, r) => sum + (r.skippedCount || 0), 0);
+        const totalWouldCreate = Object.values(results).reduce((sum, r) => sum + (r.wouldCreate || 0), 0);
 
         console.log('\n📊 LINKING SUMMARY:');
-        console.log(`   Total links created: ${totalLinked}`);
-        console.log(`   Total links skipped (already exist): ${totalSkipped}`);
-        console.log(`   Strategy 1 (Invoice Items): ${results.strategy1.linkedCount}`);
-        console.log(`   Strategy 2 (Legacy reportId): ${results.strategy2.linkedCount}`);
-        console.log(`   Strategy 3 (Report invoice_id): ${results.strategy3.linkedCount}`);
-        console.log(`   Strategy 4 (Serial Numbers): ${results.strategy4.linkedCount}`);
-        console.log(`   Strategy 5 (Client & Date): ${results.strategy5.linkedCount}`);
+        if (dryRun) {
+            console.log(`   Total links that would be created: ${totalWouldCreate}`);
+            console.log(`   Total links skipped (already exist): ${totalSkipped}`);
+            console.log(`   Strategy 1 (Invoice Items): ${results.strategy1.wouldCreate || results.strategy1.linkedCount || 0}`);
+            console.log(`   Strategy 2 (Legacy reportId): ${results.strategy2.wouldCreate || results.strategy2.linkedCount || 0}`);
+            console.log(`   Strategy 3 (Report invoice_id): ${results.strategy3.wouldCreate || results.strategy3.linkedCount || 0}`);
+            console.log(`   Strategy 4 (Serial Numbers): ${results.strategy4.wouldCreate || results.strategy4.linkedCount || 0}`);
+            console.log(`   Strategy 5 (Client & Date): ${results.strategy5.wouldCreate || results.strategy5.linkedCount || 0}`);
+        } else {
+            console.log(`   Total links created: ${totalLinked}`);
+            console.log(`   Total links skipped (already exist): ${totalSkipped}`);
+            console.log(`   Strategy 1 (Invoice Items): ${results.strategy1.linkedCount || 0}`);
+            console.log(`   Strategy 2 (Legacy reportId): ${results.strategy2.linkedCount || 0}`);
+            console.log(`   Strategy 3 (Report invoice_id): ${results.strategy3.linkedCount || 0}`);
+            console.log(`   Strategy 4 (Serial Numbers): ${results.strategy4.linkedCount || 0}`);
+            console.log(`   Strategy 5 (Client & Date): ${results.strategy5.linkedCount || 0}`);
+        }
 
         // Final analysis
         if (!dryRun) {

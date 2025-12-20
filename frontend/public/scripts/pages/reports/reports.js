@@ -1292,6 +1292,106 @@ function checkDateInRange(report, startDate, endDate) {
 }
 
 /**
+ * Check if we're in default state (no filters applied)
+ * @returns {boolean} True if in default state
+ */
+function isDefaultState() {
+    // Default state: period is 'month' AND no status filter AND no invoice status filter
+    // AND dates match current month (if dates are set)
+    if (currentFilters.period !== 'month' || currentFilters.status || currentFilters.invoiceStatus) {
+        return false;
+    }
+    
+    // If dates are set, verify they match current month
+    if (currentFilters.startDate && currentFilters.endDate) {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        const currentMonthStart = formatDate(firstDay);
+        const currentMonthEnd = formatDate(lastDay);
+        
+        // Dates must match current month exactly
+        if (currentFilters.startDate !== currentMonthStart || currentFilters.endDate !== currentMonthEnd) {
+            return false; // Custom date range, not default state
+        }
+    }
+    
+    return true;
+}
+
+/**
+ * Check if a report is pending
+ * @param {Object} report - The report object
+ * @returns {boolean} True if report is pending
+ */
+function isPendingReport(report) {
+    const rawStatus = report.status || '';
+    const status = rawStatus || '';
+    const statusLower = status.toLowerCase();
+    
+    return status === 'قيد الانتظار' || 
+           statusLower === 'pending' || 
+           statusLower === 'active';
+}
+
+/**
+ * Check if a report's date is within the specified range
+ * @param {Object} report - The report object
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ * @returns {boolean} True if report date is in range
+ */
+function isReportDateInRange(report, startDate, endDate) {
+    const inspectionDate = report.inspection_date || report.inspectionDate;
+    const createdDate = report.created_at || report.createdAt;
+    const reportDate = inspectionDate || createdDate;
+    
+    if (!reportDate) return false;
+    
+    // Parse date consistently to avoid timezone issues
+    let dateObj;
+    if (typeof reportDate === 'string') {
+        const dateStr = reportDate.split('T')[0]; // Get just the date part
+        const [year, month, day] = dateStr.split('-').map(Number);
+        if (year && month && day) {
+            dateObj = new Date(year, month - 1, day);
+        } else {
+            dateObj = new Date(reportDate);
+        }
+    } else {
+        dateObj = new Date(reportDate);
+    }
+    
+    if (isNaN(dateObj.getTime())) return false;
+    
+    dateObj.setHours(0, 0, 0, 0);
+    
+    if (startDate) {
+        const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+        const start = new Date(startYear, startMonth - 1, startDay);
+        start.setHours(0, 0, 0, 0);
+        if (dateObj < start) return false;
+    }
+    
+    if (endDate) {
+        const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+        const end = new Date(endYear, endMonth - 1, endDay);
+        end.setHours(23, 59, 59, 999);
+        if (dateObj > end) return false;
+    }
+    
+    return true;
+}
+
+/**
  * Apply client-side filters (invoice status, etc.)
  * @param {Array} reports - Array of reports to filter
  * @returns {Array} Filtered reports
@@ -1300,10 +1400,14 @@ function applyClientSideFilters(reports) {
     console.log('=== CLIENT-SIDE FILTER DEBUG ===');
     console.log('Input reports count:', reports.length);
     console.log('Active filters:', currentFilters);
+    console.log('Is default state:', isDefaultState());
     
     let filtered = [...reports];
     
-    // Filter by invoice status
+    // Check if we're in default state
+    const inDefaultState = isDefaultState();
+    
+    // Filter by invoice status (if applied, we're not in default state anymore)
     if (currentFilters.invoiceStatus) {
         switch (currentFilters.invoiceStatus) {
             case 'with_invoice':
@@ -1395,10 +1499,7 @@ function applyClientSideFilters(reports) {
         }
     }
     
-    // Filter by date range (client-side)
-    // IMPORTANT: When period is 'month' (default), show:
-    // 1. ALL pending reports (regardless of date)
-    // 2. ALL reports in current month (regardless of status)
+    // Filter by date range
     if (currentFilters.startDate || currentFilters.endDate) {
         const beforeDateFilter = filtered.length;
         
@@ -1406,144 +1507,56 @@ function applyClientSideFilters(reports) {
         console.log('Filter start date:', currentFilters.startDate);
         console.log('Filter end date:', currentFilters.endDate);
         console.log('Filter period:', currentFilters.period);
+        console.log('In default state:', inDefaultState);
         
-        filtered = filtered.filter(report => {
-            // Check if this is a pending/active report - if so, always include it
-            // Check the raw status value first (before any conversion)
-            const rawStatus = report.status;
-            const status = rawStatus || '';
-            const statusLower = (status || '').toLowerCase();
-            
-            // Only treat as pending if it's explicitly a pending status
-            // Don't treat null/empty as pending - those might be old completed reports
-            const isPending = status === 'قيد الانتظار' || 
-                            statusLower === 'pending' || 
-                            statusLower === 'active';
-            
-            if (isPending) {
-                console.log(`Report ${report.id} (status: ${rawStatus}) is PENDING - INCLUDING (no date filter)`);
-                return true; // Always include pending reports regardless of date
-            }
-            
-            // For non-pending reports, check if they're in the current month (when period is 'month')
-            if (currentFilters.period === 'month' && currentFilters.startDate && currentFilters.endDate) {
-                // Try multiple date fields, prefer inspection_date, fallback to created_at
-                const inspectionDate = report.inspection_date || report.inspectionDate;
-                const createdDate = report.created_at || report.createdAt;
-                const reportDate = inspectionDate || createdDate;
+        if (inDefaultState) {
+            // DEFAULT STATE: Show all pending (any date) + all current month (any status)
+            filtered = filtered.filter(report => {
+                const pending = isPendingReport(report);
                 
-                // If no date at all, exclude it (only pending reports without dates should be included)
-                if (!reportDate) {
-                    console.log(`Report ${report.id} (status: ${report.status}) has no date - EXCLUDING (not pending)`);
-                    return false;
+                if (pending) {
+                    console.log(`Report ${report.id} (status: ${report.status}) is PENDING - INCLUDING (default state)`);
+                    return true; // Always include pending reports regardless of date
                 }
                 
-                // Parse date consistently to avoid timezone issues
-                let dateObj;
-                if (typeof reportDate === 'string') {
-                    const dateStr = reportDate.split('T')[0]; // Get just the date part
-                    const [year, month, day] = dateStr.split('-').map(Number);
-                    if (year && month && day) {
-                        dateObj = new Date(year, month - 1, day);
+                // For non-pending reports, check if they're in current month
+                if (currentFilters.startDate && currentFilters.endDate) {
+                    const inCurrentMonth = isReportDateInRange(report, currentFilters.startDate, currentFilters.endDate);
+                    if (inCurrentMonth) {
+                        console.log(`Report ${report.id} (status: ${report.status}) is IN CURRENT MONTH - INCLUDING (default state)`);
+                        return true; // Include reports in current month regardless of status
                     } else {
-                        dateObj = new Date(reportDate);
+                        console.log(`Report ${report.id} (status: ${report.status}) is OUTSIDE CURRENT MONTH - EXCLUDING (default state)`);
+                        return false;
                     }
-                } else {
-                    dateObj = new Date(reportDate);
                 }
                 
-                if (isNaN(dateObj.getTime())) {
-                    console.log(`Report ${report.id} (status: ${report.status}) has invalid date - EXCLUDING`);
-                    return false; // Invalid date, exclude it
+                return false;
+            });
+        } else {
+            // FILTERS APPLIED: Apply date filter strictly
+            filtered = filtered.filter(report => {
+                // If no date filter, include all
+                if (!currentFilters.startDate && !currentFilters.endDate) {
+                    return true;
                 }
                 
-                // Normalize to start of day for comparison
-                dateObj.setHours(0, 0, 0, 0);
+                // Apply date filter strictly
+                const inRange = isReportDateInRange(report, currentFilters.startDate, currentFilters.endDate);
                 
-                // Check if report is within current month range
-                const [startYear, startMonth, startDay] = currentFilters.startDate.split('-').map(Number);
-                const [endYear, endMonth, endDay] = currentFilters.endDate.split('-').map(Number);
-                const startDate = new Date(startYear, startMonth - 1, startDay);
-                startDate.setHours(0, 0, 0, 0);
-                const endDate = new Date(endYear, endMonth - 1, endDay);
-                endDate.setHours(23, 59, 59, 999);
-                
-                const isInCurrentMonth = dateObj >= startDate && dateObj <= endDate;
-                
-                if (isInCurrentMonth) {
-                    console.log(`Report ${report.id} (status: ${report.status}, date: ${reportDate}) is IN CURRENT MONTH - INCLUDING`);
-                    return true; // Include reports in current month regardless of status
-                } else {
-                    console.log(`Report ${report.id} (status: ${report.status}, date: ${reportDate}) is OUTSIDE CURRENT MONTH - EXCLUDING`);
-                    return false; // Exclude reports outside current month (unless pending)
+                if (!inRange) {
+                    console.log(`Report ${report.id} (status: ${report.status}) is OUTSIDE DATE RANGE - EXCLUDING (filter applied)`);
                 }
-            }
-            
-            // For other periods (today, week, all, custom), apply normal date filtering
-            // Try multiple date fields, prefer inspection_date, fallback to created_at
-            const inspectionDate = report.inspection_date || report.inspectionDate;
-            const createdDate = report.created_at || report.createdAt;
-            const reportDate = inspectionDate || createdDate;
-            
-            // If no date at all, include it (don't filter out reports without dates)
-            if (!reportDate) {
-                console.log(`Report ${report.id} (status: ${report.status}) has no date - INCLUDING`);
-                return true;
-            }
-            
-            // Parse date consistently to avoid timezone issues
-            let dateObj;
-            if (typeof reportDate === 'string') {
-                const dateStr = reportDate.split('T')[0]; // Get just the date part
-                const [year, month, day] = dateStr.split('-').map(Number);
-                if (year && month && day) {
-                    dateObj = new Date(year, month - 1, day);
-                } else {
-                    dateObj = new Date(reportDate);
-                }
-            } else {
-                dateObj = new Date(reportDate);
-            }
-            
-            if (isNaN(dateObj.getTime())) {
-                console.log(`Report ${report.id} (status: ${report.status}) has invalid date - INCLUDING`);
-                return true; // Invalid date, include it
-            }
-            
-            // Normalize to start of day for comparison
-            dateObj.setHours(0, 0, 0, 0);
-            
-            if (currentFilters.startDate) {
-                const [startYear, startMonth, startDay] = currentFilters.startDate.split('-').map(Number);
-                const startDate = new Date(startYear, startMonth - 1, startDay);
-                startDate.setHours(0, 0, 0, 0);
                 
-                if (dateObj < startDate) {
-                    console.log(`Report ${report.id} (status: ${report.status}, date: ${reportDate}) BEFORE start date - EXCLUDING`);
-                    return false;
-                }
-            }
-            
-            if (currentFilters.endDate) {
-                const [endYear, endMonth, endDay] = currentFilters.endDate.split('-').map(Number);
-                const endDate = new Date(endYear, endMonth - 1, endDay);
-                endDate.setHours(23, 59, 59, 999);
-                
-                if (dateObj > endDate) {
-                    console.log(`Report ${report.id} (status: ${report.status}, date: ${reportDate}) AFTER end date - EXCLUDING`);
-                    return false;
-                }
-            }
-            
-            return true;
-        });
+                return inRange;
+            });
+        }
+        
         console.log(`Date filter: ${beforeDateFilter} -> ${filtered.length} reports`);
         console.log('=== END DATE FILTER DEBUG ===');
     }
     
-    // Filter by status (client-side fallback if backend didn't filter)
-    // IMPORTANT: Status filter has priority - when applied, only show reports matching that status
-    // By default (no status filter), pending reports are shown via date filter logic
+    // Filter by status (if applied, we're not in default state anymore)
     if (currentFilters.status) {
         const beforeStatusFilter = filtered.length;
         filtered = filtered.filter(report => {
