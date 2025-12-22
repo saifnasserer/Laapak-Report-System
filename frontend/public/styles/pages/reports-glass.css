@@ -566,6 +566,8 @@
     text-align: center;
     font-size: 0.9rem;
     line-height: 1.5;
+    overflow: visible !important;
+    position: relative;
 }
 
 .table tbody td:first-child {
@@ -697,6 +699,52 @@
     box-shadow: var(--shadow-glass);
     padding: 0.5rem;
     min-width: 180px;
+    z-index: 1050 !important;
+}
+
+/* Status dropdown specific styling - allow overflow */
+.table tbody td .dropdown {
+    position: static;
+    display: inline-block;
+}
+
+/* Ensure table cells with dropdowns allow overflow */
+.table tbody td:has(.dropdown) {
+    overflow: visible !important;
+    position: relative;
+}
+
+/* Alternative selector for browsers that don't support :has() */
+.table tbody td .dropdown {
+    position: static;
+    display: inline-block;
+}
+
+/* Fix dropdown menu positioning to escape table cell - use absolute with high z-index */
+.table tbody td .dropdown .dropdown-menu {
+    position: absolute !important;
+    z-index: 1050 !important;
+    margin-top: 0.5rem;
+    will-change: transform;
+}
+
+/* Ensure table and table-responsive allow overflow */
+.table-responsive {
+    overflow-x: auto;
+    overflow-y: visible !important;
+}
+
+.table {
+    overflow: visible !important;
+}
+
+/* Ensure table body and rows allow overflow */
+.table tbody {
+    overflow: visible !important;
+}
+
+.table tbody tr {
+    overflow: visible !important;
 }
 
 .dropdown-item {

@@ -77,44 +77,51 @@ document.addEventListener('DOMContentLoaded', function() {
 function formatReportStatus(status, reportId) {
     if (!status) status = 'قيد الانتظار';
     
-    const statusLower = status.toLowerCase();
+    // Trim whitespace and normalize
+    const normalizedStatus = String(status).trim();
+    const statusLower = normalizedStatus.toLowerCase();
     let badgeClass = 'bg-secondary';
-    let statusText = status;
+    let statusText = normalizedStatus;
     
-    switch (statusLower) {
-        case 'completed':
-        case 'مكتمل':
-            badgeClass = 'bg-success';
-            statusText = 'مكتمل';
-            break;
-        case 'pending':
-        case 'قيد الانتظار':
-        case 'في المخزن':
-        case 'active':
-            badgeClass = 'bg-warning text-dark';
-            statusText = 'قيد الانتظار';
-            break;
-        case 'cancelled':
-        case 'ملغى':
-        case 'canceled':
-        case 'ملغي':
-            badgeClass = 'bg-danger';
-            statusText = 'ملغي';
-            break;
-        case 'in-progress':
-        case 'قيد المعالجة':
-            badgeClass = 'bg-info text-dark';
-            statusText = 'قيد المعالجة';
-            break;
-        default:
-            badgeClass = 'bg-secondary';
-            statusText = status;
+    // Check for completed status (both English and Arabic)
+    if (statusLower === 'completed' || normalizedStatus === 'مكتمل') {
+        badgeClass = 'bg-success';
+        statusText = 'مكتمل';
+    }
+    // Check for pending status
+    else if (statusLower === 'pending' || 
+             normalizedStatus === 'قيد الانتظار' || 
+             normalizedStatus === 'في المخزن' ||
+             statusLower === 'active') {
+        badgeClass = 'bg-warning text-dark';
+        statusText = 'قيد الانتظار';
+    }
+    // Check for cancelled status
+    else if (statusLower === 'cancelled' || 
+             statusLower === 'canceled' ||
+             normalizedStatus === 'ملغى' || 
+             normalizedStatus === 'ملغي') {
+        badgeClass = 'bg-danger';
+        statusText = 'ملغي';
+    }
+    // Check for in-progress status
+    else if (statusLower === 'in-progress' || 
+             normalizedStatus === 'قيد المعالجة') {
+        badgeClass = 'bg-info text-dark';
+        statusText = 'قيد المعالجة';
+    }
+    // Default: keep original status
+    else {
+        badgeClass = 'bg-secondary';
+        statusText = normalizedStatus;
     }
     
     return `
-        <div class="dropdown">
+        <div class="dropdown" style="position: static;">
             <span class="badge ${badgeClass} status-badge rounded-pill px-3 py-2" 
                   data-bs-toggle="dropdown" 
+                  data-bs-boundary="viewport"
+                  data-bs-popper-config='{"strategy":"fixed"}'
                   data-report-id="${reportId}" 
                   style="cursor: pointer; font-size: 0.85rem; min-width: 100px; display: inline-flex; align-items: center; justify-content: center; gap: 5px;" 
                   title="انقر لتغيير الحالة">
@@ -1061,6 +1068,11 @@ function populateReportsTable(reports, updatePagination = true) {
             </div>
         `;
         
+        // Debug: Log status values to help diagnose issues
+        if (mappedReport.status === 'completed' || mappedReport.status === 'مكتمل') {
+            console.log(`[STATUS DEBUG] Report ${mappedReport.id} has status: "${mappedReport.status}" (type: ${typeof mappedReport.status})`);
+        }
+        
         row.innerHTML = `
             <td>${mappedReport.orderNumber || 'غير محدد'}</td>
             <td>${mappedReport.clientName || 'غير محدد'}</td>
@@ -1099,8 +1111,21 @@ function populateReportsTable(reports, updatePagination = true) {
                 // Only initialize if not already initialized
                 if (!dropdownToggleEl._dropdown) {
                     try {
-                        const dropdown = new bootstrap.Dropdown(dropdownToggleEl);
+                        // Configure dropdown to use fixed positioning to escape table cell boundaries
+                        const dropdown = new bootstrap.Dropdown(dropdownToggleEl, {
+                            boundary: 'viewport',
+                            popperConfig: {
+                                strategy: 'fixed'
+                            }
+                        });
                         dropdownToggleEl._dropdown = dropdown;
+                        
+                        // Ensure dropdown menu can overflow
+                        const dropdownMenu = dropdownToggleEl.nextElementSibling;
+                        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+                            dropdownMenu.style.position = 'absolute';
+                            dropdownMenu.style.zIndex = '1050';
+                        }
                     } catch (error) {
                         console.warn('Error initializing status dropdown:', error);
                     }
