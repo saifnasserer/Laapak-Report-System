@@ -807,6 +807,36 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ error: 'Report not found' });
     }
 
+    // Convert Arabic status values to English before processing (ENUM only allows: completed, pending, shipped, cancelled)
+    if (req.body.status !== undefined) {
+      const statusMap = {
+        'مكتمل': 'completed',
+        'قيد الانتظار': 'pending',
+        'ملغي': 'cancelled',
+        'ملغى': 'cancelled',
+        'قيد المعالجة': 'pending',
+        'completed': 'completed',
+        'pending': 'pending',
+        'cancelled': 'cancelled',
+        'canceled': 'cancelled',
+        'shipped': 'shipped',
+        'active': 'pending', // Map 'active' to 'pending'
+        'in-progress': 'pending' // Map 'in-progress' to 'pending'
+      };
+      
+      const originalStatus = req.body.status;
+      const englishStatus = statusMap[originalStatus];
+      
+      if (englishStatus) {
+        if (englishStatus !== originalStatus) {
+          console.log(`Converting status from '${originalStatus}' to '${englishStatus}'`);
+        }
+        req.body.status = englishStatus;
+      } else {
+        console.warn(`Unknown status value '${originalStatus}', keeping as is`);
+      }
+    }
+    
     // Update all fields that can be updated
     // Base fields (always available)
     const baseUpdateFields = [
@@ -910,24 +940,41 @@ router.put('/:id', auth, async (req, res) => {
           migration_required: true
         });
       }
+      // Check if error is about invalid ENUM value for status
+      if (saveError.message && (
+        saveError.message.includes("status") && (
+          saveError.message.includes("ENUM") ||
+          saveError.message.includes("not valid") ||
+          saveError.message.includes("does not exist")
+        )
+      )) {
+        console.error('Invalid status value:', saveError.message);
+        console.error('Attempted status value:', updateData.status);
+        return res.status(400).json({ 
+          error: 'Invalid status value', 
+          details: `The status value '${updateData.status}' is not valid. Allowed values are: completed, pending, shipped, cancelled`,
+          attempted_value: updateData.status
+        });
+      }
       throw saveError;
     }
     
     console.log(`Report ${req.params.id} updated successfully`);
     
     // Sync invoice status if report status changed to completed or cancelled
+    // Note: req.body.status is already converted to English at this point
     if (req.body.status && req.body.status !== oldStatus) {
       try {
-        const newStatus = req.body.status;
+        const newStatus = req.body.status; // This is already in English format
         console.log(`Report status changed from '${oldStatus}' to '${newStatus}', syncing invoices...`);
         
-        // Map Arabic report status to invoice payment status
+        // Map English report status to invoice payment status
         let invoicePaymentStatus = null;
-        if (newStatus === 'مكتمل' || newStatus === 'completed') {
+        if (newStatus === 'completed') {
           invoicePaymentStatus = 'completed';
-        } else if (newStatus === 'ملغي' || newStatus === 'ملغى' || newStatus === 'cancelled' || newStatus === 'canceled') {
+        } else if (newStatus === 'cancelled') {
           invoicePaymentStatus = 'cancelled';
-        } else if (newStatus === 'قيد الانتظار' || newStatus === 'pending' || newStatus === 'active') {
+        } else if (newStatus === 'pending' || newStatus === 'shipped') {
           invoicePaymentStatus = 'pending';
         }
         

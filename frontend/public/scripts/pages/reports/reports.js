@@ -117,11 +117,10 @@ function formatReportStatus(status, reportId) {
     }
     
     return `
-        <div class="dropdown" style="position: static;">
+        <div class="dropdown">
             <span class="badge ${badgeClass} status-badge rounded-pill px-3 py-2" 
                   data-bs-toggle="dropdown" 
                   data-bs-boundary="viewport"
-                  data-bs-popper-config='{"strategy":"fixed"}'
                   data-report-id="${reportId}" 
                   style="cursor: pointer; font-size: 0.85rem; min-width: 100px; display: inline-flex; align-items: center; justify-content: center; gap: 5px;" 
                   title="انقر لتغيير الحالة">
@@ -1102,36 +1101,89 @@ function populateReportsTable(reports, updatePagination = true) {
     });
     
     // Initialize Bootstrap dropdowns for newly added rows (status dropdowns)
-    // This ensures dropdowns work after dynamic content is added
+    // Use approach similar to invoices.js but adapted for regular table (not DataTable)
     if (typeof bootstrap !== 'undefined') {
         const dropdownElementList = reportsTableBody.querySelectorAll('.status-badge[data-bs-toggle="dropdown"]');
-        if (dropdownElementList && dropdownElementList.length > 0) {
-            // Bootstrap 5 dropdown initialization for status badges
-            dropdownElementList.forEach(dropdownToggleEl => {
-                // Only initialize if not already initialized
-                if (!dropdownToggleEl._dropdown) {
-                    try {
-                        // Configure dropdown to use fixed positioning to escape table cell boundaries
-                        const dropdown = new bootstrap.Dropdown(dropdownToggleEl, {
-                            boundary: 'viewport',
-                            popperConfig: {
-                                strategy: 'fixed'
+        dropdownElementList.forEach(dropdownToggleEl => {
+            // Only initialize if not already initialized
+            if (!dropdownToggleEl._dropdown) {
+                try {
+                    const dropdownMenu = dropdownToggleEl.nextElementSibling;
+                    const dropdownContainer = dropdownToggleEl.closest('.dropdown');
+                    
+                    if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+                        // Store original parent for restoration
+                        dropdownMenu._originalParent = dropdownContainer;
+                        dropdownMenu._toggleElement = dropdownToggleEl;
+                        
+                        // Move dropdown menu to body when shown to escape table constraints
+                        dropdownToggleEl.addEventListener('show.bs.dropdown', function() {
+                            // Move menu to body before Bootstrap positions it
+                            if (dropdownMenu.parentNode !== document.body) {
+                                document.body.appendChild(dropdownMenu);
+                            }
+                            dropdownMenu.style.zIndex = '9999';
+                        });
+                        
+                        // Update position after Bootstrap positions it (if needed)
+                        dropdownToggleEl.addEventListener('shown.bs.dropdown', function() {
+                            // Ensure menu is in body and has high z-index
+                            if (dropdownMenu.parentNode !== document.body) {
+                                document.body.appendChild(dropdownMenu);
+                            }
+                            
+                            // Get toggle button position
+                            const toggleRect = dropdownToggleEl.getBoundingClientRect();
+                            
+                            // Position menu below toggle button, centered
+                            dropdownMenu.style.position = 'fixed';
+                            dropdownMenu.style.top = `${toggleRect.bottom + window.scrollY + 5}px`;
+                            dropdownMenu.style.left = `${toggleRect.left + window.scrollX + (toggleRect.width / 2) - (dropdownMenu.offsetWidth / 2)}px`;
+                            dropdownMenu.style.zIndex = '9999';
+                            
+                            // Adjust if menu goes off screen
+                            const menuRect = dropdownMenu.getBoundingClientRect();
+                            if (menuRect.right > window.innerWidth) {
+                                dropdownMenu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
+                            }
+                            if (menuRect.left < 0) {
+                                dropdownMenu.style.left = '10px';
                             }
                         });
-                        dropdownToggleEl._dropdown = dropdown;
                         
-                        // Ensure dropdown menu can overflow
-                        const dropdownMenu = dropdownToggleEl.nextElementSibling;
-                        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
-                            dropdownMenu.style.position = 'absolute';
-                            dropdownMenu.style.zIndex = '1050';
-                        }
-                    } catch (error) {
-                        console.warn('Error initializing status dropdown:', error);
+                        // Move menu back to original position when hidden
+                        dropdownToggleEl.addEventListener('hide.bs.dropdown', function() {
+                            // Let Bootstrap handle the hide animation first
+                        });
+                        
+                        dropdownToggleEl.addEventListener('hidden.bs.dropdown', function() {
+                            // Move menu back to original parent
+                            if (dropdownMenu._originalParent && dropdownMenu.parentNode === document.body) {
+                                dropdownMenu._originalParent.appendChild(dropdownMenu);
+                                dropdownMenu.style.position = '';
+                                dropdownMenu.style.top = '';
+                                dropdownMenu.style.left = '';
+                                dropdownMenu.style.zIndex = '';
+                            }
+                        });
+                        
+                        // Initialize Bootstrap dropdown with viewport boundary
+                        const dropdown = new bootstrap.Dropdown(dropdownToggleEl, {
+                            boundary: 'viewport'
+                        });
+                        dropdownToggleEl._dropdown = dropdown;
+                    } else {
+                        // Fallback: simple initialization
+                        const dropdown = new bootstrap.Dropdown(dropdownToggleEl, {
+                            boundary: 'viewport'
+                        });
+                        dropdownToggleEl._dropdown = dropdown;
                     }
+                } catch (error) {
+                    console.warn('Error initializing status dropdown:', error);
                 }
-            });
-        }
+            }
+        });
     }
     
     // Update load more button
