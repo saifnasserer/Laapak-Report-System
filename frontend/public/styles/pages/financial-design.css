@@ -1,0 +1,366 @@
+/* Laapak Financial Module Design System */
+/* Based on design.md - Calm, Intelligent, Trustworthy */
+
+:root {
+    /* Brand Colors - Laapak Green */
+    --brand-primary: #007553;
+    --brand-primary-light: #00a67a;
+    --brand-primary-dark: #004d35;
+
+    /* Neutral System (Dominant) */
+    --neutral-900: #212529;
+    /* Deep Text */
+    --neutral-700: #495057;
+    /* Secondary Text */
+    --neutral-500: #6c757d;
+    /* Muted/Meta */
+    --neutral-200: #e9ecef;
+    /* Borders/Dividers */
+    --neutral-100: #f8f9fa;
+    /* Page Backgrounds */
+    --white: #ffffff;
+
+    /* Functional Colors */
+    --success: #198754;
+    --warning: #ffc107;
+    --danger: #dc3545;
+
+    /* UI Variables */
+    --page-bg: #f8f9fa;
+    /* Clean light gray, no heavy gradients */
+    --card-bg: #ffffff;
+    --card-radius: 16px;
+    /* Soft radius */
+    --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    /* Very subtle shadow */
+    --card-shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    --font-heading: 'Noto Sans Arabic', 'Tajawal', sans-serif;
+    --font-body: 'Noto Sans Arabic', 'Tajawal', sans-serif;
+}
+
+body {
+    background-color: var(--page-bg);
+    background-image: none !important;
+    /* Override any existing gradients */
+    font-family: var(--font-body);
+    color: var(--neutral-900);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    color: var(--neutral-900);
+    font-weight: 700;
+}
+
+/* Minimal Card Design */
+.finance-card {
+    background: var(--card-bg);
+    border-radius: var(--card-radius);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    /* Extremely subtle border */
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.finance-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.finance-card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--neutral-200);
+    background: transparent;
+}
+
+.finance-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--neutral-900);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.finance-card-body {
+    padding: 1.5rem;
+}
+
+/* Primary Button - Laapak Green */
+.btn-brand-primary {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-light) 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-brand-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 117, 83, 0.2);
+    color: white;
+}
+
+/* Week Navigator */
+.week-navigator {
+    background: var(--white);
+    border-radius: 50px;
+    /* Pill shape */
+    padding: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--neutral-200);
+}
+
+.week-nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.week-nav-btn:hover {
+    background: var(--neutral-100);
+}
+
+.week-display {
+    padding: 0 1.5rem;
+    font-weight: 600;
+    color: var(--neutral-900);
+    font-size: 1rem;
+    min-width: 200px;
+    text-align: center;
+}
+
+/* KPI Cards - Simplified */
+.kpi-card {
+    padding: 1.5rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.kpi-label {
+    font-size: 0.9rem;
+    color: var(--neutral-500);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--neutral-900);
+    line-height: 1.2;
+}
+
+.kpi-trend {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.kpi-trend.positive {
+    color: var(--success);
+}
+
+.kpi-trend.negative {
+    color: var(--danger);
+}
+
+/* Table Styles - Clean */
+.table-clean {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table-clean thead th {
+    background: var(--neutral-100);
+    color: var(--neutral-700);
+    font-weight: 600;
+    padding: 1rem;
+    border-bottom: 1px solid var(--neutral-200);
+    text-align: right;
+    font-size: 0.9rem;
+}
+
+.table-clean tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--neutral-200);
+    vertical-align: middle;
+    color: var(--neutral-900);
+}
+
+.table-clean tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table-clean tbody tr:hover {
+    background-color: #fcfcfc;
+}
+
+/* ============================================
+   MOBILE RESPONSIVENESS
+   ============================================ */
+
+/* Tablets and below */
+@media (max-width: 992px) {
+    .finance-card-body {
+        padding: 1rem;
+    }
+
+    .finance-card-header {
+        padding: 1rem;
+    }
+
+    .kpi-value {
+        font-size: 1.5rem;
+    }
+
+    .week-display {
+        min-width: 150px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 768px) {
+    .finance-card-body {
+        padding: 0.75rem;
+    }
+
+    .finance-card-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .finance-card-title {
+        font-size: 1rem;
+    }
+
+    /* KPI Cards - Stack on mobile */
+    .kpi-card {
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .kpi-value {
+        font-size: 1.25rem;
+    }
+
+    .kpi-label {
+        font-size: 0.8rem;
+    }
+
+    /* Week Navigator - Compact */
+    .week-navigator {
+        padding: 0.4rem;
+    }
+
+    .week-nav-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .week-display {
+        padding: 0 0.75rem;
+        min-width: 120px;
+        font-size: 0.85rem;
+    }
+
+    /* Table - Responsive */
+    .table-clean {
+        font-size: 0.85rem;
+    }
+
+    .table-clean thead th,
+    .table-clean tbody td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    /* Hide less important columns on mobile */
+    .table-clean th:nth-child(4),
+    .table-clean td:nth-child(4) {
+        display: none;
+        /* Hide "Items Count" column */
+    }
+
+    /* Make buttons smaller */
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    /* Charts - Full width on mobile */
+    canvas {
+        max-height: 250px !important;
+    }
+}
+
+/* Extra small phones */
+@media (max-width: 576px) {
+    .finance-card {
+        border-radius: 12px;
+    }
+
+    .finance-card-body {
+        padding: 0.5rem;
+    }
+
+    .kpi-value {
+        font-size: 1.1rem;
+    }
+
+    /* Further simplify table */
+    .table-clean {
+        font-size: 0.75rem;
+    }
+
+    .table-clean thead th,
+    .table-clean tbody td {
+        padding: 0.5rem 0.25rem;
+    }
+
+    /* Stack table controls */
+    .finance-card-header .d-flex {
+        flex-direction: column !important;
+        gap: 0.75rem;
+    }
+
+    .finance-card-header .input-group {
+        width: 100% !important;
+    }
+
+    /* Smaller week navigator */
+    .week-nav-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+    }
+
+    .week-display {
+        padding: 0 0.5rem;
+        min-width: 100px;
+        font-size: 0.75rem;
+    }
+}

@@ -6,10 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const { adminRoleAuth } = require('../middleware/auth');
-const { 
-    ExpenseCategory, 
-    Expense, 
-    ProductCost, 
+const {
+    ExpenseCategory,
+    Expense,
+    ProductCost,
     FinancialSummary,
     Invoice,
     InvoiceItem,
@@ -32,12 +32,12 @@ const { Op } = require('sequelize');
 router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { startDate, endDate, month, year } = req.query;
-        
+
         console.log('Dashboard received query params:', { startDate, endDate, month, year });
-        
+
         // Determine date range
         let startDateObj, endDateObj;
-        
+
         if (startDate && endDate) {
             // Use provided date range
             startDateObj = new Date(startDate);
@@ -47,11 +47,11 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             const currentDate = new Date();
             const targetMonth = month || (currentDate.getMonth() + 1);
             const targetYear = year || currentDate.getFullYear();
-            
+
             startDateObj = new Date(targetYear, targetMonth - 1, 1);
             endDateObj = new Date(targetYear, targetMonth, 0);
         }
-        
+
         // Format dates for database queries (avoid timezone issues)
         const formatDateForDB = (date) => {
             const year = date.getFullYear();
@@ -59,12 +59,12 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         };
-        
+
         const startDateStr = formatDateForDB(startDateObj);
         const endDateStr = formatDateForDB(endDateObj);
-        
-        console.log('Dashboard date range:', { 
-            startDate: startDateStr, 
+
+        console.log('Dashboard date range:', {
+            startDate: startDateStr,
             endDate: endDateStr,
             startDateObj: startDateObj.toISOString(),
             endDateObj: endDateObj.toISOString()
@@ -96,21 +96,21 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
 
             for (const invoice of invoices) {
                 // Count ALL invoices for revenue (not just those with cost prices)
-                    totalRevenue += parseFloat(invoice.total) || 0;
-                    invoiceCount++;
-                    
+                totalRevenue += parseFloat(invoice.total) || 0;
+                invoiceCount++;
+
                 // Calculate total cost from invoice items (only if cost price exists)
                 if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
                     for (const item of invoice.InvoiceItems) {
                         if (item.cost_price) {
-                        const costPrice = parseFloat(item.cost_price) || 0;
-                        const quantity = parseInt(item.quantity) || 1;
-                        totalCost += costPrice * quantity;
+                            const costPrice = parseFloat(item.cost_price) || 0;
+                            const quantity = parseInt(item.quantity) || 1;
+                            totalCost += costPrice * quantity;
+                        }
                     }
                 }
             }
-            }
-            
+
             console.log(`Dashboard calculations: Revenue=${totalRevenue}, Cost=${totalCost}, InvoiceCount=${invoiceCount}`);
         } catch (error) {
             console.error('Error fetching invoices:', error);
@@ -132,7 +132,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                 totalExpenses += parseFloat(expense.amount) || 0;
                 expenseCount++;
             }
-            
+
             console.log(`Found ${expenseCount} expenses totaling ${totalExpenses}`);
         } catch (error) {
             console.error('Error fetching expenses:', error);
@@ -141,7 +141,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
         // Calculate revenue breakdown FIRST
         let revenueWithCost = 0;
         let revenueWithoutCost = 0;
-        
+
         try {
             // Get revenue from invoices WITH cost prices
             const invoicesWithCostData = await Invoice.findAll({
@@ -161,7 +161,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                     }
                 }]
             });
-            
+
             // Get revenue from invoices WITHOUT cost prices
             const invoicesWithoutCostData = await Invoice.findAll({
                 where: {
@@ -178,36 +178,36 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                     }
                 }]
             });
-            
+
             // Calculate revenue from invoices with cost prices
             for (const invoice of invoicesWithCostData) {
                 if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
                     revenueWithCost += parseFloat(invoice.total) || 0;
                 }
             }
-            
+
             // Calculate revenue from invoices without cost prices
             for (const invoice of invoicesWithoutCostData) {
                 if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
                     revenueWithoutCost += parseFloat(invoice.total) || 0;
                 }
             }
-            
+
             console.log(`Revenue breakdown: WithCost=${revenueWithCost}, WithoutCost=${revenueWithoutCost}, Total=${totalRevenue}`);
         } catch (error) {
             console.error('Error calculating revenue breakdown:', error);
         }
-        
+
         // Calculate profits - only for items with cost prices
         const grossProfit = totalCost > 0 ? revenueWithCost - totalCost : 0;
         const netProfit = grossProfit - totalExpenses;
-        
+
         // Calculate profit margin only for invoices with cost prices
         let profitMargin = 0;
         if (totalCost > 0 && revenueWithCost > 0) {
             profitMargin = (grossProfit / revenueWithCost) * 100;
         }
-        
+
         // Additional calculations for better insights
         const invoicesWithCost = await Invoice.count({
             where: {
@@ -226,16 +226,16 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                 }
             }]
         });
-        
-        const invoicesWithoutCost = invoiceCount - invoicesWithCost;
-        
 
-        
+        const invoicesWithoutCost = invoiceCount - invoicesWithCost;
+
+
+
         console.log(`Profit calculations: GrossProfit=${grossProfit}, NetProfit=${netProfit}, Margin=${profitMargin}%`);
         console.log(`Invoice breakdown: Total=${invoiceCount}, WithCost=${invoicesWithCost}, WithoutCost=${invoicesWithoutCost}`);
         console.log(`Revenue breakdown: Total=${totalRevenue}, WithCost=${revenueWithCost}, WithoutCost=${revenueWithoutCost}`);
         console.log(`Cost breakdown: TotalCost=${totalCost}, Expenses=${totalExpenses}`);
-        
+
         // Verify profit calculation
         const expectedGrossProfit = revenueWithCost - totalCost;
         const expectedNetProfit = expectedGrossProfit - totalExpenses;
@@ -271,9 +271,9 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                     action: 'profit-management'
                 });
             }
-            
+
             console.log(`Found ${itemsWithoutCost} items without cost prices in date range`);
-            
+
             // Add alert for invoices without cost prices
             if (invoicesWithoutCost > 0) {
                 alerts.push({
@@ -283,7 +283,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                     action: 'profit-management'
                 });
             }
-            
+
             // Add alert if no costs are set
             if (totalCost === 0 && totalRevenue > 0) {
                 alerts.push({
@@ -328,18 +328,18 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             const startMonth = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
             const endMonth = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), 1);
             const monthDiff = (endMonth.getFullYear() - startMonth.getFullYear()) * 12 + (endMonth.getMonth() - startMonth.getMonth()) + 1;
-            
+
             console.log(`Generating trend data for ${monthDiff} months from ${startMonth.toISOString()} to ${endMonth.toISOString()}`);
-            
+
             // Generate monthly data points for the selected period
             for (let i = 0; i < monthDiff; i++) {
                 const date = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
                 const trendStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
                 const trendEndDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-                
+
                 const trendStartStr = formatDateForDB(trendStartDate);
                 const trendEndStr = formatDateForDB(trendEndDate);
-                
+
                 // Get revenue for this month (ALL invoices, not just those with cost prices)
                 const monthInvoices = await Invoice.findAll({
                     where: {
@@ -353,26 +353,26 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                         as: 'InvoiceItems'
                     }]
                 });
-                
+
                 let monthRevenue = 0;
                 let monthCost = 0;
-                
+
                 for (const invoice of monthInvoices) {
                     // Count ALL invoices for revenue
-                        monthRevenue += parseFloat(invoice.total) || 0;
-                        
+                    monthRevenue += parseFloat(invoice.total) || 0;
+
                     // Calculate cost only if cost prices exist
                     if (invoice.InvoiceItems && invoice.InvoiceItems.length > 0) {
                         for (const item of invoice.InvoiceItems) {
                             if (item.cost_price) {
-                            const costPrice = parseFloat(item.cost_price) || 0;
-                            const quantity = parseInt(item.quantity) || 1;
-                            monthCost += costPrice * quantity;
+                                const costPrice = parseFloat(item.cost_price) || 0;
+                                const quantity = parseInt(item.quantity) || 1;
+                                monthCost += costPrice * quantity;
                             }
                         }
                     }
                 }
-                
+
                 // Get expenses for this month
                 const monthExpenses = await Expense.findAll({
                     where: {
@@ -383,12 +383,12 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                         type: 'variable' // Only get variable expenses, not fixed profits
                     }
                 });
-                
+
                 let monthExpensesTotal = 0;
                 for (const expense of monthExpenses) {
                     monthExpensesTotal += parseFloat(expense.amount) || 0;
                 }
-                
+
                 // Calculate profit only if there are costs (same logic as main calculation)
                 const monthProfit = monthCost > 0 ? monthRevenue - monthCost - monthExpensesTotal : 0;
 
@@ -424,13 +424,13 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Group expenses by category
             const expenseGroups = {};
-            
+
             for (const expense of expenses) {
                 const categoryId = expense.category_id;
                 const categoryName = expense.category ? expense.category.name_ar : 'غير محدد';
                 const categoryColor = expense.category ? expense.category.color : '#6c757d';
                 const amount = parseFloat(expense.amount) || 0;
-                
+
                 if (expenseGroups[categoryId]) {
                     expenseGroups[categoryId].total += amount;
                 } else {
@@ -453,7 +453,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             }));
 
             console.log('Expense breakdown by categories:', expenseBreakdown);
-            
+
         } catch (error) {
             console.error('Error fetching expense breakdown:', error);
         }
@@ -461,7 +461,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
         // Helper function to generate colors for expenses
         function getExpenseColor(index) {
             const colors = [
-                '#dc3545', '#ffc107', '#0dcaf0', '#6f42c1', 
+                '#dc3545', '#ffc107', '#0dcaf0', '#6f42c1',
                 '#fd7e14', '#20c997', '#e83e8c', '#6c757d'
             ];
             return colors[index % colors.length];
@@ -505,8 +505,8 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
     } catch (error) {
         console.error('Dashboard error:', error);
         console.error('Error stack:', error.stack);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error loading dashboard data',
             error: error.message,
             stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
@@ -521,7 +521,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
 router.get('/dashboard-debug', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         console.log('=== DASHBOARD DEBUG ENDPOINT ===');
-        
+
         // Get all invoices without any filtering
         const allInvoices = await Invoice.findAll({
             include: [{
@@ -529,13 +529,13 @@ router.get('/dashboard-debug', adminRoleAuth(['superadmin']), async (req, res) =
                 as: 'InvoiceItems'
             }]
         });
-        
+
         console.log(`Total invoices in database: ${allInvoices.length}`);
-        
+
         // Get all expenses without any filtering
         const allExpenses = await Expense.findAll();
         console.log(`Total expenses in database: ${allExpenses.length}`);
-        
+
         // Sample data
         const sampleInvoices = allInvoices.slice(0, 3).map(invoice => ({
             id: invoice.id,
@@ -545,14 +545,14 @@ router.get('/dashboard-debug', adminRoleAuth(['superadmin']), async (req, res) =
             itemsCount: invoice.InvoiceItems ? invoice.InvoiceItems.length : 0,
             itemsWithCost: invoice.InvoiceItems ? invoice.InvoiceItems.filter(item => item.cost_price).length : 0
         }));
-        
+
         const sampleExpenses = allExpenses.slice(0, 3).map(expense => ({
             id: expense.id,
             amount: expense.amount,
             date: expense.date,
             status: expense.status
         }));
-        
+
         res.json({
             success: true,
             debug: {
@@ -563,13 +563,13 @@ router.get('/dashboard-debug', adminRoleAuth(['superadmin']), async (req, res) =
                 queryParams: req.query
             }
         });
-        
+
     } catch (error) {
         console.error('Dashboard debug error:', error);
         res.status(500).json({
             success: false,
             message: 'Debug endpoint failed',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -594,7 +594,7 @@ router.get('/dashboard-simple', adminRoleAuth(['superadmin']), async (req, res) 
         try {
             const expenseCount = await Expense.count();
             const categoryCount = await ExpenseCategory.count();
-            
+
             basicData.expenseCount = expenseCount;
             basicData.categoryCount = categoryCount;
         } catch (dbError) {
@@ -669,10 +669,10 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
         if (!type || type === 'invoices') {
             try {
                 console.log('Fetching completed/paid invoices first, then filtering...');
-                
+
                 // Use direct SQL query to get ALL invoices with their data
                 const { sequelize } = require('../models');
-                
+
                 // Fetch completed/paid invoices with their cost data (or all if explicitly requested)
                 const showAllInvoices = req.query.showAllInvoices === 'true';
                 const allInvoicesQuery = `
@@ -697,28 +697,28 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
                     GROUP BY i.id, i.date, i.total, i.paymentStatus, c.name, c.id
                     ORDER BY i.date DESC
                 `;
-                
+
                 console.log(`Fetching ${showAllInvoices ? 'ALL' : 'completed/paid'} invoices...`);
                 const [allInvoices] = await sequelize.query(allInvoicesQuery);
                 console.log(`Total ${showAllInvoices ? 'invoices' : 'completed/paid invoices'} in database: ${allInvoices.length}`);
-                
+
                 // Now filter the results in application layer
                 let filteredInvoices = allInvoices;
-                
+
                 // Filter by payment status - ALWAYS show only completed/paid invoices by default
                 if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
-                    filteredInvoices = filteredInvoices.filter(invoice => 
+                    filteredInvoices = filteredInvoices.filter(invoice =>
                         invoice.payment_status === req.query.paymentStatus
                     );
                     console.log(`After payment status filter: ${filteredInvoices.length} invoices`);
                 } else {
                     // Default to completed/paid invoices only
-                    filteredInvoices = filteredInvoices.filter(invoice => 
+                    filteredInvoices = filteredInvoices.filter(invoice =>
                         ['completed', 'paid'].includes(invoice.payment_status)
                     );
                     console.log(`After default completed/paid filter: ${filteredInvoices.length} invoices`);
                 }
-                
+
                 // Filter by date range
                 if (startDate && endDate) {
                     filteredInvoices = filteredInvoices.filter(invoice => {
@@ -729,24 +729,24 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
                     });
                     console.log(`After date filter: ${filteredInvoices.length} invoices`);
                 }
-                
+
                 // Filter by cost prices (if requested)
                 const showOnlyWithCost = req.query.showOnlyWithCost === 'true';
                 if (showOnlyWithCost) {
-                    filteredInvoices = filteredInvoices.filter(invoice => 
+                    filteredInvoices = filteredInvoices.filter(invoice =>
                         parseFloat(invoice.total_cost) > 0
                     );
                     console.log(`After cost filter: ${filteredInvoices.length} invoices`);
                 }
-                
+
                 // Apply pagination
                 const startIndex = offset;
                 const endIndex = offset + parseInt(limit);
                 const paginatedInvoices = filteredInvoices.slice(startIndex, endIndex);
-                
+
                 console.log(`Pagination: ${startIndex} to ${endIndex} of ${filteredInvoices.length} filtered invoices`);
                 console.log(`Returning ${paginatedInvoices.length} invoices`);
-                
+
                 // Convert to results format
                 for (const row of paginatedInvoices) {
                     results.push({
@@ -763,16 +763,16 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
                         payment_status: row.payment_status
                     });
                 }
-                
+
                 console.log(`Total results from invoices: ${results.length}`);
-                
+
                 // Calculate hasMore based on filtered results
                 const hasMore = endIndex < filteredInvoices.length;
                 console.log(`hasMore calculation: ${endIndex} < ${filteredInvoices.length} = ${hasMore}`);
-                
+
                 // Store hasMore for later use
                 results.hasMore = hasMore;
-                
+
             } catch (invoiceError) {
                 console.error('Error fetching invoices:', invoiceError);
                 console.error('Error details:', invoiceError.message);
@@ -822,7 +822,7 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
 
         // Check if there are more results available
         let hasMore = false;
-        
+
         // Use the hasMore value calculated in the invoices section if available
         if (results.hasMore !== undefined) {
             hasMore = results.hasMore;
@@ -849,10 +849,10 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
 
     } catch (error) {
         console.error('Profit management error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error loading profit management data',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -866,27 +866,27 @@ router.put('/cost-prices/bulk', adminRoleAuth(['superadmin']), async (req, res) 
         const { updates } = req.body; // Array of { item_id, cost_price, product_name, product_model, serial_number }
         console.log('Received bulk update request:', updates);
         console.log('Updates count:', updates ? updates.length : 0);
-        
+
         const updatedItems = [];
 
         for (const update of updates) {
             try {
                 console.log('Processing update:', update);
-                
+
                 // Update the invoice item
                 console.log(`Updating InvoiceItem with id: ${update.item_id} (type: ${typeof update.item_id})`);
-                
+
                 // First check if the item exists
                 const existingItem = await InvoiceItem.findByPk(parseInt(update.item_id));
                 console.log(`Existing item found:`, existingItem ? 'Yes' : 'No');
-                
+
                 if (existingItem) {
                     const updateResult = await InvoiceItem.update(
                         { cost_price: update.cost_price },
                         { where: { id: parseInt(update.item_id) } }
                     );
                     console.log(`InvoiceItem update result:`, updateResult);
-                    
+
                     if (updateResult[0] > 0) {
                         console.log(`Successfully updated item ${update.item_id} with cost price ${update.cost_price}`);
                     } else {
@@ -916,7 +916,7 @@ router.put('/cost-prices/bulk', adminRoleAuth(['superadmin']), async (req, res) 
         }
 
         console.log(`Successfully updated ${updatedItems.length} items:`, updatedItems);
-        
+
         res.json({
             success: true,
             message: `تم تحديث ${updatedItems.length} عنصر بنجاح`,
@@ -925,10 +925,10 @@ router.put('/cost-prices/bulk', adminRoleAuth(['superadmin']), async (req, res) 
 
     } catch (error) {
         console.error('Bulk cost price update error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error updating cost prices',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -941,7 +941,7 @@ router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res
     console.log('=== COST PRICE UPDATE ROUTE HIT ===');
     console.log('Params:', req.params);
     console.log('Body:', req.body);
-    
+
     try {
         const { itemId } = req.params;
         const { cost_price, product_name, product_model, serial_number } = req.body;
@@ -956,7 +956,7 @@ router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res
             description: existingItem.description,
             current_cost: existingItem.cost_price
         } : 'Not found');
-        
+
         if (existingItem) {
             // Use Sequelize ORM approach like the working routes
             const updateResult = await InvoiceItem.update(
@@ -964,10 +964,10 @@ router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res
                 { where: { id: parseInt(itemId) } }
             );
             console.log(`InvoiceItem update result:`, updateResult);
-            
+
             if (updateResult[0] > 0) {
                 console.log(`Successfully updated item ${itemId} with cost price ${cost_price}`);
-                
+
                 // Verify the update by fetching the item again
                 const updatedItem = await InvoiceItem.findByPk(parseInt(itemId));
                 console.log(`Updated item cost_price:`, updatedItem.cost_price);
@@ -999,10 +999,10 @@ router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res
 
     } catch (error) {
         console.error('Cost price update error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error updating cost price',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -1014,31 +1014,31 @@ router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res
 router.get('/invoice/:invoiceId/items', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { invoiceId } = req.params;
-        
+
         // Use the same approach as the working invoices route
         const invoice = await Invoice.findByPk(invoiceId, {
             include: [
                 { model: InvoiceItem, as: 'InvoiceItems' }
             ]
         });
-        
+
         if (!invoice) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Invoice not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Invoice not found'
             });
         }
-        
+
         // Transform the data to match the expected format
         const items = invoice.InvoiceItems.map(item => {
             const salePrice = parseFloat(item.amount);
             const costPrice = item.cost_price ? parseFloat(item.cost_price) : 0;
             const quantity = parseInt(item.quantity || 1);
-            
+
             // Calculate profit manually instead of relying on generated columns
             const profitAmount = costPrice > 0 ? (salePrice - costPrice) * quantity : null;
             const profitMargin = costPrice > 0 && salePrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : null;
-            
+
             return {
                 item_id: item.id,
                 item_description: item.description,
@@ -1052,19 +1052,19 @@ router.get('/invoice/:invoiceId/items', adminRoleAuth(['superadmin']), async (re
                 needs_cost_price: !item.cost_price
             };
         });
-        
+
         res.json({
             success: true,
             data: items
         });
-        
+
     } catch (error) {
         console.error('Error fetching invoice items:', error);
-        
+
         // Log detailed error information for debugging
         if (error.name) console.error('Error name:', error.name);
         if (error.message) console.error('Error message:', error.message);
-        
+
         // Check for specific error types
         if (error.name === 'SequelizeEagerLoadingError') {
             return res.status(500).json({
@@ -1073,7 +1073,7 @@ router.get('/invoice/:invoiceId/items', adminRoleAuth(['superadmin']), async (re
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
-        
+
         if (error.name && error.name.includes('Sequelize')) {
             return res.status(500).json({
                 success: false,
@@ -1081,11 +1081,11 @@ router.get('/invoice/:invoiceId/items', adminRoleAuth(['superadmin']), async (re
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
-        
-        res.status(500).json({ 
-            success: false, 
+
+        res.status(500).json({
+            success: false,
             message: 'Failed to fetch invoice items',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
@@ -1124,10 +1124,10 @@ router.post('/calculate-profits', adminRoleAuth(['superadmin']), async (req, res
 
     } catch (error) {
         console.error('Profit calculation error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error calculating profits',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -1191,10 +1191,10 @@ router.get('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
 
     } catch (error) {
         console.error('Get expenses error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error loading expenses',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -1249,10 +1249,10 @@ router.post('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
 
     } catch (error) {
         console.error('Create expense error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error creating expense',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -1367,10 +1367,10 @@ router.get('/product-costs', adminRoleAuth(['superadmin']), async (req, res) => 
 
     } catch (error) {
         console.error('Get product costs error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error loading product costs',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -1395,10 +1395,10 @@ router.get('/analytics/monthly-summary/:monthYear', adminRoleAuth(['superadmin']
 
     } catch (error) {
         console.error('Monthly summary error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error calculating monthly summary',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -1426,7 +1426,7 @@ router.get('/test', adminRoleAuth(['superadmin']), async (req, res) => {
 
         // Test if tables exist by trying to count records
         const tableTests = {};
-        
+
         try {
             await ExpenseCategory.count();
             tableTests.ExpenseCategory = true;
@@ -1504,5 +1504,53 @@ router.get('/test', adminRoleAuth(['superadmin']), async (req, res) => {
 });
 
 // =============================================================================
+
+/**
+ * PATCH /api/financial/invoice-items/:id/cost
+ * Update cost price for an invoice item
+ * Access: Admin/Superadmin
+ */
+router.patch('/invoice-items/:id/cost', adminRoleAuth(['admin', 'superadmin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { cost_price } = req.body;
+
+        if (cost_price === undefined || cost_price === null) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cost price is required'
+            });
+        }
+
+        const item = await InvoiceItem.findByPk(id);
+        if (!item) {
+            return res.status(404).json({
+                success: false,
+                message: 'Invoice item not found'
+            });
+        }
+
+        // Update cost price
+        item.cost_price = cost_price;
+        await item.save();
+
+        res.json({
+            success: true,
+            message: 'Cost price updated successfully',
+            data: {
+                id: item.id,
+                cost_price: item.cost_price
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating cost price:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating cost price',
+            error: error.message
+        });
+    }
+});
 
 module.exports = router; 
