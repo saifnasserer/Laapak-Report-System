@@ -1,11 +1,20 @@
 
 const { sequelize } = require('../../config/db');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../../.env') }); // Explicitly load .env from root
 
 async function updateEnum() {
     try {
         console.log('Connecting to database...');
+        console.log(`Using DB Host: ${process.env.DB_HOST}`);
+        console.log(`Using DB Name: ${process.env.DB_NAME}`);
+
         await sequelize.authenticate();
         console.log('Database connected.');
+
+        // List tables to debug
+        const [results] = await sequelize.query('SHOW TABLES');
+        console.log('Tables in database:', results.map(r => Object.values(r)[0]));
 
         console.log('Updating type ENUM in expected_items table...');
 
