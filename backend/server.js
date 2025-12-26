@@ -49,16 +49,16 @@ app.use((req, res, next) => {
         'http://localhost:3000',
         'http://localhost:5173' // Vite dev server
     ];
-    
+
     const origin = req.headers.origin;
     if (allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
     }
-    
+
     res.header('Access-Control-Allow-Headers', 'Content-Type, x-api-key, Authorization, x-auth-token');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Credentials', 'true');
-    
+
     if (req.method === 'OPTIONS') {
         res.sendStatus(200);
     } else {
@@ -311,31 +311,24 @@ const startServer = async () => {
     try {
         // Test database connection
         const dbConnected = await testConnection();
-        
+
         if (!dbConnected) {
             console.error('Failed to connect to database. Please check your database configuration.');
             process.exit(1);
         }
-        
+
         // Initialize database (create tables and seed data)
         const dbInitialized = await initDatabase();
-        
+
         if (!dbInitialized) {
             console.error('Failed to initialize database.');
             process.exit(1);
         }
-        
+
         // Ensure all required tables exist (reports, report_technical_tests)
-        try {
-            console.log('Ensuring all required tables exist...');
-            // Pass false to prevent closing the database connection
-            await ensureTables(false);
-            console.log('All required tables verified successfully.');
-        } catch (tableError) {
-            console.error('Error ensuring required tables:', tableError);
-            console.log('Continuing with server startup despite table initialization error.');
-        }
-        
+        // ensureTables is redundant as initDatabase already handles table creation
+        // await ensureTables(false);
+
         // Start server
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);

@@ -1,15 +1,39 @@
 -- Migration: Update Expense Categories to Match Form
 -- This migration updates the expense categories to match the ones used in financial-add-expense.html
+-- Instead of deleting, we update existing categories and add missing ones
 
--- First, clear existing categories
-DELETE FROM expense_categories;
+-- Update existing categories (IDs 1-4) to match the form
+UPDATE expense_categories SET 
+    name = 'Office Expenses',
+    name_ar = 'مصاريف المكتب',
+    description = 'Office-related expenses including rent, utilities, supplies',
+    color = '#e74c3c',
+    is_active = TRUE
+WHERE id = 1;
 
--- Insert the categories that match the form
-INSERT INTO expense_categories (id, name, name_ar, description, color) VALUES
-(1, 'Office Expenses', 'مصاريف المكتب', 'Office rent, utilities, supplies', '#e74c3c'),
-(2, 'Salaries', 'مرتبات', 'Employee salaries and wages', '#3498db'),
-(3, 'Personal Expenses', 'مصاريف شخصية', 'Personal work-related expenses', '#9b59b6'),
-(4, 'Work Costs', 'تكاليف الشغل', 'Materials and work tools', '#f39c12');
+UPDATE expense_categories SET 
+    name = 'Salaries',
+    name_ar = 'مرتبات',
+    description = 'Employee salaries and wages',
+    color = '#3498db',
+    is_active = TRUE
+WHERE id = 2;
 
--- Reset auto-increment to start from 5 for any future categories
-ALTER TABLE expense_categories AUTO_INCREMENT = 5;
+UPDATE expense_categories SET 
+    name = 'Personal Expenses',
+    name_ar = 'مصاريف شخصية',
+    description = 'Personal business expenses',
+    color = '#9b59b6',
+    is_active = TRUE
+WHERE id = 3;
+
+UPDATE expense_categories SET 
+    name = 'Work Costs',
+    name_ar = 'تكاليف الشغل',
+    description = 'Direct work-related costs and materials',
+    color = '#f39c12',
+    is_active = TRUE
+WHERE id = 4;
+
+-- Deactivate any categories beyond ID 4 (don't delete due to foreign key constraints)
+UPDATE expense_categories SET is_active = FALSE WHERE id > 4;

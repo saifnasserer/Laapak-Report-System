@@ -57,6 +57,29 @@ ALTER TABLE invoices ADD FOREIGN KEY (money_location_id) REFERENCES money_locati
 ALTER TABLE expenses ADD COLUMN money_location_id INT DEFAULT NULL;
 ALTER TABLE expenses ADD FOREIGN KEY (money_location_id) REFERENCES money_locations(id) ON DELETE SET NULL;
 
--- Create indexes for better performance
-CREATE INDEX idx_invoice_money_location ON invoices(money_location_id);
-CREATE INDEX idx_expense_money_location ON expenses(money_location_id);
+-- Create indexes for better performance (only if they don't exist)
+SET @create_invoice_index = IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE table_schema = DATABASE() 
+     AND table_name = 'invoices' 
+     AND index_name = 'idx_invoice_money_location') = 0,
+    'CREATE INDEX idx_invoice_money_location ON invoices(money_location_id)',
+    'SELECT "Index idx_invoice_money_location already exists"'
+);
+
+PREPARE stmt FROM @create_invoice_index;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @create_expense_index = IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS 
+     WHERE table_schema = DATABASE() 
+     AND table_name = 'expenses' 
+     AND index_name = 'idx_expense_money_location') = 0,
+    'CREATE INDEX idx_expense_money_location ON expenses(money_location_id)',
+    'SELECT "Index idx_expense_money_location already exists"'
+);
+
+PREPARE stmt FROM @create_expense_index;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
