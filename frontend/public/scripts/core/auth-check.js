@@ -173,7 +173,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     const superadminPages = [
         'financial-dashboard.html',
         'financial-profit-management.html',
-        'financial-add-expense.html'
+        'financial-add-expense.html',
+        'money-management.html',
+        'expected-money.html'
     ];
 
     const clientPages = [

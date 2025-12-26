@@ -12,12 +12,26 @@ class AuthMiddleware {
 
     // Get admin token from storage
     getAdminToken() {
-        return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        let token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        if (!token) {
+            try {
+                const info = JSON.parse(localStorage.getItem('adminInfo') || sessionStorage.getItem('adminInfo') || '{}');
+                token = info.token;
+            } catch (e) { }
+        }
+        return token;
     }
 
     // Get client token from storage
     getClientToken() {
-        return localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+        let token = localStorage.getItem('clientToken') || sessionStorage.getItem('clientToken');
+        if (!token) {
+            try {
+                const info = JSON.parse(localStorage.getItem('clientInfo') || sessionStorage.getItem('clientInfo') || '{}');
+                token = info.token;
+            } catch (e) { }
+        }
+        return token;
     }
 
     // Check if admin is logged in
@@ -27,14 +41,14 @@ class AuthMiddleware {
             console.log('🔍 No admin token found');
             return false;
         }
-        
+
         // Basic token validation (check if it's not empty and has reasonable length)
         if (token.length < 10) {
             console.log('🔍 Admin token too short, clearing invalid token');
             this.clearAdminTokens();
             return false;
         }
-        
+
         console.log('🔍 Admin token found and valid');
         return true;
     }
@@ -46,18 +60,18 @@ class AuthMiddleware {
             console.log('🔍 No client token found');
             return false;
         }
-        
+
         // Basic token validation (check if it's not empty and has reasonable length)
         if (token.length < 10) {
             console.log('🔍 Client token too short, clearing invalid token');
             this.clearClientTokens();
             return false;
         }
-        
+
         console.log('🔍 Client token found and valid');
         return true;
     }
-    
+
     // Clear admin tokens
     clearAdminTokens() {
         localStorage.removeItem('adminToken');
@@ -65,7 +79,7 @@ class AuthMiddleware {
         sessionStorage.removeItem('adminToken');
         sessionStorage.removeItem('adminInfo');
     }
-    
+
     // Clear client tokens
     clearClientTokens() {
         localStorage.removeItem('clientToken');
@@ -77,11 +91,11 @@ class AuthMiddleware {
     // Get current user info
     async getCurrentUser() {
         const token = this.getAdminToken() || this.getClientToken();
-        
+
         if (!token) {
             return null;
         }
-        
+
         try {
             const response = await fetch(this.ME_URL, {
                 method: 'GET',
@@ -90,11 +104,11 @@ class AuthMiddleware {
                     'x-auth-token': token
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to get user information');
             }
-            
+
             return await response.json();
         } catch (error) {
             console.error('Error getting current user:', error);
@@ -105,32 +119,32 @@ class AuthMiddleware {
     // Logout user
     logout() {
         console.log('Logging out user...');
-        
+
         try {
             // Determine if we're logging out an admin or client
             const isAdmin = this.isAdminLoggedIn();
             const isClient = this.isClientLoggedIn();
-            
+
             console.log('User type:', isAdmin ? 'Admin' : (isClient ? 'Client' : 'Unknown'));
-            
+
             // Clear admin data
             localStorage.removeItem('adminToken');
             localStorage.removeItem('adminInfo');
             sessionStorage.removeItem('adminToken');
             sessionStorage.removeItem('adminInfo');
-            
+
             // Clear client data
             localStorage.removeItem('clientToken');
             localStorage.removeItem('clientInfo');
             sessionStorage.removeItem('clientToken');
             sessionStorage.removeItem('clientInfo');
-            
+
             // Clear any other session data
             localStorage.removeItem('currentUser');
             sessionStorage.removeItem('currentUser');
-            
+
             console.log('All tokens and user info cleared');
-            
+
             // Redirect to main domain root
             setTimeout(() => {
                 console.log('Redirecting to main domain root...');
@@ -142,40 +156,40 @@ class AuthMiddleware {
             alert('حدث خطأ أثناء تسجيل الخروج. يرجى المحاولة مرة أخرى.');
         }
     }
-    
+
     // Client-specific logout
     clientLogout() {
         console.log('Logging out client...');
-        
+
         // Clear client data
         this.clearClientTokens();
-        
+
         // Clear any other session data
         localStorage.removeItem('currentUser');
         sessionStorage.removeItem('currentUser');
-        
+
         console.log('Client tokens and user info cleared');
-        
+
         // Redirect to main domain root
         setTimeout(() => {
             console.log('Redirecting to main domain root...');
             window.location.href = '/';
         }, 100);
     }
-    
+
     // Admin-specific logout
     adminLogout() {
         console.log('Logging out admin...');
-        
+
         // Clear admin data
         this.clearAdminTokens();
-        
+
         // Clear any other session data
         localStorage.removeItem('currentUser');
         sessionStorage.removeItem('currentUser');
-        
+
         console.log('Admin tokens and user info cleared');
-        
+
         // Redirect to main domain root
         setTimeout(() => {
             console.log('Redirecting to main domain root...');
@@ -206,17 +220,17 @@ class AuthMiddleware {
     // Update UI with user information
     async updateUserUI(nameElementId, roleElementId = null) {
         const user = await this.getCurrentUser();
-        
+
         if (!user) {
             return false;
         }
-        
+
         // Update name element if it exists
         const nameElement = document.getElementById(nameElementId);
         if (nameElement && user.name) {
             nameElement.textContent = user.name;
         }
-        
+
         // Update role element if it exists and user has a role
         if (roleElementId && user.role) {
             const roleElement = document.getElementById(roleElementId);
@@ -224,7 +238,7 @@ class AuthMiddleware {
                 roleElement.textContent = user.role;
             }
         }
-        
+
         return true;
     }
 
@@ -233,7 +247,7 @@ class AuthMiddleware {
         if (!token) {
             return false;
         }
-        
+
         try {
             const response = await fetch(this.ME_URL, {
                 method: 'GET',
@@ -242,7 +256,7 @@ class AuthMiddleware {
                     'x-auth-token': token
                 }
             });
-            
+
             if (response.ok) {
                 console.log(`✅ ${userType} token validated successfully`);
                 return true;
@@ -262,19 +276,19 @@ class AuthMiddleware {
         if (!token) {
             return false;
         }
-        
+
         // Basic token validation
         if (token.length < 10) {
             this.clearAdminTokens();
             return false;
         }
-        
+
         // Validate with server
         const isValid = await this.validateToken(token, 'admin');
         if (!isValid) {
             this.clearAdminTokens();
         }
-        
+
         return isValid;
     }
 
@@ -284,19 +298,19 @@ class AuthMiddleware {
         if (!token) {
             return false;
         }
-        
+
         // Basic token validation
         if (token.length < 10) {
             this.clearClientTokens();
             return false;
         }
-        
+
         // Validate with server
         const isValid = await this.validateToken(token, 'client');
         if (!isValid) {
             this.clearClientTokens();
         }
-        
+
         return isValid;
     }
 }
@@ -305,11 +319,11 @@ class AuthMiddleware {
 const authMiddleware = new AuthMiddleware();
 
 // Add logout event listeners to all logout buttons
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const logoutButtons = document.querySelectorAll('.logout-btn');
-    
+
     logoutButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', function (e) {
             e.preventDefault();
             authMiddleware.logout();
         });

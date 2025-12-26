@@ -11,10 +11,10 @@ const PAYMENT_METHOD_MAPPING = {
     'cash': { locationTypes: ['cash'], apiName: 'cash' },
     'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
     'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
-    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
-    'محفظة رقمية': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
+    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
+    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
     'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' },
-    'حساب بنكي': { locationTypes: ['bank_account'], apiName: 'بنك' }
+    'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' }
 };
 
 async function findLocationForPaymentMethod(paymentMethod) {
@@ -91,7 +91,7 @@ async function resetMoneyBalances() {
         // 3. Get all paid invoices created after a certain date (e.g., after money management was implemented)
         // We'll use a date that's reasonable - let's say after August 1st, 2025
         const cutoffDate = new Date('2025-08-01');
-        
+
         console.log('Finding paid invoices created after:', cutoffDate);
         const paidInvoices = await Invoice.findAll({
             where: {
@@ -113,10 +113,10 @@ async function resetMoneyBalances() {
         // 4. Process each paid invoice
         for (const invoice of paidInvoices) {
             console.log(`Processing invoice ${invoice.id}: ${invoice.total} via ${invoice.paymentMethod}`);
-            
+
             // Find the appropriate money location
             const location = await findLocationForPaymentMethod(invoice.paymentMethod);
-            
+
             if (!location) {
                 console.log(`Skipping invoice ${invoice.id} - no location found for payment method: ${invoice.paymentMethod}`);
                 continue;

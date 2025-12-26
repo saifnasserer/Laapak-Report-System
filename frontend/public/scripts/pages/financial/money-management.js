@@ -54,13 +54,13 @@ class MoneyState {
         this.stats.totalBalance = this.locations.reduce((sum, loc) => sum + parseFloat(loc.balance || 0), 0);
         this.stats.totalLocations = this.locations.length;
         this.stats.totalMovements = this.movements.length;
-        
+
         // Calculate today's movements
         const today = new Date().toDateString();
-        this.stats.todayMovements = this.movements.filter(m => 
+        this.stats.todayMovements = this.movements.filter(m =>
             new Date(m.movement_date).toDateString() === today
         ).length;
-        
+
         this.notifySubscribers('stats');
     }
 
@@ -99,7 +99,7 @@ class MoneyApiService {
     getAuthToken() {
         const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
         console.log('Admin info from localStorage:', adminInfo);
-        
+
         // Try to use AuthMiddleware if available
         if (typeof AuthMiddleware !== 'undefined') {
             try {
@@ -111,7 +111,7 @@ class MoneyApiService {
                 console.log('AuthMiddleware not available, using fallback');
             }
         }
-        
+
         // Fallback to direct token access
         const token = adminInfo.token || '';
         console.log('Token from localStorage:', token ? 'Present' : 'Missing');
@@ -147,7 +147,7 @@ class MoneyApiService {
         const headers = this.getHeaders();
         console.log('Making request to:', url);
         console.log('Headers:', headers);
-        
+
         try {
             const response = await fetch(url, {
                 headers: headers,
@@ -164,8 +164,8 @@ class MoneyApiService {
                     locations: [
                         { id: 1, name_ar: 'نقداً', type: 'cash', balance: 0 },
                         { id: 2, name_ar: 'Instapay', type: 'digital_wallet', balance: 0 },
-                        { id: 3, name_ar: 'محفظة رقمية', type: 'digital_wallet', balance: 0 },
-                        { id: 4, name_ar: 'حساب بنكي', type: 'bank_account', balance: 0 }
+                        { id: 3, name_ar: 'محفظة', type: 'digital_wallet', balance: 0 },
+                        { id: 4, name_ar: 'بنك', type: 'bank_account', balance: 0 }
                     ]
                 }
             };
@@ -180,20 +180,20 @@ class MoneyApiService {
         const url = `${this.baseUrl}/api/money/movements?${queryString}`;
         console.log('Making movements request to:', url);
         console.log('Headers:', this.getHeaders());
-        
+
         try {
             const response = await fetch(url, {
                 headers: this.getHeaders(),
                 cache: 'no-cache' // Force fresh request
             });
             console.log('Movements response status:', response.status);
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Movements API error:', response.status, errorText);
                 throw new Error(`Movements API error: ${response.status} - ${errorText}`);
             }
-            
+
             return this.handleResponse(response);
         } catch (error) {
             console.error('Money movements API error:', error);
@@ -319,28 +319,23 @@ try {
 class MoneyUIRenderer {
     // Format currency for display
     static formatCurrency(amount) {
-        return new Intl.NumberFormat('ar-EG', {
-            style: 'currency',
-            currency: 'EGP',
-            minimumFractionDigits: 0
-        }).format(amount);
+        return FinancialUtils.formatCurrency(amount);
     }
 
     // Format date for display
     static formatDate(date) {
-        return new Date(date).toLocaleDateString('ar-EG');
+        return FinancialUtils.formatDate(date);
     }
 
     // Render statistics cards
     static renderStats() {
         const { totalBalance, totalLocations, totalMovements, todayMovements } = moneyState.stats;
-        
-        // Safely update elements only if they exist
+
         const totalBalanceEl = document.getElementById('totalBalance');
         const totalLocationsEl = document.getElementById('totalLocations');
         const totalMovementsEl = document.getElementById('totalMovements');
         const todayMovementsEl = document.getElementById('todayMovements');
-        
+
         if (totalBalanceEl) totalBalanceEl.textContent = this.formatCurrency(totalBalance);
         if (totalLocationsEl) totalLocationsEl.textContent = totalLocations;
         if (totalMovementsEl) totalMovementsEl.textContent = totalMovements;
@@ -349,18 +344,13 @@ class MoneyUIRenderer {
 
     // Render money locations
     static renderLocations() {
-        console.log('Rendering locations:', moneyState.locations);
         const container = document.getElementById('locationsContainer');
-        
-        if (!container) {
-            console.error('Locations container not found');
-            return;
-        }
-        
+        if (!container) return;
+
         if (moneyState.locations.length === 0) {
             container.innerHTML = `
-                <div class="text-center">
-                    <i class="fas fa-map-marker-alt text-muted" style="font-size: 3rem;"></i>
+                <div class="text-center py-5">
+                    <i class="fas fa-map-marker-alt text-muted opacity-25" style="font-size: 3rem;"></i>
                     <p class="text-muted mt-2">لا توجد مواقع أموال</p>
                 </div>
             `;
@@ -368,25 +358,32 @@ class MoneyUIRenderer {
         }
 
         container.innerHTML = moneyState.locations.map(location => `
-            <div class="location-card" data-location-id="${location.id}">
-                <div class="text-center">
-                    <div class="location-icon ${location.type}">
-                        <i class="fas ${this.getLocationIcon(location.type)}"></i>
+            <div class="finance-card mb-3 p-3 overflow-hidden position-relative" data-location-id="${location.id}">
+                <div class="d-flex align-items-center justify-content-between position-relative z-1">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="icon-circle bg-${this.getLocationColor(location.type)}-subtle text-${this.getLocationColor(location.type)}">
+                            <i class="fas ${this.getLocationIcon(location.type)}"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0">${location.name_ar}</h5>
+                            <small class="text-muted">${this.getLocationTypeName(location.type)}</small>
+                        </div>
                     </div>
-                    <h6 class="location-name">${location.name_ar}</h6>
-                    <p class="location-type text-muted">${this.getLocationTypeName(location.type)}</p>
-                    <h5 class="location-balance text-primary">${this.formatCurrency(location.balance)}</h5>
-                    <div class="location-actions mt-2">
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="MoneyActions.showTransferFrom(${location.id})">
-                            <i class="fas fa-arrow-up"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-success me-1" onclick="MoneyActions.showTransferTo(${location.id})">
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-info" onclick="MoneyActions.showLocationHistory(${location.id})">
-                            <i class="fas fa-history"></i>
-                        </button>
+                    <div class="text-end">
+                        <div class="h4 fw-bold text-primary mb-0">${this.formatCurrency(location.balance)}</div>
                     </div>
+                </div>
+                
+                <div class="mt-3 pt-3 border-top d-flex gap-2 justify-content-end position-relative z-1">
+                    <button class="btn btn-sm btn-outline-primary" onclick="MoneyActions.showTransferFrom(${location.id})" title="تحويل من">
+                        <i class="fas fa-arrow-up me-1"></i> تحويل
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="MoneyActions.showTransferTo(${location.id})" title="تحويل إلى (إيداع)">
+                        <i class="fas fa-arrow-down me-1"></i> إيداع
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="MoneyActions.showLocationHistory(${location.id})" title="سجل الحركات">
+                        <i class="fas fa-history"></i>
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -395,11 +392,12 @@ class MoneyUIRenderer {
     // Render movements
     static renderMovements() {
         const container = document.getElementById('movementsContainer');
-        
+        if (!container) return;
+
         if (moneyState.movements.length === 0) {
             container.innerHTML = `
-                <div class="text-center">
-                    <i class="fas fa-history text-muted" style="font-size: 3rem;"></i>
+                <div class="text-center py-5">
+                    <i class="fas fa-history text-muted opacity-25" style="font-size: 3rem;"></i>
                     <p class="text-muted mt-2">لا توجد حركات</p>
                 </div>
             `;
@@ -407,79 +405,83 @@ class MoneyUIRenderer {
         }
 
         container.innerHTML = moneyState.movements.map(movement => `
-            <div class="movement-card-modern ${this.getMovementAmountClass(movement)}" data-movement-id="${movement.id}">
-                <div class="row align-items-center">
-                    <div class="col-md-2">
-                        <div class="movement-icon">
-                            <i class="fas ${this.getMovementIcon(movement.movement_type)}"></i>
-                        </div>
+            <div class="finance-card mb-3 p-3" data-movement-id="${movement.id}">
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Icon -->
+                    <div class="icon-circle bg-${FinancialUtils.getBadgeHtml(movement.movement_type, 'movement', true)}-subtle text-${this.getMovementTypeColor(movement.movement_type)}">
+                        <i class="fas ${this.getMovementIcon(movement.movement_type)}"></i>
                     </div>
-                    <div class="col-md-3">
-                        <div class="movement-amount-modern ${this.getMovementAmountClass(movement)}">
-                            ${this.getMovementAmountSign(movement)}${this.formatCurrency(movement.amount)}
+
+                    <!-- Details -->
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="fw-bold mb-1">${this.getMovementTypeName(movement.movement_type)}</h6>
+                                <div class="d-flex gap-2 text-muted x-small">
+                                    ${movement.fromLocation ? `<span><i class="fas fa-arrow-up text-danger me-1"></i>${movement.fromLocation.name_ar}</span>` : ''}
+                                    ${movement.toLocation ? `<span><i class="fas fa-arrow-down text-success me-1"></i>${movement.toLocation.name_ar}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold ${this.getMovementAmountClass(movement)}">
+                                    ${this.getMovementAmountSign(movement)}${this.formatCurrency(movement.amount)}
+                                </div>
+                                <div class="text-muted x-small">
+                                    <i class="fas fa-calendar me-1"></i>${this.formatDate(movement.movement_date)}
+                                </div>
+                            </div>
                         </div>
-                        <small class="movement-type-modern badge bg-${this.getMovementTypeColor(movement.movement_type)}">
-                            ${this.getMovementTypeName(movement.movement_type)}
-                        </small>
+                        ${movement.description ? `<p class="text-muted small mb-0 mt-2 border-top pt-2">${movement.description}</p>` : ''}
                     </div>
-                    <div class="col-md-4">
-                        <div class="movement-locations-modern">
-                            ${movement.fromLocation ? `<div class="location-tag from"><i class="fas fa-arrow-up me-1"></i>${movement.fromLocation.name_ar}</div>` : ''}
-                            ${movement.toLocation ? `<div class="location-tag to"><i class="fas fa-arrow-down me-1"></i>${movement.toLocation.name_ar}</div>` : ''}
-                        </div>
-                        ${movement.description ? `<div class="movement-description-modern">${movement.description}</div>` : ''}
-                    </div>
-                    <div class="col-md-2">
-                        <div class="movement-date-modern">
-                            <i class="fas fa-calendar me-1"></i>
-                            ${this.formatDate(movement.movement_date)}
-                        </div>
-                    </div>
-                    <div class="col-md-1">
-                        ${this.canRevertMovement(movement) ? 
-                            `<button class="btn btn-sm btn-outline-danger rounded-circle" onclick="revertMovement(${movement.id})" title="إلغاء الحركة">
+
+                    <!-- Actions -->
+                     <div class="ms-2">
+                        ${this.canRevertMovement(movement) ?
+                `<button class="btn btn-sm btn-outline-danger icon-btn" onclick="revertMovement(${movement.id})" title="إلغاء الحركة">
                                 <i class="fas fa-undo"></i>
                             </button>` :
-                            this.getLockedButtonTooltip(movement)
-                        }
+                this.getLockedButtonTooltip(movement)
+            }
                     </div>
                 </div>
             </div>
         `).join('');
     }
 
+    static getLocationColor(type) {
+        const map = {
+            'cash': 'success',
+            'digital_wallet': 'info',
+            'bank_account': 'warning',
+            'other': 'secondary'
+        };
+        return map[type] || 'primary';
+    }
+
+
     // Render unified payment methods
     static renderUnifiedPaymentMethods() {
-        console.log('Rendering unified payment methods');
-        console.log('Locations:', moneyState.locations);
-        console.log('Invoice Stats:', moneyState.invoiceStats);
-        console.log('Invoice Stats by Payment Method:', moneyState.invoiceStats?.byPaymentMethod);
-        
         const container = document.getElementById('unifiedPaymentMethodsContainer');
-        
-        if (!container) {
-            console.error('Unified payment methods container not found');
-            return;
-        }
+        if (!container) return;
 
         // Add quick action buttons for expense/profit recording
         const quickActionsHtml = `
             <div class="quick-actions mb-4">
-                <div class="row">
-                    <div class="col-md-4 mb-2">
-                        <a href="financial-add-expense.html" class="btn btn-success w-100">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <a href="financial-add-expense.html" class="btn btn-success w-100 py-2">
                             <i class="fas fa-plus-circle me-2"></i>
                             تسجيل مصروف جديد
                         </a>
                     </div>
-                    <div class="col-md-4 mb-2">
-                        <a href="financial-add-expense.html?type=profit" class="btn btn-primary w-100">
+                    <div class="col-md-4">
+                        <a href="financial-add-expense.html?type=profit" class="btn btn-primary w-100 py-2">
                             <i class="fas fa-coins me-2"></i>
                             تسجيل ربح جديد
                         </a>
                     </div>
-                    <div class="col-md-4 mb-2">
-                        <button onclick="MoneyDataLoader.loadAll()" class="btn btn-info w-100">
+                    <div class="col-md-4">
+                        <button onclick="MoneyDataLoader.loadAll()" class="btn btn-info w-100 py-2">
                             <i class="fas fa-sync-alt me-2"></i>
                             تحديث البيانات
                         </button>
@@ -490,69 +492,64 @@ class MoneyUIRenderer {
 
         // Define payment methods with their configurations
         const paymentMethods = {
-            cash: { 
-                name: 'نقداً', 
+            cash: {
+                name: 'نقداً',
                 nameEn: 'cash',
                 apiName: 'cash',
-                icon: 'fa-money-bill-wave', 
-                cssClass: 'cash',
+                icon: 'fa-money-bill-wave',
+                color: 'success',
                 locationTypes: ['cash']
             },
-            instapay: { 
-                name: 'Instapay', 
+            instapay: {
+                name: 'Instapay',
                 nameEn: 'instapay',
                 apiName: 'instapay',
-                icon: 'fa-mobile-alt', 
-                cssClass: 'instapay',
+                icon: 'fa-mobile-alt',
+                color: 'primary',
                 locationTypes: ['digital_wallet'],
                 locationName: 'محفظة انستاباي'
             },
-            wallet: { 
-                name: 'محفظة رقمية', 
+            wallet: {
+                name: 'محفظة',
                 nameEn: 'wallet',
                 apiName: 'محفظة',
-                icon: 'fa-wallet', 
-                cssClass: 'wallet',
+                icon: 'fa-wallet',
+                color: 'info',
                 locationTypes: ['digital_wallet'],
-                locationName: 'محفظة رقمية'
+                locationName: 'محفظة'
             },
-            bank: { 
-                name: 'بنك', 
+            bank: {
+                name: 'بنك',
                 nameEn: 'bank',
                 apiName: 'بنك',
-                icon: 'fa-university', 
-                cssClass: 'bank',
+                icon: 'fa-university',
+                color: 'warning',
                 locationTypes: ['bank_account']
             }
         };
 
         // Combine location and invoice data for each payment method
         let combinedData = [];
-        
+
         Object.entries(paymentMethods).forEach(([key, method]) => {
-            console.log(`\nProcessing payment method: ${method.name} (${method.apiName})`);
-            
             // Find matching locations with specific name matching for digital wallets
             const matchingLocations = moneyState.locations.filter(loc => {
                 const typeMatch = method.locationTypes.includes(loc.type);
-                
+
                 // For digital wallets, use specific name matching
                 if (method.locationTypes.includes('digital_wallet')) {
                     if (method.apiName === 'instapay') {
                         return typeMatch && loc.name_ar === 'محفظة انستاباي';
                     } else if (method.apiName === 'محفظة') {
-                        return typeMatch && loc.name_ar === 'محفظة رقمية';
+                        return typeMatch && loc.name_ar === 'محفظة';
                     }
                 }
-                
+
                 // For other types, use general matching
                 const nameMatch = loc.name_ar.toLowerCase().includes(method.nameEn.toLowerCase());
-                
-                console.log(`  Checking location ${loc.name_ar}: typeMatch=${typeMatch}, nameMatch=${nameMatch}`);
-                
                 return typeMatch || nameMatch;
             });
-            
+
             // Get invoice statistics using the correct API name
             const invoiceStats = moneyState.invoiceStats?.byPaymentMethod?.[method.apiName] || {
                 count: 0,
@@ -560,40 +557,21 @@ class MoneyUIRenderer {
                 paid: 0,
                 pending: 0
             };
-            
-            console.log(`${method.name} (${method.apiName}):`, {
-                invoiceStats,
-                matchingLocations: matchingLocations.length,
-                foundInvoiceData: moneyState.invoiceStats?.byPaymentMethod?.[method.apiName]
-            });
-            
+
             // Calculate balance from locations (transactions only)
-            const transactionBalance = matchingLocations.reduce((sum, loc) => 
+            const transactionBalance = matchingLocations.reduce((sum, loc) =>
                 sum + parseFloat(loc.balance || 0), 0
             );
-            
+
             // Current balance is the transaction balance (no automatic invoice initialization)
             const currentBalance = transactionBalance;
-            
-            console.log(`${method.name} final calculation:`, {
-                invoiceAmount: invoiceStats.amount,
-                transactionBalance,
-                currentBalance
-            });
-            
+
             combinedData.push({
                 key,
                 method,
                 locations: matchingLocations,
                 currentBalance,
                 invoiceStats,
-                totalActivity: currentBalance + invoiceStats.amount
-            });
-            
-            console.log(`Added ${method.name} to combinedData:`, {
-                key,
-                currentBalance,
-                invoiceStats: invoiceStats.amount,
                 totalActivity: currentBalance + invoiceStats.amount
             });
         });
@@ -604,7 +582,7 @@ class MoneyUIRenderer {
         if (combinedData.length === 0 || combinedData.every(item => item.totalActivity === 0)) {
             container.innerHTML = `
                 <div class="text-center py-5">
-                    <i class="fas fa-credit-card text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                    <i class="fas fa-credit-card text-muted opacity-25" style="font-size: 4rem;"></i>
                     <h5 class="mt-3 text-muted">لا توجد بيانات طرق دفع</h5>
                     <p class="text-muted">سيتم عرض البيانات عند إضافة مواقع أموال أو فواتير</p>
                 </div>
@@ -612,49 +590,40 @@ class MoneyUIRenderer {
             return;
         }
 
-        console.log('Final combinedData before rendering:', combinedData);
-        
         const htmlContent = `
             ${quickActionsHtml}
-            <div class="payment-methods-grid">
-                ${combinedData.map(item => {
-                    console.log(`Rendering ${item.method.name}:`, {
-                        currentBalance: item.currentBalance,
-                        formattedBalance: this.formatCurrency(item.currentBalance),
-                        invoiceAmount: item.invoiceStats.amount
-                    });
-                    return `
-                    <div class="payment-method-card ${item.method.cssClass}">
-                        <div class="payment-method-header">
-                            <div class="payment-method-icon">
+            <div class="row g-4">
+                ${combinedData.map(item => `
+                <div class="col-md-6 col-lg-3">
+                    <div class="finance-card h-100 p-4">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="icon-circle bg-${item.method.color}-subtle text-${item.method.color}">
                                 <i class="fas ${item.method.icon}"></i>
                             </div>
-                            <div class="payment-method-info">
-                                <h6 class="payment-method-name">${item.method.name}</h6>
-                            </div>
+                            <h5 class="fw-bold mb-0">${item.method.name}</h5>
                         </div>
                         
-                        <div class="payment-method-balance">
-                            <div class="balance-amount">${this.formatCurrency(item.currentBalance)}</div>
-                            <div class="balance-label">الرصيد الإجمالي</div>
+                        <div class="text-center py-3 bg-light rounded-3 mb-3 border">
+                            <div class="h2 fw-bold text-dark mb-1">${this.formatCurrency(item.currentBalance)}</div>
+                            <div class="text-muted small">الرصيد الإجمالي</div>
                         </div>
                         
-                        <div class="balance-breakdown">
-                            <div class="balance-breakdown-item">
-                                <span class="balance-breakdown-label">الرصيد الحالي:</span>
-                                <span class="balance-breakdown-value">${this.formatCurrency(item.currentBalance)}</span>
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">الرصيد الحالي:</span>
+                                <span class="fw-bold">${this.formatCurrency(item.currentBalance)}</span>
                             </div>
-                            <div class="balance-breakdown-item">
-                                <span class="balance-breakdown-label">إجمالي الفواتير:</span>
-                                <span class="balance-breakdown-value">${this.formatCurrency(item.invoiceStats.amount)}</span>
+                            <div class="d-flex justify-content-between border-top pt-2">
+                                <span class="text-muted">إجمالي الفواتير:</span>
+                                <span class="fw-bold">${this.formatCurrency(item.invoiceStats.amount)}</span>
                             </div>
                         </div>
                     </div>
-                `}).join('')}
+                </div>
+                `).join('')}
             </div>
         `;
-        
-        console.log('Generated HTML:', htmlContent);
+
         container.innerHTML = htmlContent;
     }
 
@@ -673,8 +642,8 @@ class MoneyUIRenderer {
     static getLocationTypeName(type) {
         const names = {
             'cash': 'نقدي',
-            'digital_wallet': 'محفظة رقمية',
-            'bank_account': 'حساب بنكي',
+            'digital_wallet': 'محفظة',
+            'bank_account': 'بنك',
             'other': 'أخرى'
         };
         return names[type] || 'غير محدد';
@@ -740,18 +709,18 @@ class MoneyUIRenderer {
     static canRevertMovement(movement) {
         // Only allow reverting pure manual movements (transfers, deposits, withdrawals)
         // Don't allow reverting expense/income movements that are linked to records
-        
+
         // Expense movements cannot be reverted
         if (movement.reference_type === 'expense') {
             return false;
         }
-        
+
         // Manual movements with reference_id are linked to financial records (profits)
         // These cannot be reverted - must delete the financial record instead
         if (movement.reference_type === 'manual' && movement.reference_id) {
             return false;
         }
-        
+
         // Only pure manual movements (transfers, deposits, withdrawals) can be reverted
         // These have reference_type: 'manual' and no reference_id
         return movement.reference_type === 'manual' && !movement.reference_id;
@@ -761,7 +730,7 @@ class MoneyUIRenderer {
     static getLockedButtonTooltip(movement) {
         let tooltip = 'لا يمكن إلغاء هذه الحركة';
         let icon = 'fa-lock';
-        
+
         if (movement.reference_type === 'expense') {
             tooltip = 'حركة مصروف - احذف المصروف من صفحة المصروفات';
             icon = 'fa-file-invoice-dollar';
@@ -769,7 +738,7 @@ class MoneyUIRenderer {
             tooltip = 'حركة ربح - احذف الربح من صفحة المصروفات';
             icon = 'fa-coins';
         }
-        
+
         return `<button class="btn btn-sm btn-outline-secondary rounded-circle" title="${tooltip}" disabled>
             <i class="fas ${icon}"></i>
         </button>`;
@@ -779,7 +748,7 @@ class MoneyUIRenderer {
     static mapMethodNameToAPI(methodName) {
         const mapping = {
             'cash': 'cash',
-            'instapay': 'instapay', 
+            'instapay': 'instapay',
             'محفظة': 'محفظة',
             'بنك': 'بنك'
         };
@@ -788,7 +757,7 @@ class MoneyUIRenderer {
 
     // Populate location select options
     static populateLocationSelects(modalType = 'transfer') {
-        const options = moneyState.locations.map(location => 
+        const options = moneyState.locations.map(location =>
             `<option value="${location.id}">${location.name_ar} (${this.formatCurrency(location.balance)})</option>`
         ).join('');
 
@@ -912,7 +881,7 @@ class MoneyCharts {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
+                            callback: function (value) {
                                 return MoneyUIRenderer.formatCurrency(value);
                             }
                         }
@@ -1011,7 +980,7 @@ class MoneyActions {
         // Check if movement can be reverted
         if (!MoneyUIRenderer.canRevertMovement(movement)) {
             let errorMessage = 'لا يمكن إلغاء هذه الحركة';
-            
+
             if (movement.reference_type === 'expense') {
                 errorMessage = 'لا يمكن إلغاء حركة مصروف. يرجى حذف المصروف من صفحة المصروفات بدلاً من ذلك.';
             } else if (movement.reference_type === 'manual' && movement.reference_id) {
@@ -1019,27 +988,27 @@ class MoneyActions {
             } else {
                 errorMessage = 'لا يمكن إلغاء هذا النوع من الحركات.';
             }
-            
+
             MoneyNotifications.error(errorMessage);
             return;
         }
 
         // Show confirmation dialog
         const confirmed = confirm(`هل أنت متأكد من إلغاء هذه الحركة؟\n\n${movement.description || 'حركة مالية'}\nالمبلغ: ${MoneyUIRenderer.formatCurrency(movement.amount)}`);
-        
+
         if (!confirmed) {
             return;
         }
 
         try {
             console.log('Reverting movement:', movementId);
-            
+
             const result = await moneyApi.revertMovement(movementId);
-            
+
             if (result.success) {
                 MoneyNotifications.success('تم إلغاء الحركة بنجاح');
                 console.log('Movement reverted successfully:', result.data);
-                
+
                 // Refresh data to show updated balances and movements
                 await MoneyDataLoader.loadAll();
             } else {
@@ -1055,7 +1024,7 @@ class MoneyActions {
     static async executeTransfer() {
         const form = document.getElementById('transferForm');
         const formData = new FormData(form);
-        
+
         const transferData = {
             fromLocationId: document.getElementById('fromLocation').value || null,
             toLocationId: document.getElementById('toLocation').value,
@@ -1088,7 +1057,7 @@ class MoneyActions {
     // Execute deposit
     static async executeDeposit() {
         const form = document.getElementById('depositForm');
-        
+
         const depositData = {
             toLocationId: document.getElementById('depositLocation').value,
             amount: parseFloat(document.getElementById('depositAmount').value),
@@ -1115,7 +1084,7 @@ class MoneyActions {
     // Execute withdrawal
     static async executeWithdrawal() {
         const form = document.getElementById('withdrawalForm');
-        
+
         const withdrawalData = {
             fromLocationId: document.getElementById('withdrawalLocation').value,
             amount: parseFloat(document.getElementById('withdrawalAmount').value),
@@ -1143,7 +1112,7 @@ class MoneyActions {
     static showDepositToMethod(methodKey) {
         console.log('Deposit to method:', methodKey);
         this.showDepositModal();
-        
+
         setTimeout(() => {
             const locationSelect = document.getElementById('depositLocation');
             if (locationSelect) {
@@ -1153,13 +1122,13 @@ class MoneyActions {
                     wallet: { locationTypes: ['digital_wallet'] },
                     bank: { locationTypes: ['bank_account'] }
                 };
-                
+
                 const method = paymentMethods[methodKey];
                 if (method) {
-                    const relevantLocations = moneyState.locations.filter(loc => 
+                    const relevantLocations = moneyState.locations.filter(loc =>
                         method.locationTypes.includes(loc.type)
                     );
-                    
+
                     if (relevantLocations.length > 0) {
                         locationSelect.value = relevantLocations[0].id;
                     }
@@ -1172,7 +1141,7 @@ class MoneyActions {
     static showWithdrawFromMethod(methodKey) {
         console.log('Withdraw from method:', methodKey);
         this.showWithdrawalModal();
-        
+
         setTimeout(() => {
             const locationSelect = document.getElementById('withdrawalLocation');
             if (locationSelect) {
@@ -1182,13 +1151,13 @@ class MoneyActions {
                     wallet: { locationTypes: ['digital_wallet'] },
                     bank: { locationTypes: ['bank_account'] }
                 };
-                
+
                 const method = paymentMethods[methodKey];
                 if (method) {
-                    const relevantLocations = moneyState.locations.filter(loc => 
+                    const relevantLocations = moneyState.locations.filter(loc =>
                         method.locationTypes.includes(loc.type)
                     );
-                    
+
                     if (relevantLocations.length > 0) {
                         locationSelect.value = relevantLocations[0].id;
                     }
@@ -1201,7 +1170,7 @@ class MoneyActions {
     static showTransferFromMethod(methodKey) {
         console.log('Transfer from method:', methodKey);
         this.showTransferModal();
-        
+
         setTimeout(() => {
             const fromLocationSelect = document.getElementById('fromLocation');
             if (fromLocationSelect) {
@@ -1211,13 +1180,13 @@ class MoneyActions {
                     wallet: { locationTypes: ['digital_wallet'] },
                     bank: { locationTypes: ['bank_account'] }
                 };
-                
+
                 const method = paymentMethods[methodKey];
                 if (method) {
-                    const relevantLocations = moneyState.locations.filter(loc => 
+                    const relevantLocations = moneyState.locations.filter(loc =>
                         method.locationTypes.includes(loc.type)
                     );
-                    
+
                     if (relevantLocations.length > 0) {
                         fromLocationSelect.value = relevantLocations[0].id;
                     }
@@ -1243,7 +1212,7 @@ class MoneyActions {
         await MoneyDataLoader.loadAll();
         MoneyNotifications.success('تم تحديث البيانات');
     }
-    
+
     // Refresh movements specifically
     static async refreshMovements() {
         try {
@@ -1289,7 +1258,7 @@ class MoneyDataLoader {
             moneyState.setMovements(movementsData.data.movements || []);
             console.log('Setting invoice stats:', invoiceStatsData.data || {});
             moneyState.setInvoiceStats(invoiceStatsData.data || {});
-            
+
             // Store expense stats for potential use
             moneyState.expenseStats = expenseStatsData.data || {};
             console.log('Setting expense stats:', expenseStatsData.data || {});
@@ -1305,7 +1274,7 @@ class MoneyDataLoader {
 
         } catch (error) {
             console.error('Error loading money data:', error);
-            
+
             // Check if it's a 404 error (API not available)
             if (error.message.includes('not available')) {
                 this.showApiNotAvailableMessage();
@@ -1314,7 +1283,7 @@ class MoneyDataLoader {
             } else {
                 MoneyNotifications.error('خطأ في تحميل البيانات');
             }
-            
+
             this.hideLoadingStates();
             moneyState.isLoading = false;
         }
@@ -1349,9 +1318,9 @@ class MoneyDataLoader {
                 console.log('Balances already initialized, skipping...');
                 return;
             }
-            
+
             console.log('Initializing location balances with zeros...');
-            
+
             // Define payment method mapping for reference only
             const paymentMethodMapping = {
                 'cash': { locationTypes: ['cash'], apiName: 'cash' },
@@ -1360,25 +1329,25 @@ class MoneyDataLoader {
                 'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة' },
                 'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' }
             };
-            
+
             // Check each location and ensure it has a balance (initialize to 0 if null/undefined)
             for (const location of locations) {
                 console.log(`Checking location: ${location.name_ar} (type: ${location.type})`);
-                
+
                 const currentBalance = parseFloat(location.balance || 0);
-                
+
                 console.log(`Location ${location.name_ar}:`, {
                     currentBalance,
                     balanceType: typeof location.balance
                 });
-                
+
                 // If location has no balance set, ensure it's 0 (but don't create deposits)
                 if (location.balance === null || location.balance === undefined) {
                     console.log(`Setting ${location.name_ar} balance to 0`);
                     location.balance = 0;
                 }
             }
-            
+
             // Mark as initialized
             balancesInitialized = true;
             console.log('Location balances initialization completed - all balances set to 0 or existing values');
@@ -1391,7 +1360,7 @@ class MoneyDataLoader {
     static showApiNotAvailableMessage() {
         const locationsContainer = document.getElementById('locationsContainer');
         const movementsContainer = document.getElementById('movementsContainer');
-        
+
         if (locationsContainer) {
             locationsContainer.innerHTML = `
                 <div class="col-12 text-center">
@@ -1407,7 +1376,7 @@ class MoneyDataLoader {
                 </div>
             `;
         }
-        
+
         if (movementsContainer) {
             movementsContainer.innerHTML = `
                 <div class="text-center">
@@ -1416,22 +1385,22 @@ class MoneyDataLoader {
                 </div>
             `;
         }
-        
+
         // Update stats to show zeros (only if elements exist)
         const totalBalanceEl = document.getElementById('totalBalance');
         const totalLocationsEl = document.getElementById('totalLocations');
         const totalMovementsEl = document.getElementById('totalMovements');
         const todayMovementsEl = document.getElementById('todayMovements');
-        
+
         if (totalBalanceEl) totalBalanceEl.textContent = '0 ج.م';
         if (totalLocationsEl) totalLocationsEl.textContent = '0';
         if (totalMovementsEl) totalMovementsEl.textContent = '0';
         if (todayMovementsEl) todayMovementsEl.textContent = '0';
-        
+
         // Disable action buttons
         this.disableActionButtons();
     }
-    
+
     // Disable action buttons when API is not available
     static disableActionButtons() {
         const buttons = document.querySelectorAll('button[onclick*="showTransferModal"], button[onclick*="showDepositModal"], button[onclick*="showWithdrawalModal"]');
@@ -1442,16 +1411,16 @@ class MoneyDataLoader {
             button.title = 'الميزة غير متاحة حالياً';
         });
     }
-    
+
     // Show authentication error
     static showAuthenticationError() {
         const locationsContainer = document.getElementById('locationsContainer');
         const movementsContainer = document.getElementById('movementsContainer');
-        
+
         // Get authentication info for debugging
         const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
         const isLoggedIn = adminInfo.token && adminInfo.role;
-        
+
         if (locationsContainer) {
             locationsContainer.innerHTML = `
                 <div class="col-12 text-center">
@@ -1471,7 +1440,7 @@ class MoneyDataLoader {
                 </div>
             `;
         }
-        
+
         if (movementsContainer) {
             movementsContainer.innerHTML = `
                 <div class="text-center">
@@ -1480,7 +1449,7 @@ class MoneyDataLoader {
                 </div>
             `;
         }
-        
+
         // Disable action buttons
         this.disableActionButtons();
     }
@@ -1574,7 +1543,7 @@ class MoneyManager {
         window.executeWithdrawal = MoneyActions.executeWithdrawal;
         window.MoneyActions = MoneyActions;
         window.revertMovement = (movementId) => MoneyActions.revertMovement(movementId);
-        
+
         // Bind unified payment method functions
         window.showDepositToMethod = (methodKey) => MoneyActions.showDepositToMethod(methodKey);
         window.showWithdrawFromMethod = (methodKey) => MoneyActions.showWithdrawFromMethod(methodKey);
@@ -1592,21 +1561,21 @@ class MoneyManager {
 
         // Load initial data
         MoneyDataLoader.loadAll();
-        
+
         // Setup navigation interactions
         this.setupNavigationInteractions();
     }
-    
+
     static setupNavigationInteractions() {
         const navLinks = document.querySelectorAll('.navbar .nav-link');
-        
+
         // Apply consistent inactive style to all links first
         navLinks.forEach(link => {
             link.style.backgroundColor = 'rgba(255,255,255,0.15)';
             link.style.boxShadow = '';
             link.classList.remove('active', 'fw-bold');
         });
-        
+
         // Set active state for current page
         const currentPage = window.location.pathname.split('/').pop();
         if (currentPage === 'money-management.html') {
@@ -1617,7 +1586,7 @@ class MoneyManager {
                 moneyLink.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
             }
         }
-        
+
         // Add click event listeners
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
@@ -1627,7 +1596,7 @@ class MoneyManager {
                     l.style.backgroundColor = 'rgba(255,255,255,0.15)';
                     l.style.boxShadow = '';
                 });
-                
+
                 // Add active class to clicked link
                 link.classList.add('active', 'fw-bold');
                 link.style.backgroundColor = 'rgba(255,255,255,0.3)';
@@ -1669,7 +1638,7 @@ class MoneyManager {
 // =============================================================================
 // 9. AUTO-INITIALIZATION
 // =============================================================================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     try {
         MoneyManager.init();
     } catch (error) {
@@ -1699,7 +1668,7 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 // Listen for refresh messages from other pages
-window.addEventListener('message', function(event) {
+window.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'REFRESH_MONEY_DATA') {
         console.log('Received refresh message from expense page');
         if (!moneyState.isLoading) {

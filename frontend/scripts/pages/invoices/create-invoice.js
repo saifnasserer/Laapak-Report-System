@@ -19,7 +19,7 @@ let invoiceSettings = {
     notes: ''
 };
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Check if user is authenticated
     if (typeof authMiddleware !== 'undefined' && !authMiddleware.isAdminLoggedIn()) {
         window.location.href = 'index.html';
@@ -28,10 +28,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize the page
     initPage();
-    
+
     // Set up event listeners
     setupEventListeners();
-    
+
     // Load initial data
     loadClients();
     loadReports();
@@ -45,10 +45,10 @@ function initPage() {
     // Set today's date as default for invoice date
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('invoiceDate').value = today;
-    
+
     // Initialize tooltips and popovers
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function(tooltipTriggerEl) {
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 }
@@ -58,22 +58,22 @@ function initPage() {
  */
 function setupEventListeners() {
     // Global selectAllReports checkbox logic removed as per new requirement.
-    
+
     // Filter buttons
     const applyFiltersBtn = document.getElementById('applyFiltersBtn');
     if (applyFiltersBtn) {
         applyFiltersBtn.addEventListener('click', applyFilters);
     }
-    
+
     const resetFiltersBtn = document.getElementById('resetFiltersBtn');
     if (resetFiltersBtn) {
         resetFiltersBtn.addEventListener('click', resetFilters);
     }
-    
+
     // Generate invoice button
     const generateInvoiceBtn = document.getElementById('generateInvoiceBtn');
     if (generateInvoiceBtn) {
-        generateInvoiceBtn.addEventListener('click', function() {
+        generateInvoiceBtn.addEventListener('click', function () {
             if (selectedReports.length > 0) {
                 initiateDirectInvoiceCreation();
             } else {
@@ -81,11 +81,11 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Create invoice button (new top button)
     const createInvoiceBtn = document.getElementById('createInvoiceBtn');
     if (createInvoiceBtn) {
-        createInvoiceBtn.addEventListener('click', function() {
+        createInvoiceBtn.addEventListener('click', function () {
             if (selectedReports.length > 0) {
                 initiateDirectInvoiceCreation();
             } else {
@@ -93,11 +93,11 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Apply settings button
     const applySettingsBtn = document.getElementById('applySettingsBtn');
     if (applySettingsBtn) {
-        applySettingsBtn.addEventListener('click', function() {
+        applySettingsBtn.addEventListener('click', function () {
             // Get settings from form
             invoiceSettings.title = document.getElementById('invoiceTitle').value;
             invoiceSettings.date = document.getElementById('invoiceDate').value;
@@ -106,78 +106,78 @@ function setupEventListeners() {
             invoiceSettings.paymentMethod = document.getElementById('paymentMethod').value;
             invoiceSettings.paymentStatus = document.getElementById('paymentStatusSelect').value; // Added payment status
             invoiceSettings.notes = document.getElementById('invoiceNotes').value;
-            
+
             // Hide settings modal
             const settingsModal = bootstrap.Modal.getInstance(document.getElementById('invoiceSettingsModal'));
             settingsModal.hide();
-            
+
             // Generate invoice preview
             generateInvoicePreview();
         });
     }
-    
+
     // Edit Items button
     const editItemsBtn = document.getElementById('editItemsBtn');
     if (editItemsBtn) {
-        editItemsBtn.addEventListener('click', function() {
+        editItemsBtn.addEventListener('click', function () {
             showEditItemsModal();
         });
     }
-    
+
     // Add new item button
     const addItemBtn = document.getElementById('addItemBtn');
     if (addItemBtn) {
-        addItemBtn.addEventListener('click', function() {
+        addItemBtn.addEventListener('click', function () {
             addNewInvoiceItem();
         });
-        }
-    
+    }
+
     // Save items button
     const saveItemsBtn = document.getElementById('saveItemsBtn');
     if (saveItemsBtn) {
-        saveItemsBtn.addEventListener('click', function() {
+        saveItemsBtn.addEventListener('click', function () {
             saveInvoiceItems();
         });
     }
-    
+
     // Save as template button
     const saveAsTemplateBtn = document.getElementById('saveAsTemplateBtn');
     if (saveAsTemplateBtn) {
-        saveAsTemplateBtn.addEventListener('click', function() {
+        saveAsTemplateBtn.addEventListener('click', function () {
             saveAsTemplate();
         });
     }
-    
+
     // Save invoice button
     const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
     if (saveInvoiceBtn) {
         saveInvoiceBtn.addEventListener('click', saveInvoice);
     }
-    
+
     // Export PDF button
     const exportPdfBtn = document.getElementById('exportPdfBtn');
     if (exportPdfBtn) {
         exportPdfBtn.addEventListener('click', exportToPdf);
     }
-    
+
     // Share buttons
     const shareEmailBtn = document.getElementById('shareEmailBtn');
     if (shareEmailBtn) {
-        shareEmailBtn.addEventListener('click', function() {
+        shareEmailBtn.addEventListener('click', function () {
             shareInvoice('email');
         });
     }
-    
+
     const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
     if (shareWhatsAppBtn) {
-        shareWhatsAppBtn.addEventListener('click', function() {
+        shareWhatsAppBtn.addEventListener('click', function () {
             shareInvoice('whatsapp');
         });
     }
-    
+
     const copyLinkBtn = document.getElementById('copyLinkBtn');
     if (copyLinkBtn) {
-        copyLinkBtn.addEventListener('click', function() {
+        copyLinkBtn.addEventListener('click', function () {
             copyInvoiceLink();
         });
     }
@@ -191,7 +191,7 @@ async function loadClients() {
         // Show loading state in the dropdown
         const clientFilter = document.getElementById('clientFilter');
         if (!clientFilter) return;
-        
+
         // Try to get clients from API
         let clients = [];
         try {
@@ -199,7 +199,7 @@ async function loadClients() {
             if (typeof apiService !== 'undefined' && typeof apiService.getClients === 'function') {
                 // Use ApiService to fetch clients
                 clients = await apiService.getClients();
-                
+
                 // Cache clients in localStorage for offline use
                 localStorage.setItem('lpk_clients', JSON.stringify(clients));
             } else {
@@ -210,7 +210,7 @@ async function loadClients() {
             // Fall back to localStorage if API fails
             const storedClients = localStorage.getItem('lpk_clients');
             clients = storedClients ? JSON.parse(storedClients) : [];
-            
+
             // If still no clients, use mock data
             if (clients.length === 0) {
                 console.log('No clients in localStorage, using mock data');
@@ -218,10 +218,10 @@ async function loadClients() {
                 localStorage.setItem('lpk_clients', JSON.stringify(clients));
             }
         }
-        
+
         // Store clients data globally
         clientsData = clients;
-        
+
         // Add clients to dropdown
         clients.forEach(client => {
             const option = document.createElement('option');
@@ -229,7 +229,7 @@ async function loadClients() {
             option.textContent = client.name;
             clientFilter.appendChild(option);
         });
-        
+
     } catch (error) {
         console.error('Error loading clients:', error);
     }
@@ -276,18 +276,18 @@ async function loadReports() {
         // Show loading state
         const reportsTableBody = document.getElementById('reportsTableBody');
         if (!reportsTableBody) return;
-        
+
         // Try to get reports from API
         let reports = [];
         try {
             // Try to get apiService from different sources
-            const service = typeof apiService !== 'undefined' ? apiService : 
-                         (window && window.apiService) ? window.apiService : null;
-            
+            const service = typeof apiService !== 'undefined' ? apiService :
+                (window && window.apiService) ? window.apiService : null;
+
             if (service && typeof service.getReports === 'function') {
                 // Get ALL reports first
                 reports = await service.getReports({ fetch_mode: 'all_reports' });
-                
+
                 // Filter out reports that already have invoices OR are cancelled
                 reports = reports.filter(report => {
                     // Check if report has any invoice association
@@ -295,47 +295,47 @@ async function loadReports() {
                     const hasInvoice = report.invoice && report.invoice !== null;
                     const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
                     const hasInvoiceCreated = report.invoice_created === true;
-                    
+
                     // Check if report is cancelled
                     const isCancelled = report.status && (
-                        report.status.toLowerCase() === 'cancelled' || 
-                        report.status.toLowerCase() === 'canceled' || 
+                        report.status.toLowerCase() === 'cancelled' ||
+                        report.status.toLowerCase() === 'canceled' ||
                         report.status === 'ملغي'
                     );
-                    
+
                     // Report is available if it has NO invoice associations AND is NOT cancelled
                     return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
                 });
-                
+
                 console.log('Reports without invoices and not cancelled for create-invoice page:', reports);
             } else {
                 // Wait a moment and try again - apiService might be initializing
                 await new Promise(resolve => setTimeout(resolve, 500));
-                
+
                 // Try again after waiting
-                const retryService = typeof apiService !== 'undefined' ? apiService : 
-                                   (window && window.apiService) ? window.apiService : null;
-                
+                const retryService = typeof apiService !== 'undefined' ? apiService :
+                    (window && window.apiService) ? window.apiService : null;
+
                 if (retryService && typeof retryService.getReports === 'function') {
                     reports = await retryService.getReports({ fetch_mode: 'all_reports' });
-                    
+
                     // Filter out reports that already have invoices OR are cancelled
                     reports = reports.filter(report => {
                         const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
                         const hasInvoice = report.invoice && report.invoice !== null;
                         const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
                         const hasInvoiceCreated = report.invoice_created === true;
-                        
+
                         // Check if report is cancelled
                         const isCancelled = report.status && (
-                            report.status.toLowerCase() === 'cancelled' || 
-                            report.status.toLowerCase() === 'canceled' || 
+                            report.status.toLowerCase() === 'cancelled' ||
+                            report.status.toLowerCase() === 'canceled' ||
                             report.status === 'ملغي'
                         );
-                        
+
                         return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
                     });
-                    
+
                     console.log('Reports fetched on retry for create-invoice page:', reports);
                 } else {
                     throw new Error('API service not available or not initialized yet');
@@ -346,24 +346,24 @@ async function loadReports() {
             // Fall back to localStorage if API fails
             const storedReports = localStorage.getItem('lpk_reports');
             reports = storedReports ? JSON.parse(storedReports) : [];
-            
+
             // Filter out reports that already have invoices OR are cancelled
             reports = reports.filter(report => {
                 const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
                 const hasInvoice = report.invoice && report.invoice !== null;
                 const hasInvoices = report.invoices && Array.isArray(report.invoices) && report.invoices.length > 0;
                 const hasInvoiceCreated = report.invoice_created === true;
-                
+
                 // Check if report is cancelled
                 const isCancelled = report.status && (
-                    report.status.toLowerCase() === 'cancelled' || 
-                    report.status.toLowerCase() === 'canceled' || 
+                    report.status.toLowerCase() === 'cancelled' ||
+                    report.status.toLowerCase() === 'canceled' ||
                     report.status === 'ملغي'
                 );
-                
+
                 return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
             });
-            
+
             // If still no reports, use mock data
             if (reports.length === 0) {
                 console.log('No reports in localStorage, using mock data');
@@ -371,13 +371,13 @@ async function loadReports() {
                 localStorage.setItem('lpk_reports', JSON.stringify(reports));
             }
         }
-        
+
         // Store reports data globally
         reportsData = reports;
-        
+
         // Display reports
         displayReports(reports);
-        
+
     } catch (error) {
         console.error('Error loading reports:', error);
         const reportsTableBody = document.getElementById('reportsTableBody');
@@ -404,7 +404,7 @@ function getMockReports() {
     yesterday.setDate(yesterday.getDate() - 1);
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
-    
+
     return [
         {
             id: 'RPT10001',
@@ -548,7 +548,7 @@ function displayReports(reports) {
 
     Object.keys(reportsByClient).forEach(clientId => {
         const clientGroup = reportsByClient[clientId];
-        
+
         // Add client header row with a "Select All" checkbox for this client
         const clientHeaderRow = document.createElement('tr');
         clientHeaderRow.classList.add('table-light', 'client-group-header');
@@ -587,7 +587,7 @@ function displayReports(reports) {
 
             // Event listener for individual report checkbox
             const reportCheckbox = row.querySelector('.report-checkbox');
-            reportCheckbox.addEventListener('change', function() {
+            reportCheckbox.addEventListener('change', function () {
                 const reportId = report.id; // Get the ID from the report object in the closure
                 if (this.checked) {
                     // Ensure we are storing only IDs and avoid duplicates
@@ -606,7 +606,7 @@ function displayReports(reports) {
 
     // Add event listeners for per-client select-all checkboxes
     document.querySelectorAll('.client-select-all').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
+        checkbox.addEventListener('change', function () {
             const currentClientId = this.dataset.clientId;
             const isChecked = this.checked;
             document.querySelectorAll(`.report-checkbox.client-${currentClientId}-report`).forEach(reportCb => {
@@ -622,7 +622,7 @@ function displayReports(reports) {
 
     // Add event listeners for view report buttons
     document.querySelectorAll('.view-report-btn').forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             viewReport(this.dataset.reportId);
         });
     });
@@ -676,17 +676,17 @@ function initiateDirectInvoiceCreation() {
     // Check that we have all selected reports in reportsData
     const selectedReportObjects = [];
     let missingReportFound = false;
-    
+
     for (const reportId of selectedReports) {
         const reportObject = reportsData.find(report => report.id === reportId);
         if (!reportObject) {
-            console.error('[initiateDirectInvoiceCreation] Could not find the full report object for ID:', reportId, 'in reportsData. selectedReports:', selectedReports, 'reportsData sample:', reportsData.slice(0,2));
+            console.error('[initiateDirectInvoiceCreation] Could not find the full report object for ID:', reportId, 'in reportsData. selectedReports:', selectedReports, 'reportsData sample:', reportsData.slice(0, 2));
             missingReportFound = true;
             break;
         }
         selectedReportObjects.push(reportObject);
     }
-    
+
     if (missingReportFound) {
         showToast('خطأ: لم يتم العثور على بيانات بعض التقارير المحددة. الرجاء تحديث الصفحة وإعادة المحاولة.', 'error');
         return;
@@ -767,7 +767,7 @@ function updateSelectedReportsSummary() {
     } else {
         console.warn('[updateSelectedReportsSummary] generateInvoiceBtn not found!');
     }
-    
+
     // Update the top create invoice button
     const createInvoiceBtn = document.getElementById('createInvoiceBtn');
     if (createInvoiceBtn) {
@@ -782,7 +782,7 @@ function updateSelectedReportsSummary() {
     } else {
         console.warn('[updateSelectedReportsSummary] selectedCountElement (ID: selectedCount) not found!');
     }
-    
+
     // Update top section count
     const selectedCountTopElement = document.getElementById('selectedCountTop');
     if (selectedCountTopElement) {
@@ -806,14 +806,14 @@ function updateSelectedReportsSummary() {
     } catch (error) {
         console.error('[updateSelectedReportsSummary] Error calculating total amount:', error);
     }
-    
+
     const totalAmountElement = document.getElementById('totalAmount');
     if (totalAmountElement) {
         totalAmountElement.textContent = formatCurrency(currentTotalAmount);
     } else {
         console.warn('[updateSelectedReportsSummary] totalAmountElement (ID: totalAmount) not found!');
     }
-    
+
     // Update top section total amount
     const totalAmountTopElement = document.getElementById('totalAmountTop');
     if (totalAmountTopElement) {
@@ -829,7 +829,7 @@ function updateSelectedReportsSummary() {
     if (totalAmount2Element) {
         totalAmount2Element.textContent = formatCurrency(currentTotalAmount);
     }
-    
+
     // Update selected reports section visibility
     const selectedReportsSection = document.getElementById('selectedReportsSection');
     if (selectedReportsSection) {
@@ -860,15 +860,15 @@ function applyFilters() {
     const dateFrom = document.getElementById('dateFromFilter').value;
     const dateTo = document.getElementById('dateToFilter').value;
     const deviceModel = document.getElementById('deviceModelFilter').value.trim().toLowerCase();
-    
+
     // Filter reports
     let filteredReports = [...reportsData];
-    
+
     // Filter by client
     if (client_id) {
         filteredReports = filteredReports.filter(report => report.client_id.toString() === client_id);
     }
-    
+
     // Filter by date range
     if (dateFrom) {
         const fromDate = new Date(dateFrom);
@@ -877,7 +877,7 @@ function applyFilters() {
             return reportDate >= fromDate;
         });
     }
-    
+
     if (dateTo) {
         const toDate = new Date(dateTo);
         // Set time to end of day
@@ -887,17 +887,17 @@ function applyFilters() {
             return reportDate <= toDate;
         });
     }
-    
+
     // Filter by device model
     if (deviceModel) {
         filteredReports = filteredReports.filter(report => {
             return report.deviceModel.toLowerCase().includes(deviceModel);
         });
     }
-    
+
     // Display filtered reports
     displayReports(filteredReports);
-    
+
     // Reset selected reports
     selectedReports = [];
     updateSelectedReportsSummary();
@@ -912,10 +912,10 @@ function resetFilters() {
     document.getElementById('dateFromFilter').value = '';
     document.getElementById('dateToFilter').value = '';
     document.getElementById('deviceModelFilter').value = '';
-    
+
     // Display all reports
     displayReports(reportsData);
-    
+
     // Reset selected reports
     selectedReports = [];
     updateSelectedReportsSummary();
@@ -932,7 +932,7 @@ function viewReport(reportId) {
         showToast('لم يتم العثور على التقرير', 'error');
         return;
     }
-    
+
     // Redirect to report page
     window.open(`report.html?id=${reportId}`, '_blank');
 }
@@ -946,11 +946,11 @@ function showInvoiceSettingsModal() {
         showToast('الرجاء تحديد تقرير واحد على الأقل', 'warning');
         return;
     }
-    
+
     // Check if all selected reports are for the same client
     const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
     const client_ids = [...new Set(selectedReportsData.map(report => report.client_id))];
-    
+
     if (client_ids.length > 1) {
         showToast('يجب أن تكون جميع التقارير المحددة لنفس العميل', 'warning');
         return;
@@ -976,15 +976,15 @@ function showEditItemsModal() {
     // Populate the items table
     const itemsTableBody = document.getElementById('invoiceItemsTableBody');
     if (!itemsTableBody) return;
-    
+
     // Clear table
     itemsTableBody.innerHTML = '';
-    
+
     // If no items yet, initialize from reports
     if (invoiceItems.length === 0) {
         // Get selected reports data
         const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
-        
+
         // Create items from reports
         selectedReportsData.forEach(report => {
             invoiceItems.push({
@@ -996,12 +996,12 @@ function showEditItemsModal() {
             });
         });
     }
-    
+
     // Display items
     invoiceItems.forEach((item, index) => {
         const row = document.createElement('tr');
         row.setAttribute('data-item-id', item.id);
-        
+
         row.innerHTML = `
             <td>
                 <input type="text" class="form-control item-description" value="${item.description}">
@@ -1021,10 +1021,10 @@ function showEditItemsModal() {
                 </button>
             </td>
         `;
-        
+
         itemsTableBody.appendChild(row);
     });
-    
+
     // Show modal
 }
 
@@ -1034,10 +1034,10 @@ function showEditItemsModal() {
 function updateItemTotal(input) {
     const row = input.closest('tr');
     const price = parseFloat(row.querySelector('.item-price').value) || 0;
-    
+
     // Since we've removed the quantity field, the total is the same as the price
     const total = price;
-    
+
     row.querySelector('.item-total').value = total.toFixed(2);
 }
 
@@ -1047,7 +1047,7 @@ function updateItemTotal(input) {
 function addNewInvoiceItem() {
     const itemsTableBody = document.getElementById('invoiceItemsTableBody');
     if (!itemsTableBody) return;
-    
+
     // Create new item
     const newItem = {
         id: 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
@@ -1056,14 +1056,14 @@ function addNewInvoiceItem() {
         unitPrice: 0,
         total: 0
     };
-    
+
     // Add to items array
     invoiceItems.push(newItem);
-    
+
     // Add row to table
     const row = document.createElement('tr');
     row.setAttribute('data-item-id', newItem.id);
-    
+
     row.innerHTML = `
         <td>${itemsTableBody.children.length + 1}</td>
         <td>
@@ -1081,9 +1081,9 @@ function addNewInvoiceItem() {
             </button>
         </td>
     `;
-    
+
     itemsTableBody.appendChild(row);
-    
+
     // Focus on the description field
     row.querySelector('.item-description').focus();
 }
@@ -1094,7 +1094,7 @@ function addNewInvoiceItem() {
 function deleteInvoiceItem(itemId) {
     // Remove from items array
     invoiceItems = invoiceItems.filter(item => item.id !== itemId);
-    
+
     // Remove row from table
     const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
     if (row) {
@@ -1109,20 +1109,20 @@ function deleteInvoiceItem(itemId) {
 function collectInvoiceItems() {
     const itemsTableBody = document.getElementById('invoiceItemsTableBody');
     if (!itemsTableBody) return [];
-    
+
     const items = [];
-    
+
     // Loop through all rows
     const rows = itemsTableBody.querySelectorAll('tr');
     rows.forEach(row => {
         const itemId = row.getAttribute('data-item-id');
-        
+
         // Get values from input fields
         const description = row.querySelector('.item-description').value;
         const serialNumber = row.querySelector('.item-serial').value || null;
         const unitPrice = parseFloat(row.querySelector('.item-price').value) || 0;
         const total = parseFloat(row.querySelector('.item-total').value) || 0;
-        
+
         // Add item to array
         items.push({
             id: itemId,
@@ -1132,7 +1132,7 @@ function collectInvoiceItems() {
             total: total
         });
     });
-    
+
     return items;
 }
 
@@ -1142,13 +1142,13 @@ function collectInvoiceItems() {
 function saveInvoiceItems() {
     const itemsTableBody = document.getElementById('invoiceItemsTableBody');
     if (!itemsTableBody) return;
-    
+
     // Get all rows
     const rows = itemsTableBody.querySelectorAll('tr');
-    
+
     // Clear items array
     invoiceItems = [];
-    
+
     // Get data from each row
     rows.forEach(row => {
         const itemId = row.getAttribute('data-item-id');
@@ -1156,7 +1156,7 @@ function saveInvoiceItems() {
         const serialNumber = row.querySelector('.item-serial').value || null;
         const unitPrice = parseFloat(row.querySelector('.item-price').value) || 0;
         const total = parseFloat(row.querySelector('.item-total').value) || 0;
-        
+
         // Add to items array
         invoiceItems.push({
             id: itemId,
@@ -1166,14 +1166,14 @@ function saveInvoiceItems() {
             total: total
         });
     });
-    
+
     // Hide modal
     const editItemsModal = bootstrap.Modal.getInstance(document.getElementById('editItemsModal'));
     editItemsModal.hide();
-    
+
     // Regenerate invoice preview
     generateInvoicePreview();
-    
+
     // Show success message
     showToast('تم حفظ عناصر الفاتورة بنجاح', 'success');
 }
@@ -1190,7 +1190,7 @@ function generateInvoicePreview() {
         showToast('الرجاء تحديد تقرير واحد على الأقل', 'warning');
         return;
     }
-    
+
     // Get selected reports data
     const selectedReportsData = reportsData.filter(report => selectedReports.includes(report.id));
     console.log('[generateInvoicePreview] Filtered selectedReportsData (first 2 items):', JSON.stringify(selectedReportsData.slice(0, 2)));
@@ -1202,7 +1202,7 @@ function generateInvoicePreview() {
     let clientEmail = '';
     let clientAddress = '';
     let client_id = 0;
-    
+
     // Try to get valid client data from the first report
     for (const report of selectedReportsData) {
         // Get client ID
@@ -1211,10 +1211,10 @@ function generateInvoicePreview() {
             break;
         }
     }
-    
+
     // Try to find client in clientsData
     const client = clientsData.find(c => c.id && c.id.toString() === client_id.toString());
-    
+
     if (client) {
         // Use client data from clientsData
         clientName = client.name || clientName;
@@ -1232,24 +1232,24 @@ function generateInvoicePreview() {
                     clientName = report.client_name;
                 }
             }
-            
+
             // Get client phone
             if (!clientPhone && (report.clientPhone || report.client_phone)) {
                 clientPhone = report.clientPhone || report.client_phone;
             }
-            
+
             // Get client email
             if (!clientEmail && (report.clientEmail || report.client_email)) {
                 clientEmail = report.clientEmail || report.client_email;
             }
-            
+
             // Get client address
             if (!clientAddress && (report.clientAddress || report.client_address)) {
                 clientAddress = report.clientAddress || report.client_address;
             }
         }
     }
-    
+
     // Create client object for the invoice
     const clientObj = {
         id: client_id,
@@ -1258,7 +1258,7 @@ function generateInvoicePreview() {
         email: clientEmail,
         address: clientAddress
     };
-    
+
     // Populate invoiceItems from selected reports data
     // This ensures the preview always reflects the currently selected reports
     invoiceItems = []; // Clear any existing items first
@@ -1276,7 +1276,7 @@ function generateInvoicePreview() {
             serialNumber: report.serial_number || report.serialNumber || null
         });
     });
-    
+
     // Calculate totals from invoice items
     let subtotal = 0;
     invoiceItems.forEach(item => {
@@ -1284,29 +1284,29 @@ function generateInvoicePreview() {
         const itemTotal = parseFloat(item.total) || 0;
         subtotal += itemTotal;
     });
-    
+
     // Ensure tax and discount calculations use valid numbers
     const taxRate = parseFloat(invoiceSettings.taxRate) || 0;
     const discountRate = parseFloat(invoiceSettings.discountRate) || 0;
-    
+
     const taxAmount = (subtotal * taxRate) / 100;
     const discountAmount = (subtotal * discountRate) / 100;
     const total = subtotal + taxAmount - discountAmount;
-    
+
     // Generate invoice HTML
     const invoicePreviewContainer = document.getElementById('invoicePreviewContainer');
     if (!invoicePreviewContainer) return;
-    
+
     // Format date in Gregorian format (not Hijri)
     const invoiceData = {
         // invoice_number: generateInvoiceNumber(), // Removed: Backend generates invoice_number
     };
     const invoiceDate = new Date(invoiceSettings.date);
     const formattedDate = invoiceDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-    
+
     // Generate invoice number
     const invoiceNumber = generateInvoiceNumber();
-    
+
     invoicePreviewContainer.innerHTML = `
         <div class="invoice-container p-4 border rounded bg-white shadow-sm">
             <!-- Invoice Header -->
@@ -1356,7 +1356,7 @@ function generateInvoicePreview() {
                             </thead>
                             <tbody>
                                 ${invoiceItems.map((item, index) => {
-                                    return `
+        return `
                                         <tr>
                                             <td>${index + 1}</td>
                                             <td>${item.description}</td>
@@ -1364,7 +1364,7 @@ function generateInvoicePreview() {
                                             <td class="text-end">${(parseFloat(item.unitPrice) || 0).toFixed(2)} جنية</td>
                                         </tr>
                                     `;
-                                }).join('')}
+    }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -1421,12 +1421,12 @@ function generateInvoicePreview() {
             </div>
         </div>
     `;
-    
+
     // Show invoice preview section
     const invoicePreviewSection = document.getElementById('invoicePreviewSection');
     if (invoicePreviewSection) {
         invoicePreviewSection.style.display = 'block';
-        
+
         // Scroll to invoice preview
         invoicePreviewSection.scrollIntoView({ behavior: 'smooth' });
     }
@@ -1442,7 +1442,7 @@ function generateInvoiceNumber() {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    
+
     return `INV-${year}${month}${day}-${random}`;
 }
 
@@ -1455,10 +1455,10 @@ function getPaymentMethodText(method) {
     const methods = {
         'cash': 'نقداً',
         'instapay': 'Instapay',
-        'محفظة': 'محفظة رقمية',
-        'بنك': 'حساب بنكي'
+        'محفظة': 'محفظة',
+        'بنك': 'بنك'
     };
-    
+
     return methods[method] || method;
 }
 
@@ -1474,7 +1474,7 @@ function getPaymentStatusText(status) {
         'cancelled': 'ملغى',
         'canceled': 'ملغى'
     };
-    
+
     return statuses[status] || status;
 }
 
@@ -1510,11 +1510,11 @@ function exportToPdf() {
     }
 
     const opt = {
-        margin:       [0.5, 0.5, 0.5, 0.5], // inches
-        filename:     `invoice-${generateInvoiceNumber()}.pdf`, // Generates a new dynamic name
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { logging: true, useCORS: true, scrollY: 0 }, // Simplified, explicitly set scrollY to 0 for now
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        margin: [0.5, 0.5, 0.5, 0.5], // inches
+        filename: `invoice-${generateInvoiceNumber()}.pdf`, // Generates a new dynamic name
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { logging: true, useCORS: true, scrollY: 0 }, // Simplified, explicitly set scrollY to 0 for now
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
     const exportPdfBtn = document.getElementById('exportPdfBtn');
@@ -1577,16 +1577,16 @@ function shareInvoice(method) {
             email: clientEmail
         };
 
-        const invoiceId = document.getElementById('invoiceNumberPreview')?.textContent.replace('رقم الفاتورة: ', '').trim() || 
-                          window.currentInvoiceId || 
-                          generateInvoiceNumber();
-        
+        const invoiceId = document.getElementById('invoiceNumberPreview')?.textContent.replace('رقم الفاتورة: ', '').trim() ||
+            window.currentInvoiceId ||
+            generateInvoiceNumber();
+
         const invoiceUrl = `${window.location.origin}/invoice.html?id=${invoiceId}`; // Assuming invoice.html can take an ID
-        
+
         const message = `مرحباً ${client.name || 'عميلنا الكريم'},\n\nنرفق لكم فاتورة الصيانة رقم ${invoiceId}.\n\nيمكنكم الاطلاع على الفاتورة من خلال الرابط التالي:\n${invoiceUrl}\n\nشكراً لتعاملكم مع شركة لاباك للصيانة.`;
-        
+
         console.log('Sharing invoice via ' + method + ' with client:', client, 'Invoice ID:', invoiceId);
-        
+
         if (method === 'email') {
             // Share via email
             const subject = `فاتورة صيانة رقم ${invoiceId}`;
@@ -1598,7 +1598,7 @@ function shareInvoice(method) {
             const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
         }
-        
+
     } catch (error) {
         console.error(`Error sharing invoice via ${method}:`, error);
         showToast('حدث خطأ أثناء مشاركة الفاتورة', 'error');
@@ -1612,10 +1612,10 @@ function copyInvoiceLink() {
     try {
         // Get invoice ID
         const invoiceId = window.currentInvoiceId || generateInvoiceNumber();
-        
+
         // Create invoice URL
         const invoiceUrl = `${window.location.origin}/invoice.html?id=${invoiceId}`;
-        
+
         // Copy to clipboard
         navigator.clipboard.writeText(invoiceUrl)
             .then(() => {
@@ -1625,7 +1625,7 @@ function copyInvoiceLink() {
                 console.error('Error copying to clipboard:', error);
                 showToast('حدث خطأ أثناء نسخ الرابط', 'error');
             });
-        
+
     } catch (error) {
         console.error('Error copying invoice link:', error);
         showToast('حدث خطأ أثناء نسخ رابط الفاتورة', 'error');
@@ -1641,7 +1641,7 @@ function loadInvoiceTemplates() {
         const storedTemplates = localStorage.getItem('lpk_invoice_templates');
         if (storedTemplates) {
             invoiceTemplates = JSON.parse(storedTemplates);
-            
+
             // Update templates dropdown
             updateTemplatesDropdown();
         }
@@ -1656,18 +1656,18 @@ function loadInvoiceTemplates() {
 function updateTemplatesDropdown() {
     const templatesList = document.getElementById('templatesList');
     if (!templatesList) return;
-    
+
     // Get all template items (except header and save button)
     const templateItems = templatesList.querySelectorAll('li:not(:first-child):not(:last-child)');
     templateItems.forEach(item => item.remove());
-    
+
     // Add divider if there are templates
     if (invoiceTemplates.length > 0) {
         const divider = document.createElement('li');
         divider.innerHTML = '<hr class="dropdown-divider">';
         templatesList.insertBefore(divider, templatesList.lastElementChild);
     }
-    
+
     // Add templates to dropdown
     invoiceTemplates.forEach(template => {
         const templateItem = document.createElement('li');
@@ -1685,18 +1685,18 @@ function updateTemplatesDropdown() {
             </div>
         `;
         templatesList.insertBefore(templateItem, templatesList.lastElementChild);
-        
+
         // Add event listeners for template buttons
         const loadBtn = templateItem.querySelector('.load-template-btn');
         if (loadBtn) {
-            loadBtn.addEventListener('click', function() {
+            loadBtn.addEventListener('click', function () {
                 loadTemplate(template.id);
             });
         }
-        
+
         const deleteBtn = templateItem.querySelector('.delete-template-btn');
         if (deleteBtn) {
-            deleteBtn.addEventListener('click', function() {
+            deleteBtn.addEventListener('click', function () {
                 deleteTemplate(template.id);
             });
         }
@@ -1709,9 +1709,9 @@ function updateTemplatesDropdown() {
 function saveAsTemplate() {
     // Prompt for template name
     const templateName = prompt('الرجاء إدخال اسم القالب:', invoiceSettings.title);
-    
+
     if (!templateName) return; // User cancelled
-    
+
     // Create template object
     const template = {
         id: 'template_' + Date.now(),
@@ -1719,16 +1719,16 @@ function saveAsTemplate() {
         settings: { ...invoiceSettings },
         createdAt: new Date().toISOString()
     };
-    
+
     // Add to templates array
     invoiceTemplates.push(template);
-    
+
     // Save to localStorage
     localStorage.setItem('lpk_invoice_templates', JSON.stringify(invoiceTemplates));
-    
+
     // Update templates dropdown
     updateTemplatesDropdown();
-    
+
     // Show success message
     showToast('تم حفظ القالب بنجاح', 'success');
 }
@@ -1744,10 +1744,10 @@ function loadTemplate(templateId) {
         showToast('لم يتم العثور على القالب', 'error');
         return;
     }
-    
+
     // Apply template settings
     invoiceSettings = { ...template.settings };
-    
+
     // Update form fields
     document.getElementById('invoiceTitle').value = invoiceSettings.title;
     document.getElementById('taxRate').value = invoiceSettings.taxRate;
@@ -1755,7 +1755,7 @@ function loadTemplate(templateId) {
     document.getElementById('paymentMethod').value = invoiceSettings.paymentMethod;
     document.getElementById('paymentStatusSelect').value = invoiceSettings.paymentStatus; // Populate payment status
     document.getElementById('invoiceNotes').value = invoiceSettings.notes;
-    
+
     // Show success message
     showToast('تم تحميل القالب بنجاح', 'success');
 }
@@ -1769,16 +1769,16 @@ function deleteTemplate(templateId) {
     if (!confirm('هل أنت متأكد من حذف هذا القالب؟')) {
         return;
     }
-    
+
     // Remove from templates array
     invoiceTemplates = invoiceTemplates.filter(t => t.id !== templateId);
-    
+
     // Save to localStorage
     localStorage.setItem('lpk_invoice_templates', JSON.stringify(invoiceTemplates));
-    
+
     // Update templates dropdown
     updateTemplatesDropdown();
-    
+
     // Show success message
     showToast('تم حذف القالب بنجاح', 'success');
 }
@@ -1795,7 +1795,7 @@ function showToast(message, type = 'info') {
         alert(message);
         return;
     }
-    
+
     // Set toastr options
     toastr.options = {
         closeButton: true,
@@ -1804,7 +1804,7 @@ function showToast(message, type = 'info') {
         timeOut: 5000,
         rtl: true
     };
-    
+
     // Show toast based on type
     switch (type) {
         case 'success':

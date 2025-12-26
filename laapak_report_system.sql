@@ -608,7 +608,7 @@ CREATE TABLE `money_locations` (
 
 LOCK TABLES `money_locations` WRITE;
 /*!40000 ALTER TABLE `money_locations` DISABLE KEYS */;
-INSERT INTO `money_locations` VALUES (1,'Cash Register','الصندوق النقدي','cash',0.00,'EGP',1,'Physical cash register','2025-08-21 20:12:32','2025-10-12 10:18:58'),(2,'Instapay Wallet','محفظة انستاباي','digital_wallet',41749.00,'EGP',1,'Instapay digital wallet','2025-08-21 20:12:32','2025-10-23 14:14:00'),(3,'Bank Account','الحساب البنكي','bank_account',462127.50,'EGP',1,'Main business bank account','2025-08-21 20:12:32','2025-10-23 18:34:40'),(4,'Digital Wallet','محفظة رقمية','digital_wallet',6609.00,'EGP',1,'Other digital wallet','2025-08-21 20:12:32','2025-09-19 12:28:25');
+INSERT INTO `money_locations` VALUES (1,'Cash Register','الصندوق النقدي','cash',0.00,'EGP',1,'Physical cash register','2025-08-21 20:12:32','2025-10-12 10:18:58'),(2,'Instapay Wallet','محفظة انستاباي','digital_wallet',41749.00,'EGP',1,'Instapay digital wallet','2025-08-21 20:12:32','2025-10-23 14:14:00'),(3,'Bank Account','الحساب البنكي','bank_account',462127.50,'EGP',1,'Main business bank account','2025-08-21 20:12:32','2025-10-23 18:34:40'),(4,'Digital Wallet','محفظة','digital_wallet',6609.00,'EGP',1,'Other digital wallet','2025-08-21 20:12:32','2025-09-19 12:28:25');
 /*!40000 ALTER TABLE `money_locations` ENABLE KEYS */;
 UNLOCK TABLES;
 

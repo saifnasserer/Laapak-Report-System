@@ -4,7 +4,7 @@ const Invoice = require('./Invoice');
 const InvoiceItem = require('./InvoiceItem');
 const Report = require('./Report');
 const ReportTechnicalTest = require('./ReportTechnicalTest');
-const InvoiceReport = require('./invoicereport'); 
+const InvoiceReport = require('./invoicereport');
 const InvoiceReportSummary = require('./InvoiceReportSummary');
 const BudgetAllocation = require('./BudgetAllocation');
 const ApiKey = require('./ApiKey');
@@ -19,6 +19,7 @@ const ProductCost = require('./ProductCost');
 const FinancialSummary = require('./FinancialSummary');
 const MoneyLocation = require('./MoneyLocation');
 const MoneyMovement = require('./MoneyMovement');
+const ExpectedItem = require('./ExpectedItem');
 
 // Import the sequelize instance from the config/db.js file
 const { sequelize } = require('../config/db');
@@ -55,6 +56,10 @@ MoneyLocation.hasMany(Invoice, { foreignKey: 'money_location_id', as: 'invoices'
 Expense.belongsTo(MoneyLocation, { foreignKey: 'money_location_id', as: 'moneyLocation' });
 MoneyLocation.hasMany(Expense, { foreignKey: 'money_location_id', as: 'expenses' });
 
+// Expected Items associations
+Admin.hasMany(ExpectedItem, { foreignKey: 'created_by', as: 'createdExpectedItems' });
+ExpectedItem.belongsTo(Admin, { foreignKey: 'created_by', as: 'creator' });
+
 // Product Cost associations with Invoice Items (optional)
 ProductCost.hasMany(InvoiceItem, { foreignKey: 'product_cost_id', as: 'invoiceItems' });
 InvoiceItem.belongsTo(ProductCost, { foreignKey: 'product_cost_id', as: 'productCost' });
@@ -71,17 +76,17 @@ Invoice.hasMany(InvoiceItem, { foreignKey: 'invoiceId', as: 'InvoiceItems' });
 InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoiceId', as: 'invoice' });
 
 // Report and Invoice many-to-many associations through InvoiceReport junction table
-Report.belongsToMany(Invoice, { 
-    through: InvoiceReport, 
-    foreignKey: 'report_id', 
-    otherKey: 'invoice_id',
-    as: 'relatedInvoices' 
+Report.belongsToMany(Invoice, {
+  through: InvoiceReport,
+  foreignKey: 'report_id',
+  otherKey: 'invoice_id',
+  as: 'relatedInvoices'
 });
-Invoice.belongsToMany(Report, { 
-    through: InvoiceReport, 
-    foreignKey: 'invoice_id', 
-    otherKey: 'report_id',
-    as: 'relatedReports' 
+Invoice.belongsToMany(Report, {
+  through: InvoiceReport,
+  foreignKey: 'invoice_id',
+  otherKey: 'report_id',
+  as: 'relatedReports'
 });
 
 // BudgetAllocation associations
@@ -108,7 +113,7 @@ module.exports = {
   InvoiceItem,
   Report,
   ReportTechnicalTest,
-  InvoiceReport, 
+  InvoiceReport,
   InvoiceReportSummary,
   BudgetAllocation,
   ApiKey,
@@ -122,5 +127,6 @@ module.exports = {
   FinancialSummary,
   MoneyLocation,
   MoneyMovement,
+  ExpectedItem,
   sequelize, // Export the sequelize instance
 };

@@ -7,24 +7,24 @@ let invoicesTable; // Global variable for the DataTable instance
 let clients = []; // Store clients data
 let reports = []; // Store reports data
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Check if user is authenticated
     if (!authMiddleware.isAdminLoggedIn()) {
         window.location.href = 'login.html';
         return;
     }
-    
+
     // Load header component
     if (document.getElementById('header-container')) {
         HeaderComponent.loadAdminHeader('invoices');
     }
-    
+
     // Initialize the page - load clients first, then invoices
     initializeDataTable();
     loadClientsData().then(() => {
         // After clients are loaded, load invoices and reports
-    loadInvoicesData();
-    loadReportsData();
+        loadInvoicesData();
+        loadReportsData();
     });
     setupEventListeners();
     setupCalculations();
@@ -36,19 +36,19 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeDataTable() {
     const table = $('#invoicesTable');
     if (table.length === 0) return;
-    
+
     try {
         // Check that the table has the correct number of columns
         if (table.find('thead th').length !== 7) {
             console.error('DataTable columns mismatch: Expected 7 columns in HTML markup');
             return;
         }
-        
+
         // Clear any existing DataTable instance to avoid duplication
         if ($.fn.DataTable.isDataTable(table)) {
             table.DataTable().destroy();
         }
-        
+
         // Initialize DataTable with configuration for local database data to match clients.html style
         invoicesTable = table.DataTable({
             language: {
@@ -61,11 +61,11 @@ function initializeDataTable() {
             // Define data columns that match your MySQL database structure
             columns: [
                 // Define explicit mapping between data and columns
-                { 
-                    data: 'id', 
+                {
+                    data: 'id',
                     title: 'رقم الفاتورة',
                     type: 'num', // Specify numeric type for proper sorting
-                    render: function(data, type, row) {
+                    render: function (data, type, row) {
                         if (type === 'display') {
                             return data; // Return formatted ID for display
                         }
@@ -73,22 +73,22 @@ function initializeDataTable() {
                     }
                 },
                 { data: 'client_name', title: 'العميل' },
-                { 
-                    data: 'date', 
+                {
+                    data: 'date',
                     title: 'التاريخ',
                     type: 'num', // Specify numeric type for proper sorting
-                    render: function(data, type, row) {
+                    render: function (data, type, row) {
                         if (type === 'display') {
                             return data; // Return formatted date for display
                         }
                         return row.dateSort; // Return sort data for sorting
                     }
                 },
-                { 
-                    data: 'total', 
+                {
+                    data: 'total',
                     title: 'المبلغ',
                     type: 'num', // Specify numeric type for proper sorting
-                    render: function(data, type, row) {
+                    render: function (data, type, row) {
                         if (type === 'display') {
                             return data; // Return formatted amount for display
                         }
@@ -107,19 +107,19 @@ function initializeDataTable() {
             pagingType: "simple_numbers",
             dom: '<"row"<"col-sm-12"tr>>', // Only show table, no built-in controls
             // Connect DataTable pagination to the custom pagination in HTML
-            drawCallback: function() {
+            drawCallback: function () {
                 // Hide the built-in DataTables pagination
                 $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').hide();
                 $(this).closest('.dataTables_wrapper').find('.dataTables_info').hide();
-                
+
                 // Update the custom pagination UI
                 updateCustomPagination(this.api().page.info());
             }
         });
-        
+
         // Add custom search functionality with enhanced features
         setupSearchFunctionality();
-        
+
         console.log('DataTable initialized successfully');
     } catch (error) {
         console.error('Error initializing DataTable:', error);
@@ -135,46 +135,46 @@ async function loadInvoicesData(filters = {}) {
         if (invoicesTable) {
             invoicesTable.clear();
         }
-        
+
         // Build API URL with filters
         const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         let apiUrl = `${apiBaseUrl}/api/invoices`;
         const queryParams = [];
-        
+
         // Add filters to query params if any
         if (filters.clientId) queryParams.push(`clientId=${filters.clientId}`);
         if (filters.paymentStatus) queryParams.push(`paymentStatus=${filters.paymentStatus}`);
         if (filters.fromDate) queryParams.push(`fromDate=${filters.fromDate}`);
         if (filters.toDate) queryParams.push(`toDate=${filters.toDate}`);
         if (filters.search) queryParams.push(`search=${encodeURIComponent(filters.search)}`);
-        
+
         // Add query params to URL
         if (queryParams.length > 0) {
             apiUrl += `?${queryParams.join('&')}`;
         }
-        
+
         console.log('Fetching invoices from:', apiUrl);
-        
+
         // Get token for authentication
         const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
-        
+
         // Fetch invoices from API (which connects to your local MySQL database)
         const response = await fetch(apiUrl, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
-        
+
         const data = await response.json();
         // console.log('Received data from server:', data);
-        
+
         // Extract invoices array from response
         let invoices = [];
         if (Array.isArray(data)) {
@@ -184,30 +184,30 @@ async function loadInvoicesData(filters = {}) {
         } else if (data.data && Array.isArray(data.data)) {
             invoices = data.data;
         }
-        
+
         if (invoices.length === 0) {
             console.log('No invoices found in the database');
         }
-        
+
         // Format the invoices for display
         const formattedInvoices = invoices.map(invoice => formatInvoiceForTable(invoice));
-        
+
         // Update the DataTable with the formatted data
         if (invoicesTable) {
             invoicesTable.clear().rows.add(formattedInvoices).draw();
             console.log(`Added ${formattedInvoices.length} invoices to the table`);
         }
-        
+
         return invoices;
     } catch (error) {
         console.error('Error loading invoices from local database:', error);
         showToast('حدث خطأ أثناء تحميل الفواتير', 'error');
-        
+
         // Show error in table
         if (invoicesTable) {
             invoicesTable.clear().draw();
         }
-        
+
         return [];
     }
 }
@@ -219,7 +219,7 @@ function formatInvoiceForTable(invoice) {
     try {
         // Log the raw invoice data for debugging
         // console.log('Formatting invoice:', invoice);
-        
+
         if (!invoice || typeof invoice !== 'object') {
             console.error('Invalid invoice data:', invoice);
             return {
@@ -232,11 +232,11 @@ function formatInvoiceForTable(invoice) {
                 actions: ''
             };
         }
-        
+
         // Get client name - might come from joined data or need to be looked up
         let clientName = 'غير معروف'; // Unknown
         let clientFound = false;
-        
+
         // First, try to get client name from the invoice data itself
         if (invoice.client_name) {
             clientName = invoice.client_name;
@@ -250,7 +250,7 @@ function formatInvoiceForTable(invoice) {
             clientName = invoice.client.name;
             clientFound = true;
         }
-        
+
         // If not found in invoice data, try to find in our cached clients array
         if (!clientFound && invoice.client_id && clients && clients.length > 0) {
             const client = clients.find(c => c.id == invoice.client_id);
@@ -262,12 +262,12 @@ function formatInvoiceForTable(invoice) {
                 console.warn(`Client not found for invoice ${invoice.id} with client_id ${invoice.client_id}`);
             }
         }
-        
+
         // If still not found, show client ID as fallback
         if (!clientFound && invoice.client_id) {
             clientName = `العميل #${invoice.client_id}`;
         }
-        
+
         // Format date - handle both string and Date objects
         let formattedDate = '-';
         let dateSort = null;
@@ -288,10 +288,10 @@ function formatInvoiceForTable(invoice) {
                 dateSort = 0;
             }
         }
-        
+
         // Format payment status with appropriate badge and quick edit functionality
         let statusBadge = formatInvoicePaymentStatus(invoice.paymentStatus, invoice.id);
-        
+
         // Format payment method
         let paymentMethodText = '-';
         if (invoice.paymentMethod) {
@@ -303,16 +303,16 @@ function formatInvoiceForTable(invoice) {
                     paymentMethodText = 'Instapay';
                     break;
                 case 'محفظة':
-                    paymentMethodText = 'محفظة رقمية';
+                    paymentMethodText = 'محفظة';
                     break;
                 case 'بنك':
-                    paymentMethodText = 'حساب بنكي';
+                    paymentMethodText = 'بنك';
                     break;
                 default:
                     paymentMethodText = invoice.paymentMethod;
             }
         }
-        
+
         // Format total amount
         let formattedTotal = '0.00 ج.م.';
         let totalSort = 0;
@@ -323,7 +323,7 @@ function formatInvoiceForTable(invoice) {
                 totalSort = totalValue; // Numeric value for sorting
             }
         }
-        
+
         // Create action buttons
         const invoiceId = invoice.id || 'unknown';
         const idSort = typeof invoice.id === 'number' ? invoice.id : parseInt(invoice.id) || 0;
@@ -341,7 +341,7 @@ function formatInvoiceForTable(invoice) {
                 </ul>
             </div>
         `;
-        
+
         // Return formatted invoice data for DataTable in the exact format it expects
         return {
             id: invoiceId,
@@ -379,11 +379,11 @@ function formatInvoiceForTable(invoice) {
  */
 function formatInvoicePaymentStatus(status, invoiceId) {
     if (!status) status = 'pending';
-    
+
     const statusLower = status.toLowerCase();
     let badgeClass = 'bg-secondary';
     let statusText = status;
-    
+
     switch (statusLower) {
         case 'completed':
         case 'paid':
@@ -417,7 +417,7 @@ function formatInvoicePaymentStatus(status, invoiceId) {
             badgeClass = 'bg-secondary';
             statusText = status;
     }
-    
+
     return `
         <div class="dropdown">
             <span class="badge ${badgeClass} payment-status-badge rounded-pill px-3 py-2" 
@@ -452,55 +452,55 @@ function formatInvoicePaymentStatus(status, invoiceId) {
 async function loadClientsData() {
     try {
         console.log('Loading clients data...');
-        
+
         // Build API URL
-        const apiBaseUrl = window.config ? window.config.api.baseUrl : 
-                          (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://reports.laapak.com');
+        const apiBaseUrl = window.config ? window.config.api.baseUrl :
+            (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://reports.laapak.com');
         const apiUrl = `${apiBaseUrl}/api/clients`;
-        
+
         console.log('Fetching clients from:', apiUrl);
-        
+
         // Get token for authentication - try multiple sources
         let token = null;
         if (typeof authMiddleware !== 'undefined' && authMiddleware.getAdminToken) {
             token = authMiddleware.getAdminToken();
         } else {
             // Fallback to direct token access
-            token = localStorage.getItem('adminToken') || 
-                   sessionStorage.getItem('adminToken') || 
-                   localStorage.getItem('clientToken') || 
-                   sessionStorage.getItem('clientToken');
+            token = localStorage.getItem('adminToken') ||
+                sessionStorage.getItem('adminToken') ||
+                localStorage.getItem('clientToken') ||
+                sessionStorage.getItem('clientToken');
         }
-        
+
         if (!token) {
             console.warn('No authentication token found, trying without token');
         }
-        
+
         // Prepare headers
         const headers = {
             'Content-Type': 'application/json'
         };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
             headers['x-auth-token'] = token; // Try both header formats
         }
-        
+
         // Fetch clients from API
         const response = await fetch(apiUrl, {
             method: 'GET',
             headers: headers
         });
-        
+
         console.log('Client API response status:', response.status);
-        
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status} - ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('Client API response data:', data);
-        
+
         // Handle different API response formats
         if (Array.isArray(data)) {
             clients = data;
@@ -514,16 +514,16 @@ async function loadClientsData() {
         } else {
             clients = [];
         }
-        
+
         console.log('Processed clients data:', clients);
-        
+
         // Populate client dropdowns
         populateClientDropdowns(clients);
-        
+
         return clients;
     } catch (error) {
         console.error('Error loading clients:', error);
-        
+
         // Try to load from cache if available
         try {
             const cachedClients = localStorage.getItem('cachedClients');
@@ -536,7 +536,7 @@ async function loadClientsData() {
         } catch (cacheError) {
             console.error('Error loading cached clients:', cacheError);
         }
-        
+
         return [];
     }
 }
@@ -549,31 +549,31 @@ async function loadReportsData() {
         // Build API URL
         const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         const apiUrl = `${apiBaseUrl}/api/reports`;
-        
+
         // Get token for authentication
         const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
-        
+
         // Fetch reports from API
         const response = await fetch(apiUrl, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
-        
+
         const data = await response.json();
         reports = data.reports || data; // Handle different API response formats
-        
+
         // Skip report dropdown population for now to avoid errors
         // We'll add the proper implementation later
         console.log('Reports loaded:', reports.length);
-        
+
         return reports;
     } catch (error) {
         console.error('Error loading reports:', error);
@@ -587,18 +587,18 @@ async function loadReportsData() {
 function populateClientDropdowns(clientsData) {
     try {
         console.log('Populating client dropdowns with data:', clientsData);
-        
+
         // Make sure we have valid data
         if (!Array.isArray(clientsData)) {
             console.error('Invalid client data format - expected array, got:', typeof clientsData);
             return;
         }
-        
+
         if (clientsData.length === 0) {
             console.warn('No clients data available');
             return;
         }
-        
+
         const clientDropdowns = [
             document.getElementById('clientId'),
             document.getElementById('editClientId'),
@@ -636,10 +636,10 @@ function populateClientDropdowns(clientsData) {
                     console.warn('Invalid client data:', client);
                 }
             });
-            
+
             console.log(`Added ${addedCount} clients to dropdown ${index}`);
         });
-        
+
         // Cache the clients data for offline use
         try {
             localStorage.setItem('cachedClients', JSON.stringify(clientsData));
@@ -647,9 +647,9 @@ function populateClientDropdowns(clientsData) {
         } catch (cacheError) {
             console.error('Error caching clients data:', cacheError);
         }
-        
+
         console.log('Client dropdowns populated successfully');
-        
+
         // Refresh invoice table if it exists to update client names
         refreshInvoiceTableWithClientNames();
     } catch (error) {
@@ -663,10 +663,10 @@ function populateClientDropdowns(clientsData) {
 function refreshInvoiceTableWithClientNames() {
     if (invoicesTable && clients && clients.length > 0) {
         console.log('Refreshing invoice table with client names...');
-        
+
         // Get current table data
         const currentData = invoicesTable.data().toArray();
-        
+
         // Update client names in the data
         const updatedData = currentData.map(row => {
             if (row.raw && row.raw.client_id && !row.raw.client_name) {
@@ -678,7 +678,7 @@ function refreshInvoiceTableWithClientNames() {
             }
             return row;
         });
-        
+
         // Clear and redraw the table with updated data
         invoicesTable.clear().rows.add(updatedData).draw();
         console.log('Invoice table refreshed with client names');
@@ -690,25 +690,25 @@ function addInvoiceActionListeners() {
     // View invoice buttons
     const viewButtons = document.querySelectorAll('.view-invoice-btn');
     viewButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const invoiceId = this.getAttribute('data-invoice-id');
             window.location.href = `view-invoice.html?id=${invoiceId}`;
         });
     });
-    
+
     // Edit invoice buttons
     const editButtons = document.querySelectorAll('.edit-invoice-btn');
     editButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const invoiceId = this.getAttribute('data-invoice-id');
             window.location.href = `edit-invoice.html?id=${invoiceId}`;
         });
     });
-    
+
     // Delete invoice buttons
     const deleteButtons = document.querySelectorAll('.delete-invoice-btn');
     deleteButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const invoiceId = this.getAttribute('data-invoice-id');
             if (confirm('هل أنت متأكد من حذف هذه الفاتورة؟')) {
                 deleteInvoice(invoiceId);
@@ -723,11 +723,11 @@ function addInvoiceActionListeners() {
 function addInvoiceItem() {
     const invoiceItems = document.getElementById('invoiceItems');
     if (!invoiceItems) return;
-    
+
     // Clone the first item as a template
     const template = invoiceItems.children[0];
     const newItem = template.cloneNode(true);
-    
+
     // Reset input values
     newItem.querySelectorAll('input').forEach(input => {
         if (input.classList.contains('item-quantity')) {
@@ -736,11 +736,11 @@ function addInvoiceItem() {
             input.value = '';
         }
     });
-    
+
     // Add event listener to remove button
     const removeButton = newItem.querySelector('.remove-item');
     if (removeButton) {
-        removeButton.addEventListener('click', function() {
+        removeButton.addEventListener('click', function () {
             // Only remove if there are more than one item
             if (invoiceItems.children.length > 1) {
                 newItem.remove();
@@ -750,10 +750,10 @@ function addInvoiceItem() {
             }
         });
     }
-    
+
     // Add the new item to the form
     invoiceItems.appendChild(newItem);
-    
+
     // Update calculations
     updateCalculations();
 }
@@ -764,11 +764,11 @@ function addInvoiceItem() {
 function addEditInvoiceItem() {
     const editInvoiceItems = document.getElementById('editInvoiceItems');
     if (!editInvoiceItems) return;
-    
+
     // Clone the first item as a template
     const template = editInvoiceItems.children[0];
     const newItem = template.cloneNode(true);
-    
+
     // Reset input values
     newItem.querySelectorAll('input').forEach(input => {
         if (input.classList.contains('item-quantity')) {
@@ -777,11 +777,11 @@ function addEditInvoiceItem() {
             input.value = '';
         }
     });
-    
+
     // Add event listener to remove button
     const removeButton = newItem.querySelector('.remove-item');
     if (removeButton) {
-        removeButton.addEventListener('click', function() {
+        removeButton.addEventListener('click', function () {
             // Only remove if there are more than one item
             if (editInvoiceItems.children.length > 1) {
                 newItem.remove();
@@ -791,10 +791,10 @@ function addEditInvoiceItem() {
             }
         });
     }
-    
+
     // Add the new item to the form
     editInvoiceItems.appendChild(newItem);
-    
+
     // Update calculations
     updateEditCalculations();
 }
@@ -803,46 +803,46 @@ function setupEventListeners() {
     // Create invoice button
     const createInvoiceBtn = document.getElementById('createInvoiceBtn');
     if (createInvoiceBtn) {
-        createInvoiceBtn.addEventListener('click', function() {
+        createInvoiceBtn.addEventListener('click', function () {
             window.location.href = 'create-invoice.html';
         });
     }
-    
+
     // The Add Invoice button now uses a direct href link to create-invoice.html
     // No event handler needed for navigation
-    
+
     // Save invoice button
     const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
     if (saveInvoiceBtn) {
         saveInvoiceBtn.addEventListener('click', saveInvoice);
     }
-    
+
     // Add item button
     const addItemBtn = document.getElementById('addItemBtn');
     if (addItemBtn) {
         addItemBtn.addEventListener('click', addInvoiceItem);
     }
-    
+
     // Edit add item button
     const editAddItemBtn = document.getElementById('editAddItemBtn');
     if (editAddItemBtn) {
         editAddItemBtn.addEventListener('click', addEditInvoiceItem);
     }
-    
+
     // Update invoice button
     const updateInvoiceBtn = document.getElementById('updateInvoiceBtn');
     if (updateInvoiceBtn) {
         updateInvoiceBtn.addEventListener('click', updateInvoice);
     }
-    
+
     // Print invoice button
     const printInvoiceBtn = document.getElementById('printInvoiceBtn');
     if (printInvoiceBtn) {
-        printInvoiceBtn.addEventListener('click', function() {
+        printInvoiceBtn.addEventListener('click', function () {
             // Get invoice ID from data attribute or from URL
-            const invoiceId = this.dataset.id || 
-                            new URLSearchParams(window.location.search).get('id') ||
-                            document.getElementById('editInvoiceId')?.value;
+            const invoiceId = this.dataset.id ||
+                new URLSearchParams(window.location.search).get('id') ||
+                document.getElementById('editInvoiceId')?.value;
             if (invoiceId) {
                 printInvoice(invoiceId);
             } else {
@@ -850,33 +850,33 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Confirm delete invoice button
     const confirmDeleteInvoiceBtn = document.getElementById('confirmDeleteInvoiceBtn');
     if (confirmDeleteInvoiceBtn) {
         confirmDeleteInvoiceBtn.addEventListener('click', confirmDeleteInvoice);
     }
-    
+
     // Apply filters button
     const applyFiltersBtn = document.getElementById('applyFiltersBtn');
     if (applyFiltersBtn) {
         applyFiltersBtn.addEventListener('click', applyFilters);
     }
-    
+
     // Document event listeners for dynamically created elements
-    document.addEventListener('click', function(event) {
+    document.addEventListener('click', function (event) {
         // View invoice button
         if (event.target.closest('.view-invoice')) {
             const invoiceId = event.target.closest('.view-invoice').dataset.id;
             viewInvoice(invoiceId);
         }
-        
+
         // Edit invoice button
         if (event.target.closest('.edit-invoice')) {
             const invoiceId = event.target.closest('.edit-invoice').dataset.id;
             editInvoice(invoiceId);
         }
-        
+
         // Delete invoice button
         if (event.target.closest('.delete-invoice')) {
             const invoiceId = event.target.closest('.delete-invoice').dataset.id;
@@ -884,7 +884,7 @@ function setupEventListeners() {
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteInvoiceModal'));
             deleteModal.show();
         }
-        
+
         // Remove item button
         if (event.target.closest('.remove-item')) {
             const itemContainer = event.target.closest('.invoice-item');
@@ -900,35 +900,35 @@ function setupEventListeners() {
                 }
             }
         }
-        
+
         // Payment status option clicks
         if (event.target.closest('.payment-status-option')) {
             event.preventDefault();
             const statusOption = event.target.closest('.payment-status-option');
             const invoiceId = statusOption.dataset.invoiceId;
             const newStatus = statusOption.dataset.status;
-            
+
             updateInvoicePaymentStatus(invoiceId, newStatus);
         }
     });
-    
+
     // Add input event listeners for calculations
-    document.addEventListener('input', function(event) {
+    document.addEventListener('input', function (event) {
         // For add invoice form
-        if (event.target.closest('#addInvoiceForm') && 
-            (event.target.classList.contains('item-amount') || 
-             event.target.classList.contains('item-quantity') || 
-             event.target.id === 'discountAmount' ||
-             event.target.id === 'taxRate')) {
+        if (event.target.closest('#addInvoiceForm') &&
+            (event.target.classList.contains('item-amount') ||
+                event.target.classList.contains('item-quantity') ||
+                event.target.id === 'discountAmount' ||
+                event.target.id === 'taxRate')) {
             updateCalculations();
         }
-        
+
         // For edit invoice form
-        if (event.target.closest('#editInvoiceForm') && 
-            (event.target.classList.contains('item-amount') || 
-             event.target.classList.contains('item-quantity') || 
-             event.target.id === 'editDiscountAmount' ||
-             event.target.id === 'editTaxRate')) {
+        if (event.target.closest('#editInvoiceForm') &&
+            (event.target.classList.contains('item-amount') ||
+                event.target.classList.contains('item-quantity') ||
+                event.target.id === 'editDiscountAmount' ||
+                event.target.id === 'editTaxRate')) {
             updateEditCalculations();
         }
     });
@@ -950,22 +950,22 @@ function updateCalculations() {
     const itemQuantityInputs = document.querySelectorAll('#invoiceItems .item-quantity');
     const discountAmount = parseFloat(document.getElementById('discountAmount')?.value || 0);
     const taxRate = parseFloat(document.getElementById('taxRate')?.value || 14);
-    
+
     let subtotal = 0;
-    
+
     // Calculate subtotal
     for (let i = 0; i < itemAmountInputs.length; i++) {
         const amount = parseFloat(itemAmountInputs[i].value || 0);
         const quantity = parseFloat(itemQuantityInputs[i].value || 1);
         subtotal += amount * quantity;
     }
-    
+
     // Calculate tax
     const tax = (subtotal - discountAmount) * (taxRate / 100);
-    
+
     // Calculate total
     const total = subtotal - discountAmount + tax;
-    
+
     // Update display
     document.getElementById('subtotalDisplay').textContent = `${subtotal.toFixed(2)} ج.م.`;
     document.getElementById('taxRateDisplay').textContent = taxRate;
@@ -981,22 +981,22 @@ function updateEditCalculations() {
     const itemQuantityInputs = document.querySelectorAll('#editInvoiceItems .item-quantity');
     const discountAmount = parseFloat(document.getElementById('editDiscountAmount')?.value || 0);
     const taxRate = parseFloat(document.getElementById('editTaxRate')?.value || 14);
-    
+
     let subtotal = 0;
-    
+
     // Calculate subtotal
     for (let i = 0; i < itemAmountInputs.length; i++) {
         const amount = parseFloat(itemAmountInputs[i].value || 0);
         const quantity = parseFloat(itemQuantityInputs[i].value || 1);
         subtotal += amount * quantity;
     }
-    
+
     // Calculate tax
     const tax = (subtotal - discountAmount) * (taxRate / 100);
-    
+
     // Calculate total
     const total = subtotal - discountAmount + tax;
-    
+
     // Update display
     document.getElementById('editSubtotalDisplay').textContent = `${subtotal.toFixed(2)} ج.م.`;
     document.getElementById('editTaxRateDisplay').textContent = taxRate;
@@ -1032,7 +1032,7 @@ async function saveInvoice() {
         if (!validateInvoiceForm('addInvoiceForm')) {
             return;
         }
-        
+
         // Get form data
         const clientId = document.getElementById('clientId').value;
         const reportId = document.getElementById('reportId').value;
@@ -1041,11 +1041,11 @@ async function saveInvoice() {
         const paymentMethod = document.getElementById('paymentMethod').value;
         const taxRate = parseFloat(document.getElementById('taxRate').value || 14);
         const discount = parseFloat(document.getElementById('discountAmount').value || 0);
-        
+
         // Calculate totals
         let subtotal = 0;
         const items = [];
-        
+
         // Get all invoice items
         const invoiceItemContainers = document.querySelectorAll('#invoiceItems .invoice-item');
         invoiceItemContainers.forEach(container => {
@@ -1054,11 +1054,11 @@ async function saveInvoice() {
             const amount = parseFloat(container.querySelector('.item-amount').value || 0);
             const quantity = parseInt(container.querySelector('.item-quantity').value || 1);
             const serialNumber = container.querySelector('.item-serial').value || null;
-            
+
             // Calculate total amount for this item
             const totalAmount = amount * quantity;
             subtotal += totalAmount;
-            
+
             // Add to items array
             items.push({
                 description,
@@ -1069,11 +1069,11 @@ async function saveInvoice() {
                 serialNumber
             });
         });
-        
+
         // Calculate tax and total
         const tax = (subtotal - discount) * (taxRate / 100);
         const total = subtotal - discount + tax;
-        
+
         // Prepare invoice data
         const invoiceData = {
             client_id: clientId,
@@ -1088,13 +1088,13 @@ async function saveInvoice() {
             paymentMethod,
             items
         };
-        
+
         // Get token for authentication
         const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
-        
+
         // Send to API
         const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         const response = await fetch(`${apiBaseUrl}/api/invoices`, {
@@ -1105,24 +1105,24 @@ async function saveInvoice() {
             },
             body: JSON.stringify(invoiceData)
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to create invoice');
         }
-        
+
         // Show success message
         showToast('تم إنشاء الفاتورة بنجاح', 'success');
-        
+
         // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('addInvoiceModal'));
         if (modal) {
             modal.hide();
         }
-        
+
         // Reload invoices data
         loadInvoicesData();
-        
+
     } catch (error) {
         console.error('Error saving invoice:', error);
         showToast(`حدث خطأ أثناء حفظ الفاتورة: ${error.message}`, 'error');
@@ -1137,47 +1137,47 @@ async function saveInvoice() {
 function validateInvoiceForm(formId) {
     const form = document.getElementById(formId);
     if (!form) return false;
-    
+
     let isValid = true;
     const errorMessages = [];
-    
+
     // Check required fields
     const clientIdInput = form.querySelector('#clientId, #editClientId');
     if (!clientIdInput || !clientIdInput.value) {
         errorMessages.push('يجب اختيار العميل');
         isValid = false;
     }
-    
+
     const invoiceDateInput = form.querySelector('#invoiceDate, #editInvoiceDate');
     if (!invoiceDateInput || !invoiceDateInput.value) {
         errorMessages.push('يجب تحديد تاريخ الفاتورة');
         isValid = false;
     }
-    
+
     // Check invoice items
     const itemContainers = form.querySelectorAll('.invoice-item');
     let hasValidItems = false;
-    
+
     itemContainers.forEach(container => {
         const description = container.querySelector('.item-description').value;
         const amount = parseFloat(container.querySelector('.item-amount').value || 0);
-        
+
         if (description && amount > 0) {
             hasValidItems = true;
         }
     });
-    
+
     if (!hasValidItems) {
         errorMessages.push('يجب إضافة بند واحد على الأقل مع الوصف والسعر');
         isValid = false;
     }
-    
+
     // Show error messages if any
     if (!isValid) {
         const errorMessage = errorMessages.join('\n');
         showToast(errorMessage, 'error');
     }
-    
+
     return isValid;
 }
 
@@ -1190,13 +1190,13 @@ async function updateInvoice() {
         if (!validateInvoiceForm('editInvoiceForm')) {
             return;
         }
-        
+
         // Get invoice ID
         const invoiceId = document.getElementById('editInvoiceId').value;
         if (!invoiceId) {
             throw new Error('Invoice ID not found');
         }
-        
+
         // Get form data
         const clientId = document.getElementById('editClientId').value;
         const reportId = document.getElementById('editReportId').value;
@@ -1205,11 +1205,11 @@ async function updateInvoice() {
         const paymentMethod = document.getElementById('editPaymentMethod').value;
         const taxRate = parseFloat(document.getElementById('editTaxRate').value || 14);
         const discount = parseFloat(document.getElementById('editDiscountAmount').value || 0);
-        
+
         // Calculate totals
         let subtotal = 0;
         const items = [];
-        
+
         // Get all invoice items
         const invoiceItemContainers = document.querySelectorAll('#editInvoiceItems .invoice-item');
         invoiceItemContainers.forEach(container => {
@@ -1219,11 +1219,11 @@ async function updateInvoice() {
             const amount = parseFloat(container.querySelector('.item-amount').value || 0);
             const quantity = parseInt(container.querySelector('.item-quantity').value || 1);
             const serialNumber = container.querySelector('.item-serial').value || null;
-            
+
             // Calculate total amount for this item
             const totalAmount = amount * quantity;
             subtotal += totalAmount;
-            
+
             // Add to items array
             items.push({
                 id: itemId,
@@ -1235,11 +1235,11 @@ async function updateInvoice() {
                 serialNumber
             });
         });
-        
+
         // Calculate tax and total
         const tax = (subtotal - discount) * (taxRate / 100);
         const total = subtotal - discount + tax;
-        
+
         // Prepare invoice data
         const invoiceData = {
             id: invoiceId,
@@ -1255,13 +1255,13 @@ async function updateInvoice() {
             paymentMethod,
             items
         };
-        
+
         // Get token for authentication
         const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
-        
+
         // Send to API
         const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
@@ -1272,24 +1272,24 @@ async function updateInvoice() {
             },
             body: JSON.stringify(invoiceData)
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to update invoice');
         }
-        
+
         // Show success message
         showToast('تم تحديث الفاتورة بنجاح', 'success');
-        
+
         // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('editInvoiceModal'));
         if (modal) {
             modal.hide();
         }
-        
+
         // Reload invoices data
         loadInvoicesData();
-        
+
     } catch (error) {
         console.error('Error updating invoice:', error);
         showToast(`حدث خطأ أثناء تحديث الفاتورة: ${error.message}`, 'error');
@@ -1307,7 +1307,7 @@ async function viewInvoice(invoiceId) {
         if (!token) {
             throw new Error('Authentication token not available');
         }
-        
+
         // Fetch invoice details from API
         const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
@@ -1380,16 +1380,16 @@ async function viewInvoice(invoiceId) {
                     paymentMethodText = 'Instapay';
                     break;
                 case 'محفظة':
-                    paymentMethodText = 'محفظة رقمية';
+                    paymentMethodText = 'محفظة';
                     break;
                 case 'بنك':
-                    paymentMethodText = 'حساب بنكي';
+                    paymentMethodText = 'بنك';
                     break;
                 default:
                     paymentMethodText = invoice.paymentMethod;
             }
         }
-        
+
         // Build items HTML
         let itemsHtml = '';
         if (invoice.items && invoice.items.length > 0) {
@@ -1413,7 +1413,7 @@ async function viewInvoice(invoiceId) {
             </tr>
             `;
         }
-        
+
         // Build invoice HTML
         const invoiceHtml = `
         <div class="invoice-details">
@@ -1482,24 +1482,24 @@ async function viewInvoice(invoiceId) {
             </div>
         </div>
         `;
-        
+
         // Display invoice in modal
         document.getElementById('viewInvoiceContent').innerHTML = invoiceHtml;
-        
+
         // Set invoice ID for print button
         const printButton = document.getElementById('printInvoiceBtn');
         if (printButton) {
             printButton.dataset.id = invoiceId;
             // Also update onclick to ensure it works
-            printButton.onclick = function() {
+            printButton.onclick = function () {
                 printInvoice(invoiceId);
             };
         }
-        
+
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('viewInvoiceModal'));
         modal.show();
-        
+
     } catch (error) {
         console.error('Error viewing invoice:', error);
         showToast(`حدث خطأ أثناء عرض الفاتورة: ${error.message}`, 'error');
@@ -1517,7 +1517,7 @@ async function editInvoice(invoiceId) {
         if (!token) {
             throw new Error('Authentication token not available');
         }
-        
+
         // Fetch invoice details from API
         const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
@@ -1525,13 +1525,13 @@ async function editInvoice(invoiceId) {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
         }
-        
+
         const invoice = await response.json();
-        
+
         // Set form values
         document.getElementById('editInvoiceId').value = invoice.id;
         document.getElementById('editClientId').value = invoice.client_id;
@@ -1541,11 +1541,11 @@ async function editInvoice(invoiceId) {
         document.getElementById('editPaymentMethod').value = invoice.paymentMethod || '';
         document.getElementById('editTaxRate').value = invoice.taxRate;
         document.getElementById('editDiscountAmount').value = invoice.discount;
-        
+
         // Clear invoice items
         const editInvoiceItems = document.getElementById('editInvoiceItems');
         editInvoiceItems.innerHTML = '';
-        
+
         // Add invoice items
         if (invoice.items && invoice.items.length > 0) {
             invoice.items.forEach(item => {
@@ -1584,21 +1584,21 @@ async function editInvoice(invoiceId) {
                     </div>
                 </div>
                 `;
-                
+
                 editInvoiceItems.insertAdjacentHTML('beforeend', itemHtml);
             });
         } else {
             // Add empty item if no items
             addEditInvoiceItem();
         }
-        
+
         // Update calculations
         updateEditCalculations();
-        
+
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('editInvoiceModal'));
         modal.show();
-        
+
     } catch (error) {
         console.error('Error editing invoice:', error);
         showToast(`حدث خطأ أثناء تحميل الفاتورة للتعديل: ${error.message}`, 'error');
@@ -1611,13 +1611,13 @@ async function editInvoice(invoiceId) {
  */
 function printInvoice(invoiceId) {
     console.log('printInvoice called with invoiceId:', invoiceId);
-    
+
     if (!invoiceId) {
         console.error('Invoice ID is missing');
         showToast('معرف الفاتورة غير صالح', 'error');
         return;
     }
-    
+
     // Get token from storage (admin or client token)
     let token = null;
     if (typeof authMiddleware !== 'undefined') {
@@ -1628,37 +1628,37 @@ function printInvoice(invoiceId) {
         }
     } else {
         // Direct access from storage as fallback
-        token = localStorage.getItem('adminToken') || 
-                 sessionStorage.getItem('adminToken') ||
-                 localStorage.getItem('clientToken') ||
-                 sessionStorage.getItem('clientToken');
+        token = localStorage.getItem('adminToken') ||
+            sessionStorage.getItem('adminToken') ||
+            localStorage.getItem('clientToken') ||
+            sessionStorage.getItem('clientToken');
     }
-    
+
     if (!token) {
         console.error('No authentication token found');
         showToast('يرجى تسجيل الدخول أولاً لطباعة الفواتير', 'error');
         return;
     }
-    
+
     // Determine base URL
-    const baseUrl = (window.config && window.config.api && window.config.api.baseUrl) || 
-                    (typeof apiService !== 'undefined' && apiService.baseUrl) ||
-                    window.location.origin;
-    
+    const baseUrl = (window.config && window.config.api && window.config.api.baseUrl) ||
+        (typeof apiService !== 'undefined' && apiService.baseUrl) ||
+        window.location.origin;
+
     // Build print URL with token
     const printUrl = `${baseUrl}/api/invoices/${invoiceId}/print?token=${encodeURIComponent(token)}`;
-    
+
     console.log('Opening print URL:', printUrl);
-    
+
     // Open in new window
     const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
-    
+
     if (!printWindow) {
         console.error('Failed to open print window - popup blocked?');
         showToast('يرجى السماح للنافذة المنبثقة لطباعة الفاتورة', 'error');
         return;
     }
-    
+
     // Show success message
     showToast('جارٍ فتح صفحة الطباعة...', 'success');
 }
@@ -1676,13 +1676,13 @@ async function confirmDeleteInvoice() {
         if (!invoiceId) {
             throw new Error('Invoice ID not found');
         }
-        
+
         // Get token for authentication
         const token = authMiddleware.getAdminToken();
         if (!token) {
             throw new Error('Authentication token not available');
         }
-        
+
         // Send delete request to API
         const apiBaseUrl = window.config ? window.config.api.baseUrl : window.location.origin;
         const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}`, {
@@ -1691,24 +1691,24 @@ async function confirmDeleteInvoice() {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to delete invoice');
         }
-        
+
         // Show success message
         showToast('تم حذف الفاتورة بنجاح', 'success');
-        
+
         // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('deleteInvoiceModal'));
         if (modal) {
             modal.hide();
         }
-        
+
         // Reload invoices data
         loadInvoicesData();
-        
+
     } catch (error) {
         console.error('Error deleting invoice:', error);
         showToast(`حدث خطأ أثناء حذف الفاتورة: ${error.message}`, 'error');
@@ -1724,19 +1724,19 @@ function getInvoiceData() {
         discount: parseFloat(document.getElementById('discountAmount').value || 0),
         taxRate: parseFloat(document.getElementById('taxRate').value || 14),
     };
-    
+
     // Get items data
     const itemAmountInputs = document.querySelectorAll('#invoiceItems .item-amount');
     const itemQuantityInputs = document.querySelectorAll('#invoiceItems .item-quantity');
     const itemDescriptionInputs = document.querySelectorAll('#invoiceItems .item-description');
     const itemSerialInputs = document.querySelectorAll('#invoiceItems .item-serial');
-    
+
     for (let i = 0; i < itemAmountInputs.length; i++) {
         const amount = parseFloat(itemAmountInputs[i].value || 0);
         const quantity = parseFloat(itemQuantityInputs[i].value || 1);
         const description = itemDescriptionInputs[i].value;
         const serial = itemSerialInputs[i].value;
-        
+
         invoiceData.items.push({
             amount,
             quantity,
@@ -1744,7 +1744,7 @@ function getInvoiceData() {
             serial,
         });
     }
-    
+
     return invoiceData;
 }
 
@@ -1758,7 +1758,7 @@ function saveInvoiceToAPI(invoiceData) {
         }
     } catch (apiError) {
         console.warn('Error saving invoice to API, falling back to localStorage:', apiError);
-        
+
         // Fall back to localStorage
         const storedInvoices = localStorage.getItem('lpk_invoices');
         if (storedInvoices) {
@@ -1781,7 +1781,7 @@ function updateInvoiceInAPI(invoiceData) {
         }
     } catch (apiError) {
         console.warn('Error updating invoice in API, falling back to localStorage:', apiError);
-        
+
         // Fall back to localStorage
         const storedInvoices = localStorage.getItem('lpk_invoices');
         if (storedInvoices) {
@@ -1805,7 +1805,7 @@ function deleteInvoiceFromAPI(invoiceId) {
         }
     } catch (apiError) {
         console.warn('Error deleting invoice from API, falling back to localStorage:', apiError);
-        
+
         // Fall back to localStorage
         const storedInvoices = localStorage.getItem('lpk_invoices');
         if (storedInvoices) {
@@ -1822,25 +1822,25 @@ function applyFilters() {
     const paymentStatusFilter = document.getElementById('paymentStatusFilter').value;
     const dateFromFilter = document.getElementById('dateFromFilter').value;
     const dateToFilter = document.getElementById('dateToFilter').value;
-    
+
     const filters = {};
-    
+
     if (clientFilter) {
         filters.client_id = clientFilter;
     }
-    
+
     if (paymentStatusFilter) {
         filters.paymentStatus = paymentStatusFilter;
     }
-    
+
     if (dateFromFilter) {
         filters.dateFrom = dateFromFilter;
     }
-    
+
     if (dateToFilter) {
         filters.dateTo = dateToFilter;
     }
-    
+
     loadInvoicesData(filters);
 }
 
@@ -1850,7 +1850,7 @@ function resetFilters() {
     document.getElementById('paymentStatusFilter').value = '';
     document.getElementById('dateFromFilter').value = '';
     document.getElementById('dateToFilter').value = '';
-    
+
     loadInvoicesData();
 }
 
@@ -1866,7 +1866,7 @@ async function deleteInvoice(invoiceId) {
             }
         } catch (apiError) {
             console.warn('Error deleting invoice from API, falling back to localStorage:', apiError);
-            
+
             // Fall back to localStorage
             const storedInvoices = localStorage.getItem('lpk_invoices');
             if (storedInvoices) {
@@ -1875,13 +1875,13 @@ async function deleteInvoice(invoiceId) {
                 localStorage.setItem('lpk_invoices', JSON.stringify(invoices));
             }
         }
-        
+
         // Show success message
         showToast('تم حذف الفاتورة بنجاح', 'success');
-        
+
         // Reload invoices
         loadInvoicesData();
-        
+
     } catch (error) {
         console.error('Error deleting invoice:', error);
         showToast('حدث خطأ أثناء حذف الفاتورة', 'error');
@@ -1893,9 +1893,9 @@ async function loadClients() {
     try {
         const clientFilter = document.getElementById('clientFilter');
         if (!clientFilter) return;
-        
+
         let clients = [];
-        
+
         // Try to get clients from API
         try {
             if (typeof apiService !== 'undefined' && typeof apiService.getClients === 'function') {
@@ -1905,14 +1905,14 @@ async function loadClients() {
             }
         } catch (apiError) {
             console.warn('Error loading clients from API, falling back to localStorage:', apiError);
-            
+
             // Fall back to localStorage
             const storedClients = localStorage.getItem('lpk_clients');
             if (storedClients) {
                 clients = JSON.parse(storedClients);
             }
         }
-        
+
         // Add client options to dropdown
         clients.forEach(client => {
             const option = document.createElement('option');
@@ -1920,7 +1920,7 @@ async function loadClients() {
             option.textContent = client.name;
             clientFilter.appendChild(option);
         });
-        
+
     } catch (error) {
         console.error('Error loading clients:', error);
     }
@@ -1950,7 +1950,7 @@ function updateCustomPagination(pageInfo) {
     const currentPage = pageInfo.page + 1; // DataTables is 0-indexed
     let startPage = Math.max(1, currentPage - 1);
     let endPage = Math.min(totalPages, startPage + 2);
-    
+
     // Adjust if we're at the end of the page range
     if (endPage - startPage < 2 && startPage > 1) {
         startPage = Math.max(1, endPage - 2);
@@ -1961,7 +1961,7 @@ function updateCustomPagination(pageInfo) {
         const isActive = i === currentPage ? 'active' : '';
         pagination.append(
             `<li class="page-item ${isActive}">
-                <a class="page-link page-number" data-page="${i-1}" href="#">${i}</a>
+                <a class="page-link page-number" data-page="${i - 1}" href="#">${i}</a>
             </li>`
         );
     }
@@ -1975,21 +1975,21 @@ function updateCustomPagination(pageInfo) {
     );
 
     // Add event listeners to pagination controls
-    $('.prev-page').on('click', function(e) {
+    $('.prev-page').on('click', function (e) {
         e.preventDefault();
         if (!$(this).parent().hasClass('disabled')) {
             invoicesTable.page('previous').draw('page');
         }
     });
 
-    $('.next-page').on('click', function(e) {
+    $('.next-page').on('click', function (e) {
         e.preventDefault();
         if (!$(this).parent().hasClass('disabled')) {
             invoicesTable.page('next').draw('page');
         }
     });
 
-    $('.page-number').on('click', function(e) {
+    $('.page-number').on('click', function (e) {
         e.preventDefault();
         const page = parseInt($(this).data('page'));
         invoicesTable.page(page).draw('page');
@@ -2002,13 +2002,13 @@ function updateCustomPagination(pageInfo) {
 function setupSearchFunctionality() {
     const searchInput = document.getElementById('searchInvoice');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
-    
+
     if (!searchInput) return;
-    
+
     // Search functionality
-    searchInput.addEventListener('input', function() {
+    searchInput.addEventListener('input', function () {
         const searchTerm = this.value.trim();
-        
+
         // Show/hide clear button
         if (clearSearchBtn) {
             if (searchTerm.length > 0) {
@@ -2017,12 +2017,12 @@ function setupSearchFunctionality() {
                 clearSearchBtn.classList.add('d-none');
             }
         }
-        
+
         // Perform search
         if (invoicesTable) {
             invoicesTable.search(searchTerm).draw();
         }
-        
+
         // Add visual feedback
         if (searchTerm.length > 0) {
             searchInput.style.backgroundColor = '#fff';
@@ -2032,25 +2032,25 @@ function setupSearchFunctionality() {
             searchInput.style.boxShadow = '';
         }
     });
-    
+
     // Clear search functionality
     if (clearSearchBtn) {
-        clearSearchBtn.addEventListener('click', function() {
+        clearSearchBtn.addEventListener('click', function () {
             searchInput.value = '';
             searchInput.style.backgroundColor = '#f8f9fa';
             searchInput.style.boxShadow = '';
             clearSearchBtn.classList.add('d-none');
-            
+
             if (invoicesTable) {
                 invoicesTable.search('').draw();
             }
-            
+
             searchInput.focus();
         });
     }
-    
+
     // Handle Enter key
-    searchInput.addEventListener('keypress', function(e) {
+    searchInput.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             // Trigger search
@@ -2059,14 +2059,14 @@ function setupSearchFunctionality() {
             }
         }
     });
-    
+
     // Focus management
-    searchInput.addEventListener('focus', function() {
+    searchInput.addEventListener('focus', function () {
         this.style.backgroundColor = '#fff';
         this.style.boxShadow = '0 0 0 0.2rem rgba(0, 117, 83, 0.15)';
     });
-    
-    searchInput.addEventListener('blur', function() {
+
+    searchInput.addEventListener('blur', function () {
         if (this.value.trim().length === 0) {
             this.style.backgroundColor = '#f8f9fa';
             this.style.boxShadow = '';
@@ -2096,7 +2096,7 @@ function showToast(message, type = 'info') {
         "showMethod": "fadeIn",
         "hideMethod": "fadeOut"
     };
-    
+
     // Show toast notification
     switch (type) {
         case 'success':
@@ -2130,10 +2130,10 @@ function createInvoice() {
 async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync = false) {
     let statusBadge = null;
     let originalContent = '';
-    
+
     try {
         console.log(`Updating invoice ${invoiceId} payment status to: ${newStatus}`);
-        
+
         // Show loading state on the status badge
         statusBadge = document.querySelector(`[data-invoice-id="${invoiceId}"].payment-status-badge`);
         if (statusBadge) {
@@ -2141,13 +2141,13 @@ async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync =
             statusBadge.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             statusBadge.disabled = true;
         }
-        
+
         // Get auth token
         const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
         if (!token) {
             throw new Error('No authentication token found');
         }
-        
+
         // Update via API
         const response = await fetch(`https://reports.laapak.com/api/invoices/${invoiceId}`, {
             method: 'PUT',
@@ -2157,18 +2157,18 @@ async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync =
             },
             body: JSON.stringify({ paymentStatus: newStatus })
         });
-        
+
         console.log(`Invoice update response status: ${response.status}`);
-        
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error('Invoice update error response:', errorData);
             throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: Failed to update invoice payment status`);
         }
-        
+
         const responseData = await response.json();
         console.log(`Invoice ${invoiceId} payment status updated successfully to ${newStatus}:`, responseData);
-        
+
         // Update the status badge with new status
         if (statusBadge) {
             const newStatusHtml = formatInvoicePaymentStatus(newStatus, invoiceId);
@@ -2182,24 +2182,24 @@ async function updateInvoicePaymentStatus(invoiceId, newStatus, skipReportSync =
             }
             statusBadge.disabled = false;
         }
-        
+
         // Handle status synchronization with linked reports (only if not skipping)
         if (!skipReportSync) {
             await handleInvoiceReportStatusSync(invoiceId, newStatus);
         }
-        
+
         // Show success message
         showToast('تم تحديث حالة الدفع بنجاح', 'success');
-        
+
     } catch (error) {
         console.error('Error updating invoice payment status:', error);
-        
+
         // Restore original content on error
         if (statusBadge && originalContent) {
             statusBadge.innerHTML = originalContent;
             statusBadge.disabled = false;
         }
-        
+
         showToast(`حدث خطأ أثناء تحديث حالة الدفع: ${error.message}`, 'error');
     }
 }
@@ -2218,16 +2218,16 @@ async function handleInvoiceReportStatusSync(invoiceId, newStatus) {
                 'x-auth-token': localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
             }
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to fetch invoice details');
         }
-        
+
         const invoice = await response.json();
-        
+
         // Map invoice status to report status (direct mapping)
         let reportStatus = newStatus; // Use the same status
-        
+
         // Update linked reports
         if (invoice.report_id) {
             console.log(`Updating report ${invoice.report_id} status to ${reportStatus}`);
@@ -2241,9 +2241,9 @@ async function handleInvoiceReportStatusSync(invoiceId, newStatus) {
         } else {
             console.log('No linked reports found for invoice', invoiceId);
         }
-        
+
         console.log(`Synchronized linked reports to status: ${reportStatus}`);
-        
+
     } catch (error) {
         console.error('Error synchronizing report status:', error);
         // Don't show error to user as this is a background sync
@@ -2265,13 +2265,13 @@ async function updateReportStatusFromInvoice(reportId, newStatus) {
             },
             body: JSON.stringify({ status: newStatus })
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to update report status');
         }
-        
+
         console.log(`Report ${reportId} status updated to ${newStatus}`);
-        
+
         // Update the cached reports data
         const cachedReports = JSON.parse(localStorage.getItem('cachedReports') || '[]');
         const reportIndex = cachedReports.findIndex(r => r.id == reportId);
@@ -2279,7 +2279,7 @@ async function updateReportStatusFromInvoice(reportId, newStatus) {
             cachedReports[reportIndex].status = newStatus;
             localStorage.setItem('cachedReports', JSON.stringify(cachedReports));
         }
-        
+
     } catch (error) {
         console.error(`Error updating report ${reportId} status:`, error);
         throw error;

@@ -1,545 +1,160 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فلوسك بس مش معاك - نظام تقارير لاباك</title>
-    
+    <title>إدارة الأموال المتوقعة - نظام تقارير لاباك</title>
+
     <!-- Favicon -->
     <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
-    
+
     <!-- Bootstrap RTL CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Design System -->
     <link rel="stylesheet" href="../../styles/base/styles.css">
-    
-    <style>
-        :root {
-            --primary-color: #007553;
-            --primary-light: #00a67a;
-            --primary-dark: #004d35;
-            --success-color: #198754;
-            --warning-color: #ffc107;
-            --danger-color: #dc3545;
-            --info-color: #0dcaf0;
-            --light-bg: #f8f9fa;
-            --white: #ffffff;
-            --text-dark: #212529;
-            --text-muted: #6c757d;
-            --border-radius: 16px;
-            --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.08);
-            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.12);
-            --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.16);
-            --gradient-primary: linear-gradient(135deg, #007553 0%, #00a67a 50%, #007553 100%);
-            --gradient-secondary: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
-        }
-
-        body {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
-            background-attachment: fixed;
-            font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            min-height: 100vh;
-            color: var(--text-dark);
-            overflow-x: hidden;
-        }
-
-        /* Enhanced Stats Cards */
-        .stats-overview {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card-modern {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid rgba(0,0,0,0.05);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card-modern::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--stat-color, var(--primary-color));
-        }
-
-        .stat-card-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .stat-card-modern.pending {
-            --stat-color: #ffc107;
-        }
-
-        .stat-card-modern.in-progress {
-            --stat-color: #0dcaf0;
-        }
-
-        .stat-card-modern.completed {
-            --stat-color: #198754;
-        }
-
-        .stat-card-modern.total {
-            --stat-color: #007553;
-        }
-
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-            background: var(--stat-color, var(--primary-color));
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--text-dark);
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* Enhanced Loading States */
-        .loading-modern {
-            text-align: center;
-            padding: 3rem 1rem;
-        }
-
-        .loading-spinner-modern {
-            width: 48px;
-            height: 48px;
-            border: 4px solid rgba(0, 117, 83, 0.1);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin-modern 1s linear infinite;
-            margin: 0 auto 1rem auto;
-        }
-
-        @keyframes spin-modern {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-
-        /* Hero Button Styles */
-        .hero-btn {
-            background: rgba(255,255,255,0.2) !important;
-            border: 2px solid rgba(255,255,255,0.3) !important;
-            color: white !important;
-            padding: 0.75rem 1.5rem;
-            border-radius: 50px !important;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            text-decoration: none;
-        }
-
-        .hero-btn:hover {
-            background: rgba(255,255,255,0.3) !important;
-            border-color: rgba(255,255,255,0.5) !important;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-            color: white !important;
-        }
-
-        /* Enhanced Item Cards */
-        .item-card {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            border-left: 4px solid var(--item-color, #6c757d);
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            cursor: pointer;
-        }
-
-        .item-card:hover {
-            transform: translateX(4px);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .item-card.item-type-expected_payment {
-            --item-color: #ffc107;
-        }
-
-        .item-card.item-type-work_in_progress {
-            --item-color: #0dcaf0;
-        }
-
-        .item-card.item-type-inventory_item {
-            --item-color: #198754;
-        }
-
-        .item-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-size: 1.2rem;
-            flex-shrink: 0;
-            background: var(--item-color, #6c757d);
-        }
-
-        .item-content {
-            flex: 1;
-        }
-
-        .item-title {
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.25rem;
-            font-size: 1.1rem;
-        }
-
-        .item-description {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .item-meta {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .item-amount {
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: var(--primary-color);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            background: rgba(0, 117, 83, 0.1);
-            min-width: 120px;
-            text-align: center;
-        }
-
-        .item-status {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-pending {
-            background: rgba(255, 193, 7, 0.2);
-            color: #856404;
-        }
-
-        .status-in-progress {
-            background: rgba(13, 202, 240, 0.2);
-            color: #055160;
-        }
-
-        .status-completed {
-            background: rgba(25, 135, 84, 0.2);
-            color: #0f5132;
-        }
-
-        .status-cancelled {
-            background: rgba(220, 53, 69, 0.2);
-            color: #721c24;
-        }
-
-        .item-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.8rem;
-        }
-
-        /* Filter Bar */
-        .filter-bar {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .filter-controls {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .filter-label {
-            font-weight: 600;
-            color: var(--text-dark);
-            margin: 0;
-        }
-
-        .form-select, .form-control {
-            border: 2px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-select:focus, .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(0, 117, 83, 0.15);
-            outline: none;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-muted);
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            opacity: 0.3;
-            margin-bottom: 1rem;
-        }
-
-        /* Modal Styling */
-        .modal-content {
-            border-radius: var(--border-radius);
-            border: none;
-            box-shadow: var(--shadow-md);
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            color: var(--white);
-            border-radius: var(--border-radius) var(--border-radius) 0 0;
-        }
-
-        .modal-title {
-            font-weight: 600;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .filter-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .filter-group {
-                justify-content: space-between;
-            }
-
-            .item-card {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-
-            .item-meta {
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-
-            .item-actions {
-                justify-content: center;
-            }
-
-            .stats-overview {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 576px) {
-            .stats-overview {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../../styles/pages/financial-design.css">
 </head>
-<body>
-    <div class="container-fluid py-4" style="max-width: 1400px; margin: 0 auto;">
-        <!-- Finance Header -->
-        <div class="finance-header-container"></div>
 
-        <!-- Enhanced Hero Section -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <div class="text-center py-5" style="background: var(--gradient-primary); color: white; border-radius: var(--border-radius); position: relative; overflow: hidden; box-shadow: var(--shadow-lg);">
-                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.05%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E') repeat; opacity: 0.5;"></div>
-                    <div style="position: relative; z-index: 2; max-width: 800px; margin: 0 auto; padding: 0 2rem;">
-                        <div style="display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; margin-bottom: 1.5rem; backdrop-filter: blur(10px);">
-                            <i class="fas fa-clock" style="font-size: 2rem;"></i>
+<body class="finance-layout">
+    <div class="container-fluid py-4" style="max-width: 1400px; margin: 0 auto;">
+        <!-- Header Component -->
+        <div class="finance-header-container mb-4"></div>
+
+        <!-- Page Header -->
+        <div class="finance-card mb-4 overflow-hidden position-relative">
+            <div class="p-4 position-relative z-1">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="icon-circle bg-primary-subtle text-primary">
+                                <i class="fas fa-hand-holding-usd fa-2x"></i>
+                            </div>
+                            <div>
+                                <h2 class="fw-bold mb-0">الأموال المتوقعة</h2>
+                                <p class="text-muted mb-0">تتبع المدفوعات المنتظرة والأعمال قيد التنفيذ والمخزون</p>
+                            </div>
                         </div>
-                        <h1 style="font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3); line-height: 1.2;">
-                            فلوسك بس مش معاك
-                        </h1>
-                        <p style="font-size: 1.3rem; opacity: 0.95; margin-bottom: 2.5rem; line-height: 1.6; max-width: 600px; margin-left: auto; margin-right: auto;">
-                            تتبع الأموال المتوقعة والأعمال الجارية والمخزون المتاح للبيع
-                        </p>
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem;">
-                            <button type="button" class="btn hero-btn" onclick="showAddItemModal()" style="min-width: 140px;">
-                                <i class="fas fa-plus me-2"></i>إضافة عنصر جديد
-                            </button>
-                            <button type="button" class="btn hero-btn" onclick="clearFilters()" style="min-width: 120px;">
-                                <i class="fas fa-filter me-2"></i>مسح الفلاتر
-                            </button>
-                            <button type="button" class="btn hero-btn" onclick="loadItems()" style="min-width: 120px;">
-                                <i class="fas fa-sync-alt me-2"></i>تحديث
-                            </button>
-                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                        <button class="btn btn-primary btn-lg" onclick="showAddItemModal()">
+                            <i class="fas fa-plus me-2"></i>إضافة عنصر جديد
+                        </button>
                     </div>
                 </div>
             </div>
+            <!-- Decorative background similar to dashboard -->
+            <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10 bg-gradient-primary"></div>
         </div>
 
-        <!-- Enhanced Stats Overview -->
-        <div class="row mb-5">
-            <div class="col-12 mb-3">
-                <h2 style="color: var(--text-dark); font-weight: 700; margin-bottom: 0.5rem;">
-                    <i class="fas fa-chart-bar text-primary me-2"></i>نظرة عامة على الأموال المتوقعة
-                </h2>
-                <p class="text-muted">ملخص سريع لحالة الأموال المتوقعة والأعمال الجارية</p>
-            </div>
-            <div class="col-12">
-                <div class="stats-overview">
-                    <div class="stat-card-modern pending">
-                        <div class="stat-icon">
+        <!-- KPI Stats Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="finance-card kpi-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="kpi-icon bg-warning-subtle text-warning">
                             <i class="fas fa-clock"></i>
                         </div>
-                        <div class="stat-value" id="pendingAmount">0 ج.م</div>
-                        <div class="stat-label">في الانتظار</div>
+                        <span class="badge bg-warning-subtle text-warning">انتظار</span>
                     </div>
-                    <div class="stat-card-modern in-progress">
-                        <div class="stat-icon">
+                    <h3 class="fw-bold mb-1" id="pendingAmount">0 ج.م</h3>
+                    <p class="text-muted small mb-0">في الانتظار</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="finance-card kpi-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="kpi-icon bg-info-subtle text-info">
                             <i class="fas fa-tools"></i>
                         </div>
-                        <div class="stat-value" id="inProgressAmount">0 ج.م</div>
-                        <div class="stat-label">قيد التنفيذ</div>
+                        <span class="badge bg-info-subtle text-info">جاري</span>
                     </div>
-                    <div class="stat-card-modern completed">
-                        <div class="stat-icon">
+                    <h3 class="fw-bold mb-1" id="inProgressAmount">0 ج.م</h3>
+                    <p class="text-muted small mb-0">أعمال قيد التنفيذ</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="finance-card kpi-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="kpi-icon bg-success-subtle text-success">
                             <i class="fas fa-check-circle"></i>
                         </div>
-                        <div class="stat-value" id="completedAmount">0 ج.م</div>
-                        <div class="stat-label">مكتمل</div>
+                        <span class="badge bg-success-subtle text-success">مكتمل</span>
                     </div>
-                    <div class="stat-card-modern total">
-                        <div class="stat-icon">
+                    <h3 class="fw-bold mb-1" id="completedAmount">0 ج.م</h3>
+                    <p class="text-muted small mb-0">أعمال مكتملة</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="finance-card kpi-card h-100 p-4 bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="kpi-icon bg-white text-primary bg-opacity-25">
                             <i class="fas fa-coins"></i>
                         </div>
-                        <div class="stat-value" id="totalAmount">0 ج.م</div>
-                        <div class="stat-label">إجمالي المتوقع</div>
+                        <span class="badge bg-white text-primary">الإجمالي</span>
                     </div>
+                    <h3 class="fw-bold mb-1 text-white" id="totalAmount">0 ج.م</h3>
+                    <p class="text-white text-opacity-75 small mb-0">إجمالي المتوقع</p>
                 </div>
             </div>
         </div>
 
-        <!-- Filter Bar -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="filter-bar">
-                    <div class="filter-controls">
-                        <div class="filter-group">
-                            <label class="filter-label">النوع:</label>
-                            <select class="form-select" id="typeFilter">
-                                <option value="">جميع الأنواع</option>
-                                <option value="expected_payment">دفعة متوقعة</option>
-                                <option value="work_in_progress">عمل قيد التنفيذ</option>
-                                <option value="inventory_item">مخزون</option>
-                            </select>
+        <!-- Filters & Content -->
+        <div class="finance-card p-4">
+            <!-- Filter Bar Toggle -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0"><i class="fas fa-list me-2 text-primary"></i>القائمة</h5>
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                    <i class="fas fa-filter me-2"></i>الفلاتر
+                </button>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="collapse" id="filterCollapse">
+                <div class="row g-3 mb-4 bg-light p-3 rounded-4">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">البحث</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i
+                                    class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 bg-white" id="searchInput"
+                                placeholder="بحث بالاسم أو الوصف...">
                         </div>
-                        <div class="filter-group">
-                            <label class="filter-label">الحالة:</label>
-                            <select class="form-select" id="statusFilter">
-                                <option value="">جميع الحالات</option>
-                                <option value="pending">في الانتظار</option>
-                                <option value="in_progress">قيد التنفيذ</option>
-                                <option value="completed">مكتمل</option>
-                                <option value="cancelled">ملغي</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label class="filter-label">البحث:</label>
-                            <input type="text" class="form-control" id="searchInput" placeholder="ابحث بالاسم أو الوصف...">
-                        </div>
-                        <div class="filter-group">
-                            <button class="btn btn-outline-secondary" onclick="clearFilters()">
-                                <i class="fas fa-times me-1"></i>
-                                مسح الفلاتر
-                            </button>
-                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">النوع</label>
+                        <select class="form-select bg-white" id="typeFilter">
+                            <option value="">الكل</option>
+                            <option value="expected_payment">دفعة متوقعة</option>
+                            <option value="inventory_item">مخزون</option>
+                            <option value="liability">فلوس عليك</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">الحالة</label>
+                        <select class="form-select bg-white" id="statusFilter">
+                            <option value="">الكل</option>
+                            <option value="pending">في الانتظار</option>
+                            <option value="in_progress">قيد التنفيذ</option>
+                            <option value="completed">مكتمل</option>
+                            <option value="cancelled">ملغي</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-secondary w-100" onclick="clearFilters()">
+                            <i class="fas fa-times me-2"></i>مسح الفلاتر
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Items List -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card border-0" style="box-shadow: var(--shadow-md); border-radius: var(--border-radius);">
-                    <div class="card-header border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: var(--border-radius) var(--border-radius) 0 0; padding: 1.5rem;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h4 class="mb-1" style="color: var(--text-dark); font-weight: 700;">
-                                    <i class="fas fa-list text-primary me-2"></i>
-                                    العناصر المتوقعة
-                                </h4>
-                                <p class="text-muted mb-0">قائمة بجميع الأموال المتوقعة والأعمال الجارية</p>
-                            </div>
-                            <button type="button" class="btn btn-primary" onclick="showAddItemModal()" style="border-radius: 8px;">
-                                <i class="fas fa-plus me-2"></i>إضافة عنصر جديد
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body" style="padding: 2rem;">
-                        <div id="itemsList">
-                            <div class="loading-modern">
-                                <div class="loading-spinner-modern"></div>
-                                <p class="loading-text">جاري تحميل العناصر...</p>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Items List -->
+            <div id="itemsList">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
                 </div>
             </div>
         </div>
@@ -547,437 +162,149 @@
 
     <!-- Add/Edit Item Modal -->
     <div class="modal fade" id="itemModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">
-                        <i class="fas fa-plus me-2"></i>
-                        إضافة عنصر جديد
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalTitle">إضافة عنصر جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <form id="itemForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">النوع <span class="text-danger">*</span></label>
-                                <select class="form-select" id="itemType" required>
-                                    <option value="">اختر النوع</option>
-                                    <option value="expected_payment">دفعة متوقعة</option>
-                                    <option value="work_in_progress">عمل قيد التنفيذ</option>
-                                    <option value="inventory_item">مخزون</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">الحالة <span class="text-danger">*</span></label>
-                                <select class="form-select" id="itemStatus" required>
-                                    <option value="">اختر الحالة</option>
-                                    <option value="pending">في الانتظار</option>
-                                    <option value="in_progress">قيد التنفيذ</option>
-                                    <option value="completed">مكتمل</option>
-                                    <option value="cancelled">ملغي</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">العنوان <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="itemTitle" placeholder="مثال: إصلاح iPhone 12" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">الوصف</label>
-                            <textarea class="form-control" id="itemDescription" rows="3" placeholder="وصف تفصيلي للعمل أو العنصر..."></textarea>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">المبلغ المتوقع <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control" id="itemAmount" placeholder="0" step="0.01" min="0" required>
-                                    <span class="input-group-text">ج.م</span>
+                <div class="modal-body p-4">
+                    <form id="itemForm" class="needs-validation" novalidate>
+                        <!-- Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label d-flex align-items-center gap-2 mb-3">
+                                <i class="fas fa-tag text-primary"></i>
+                                <span class="fw-bold">نوع المعاملة</span>
+                            </label>
+                            <div class="row g-3">
+                                <div class="col-4">
+                                    <div class="selection-card h-100 p-3 border rounded-4 cursor-pointer text-center position-relative transition-all"
+                                        onclick="selectType(this)" data-type="expected_payment">
+                                        <div
+                                            class="card-icon mb-2 text-primary bg-primary bg-opacity-10 rounded-circle d-inline-flex p-3">
+                                            <i class="fas fa-money-bill-wave fa-lg"></i>
+                                        </div>
+                                        <h6 class="mb-1 fw-bold small">دفعة متوقعة</h6>
+                                        <div
+                                            class="position-absolute top-0 end-0 m-2 check-indicator opacity-0 transition-all">
+                                            <i class="fas fa-check-circle text-primary"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="selection-card h-100 p-3 border rounded-4 cursor-pointer text-center position-relative transition-all"
+                                        onclick="selectType(this)" data-type="inventory_item">
+                                        <div
+                                            class="card-icon mb-2 text-warning bg-warning bg-opacity-10 rounded-circle d-inline-flex p-3">
+                                            <i class="fas fa-boxes fa-lg"></i>
+                                        </div>
+                                        <h6 class="mb-1 fw-bold small">مخزون</h6>
+                                        <div
+                                            class="position-absolute top-0 end-0 m-2 check-indicator opacity-0 transition-all">
+                                            <i class="fas fa-check-circle text-primary"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="selection-card h-100 p-3 border rounded-4 cursor-pointer text-center position-relative transition-all"
+                                        onclick="selectType(this)" data-type="liability">
+                                        <div
+                                            class="card-icon mb-2 text-danger bg-danger bg-opacity-10 rounded-circle d-inline-flex p-3">
+                                            <i class="fas fa-hand-holding-usd fa-lg"></i>
+                                        </div>
+                                        <h6 class="mb-1 fw-bold small">فلوس عليك</h6>
+                                        <div
+                                            class="position-absolute top-0 end-0 m-2 check-indicator opacity-0 transition-all">
+                                            <i class="fas fa-check-circle text-primary"></i>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">التاريخ المتوقع <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="itemExpectedDate" required>
+                            <input type="hidden" id="itemType" required>
+                            <div class="invalid-feedback d-block" id="typeError" style="display: none !important;">يرجى
+                                اختيار النوع</div>
+                        </div>
+
+                        <!-- Main Details -->
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-muted">العنوان</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i
+                                            class="fas fa-heading text-muted"></i></span>
+                                    <input type="text" class="form-control border-start-0 ps-0" id="itemTitle" required
+                                        placeholder="مثال: دفعة من العميل...">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted">المبلغ المتوقع</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i
+                                            class="fas fa-coins text-muted"></i></span>
+                                    <input type="number" class="form-control border-start-0 ps-0" id="itemAmount"
+                                        required min="0" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted">تاريخ الاستحقاق</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i
+                                            class="fas fa-calendar-alt text-muted"></i></span>
+                                    <input type="date" class="form-control border-start-0 ps-0" id="itemExpectedDate"
+                                        required>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-muted">ملاحظات إضافية</label>
+                                <textarea class="form-control" id="itemNotes" rows="2"
+                                    placeholder="أي تفاصيل أخرى..."></textarea>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">من/العميل <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="itemFromWhom" placeholder="اسم العميل أو المصدر" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">رقم الهاتف</label>
-                                <input type="tel" class="form-control" id="itemContact" placeholder="+201234567890">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">ملاحظات</label>
-                            <textarea class="form-control" id="itemNotes" rows="2" placeholder="ملاحظات إضافية..."></textarea>
-                        </div>
+
+                        <!-- Hidden fields for defaults/compatibility -->
+                        <input type="hidden" id="itemStatus" value="pending">
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-2"></i>
-                        إلغاء
-                    </button>
-                    <button type="button" class="btn btn-primary" onclick="saveItem()">
-                        <i class="fas fa-save me-2"></i>
-                        حفظ
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-5" id="saveItemBtn">
+                        <i class="fas fa-check me-2"></i>حفظ
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Finance Header Component -->
-    <script src="../../scripts/components/finance-header-component.js"></script>
-
-    <!-- Config -->
     <script src="../../scripts/core/config.js"></script>
-    
-    <!-- Auth Middleware -->
     <script src="../../scripts/core/auth-middleware.js"></script>
     <script src="../../scripts/core/auth-check.js"></script>
+    <script src="../../scripts/components/finance-header-component.js"></script>
 
+    <!-- Header Component -->
     <script>
-        // Global state
-        let items = [];
-        let editingItemId = null;
-        let currentFilters = {
-            type: '',
-            status: '',
-            search: ''
-        };
-
-        // Format currency
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('ar-EG', {
-                style: 'currency',
-                currency: 'EGP',
-                minimumFractionDigits: 0
-            }).format(amount);
-        }
-
-        // Format date
-        function formatDate(dateString) {
-            return new Date(dateString).toLocaleDateString('ar-EG');
-        }
-
-        // Get item type name
-        function getItemTypeName(type) {
-            const types = {
-                'expected_payment': 'دفعة متوقعة',
-                'work_in_progress': 'عمل قيد التنفيذ',
-                'inventory_item': 'مخزون'
-            };
-            return types[type] || type;
-        }
-
-        // Get status name
-        function getStatusName(status) {
-            const statuses = {
-                'pending': 'في الانتظار',
-                'in_progress': 'قيد التنفيذ',
-                'completed': 'مكتمل',
-                'cancelled': 'ملغي'
-            };
-            return statuses[status] || status;
-        }
-
-        // Get item icon
-        function getItemIcon(type) {
-            const icons = {
-                'expected_payment': 'fa-clock',
-                'work_in_progress': 'fa-tools',
-                'inventory_item': 'fa-box'
-            };
-            return icons[type] || 'fa-question';
-        }
-
-        // Load items (mock data for now)
-        async function loadItems() {
-            try {
-                // For now, using mock data
-                // In the future, this will call an API
-                items = [
-                    {
-                        id: 1,
-                        type: 'work_in_progress',
-                        title: 'إصلاح iPhone 12',
-                        description: 'شاشة مكسورة + تغيير البطارية',
-                        amount: 1500,
-                        expected_date: '2024-01-15',
-                        from_whom: 'أحمد محمد',
-                        contact: '+201234567890',
-                        status: 'in_progress',
-                        created_at: '2024-01-10',
-                        notes: 'العميل ينتظر الشحن'
-                    },
-                    {
-                        id: 2,
-                        type: 'expected_payment',
-                        title: 'دفعة إصلاح MacBook',
-                        description: 'إصلاح شاشة MacBook Pro',
-                        amount: 2500,
-                        expected_date: '2024-01-12',
-                        from_whom: 'سارة أحمد',
-                        contact: '+201234567891',
-                        status: 'pending',
-                        created_at: '2024-01-08',
-                        notes: 'تم الاتفاق على السعر'
-                    },
-                    {
-                        id: 3,
-                        type: 'inventory_item',
-                        title: 'شاشة iPhone 13',
-                        description: 'شاشة أصلية للبيع',
-                        amount: 800,
-                        expected_date: '2024-01-20',
-                        from_whom: 'مخزون',
-                        contact: '',
-                        status: 'pending',
-                        created_at: '2024-01-05',
-                        notes: 'متوفر للبيع'
-                    }
-                ];
-                
-                renderItems();
-                updateStats();
-            } catch (error) {
-                console.error('Error loading items:', error);
-                showError('خطأ في تحميل البيانات');
-            }
-        }
-
-        // Render items
-        function renderItems() {
-            const container = document.getElementById('itemsList');
-            const filteredItems = filterItems();
-            
-            if (filteredItems.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <h5>لا توجد عناصر</h5>
-                        <p>لم يتم العثور على عناصر تطابق الفلاتر المحددة</p>
-                        <button class="btn btn-primary" onclick="showAddItemModal()">
-                            <i class="fas fa-plus me-2"></i>
-                            إضافة عنصر جديد
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = filteredItems.map(item => `
-                <div class="item-card item-type-${item.type}" onclick="editItem(${item.id})">
-                    <div class="item-icon">
-                        <i class="fas ${getItemIcon(item.type)}"></i>
-                    </div>
-                    <div class="item-content">
-                        <div class="item-title">${item.title}</div>
-                        <div class="item-description">${item.description}</div>
-                        <div class="item-meta">
-                            <span><i class="fas fa-user me-1"></i>${item.from_whom}</span>
-                            <span><i class="fas fa-calendar me-1"></i>${formatDate(item.expected_date)}</span>
-                            <span><i class="fas fa-clock me-1"></i>${formatDate(item.created_at)}</span>
-                            ${item.contact ? `<span><i class="fas fa-phone me-1"></i>${item.contact}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="item-amount">${formatCurrency(item.amount)}</div>
-                    <div class="item-status status-${item.status}">${getStatusName(item.status)}</div>
-                    <div class="item-actions">
-                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editItem(${item.id})" title="تعديل">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); markAsCompleted(${item.id})" title="تحديد كمكتمل">
-                            <i class="fas fa-check"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteItem(${item.id})" title="حذف">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Filter items
-        function filterItems() {
-            return items.filter(item => {
-                const typeMatch = !currentFilters.type || item.type === currentFilters.type;
-                const statusMatch = !currentFilters.status || item.status === currentFilters.status;
-                const searchMatch = !currentFilters.search || 
-                    item.title.toLowerCase().includes(currentFilters.search.toLowerCase()) ||
-                    item.description.toLowerCase().includes(currentFilters.search.toLowerCase()) ||
-                    item.from_whom.toLowerCase().includes(currentFilters.search.toLowerCase());
-                
-                return typeMatch && statusMatch && searchMatch;
+        // Load Header
+        fetch('../../components/finance-header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.finance-header-container').innerHTML = data;
+                // Highlight active link
+                setTimeout(() => {
+                    const currentPath = window.location.pathname;
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        if (link.getAttribute('href') && currentPath.includes(link.getAttribute('href'))) {
+                            link.classList.add('active');
+                        }
+                    });
+                }, 100);
             });
-        }
-
-        // Update stats
-        function updateStats() {
-            const pendingAmount = items.filter(item => item.status === 'pending').reduce((sum, item) => sum + item.amount, 0);
-            const inProgressAmount = items.filter(item => item.status === 'in_progress').reduce((sum, item) => sum + item.amount, 0);
-            const completedAmount = items.filter(item => item.status === 'completed').reduce((sum, item) => sum + item.amount, 0);
-            const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
-
-            document.getElementById('pendingAmount').textContent = formatCurrency(pendingAmount);
-            document.getElementById('inProgressAmount').textContent = formatCurrency(inProgressAmount);
-            document.getElementById('completedAmount').textContent = formatCurrency(completedAmount);
-            document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
-        }
-
-        // Show add item modal
-        function showAddItemModal() {
-            editingItemId = null;
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus me-2"></i>إضافة عنصر جديد';
-            document.getElementById('itemForm').reset();
-            document.getElementById('itemExpectedDate').value = new Date().toISOString().split('T')[0];
-            
-            const modal = new bootstrap.Modal(document.getElementById('itemModal'));
-            modal.show();
-        }
-
-        // Edit item
-        function editItem(itemId) {
-            const item = items.find(i => i.id === itemId);
-            if (!item) return;
-
-            editingItemId = itemId;
-            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>تعديل العنصر';
-            
-            // Fill form
-            document.getElementById('itemType').value = item.type;
-            document.getElementById('itemStatus').value = item.status;
-            document.getElementById('itemTitle').value = item.title;
-            document.getElementById('itemDescription').value = item.description;
-            document.getElementById('itemAmount').value = item.amount;
-            document.getElementById('itemExpectedDate').value = item.expected_date;
-            document.getElementById('itemFromWhom').value = item.from_whom;
-            document.getElementById('itemContact').value = item.contact;
-            document.getElementById('itemNotes').value = item.notes;
-            
-            const modal = new bootstrap.Modal(document.getElementById('itemModal'));
-            modal.show();
-        }
-
-        // Save item
-        function saveItem() {
-            const form = document.getElementById('itemForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-
-            const itemData = {
-                type: document.getElementById('itemType').value,
-                status: document.getElementById('itemStatus').value,
-                title: document.getElementById('itemTitle').value,
-                description: document.getElementById('itemDescription').value,
-                amount: parseFloat(document.getElementById('itemAmount').value),
-                expected_date: document.getElementById('itemExpectedDate').value,
-                from_whom: document.getElementById('itemFromWhom').value,
-                contact: document.getElementById('itemContact').value,
-                notes: document.getElementById('itemNotes').value
-            };
-
-            if (editingItemId) {
-                // Update existing item
-                const index = items.findIndex(i => i.id === editingItemId);
-                if (index !== -1) {
-                    items[index] = { ...items[index], ...itemData };
-                }
-            } else {
-                // Add new item
-                const newItem = {
-                    id: Date.now(), // Simple ID generation
-                    ...itemData,
-                    created_at: new Date().toISOString().split('T')[0]
-                };
-                items.push(newItem);
-            }
-
-            renderItems();
-            updateStats();
-            
-            const modal = bootstrap.Modal.getInstance(document.getElementById('itemModal'));
-            modal.hide();
-            
-            showSuccess(editingItemId ? 'تم تحديث العنصر بنجاح' : 'تم إضافة العنصر بنجاح');
-        }
-
-        // Mark as completed
-        function markAsCompleted(itemId) {
-            if (!confirm('هل أنت متأكد من تحديد هذا العنصر كمكتمل؟')) return;
-            
-            const item = items.find(i => i.id === itemId);
-            if (item) {
-                item.status = 'completed';
-                renderItems();
-                updateStats();
-                showSuccess('تم تحديد العنصر كمكتمل');
-            }
-        }
-
-        // Delete item
-        function deleteItem(itemId) {
-            const item = items.find(i => i.id === itemId);
-            if (!item) return;
-            
-            if (!confirm(`هل أنت متأكد من حذف "${item.title}"؟`)) return;
-            
-            items = items.filter(i => i.id !== itemId);
-            renderItems();
-            updateStats();
-            showSuccess('تم حذف العنصر بنجاح');
-        }
-
-        // Clear filters
-        function clearFilters() {
-            document.getElementById('typeFilter').value = '';
-            document.getElementById('statusFilter').value = '';
-            document.getElementById('searchInput').value = '';
-            
-            currentFilters = { type: '', status: '', search: '' };
-            renderItems();
-        }
-
-        // Setup event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load initial data
-            loadItems();
-            
-            // Setup filter listeners
-            document.getElementById('typeFilter').addEventListener('change', function() {
-                currentFilters.type = this.value;
-                renderItems();
-            });
-            
-            document.getElementById('statusFilter').addEventListener('change', function() {
-                currentFilters.status = this.value;
-                renderItems();
-            });
-            
-            document.getElementById('searchInput').addEventListener('input', function() {
-                currentFilters.search = this.value;
-                renderItems();
-            });
-        });
-
-        // Notification functions
-        function showSuccess(message) {
-            // Simple alert for now, can be enhanced with toast notifications
-            alert(message);
-        }
-
-        function showError(message) {
-            alert('خطأ: ' + message);
-        }
     </script>
+    <script src="../../scripts/pages/financial/financial-utils.js"></script>
+    <script src="../../scripts/pages/money-management/expected-money.js"></script>
 </body>
+
 </html>

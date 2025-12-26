@@ -47,7 +47,7 @@ INSERT INTO money_locations (name, name_ar, type, balance, description) VALUES
 ('Cash Register', 'الصندوق النقدي', 'cash', 0.00, 'Physical cash register'),
 ('Instapay Wallet', 'محفظة انستاباي', 'digital_wallet', 0.00, 'Instapay digital wallet'),
 ('Bank Account', 'الحساب البنكي', 'bank_account', 0.00, 'Main business bank account'),
-('Digital Wallet', 'محفظة رقمية', 'digital_wallet', 0.00, 'Other digital wallet');
+('Digital Wallet', 'محفظة', 'digital_wallet', 0.00, 'Other digital wallet');
 
 -- Add money_location_id to invoices table for tracking where payments are received
 ALTER TABLE invoices ADD COLUMN money_location_id INT DEFAULT NULL;

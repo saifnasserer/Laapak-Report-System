@@ -1,811 +1,316 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة الأموال والتحويلات - نظام تقارير لاباك</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" href="../../assets/images/cropped-Logo-mark.png.png" type="image/png">
-    
+
     <!-- Bootstrap RTL CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Design System -->
     <link rel="stylesheet" href="../../styles/base/styles.css">
-    
-    <style>
-        :root {
-            --primary-color: #007553;
-            --primary-light: #00a67a;
-            --primary-dark: #004d35;
-            --success-color: #198754;
-            --warning-color: #ffc107;
-            --danger-color: #dc3545;
-            --info-color: #0dcaf0;
-            --light-bg: #f8f9fa;
-            --white: #ffffff;
-            --text-dark: #212529;
-            --text-muted: #6c757d;
-            --border-radius: 16px;
-            --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.08);
-            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.12);
-            --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.16);
-            --gradient-primary: linear-gradient(135deg, #007553 0%, #00a67a 50%, #007553 100%);
-            --gradient-secondary: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
-        }
-
-        body {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
-            background-attachment: fixed;
-            font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            min-height: 100vh;
-            color: var(--text-dark);
-            overflow-x: hidden;
-        }
-
-        /* Enhanced Stats Cards */
-        .stats-overview {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card-modern {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid rgba(0,0,0,0.05);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card-modern::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--stat-color, var(--primary-color));
-        }
-
-        .stat-card-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .stat-card-modern.balance {
-            --stat-color: #198754;
-        }
-
-        .stat-card-modern.locations {
-            --stat-color: #0dcaf0;
-        }
-
-        .stat-card-modern.movements {
-            --stat-color: #ffc107;
-        }
-
-        .stat-card-modern.today {
-            --stat-color: #dc3545;
-        }
-
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-            background: var(--stat-color, var(--primary-color));
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--text-dark);
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* Enhanced Loading States */
-        .loading-modern {
-            text-align: center;
-            padding: 3rem 1rem;
-        }
-
-        .loading-spinner-modern {
-            width: 48px;
-            height: 48px;
-            border: 4px solid rgba(0, 117, 83, 0.1);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin-modern 1s linear infinite;
-            margin: 0 auto 1rem auto;
-        }
-
-        @keyframes spin-modern {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-
-        /* Legacy compatibility styles */
-        .location-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        
-        .location-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-            margin-bottom: 1rem;
-        }
-        
-        .location-icon.cash { background: #198754; }
-        .location-icon.digital_wallet { background: #007553; }
-        .location-icon.bank_account { background: #0dcaf0; }
-        
-        .movement-card {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        
-        .movement-amount.positive { color: #198754; }
-        .movement-amount.negative { color: #dc3545; }
-        
-        /* Hero Button Styles */
-        .hero-btn {
-            background: rgba(255,255,255,0.2) !important;
-            border: 2px solid rgba(255,255,255,0.3) !important;
-            color: white !important;
-            padding: 0.75rem 1.5rem;
-            border-radius: 50px !important;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            text-decoration: none;
-        }
-
-        .hero-btn:hover {
-            background: rgba(255,255,255,0.3) !important;
-            border-color: rgba(255,255,255,0.5) !important;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-            color: white !important;
-        }
-
-        /* Floating Action Bar */
-        .floating-action-bar {
-            position: fixed;
-            top: 50%;
-            right: 2rem;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            z-index: 1000;
-        }
-
-        .floating-btn {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: var(--gradient-primary);
-            border: none;
-            color: white;
-            font-size: 1.25rem;
-            box-shadow: var(--shadow-lg);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .floating-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 12px 40px rgba(0, 117, 83, 0.4);
-            color: white;
-        }
-
-        .floating-btn.refresh {
-            background: linear-gradient(135deg, #198754 0%, #20c997 100%);
-        }
-
-        .floating-btn.add {
-            background: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%);
-        }
-
-        /* Enhanced Movement Cards */
-        .movement-card-modern {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            border-left: 4px solid var(--movement-color, #6c757d);
-        }
-
-        .movement-card-modern:hover {
-            transform: translateX(4px);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .movement-card-modern.positive {
-            --movement-color: #198754;
-        }
-
-        .movement-card-modern.negative {
-            --movement-color: #dc3545;
-        }
-
-        .movement-card-modern.transfer {
-            --movement-color: #0dcaf0;
-        }
-
-        .movement-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--movement-color, #6c757d);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .movement-amount-modern {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .movement-type-modern {
-            font-size: 0.75rem;
-        }
-
-        .movement-locations-modern {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .location-tag {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .location-tag.from {
-            background: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-        }
-
-        .location-tag.to {
-            background: rgba(25, 135, 84, 0.1);
-            color: #198754;
-        }
-
-        .movement-description-modern {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 0.5rem;
-            font-style: italic;
-        }
-
-        .movement-date-modern {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-        }
-
-        /* Responsive adjustments for floating buttons */
-        @media (max-width: 768px) {
-            .floating-action-bar {
-                right: 1rem;
-            }
-            
-            .floating-btn {
-                width: 48px;
-                height: 48px;
-                font-size: 1rem;
-            }
-            
-            .movement-card-modern {
-                padding: 1rem;
-            }
-            
-            .movement-locations-modern {
-                margin-top: 0.5rem;
-            }
-        }
-        
-        /* Clean & Professional Payment Method Cards */
-        .payment-methods-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1rem;
-        }
-        
-        .payment-method-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            position: relative;
-        }
-        
-        .payment-method-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-            border-color: var(--accent-color);
-        }
-        
-        .payment-method-card.cash {
-            --accent-color: #22c55e;
-        }
-        
-        .payment-method-card.instapay {
-            --accent-color: #8b5cf6;
-        }
-        
-        .payment-method-card.wallet {
-            --accent-color: #06b6d4;
-        }
-        
-        .payment-method-card.bank {
-            --accent-color: #f59e0b;
-        }
-        
-        .payment-method-card.other {
-            --accent-color: #6b7280;
-        }
-        
-        .payment-method-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .payment-method-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-            background: var(--accent-color);
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .payment-method-info {
-            flex: 1;
-        }
-        
-        .payment-method-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin: 0 0 0.25rem 0;
-            line-height: 1.2;
-        }
-        
-        .payment-method-type {
-            font-size: 0.875rem;
-            color: #6b7280;
-            font-weight: 500;
-            margin: 0;
-        }
-        
-        .payment-method-balance {
-            text-align: center;
-            padding: 1.25rem;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .balance-amount {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #1f2937;
-            margin: 0 0 0.25rem 0;
-            line-height: 1;
-        }
-        
-        .balance-label {
-            font-size: 0.875rem;
-            color: #6b7280;
-            font-weight: 600;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .payment-method-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--accent-color);
-            border-radius: 16px 16px 0 0;
-        }
-        
-        .balance-breakdown {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: linear-gradient(135deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.05) 100%);
-            border-radius: 8px;
-            font-size: 0.8rem;
-            border: 1px solid rgba(0,0,0,0.08);
-        }
-        
-        .balance-breakdown-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.25rem;
-        }
-        
-        .balance-breakdown-item:last-child {
-            margin-bottom: 0;
-        }
-        
-        .balance-breakdown-label {
-            opacity: 0.7;
-            font-weight: 500;
-        }
-        
-        .balance-breakdown-value {
-            font-weight: 600;
-            color: var(--accent-color);
-        }
-        
-        @media (max-width: 768px) {
-            .payment-methods-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-            
-            .payment-method-card {
-                padding: 1.25rem;
-            }
-            
-            .payment-method-header {
-                gap: 0.75rem;
-                margin-bottom: 1.25rem;
-            }
-            
-            .payment-method-icon {
-                width: 48px;
-                height: 48px;
-                font-size: 1.25rem;
-            }
-            
-            .payment-method-name {
-                font-size: 1.125rem;
-            }
-            
-            .balance-amount {
-                font-size: 1.75rem;
-            }
-            
-            .payment-method-balance {
-                padding: 1rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../../styles/pages/financial-design.css">
 </head>
-<body>
+
+<body class="finance-layout">
     <div class="container-fluid py-4" style="max-width: 1400px; margin: 0 auto;">
-        <!-- Finance Header -->
-        <div class="finance-header-container"></div>
+        <!-- Header Component -->
+        <div class="finance-header-container mb-4"></div>
 
-
-
-        <!-- Enhanced Hero Section -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <div class="text-center py-5" style="background: var(--gradient-primary); color: white; border-radius: var(--border-radius); position: relative; overflow: hidden; box-shadow: var(--shadow-lg);">
-                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.05%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E') repeat; opacity: 0.5;"></div>
-                    <div style="position: relative; z-index: 2; max-width: 800px; margin: 0 auto; padding: 0 2rem;">
-                        <div style="display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; margin-bottom: 1.5rem; backdrop-filter: blur(10px);">
-                            <i class="fas fa-money-bill-wave" style="font-size: 2rem;"></i>
+        <!-- Page Header -->
+        <div class="finance-card mb-4 overflow-hidden position-relative">
+            <div class="p-4 position-relative z-1">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="icon-circle bg-success-subtle text-success">
+                                <i class="fas fa-wallet fa-2x"></i>
+                            </div>
+                            <div>
+                                <h1 class="fw-bold mb-0 h2">إدارة الأموال</h1>
+                                <p class="text-muted mb-0">تتبع الخزائن، المحافظ الرقمية، والحسابات البنكية</p>
+                            </div>
                         </div>
-                        <h1 style="font-size: 2.8rem; font-weight: 800; margin-bottom: 1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3); line-height: 1.2;">
-                            إدارة الأموال والتحويلات
-                        </h1>
-                        <p style="font-size: 1.3rem; opacity: 0.95; margin-bottom: 2.5rem; line-height: 1.6; max-width: 600px; margin-left: auto; margin-right: auto;">
-                            إدارة شاملة ومتطورة لمواقع الأموال والحركات المالية مع تتبع دقيق لجميع المعاملات
-                        </p>
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem;">
-                            <button type="button" class="btn hero-btn" onclick="showTransferModal()" style="min-width: 140px;">
-                                <i class="fas fa-exchange-alt me-2"></i>تحويل أموال
+                    </div>
+                    <div class="col-md-5 text-md-end mt-3 mt-md-0">
+                        <div class="d-flex gap-2 justify-content-md-end flex-wrap">
+                            <button class="btn btn-primary" onclick="showTransferModal()">
+                                <i class="fas fa-exchange-alt me-2"></i>تحويل
                             </button>
-                            <button type="button" class="btn hero-btn" onclick="showDepositModal()" style="min-width: 120px;">
+                            <button class="btn btn-success" onclick="showDepositModal()">
                                 <i class="fas fa-plus me-2"></i>إيداع
                             </button>
-                            <button type="button" class="btn hero-btn" onclick="showWithdrawalModal()" style="min-width: 120px;">
+                            <button class="btn btn-danger" onclick="showWithdrawalModal()">
                                 <i class="fas fa-minus me-2"></i>سحب
                             </button>
-                            <button type="button" class="btn hero-btn" onclick="MoneyActions.refreshData()" style="min-width: 120px;">
-                                <i class="fas fa-sync-alt me-2"></i>تحديث
+                            <button class="btn btn-light" onclick="MoneyActions.refreshData()">
+                                <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+            <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10 bg-gradient-success"></div>
         </div>
 
-        <!-- Enhanced Stats Overview -->
-        <!-- <div class="row mb-5">
-            <div class="col-12 mb-3">
-                <h2 style="color: var(--text-dark); font-weight: 700; margin-bottom: 0.5rem;">
-                    <i class="fas fa-chart-bar text-primary me-2"></i>نظرة عامة على الأموال
-                </h2>
-                <p class="text-muted">ملخص سريع لحالة الأموال والحركات المالية</p>
-            </div>
-            <div class="col-12">
-                <div class="stats-overview">
-                    <div class="stat-card-modern balance">
-                        <div class="stat-icon">
+        <!-- KPI Stats -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="finance-card kpi-card h-100 p-4 bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="kpi-icon bg-white text-primary bg-opacity-25">
                             <i class="fas fa-coins"></i>
                         </div>
-                        <div class="stat-value" id="totalBalance">0 ج.م</div>
-                        <div class="stat-label">إجمالي الرصيد</div>
+                        <span class="badge bg-white text-primary">الإجمالي</span>
                     </div>
-                    <div class="stat-card-modern locations">
-                        <div class="stat-icon">
+                    <h3 class="fw-bold mb-1 text-white" id="totalBalance">0 ج.م</h3>
+                    <p class="text-white text-opacity-75 small mb-0">إجمالي الرصيد</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="finance-card kpi-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="kpi-icon bg-info-subtle text-info">
                             <i class="fas fa-map-marker-alt"></i>
                         </div>
-                        <div class="stat-value" id="totalLocations">0</div>
-                        <div class="stat-label">مواقع الأموال</div>
                     </div>
-                    <div class="stat-card-modern movements">
-                        <div class="stat-icon">
+                    <h3 class="fw-bold mb-1" id="totalLocations">0</h3>
+                    <p class="text-muted small mb-0">مواقع الأموال</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="finance-card kpi-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="kpi-icon bg-warning-subtle text-warning">
                             <i class="fas fa-exchange-alt"></i>
                         </div>
-                        <div class="stat-value" id="totalMovements">0</div>
-                        <div class="stat-label">إجمالي الحركات</div>
                     </div>
-                    <div class="stat-card-modern today">
-                        <div class="stat-icon">
+                    <h3 class="fw-bold mb-1" id="totalMovements">0</h3>
+                    <p class="text-muted small mb-0">إجمالي الحركات</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="finance-card kpi-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="kpi-icon bg-danger-subtle text-danger">
                             <i class="fas fa-calendar-day"></i>
                         </div>
-                        <div class="stat-value" id="todayMovements">0</div>
-                        <div class="stat-label">حركات اليوم</div>
+                        <span class="badge bg-danger-subtle text-danger">اليوم</span>
                     </div>
-                </div>
-            </div>
-        </div>
- -->
-
-
-        <!-- Unified Payment Methods Management -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <div class="card border-0" style="box-shadow: var(--shadow-md); border-radius: var(--border-radius);">
-                    <div class="card-header border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: var(--border-radius) var(--border-radius) 0 0; padding: 1.5rem;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h4 class="mb-1" style="color: var(--text-dark); font-weight: 700;">
-                                    <i class="fas fa-wallet text-primary me-2"></i>
-                                    طرق الدفع والأرصدة
-                                </h4>
-                                <p class="text-muted mb-0">إدارة وتتبع جميع طرق الدفع المتاحة</p>
-                            </div>
-                            <!-- <button type="button" class="btn btn-primary" onclick="refreshPaymentMethods()" style="border-radius: 8px;">
-                                <i class="fas fa-sync-alt me-2"></i>تحديث
-                            </button> -->
-                        </div>
-                    </div>
-                    <div class="card-body" style="padding: 2rem;">
-                        <div id="unifiedPaymentMethodsContainer">
-                            <div class="loading-modern">
-                                <div class="loading-spinner-modern"></div>
-                                <p class="loading-text">جاري تحميل بيانات طرق الدفع...</p>
-                            </div>
-                        </div>
-                    </div>
+                    <h3 class="fw-bold mb-1" id="todayMovements">0</h3>
+                    <p class="text-muted small mb-0">حركات اليوم</p>
                 </div>
             </div>
         </div>
 
-        <!-- Recent Movements -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card border-0" style="box-shadow: var(--shadow-md); border-radius: var(--border-radius);">
-                    <div class="card-header border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: var(--border-radius) var(--border-radius) 0 0; padding: 1.5rem;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h4 class="mb-1" style="color: var(--text-dark); font-weight: 700;">
-                                    <i class="fas fa-history text-primary me-2"></i>الحركات والمعاملات الأخيرة
-                                </h4>
-                                <p class="text-muted mb-0">تتبع آخر الحركات المالية والتحويلات</p>
+        <!-- Payment Methods & Analytics -->
+        <div class="mb-4">
+            <h5 class="fw-bold mb-3"><i class="fas fa-credit-card text-primary me-2"></i>طرق الدفع والأرصدة</h5>
+            <div id="unifiedPaymentMethodsContainer">
+
+            </div>
+        </div>
+
+        <!-- Detailed View: Locations & Movements -->
+        <div class="row g-4">
+            <!-- Locations List (Hidden default, populated by existing JS logic if needed, but Unified View is better) -->
+            <!-- The existing JS populates 'locationsContainer' but we might not need to show it explicitly if Unified Methods covers it. 
+                 However, specific locations (e.g. multiple wallets) might be useful. 
+                 I'll add it in a collapsed/secondary section or side-by-side with movements. -->
+
+            <div class="col-lg-4">
+                <div class="finance-card h-100">
+                    <div class="card-header bg-transparent border-bottom p-3">
+                        <h5 class="fw-bold mb-0">تفاصيل المواقع</h5>
+                    </div>
+                    <div class="card-body p-3">
+                        <div id="locationsContainer">
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                             </div>
-                            <button type="button" class="btn btn-outline-primary" onclick="MoneyActions.refreshMovements()" style="border-radius: 8px;">
-                                <i class="fas fa-refresh me-2"></i>تحديث الحركات
-                            </button>
                         </div>
                     </div>
-                    <div class="card-body" style="padding: 2rem;">
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="finance-card h-100">
+                    <div
+                        class="card-header bg-transparent border-bottom p-3 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">آخر الحركات</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="MoneyActions.refreshMovements()">
+                            <i class="fas fa-refresh me-1"></i> تحديث
+                        </button>
+                    </div>
+                    <div class="card-body p-3">
                         <div id="movementsContainer">
-                            <div class="loading-modern">
-                                <div class="loading-spinner-modern"></div>
-                                <p class="loading-text">جاري تحميل الحركات المالية...</p>
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2 text-muted">جاري تحميل الحركات...</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Hidden Canvas Elements for JS compatibility -->
+        <div class="d-none">
+            <canvas id="balanceChart"></canvas>
+            <canvas id="movementsChart"></canvas>
+        </div>
+
     </div>
 
-    <!-- Floating Action Button -->
-    <!-- <div class="floating-action-bar">
-        <button type="button" class="floating-btn" onclick="showTransferModal()" title="تحويل أموال">
-            <i class="fas fa-exchange-alt"></i>
-        </button>
-    </div> -->
-
+    <!-- Modals -->
     <!-- Transfer Modal -->
-    <div class="modal fade" id="transferModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">تحويل أموال</h5>
+    <div class="modal fade" id="transferModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-exchange-alt text-primary me-2"></i>تحويل أموال
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form id="transferForm">
                         <div class="mb-3">
                             <label class="form-label">من موقع</label>
-                            <select class="form-select" id="fromLocation" required>
-                                <option value="">اختر الموقع المصدر</option>
-                            </select>
+                            <select class="form-select" id="fromLocation" required></select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">إلى موقع</label>
-                            <select class="form-select" id="toLocation" required>
-                                <option value="">اختر الموقع الهدف</option>
-                            </select>
+                            <select class="form-select" id="toLocation" required></select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">المبلغ</label>
-                            <input type="number" class="form-control" id="transferAmount" step="0.01" min="0.01" required>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="transferAmount" step="0.01" min="0.01"
+                                    required>
+                                <span class="input-group-text">ج.م</span>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">الوصف</label>
-                            <textarea class="form-control" id="transferDescription" rows="3"></textarea>
+                            <textarea class="form-control" id="transferDescription" rows="2"></textarea>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-primary" onclick="executeTransfer()">تنفيذ التحويل</button>
+                <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary px-4" onclick="executeTransfer()">تنفيذ
+                        التحويل</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Deposit Modal -->
-    <div class="modal fade" id="depositModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">إيداع أموال</h5>
+    <div class="modal fade" id="depositModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle text-success me-2"></i>إيداع أموال</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form id="depositForm">
                         <div class="mb-3">
                             <label class="form-label">إلى موقع</label>
-                            <select class="form-select" id="depositLocation" required>
-                                <option value="">اختر الموقع</option>
-                            </select>
+                            <select class="form-select" id="depositLocation" required></select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">المبلغ</label>
-                            <input type="number" class="form-control" id="depositAmount" step="0.01" min="0.01" required>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="depositAmount" step="0.01" min="0.01"
+                                    required>
+                                <span class="input-group-text">ج.م</span>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">الوصف</label>
-                            <textarea class="form-control" id="depositDescription" rows="3"></textarea>
+                            <textarea class="form-control" id="depositDescription" rows="2"></textarea>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-success" onclick="executeDeposit()">تنفيذ الإيداع</button>
+                <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-success px-4" onclick="executeDeposit()">تنفيذ الإيداع</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Withdrawal Modal -->
-    <div class="modal fade" id="withdrawalModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">سحب أموال</h5>
+    <div class="modal fade" id="withdrawalModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-minus-circle text-danger me-2"></i>سحب أموال</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form id="withdrawalForm">
                         <div class="mb-3">
                             <label class="form-label">من موقع</label>
-                            <select class="form-select" id="withdrawalLocation" required>
-                                <option value="">اختر الموقع</option>
-                            </select>
+                            <select class="form-select" id="withdrawalLocation" required></select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">المبلغ</label>
-                            <input type="number" class="form-control" id="withdrawalAmount" step="0.01" min="0.01" required>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="withdrawalAmount" step="0.01" min="0.01"
+                                    required>
+                                <span class="input-group-text">ج.م</span>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">الوصف</label>
-                            <textarea class="form-control" id="withdrawalDescription" rows="3"></textarea>
+                            <textarea class="form-control" id="withdrawalDescription" rows="2"></textarea>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-danger" onclick="executeWithdrawal()">تنفيذ السحب</button>
+                <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-danger px-4" onclick="executeWithdrawal()">تنفيذ السحب</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../../scripts/core/config.js"></script>
-    <script src="../../scripts/components/finance-header-component.js"></script>
+    <script src="../../scripts/core/auth-check.js"></script>
+    <!-- Use the middleware if it exists, otherwise check will trigger -->
     <script src="../../scripts/core/auth-middleware.js"></script>
+
+    <!-- <script src="../../scripts/components/finance-header-component.js"></script> -->
+    <script>
+        // Load Header
+        fetch('../../components/finance-header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.querySelector('.finance-header-container').innerHTML = data;
+                // Highlight active link
+                setTimeout(() => {
+                    const currentPath = window.location.pathname;
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        if (link.getAttribute('href') && currentPath.includes(link.getAttribute('href'))) {
+                            link.classList.add('active');
+                        }
+                    });
+                }, 100);
+            });
+    </script>
+    <script src="../../scripts/pages/financial/financial-utils.js"></script>
     <script src="../../scripts/pages/financial/money-management.js"></script>
 </body>
-</html>
 
+</html>

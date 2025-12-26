@@ -20,12 +20,12 @@ async function findLocationForPaymentMethod(paymentMethod, transaction = null) {
         'cash': { locationTypes: ['cash'], apiName: 'cash' },
         'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
         'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
-        'wallet': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
-        'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
-        'محفظة رقمية': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
+        'wallet': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
+        'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
+        'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
         'bank': { locationTypes: ['bank_account'], apiName: 'بنك' },
         'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' },
-        'حساب بنكي': { locationTypes: ['bank_account'], apiName: 'بنك' }
+        'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' }
     };
 
     // Find matching payment method configuration
@@ -191,7 +191,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             // Find money location based on payment method
             console.log('Looking for money location with payment method:', paymentMethod);
             const moneyLocation = await findLocationForPaymentMethod(paymentMethod, transaction);
-            
+
             console.log('Found money location:', moneyLocation ? moneyLocation.id : 'Not found');
 
             if (!moneyLocation) {
@@ -232,19 +232,19 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                     movement_date: date,
                     created_by: req.user.id
                 });
-                
+
                 const movement = await MoneyMovement.create({
-                amount: Math.abs(amount),
-                movement_type: movementType,
-                reference_type: referenceType,
-                reference_id: record.id.toString(), // Convert to string as per database schema
-                description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
-                from_location_id: type === 'expense' ? moneyLocation.id : null,
-                to_location_id: type === 'profit' ? moneyLocation.id : null,
-                movement_date: date,
-                created_by: req.user.id
-            }, { transaction });
-                
+                    amount: Math.abs(amount),
+                    movement_type: movementType,
+                    reference_type: referenceType,
+                    reference_id: record.id.toString(), // Convert to string as per database schema
+                    description: `${type === 'expense' ? 'مصروف' : 'ربح'}: ${category.name_ar} - ${description}`,
+                    from_location_id: type === 'expense' ? moneyLocation.id : null,
+                    to_location_id: type === 'profit' ? moneyLocation.id : null,
+                    movement_date: date,
+                    created_by: req.user.id
+                }, { transaction });
+
                 console.log('Successfully created money movement:', movement.id);
                 console.log('Movement details:', {
                     id: movement.id,
@@ -272,7 +272,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
                 balanceChange,
                 newBalance
             });
-            
+
             await moneyLocation.update({
                 balance: newBalance
             }, { transaction });
@@ -294,7 +294,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Verify that the money movement was created
             const verificationMovement = await MoneyMovement.findOne({
-                where: { 
+                where: {
                     reference_type: { [Op.in]: ['expense', 'manual'] },
                     reference_id: record.id.toString()
                 }
@@ -313,7 +313,7 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
             res.json({
                 success: true,
                 message: message,
-                data: { 
+                data: {
                     record: recordWithCategory,
                     movement_created: !!verificationMovement,
                     moneyMovement: {
@@ -336,10 +336,10 @@ router.post('/', adminRoleAuth(['superadmin']), async (req, res) => {
 
     } catch (error) {
         console.error('Create record error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'خطأ في حفظ التسجيل',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -424,10 +424,10 @@ router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
 
     } catch (error) {
         console.error('Get records error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'خطأ في تحميل التسجيلات',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -485,10 +485,10 @@ router.get('/stats', adminRoleAuth(['superadmin']), async (req, res) => {
 
     } catch (error) {
         console.error('Get stats error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'خطأ في تحميل الإحصائيات',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -511,10 +511,10 @@ router.get('/categories', adminRoleAuth(['superadmin']), async (req, res) => {
 
     } catch (error) {
         console.error('Get categories error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'خطأ في تحميل الفئات',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -553,10 +553,10 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
     } catch (error) {
         console.error('Get record error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'خطأ في تحميل التسجيل',
-            error: error.message 
+            error: error.message
         });
     }
 });
@@ -566,26 +566,26 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
  * Update a financial record
  */
 router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
-            try {
-            const { id } = req.params;
-            // Ensure id is a string and not a function
-            const recordId = String(id);
-            console.log('Update record - ID type and value:', { 
-                originalId: id, 
-                originalType: typeof id, 
-                recordId: recordId,
-                recordIdType: typeof recordId,
-                isFunction: typeof id === 'function' 
-            });
-            
-            const {
-                category_id,
-                amount,
-                type,
-                date,
-                description,
-                paymentMethod = 'cash'
-            } = req.body;
+    try {
+        const { id } = req.params;
+        // Ensure id is a string and not a function
+        const recordId = String(id);
+        console.log('Update record - ID type and value:', {
+            originalId: id,
+            originalType: typeof id,
+            recordId: recordId,
+            recordIdType: typeof recordId,
+            isFunction: typeof id === 'function'
+        });
+
+        const {
+            category_id,
+            amount,
+            type,
+            date,
+            description,
+            paymentMethod = 'cash'
+        } = req.body;
 
         // Validate required fields
         if (!category_id || !amount || !type || !date || !description) {
@@ -631,19 +631,19 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             }
 
             // Find existing money movement for this record (check both 'expense' and 'manual' reference types)
-            console.log('About to query MoneyMovement with:', { 
-                recordId, 
+            console.log('About to query MoneyMovement with:', {
+                recordId,
                 recordIdType: typeof recordId
             });
-            
+
             const existingMovement = await MoneyMovement.findOne({
-                where: { 
+                where: {
                     reference_type: { [Op.in]: ['expense', 'manual'] },
                     reference_id: recordId
                 },
                 transaction
             });
-            
+
             console.log('Existing movement found:', existingMovement ? existingMovement.id : 'None');
 
             // Find new money location based on payment method
@@ -744,7 +744,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Verify that the money movement was created/updated
             const verificationMovement = await MoneyMovement.findOne({
-                where: { 
+                where: {
                     reference_type: { [Op.in]: ['expense', 'manual'] },
                     reference_id: recordId
                 }
@@ -763,7 +763,7 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             res.json({
                 success: true,
                 message: message,
-                data: { 
+                data: {
                     record: updatedRecord,
                     movement_created: !!verificationMovement
                 }
@@ -776,25 +776,25 @@ router.put('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             throw error;
         }
 
-        } catch (error) {
-            console.error('Update record error:', error);
-            
-            // Rollback transaction if it exists
-            if (transaction) {
-                try {
-                    await transaction.rollback();
-                    console.log('Transaction rolled back due to error');
-                } catch (rollbackError) {
-                    console.error('Error rolling back transaction:', rollbackError);
-                }
+    } catch (error) {
+        console.error('Update record error:', error);
+
+        // Rollback transaction if it exists
+        if (transaction) {
+            try {
+                await transaction.rollback();
+                console.log('Transaction rolled back due to error');
+            } catch (rollbackError) {
+                console.error('Error rolling back transaction:', rollbackError);
             }
-            
-            res.status(500).json({ 
-                success: false, 
-                message: 'خطأ في تحديث التسجيل',
-                error: error.message 
-            });
         }
+
+        res.status(500).json({
+            success: false,
+            message: 'خطأ في تحديث التسجيل',
+            error: error.message
+        });
+    }
 });
 
 /**
@@ -823,7 +823,7 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
             // Find associated money movement (check both 'expense' and 'manual' reference types)
             const moneyMovement = await MoneyMovement.findOne({
-                where: { 
+                where: {
                     reference_type: { [Op.in]: ['expense', 'manual'] },
                     reference_id: recordId
                 },
@@ -836,7 +836,7 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 // Reverse the money location balance
                 const locationId = moneyMovement.from_location_id || moneyMovement.to_location_id;
                 console.log('Delete operation - Location ID for reversal:', locationId);
-                
+
                 if (locationId) {
                     const moneyLocation = await MoneyLocation.findByPk(locationId, { transaction });
                     if (moneyLocation) {
@@ -846,19 +846,19 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                         const balanceChange = record.type === 'fixed' ? -recordAmount : recordAmount;
                         const currentBalance = parseFloat(moneyLocation.balance || 0);
                         let newBalance = currentBalance + balanceChange;
-                        
+
                         // Validate the new balance to prevent overflow
                         if (newBalance < 0) {
                             console.log('Warning: New balance would be negative, setting to 0');
                             newBalance = 0;
                         }
-                        
+
                         // Check if the value is reasonable (less than 1 billion)
                         if (newBalance > 1000000000) {
                             console.log('Warning: New balance seems too large, capping at current balance');
                             newBalance = currentBalance;
                         }
-                        
+
                         console.log('Delete operation - Reversing balance:', {
                             locationName: moneyLocation.name_ar,
                             currentBalance: moneyLocation.balance,
@@ -868,7 +868,7 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                             newBalance,
                             recordType: record.type
                         });
-                        
+
                         await moneyLocation.update({ balance: newBalance }, { transaction });
                         console.log(`Reversed balance for location ${moneyLocation.name_ar}: ${moneyLocation.balance} -> ${newBalance}`);
                     } else {
@@ -903,10 +903,10 @@ router.delete('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
     } catch (error) {
         console.error('Delete record error:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'خطأ في حذف التسجيل',
-            error: error.message 
+            error: error.message
         });
     }
 });

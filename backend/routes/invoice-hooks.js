@@ -11,10 +11,10 @@ const PAYMENT_METHOD_MAPPING = {
     'cash': { locationTypes: ['cash'], apiName: 'cash' },
     'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
     'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
-    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
-    'محفظة رقمية': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة رقمية' },
+    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
+    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
     'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' },
-    'حساب بنكي': { locationTypes: ['bank_account'], apiName: 'بنك' }
+    'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' }
 };
 
 /**
@@ -53,7 +53,7 @@ async function handleInvoicePaymentStatusChange(invoice, oldStatus, newStatus) {
 
         // Find the appropriate money location based on payment method
         const location = await findLocationForPaymentMethod(invoice.paymentMethod);
-        
+
         if (!location) {
             console.log(`No location found for payment method: ${invoice.paymentMethod}`);
             return;
@@ -83,9 +83,9 @@ async function handleInvoicePaymentStatusChange(invoice, oldStatus, newStatus) {
         // Update the location balance
         const newBalance = parseFloat(location.balance || 0) + parseFloat(invoice.total);
         await location.update({ balance: newBalance });
-        
+
         console.log(`Updated location ${location.name_ar} balance: ${location.balance} -> ${newBalance}`);
-        
+
     } catch (error) {
         console.error('Error handling invoice payment status change:', error);
         // Don't throw error to avoid breaking the main invoice update process
@@ -111,14 +111,14 @@ async function findLocationForPaymentMethod(paymentMethod) {
         if (paymentMethod.toLowerCase().includes(methodName.toLowerCase())) {
             matchingConfig = config;
             console.log(`Matched payment method "${paymentMethod}" with config "${methodName}"`);
-                break;
+            break;
         }
     }
 
     if (!matchingConfig) {
         console.log(`No matching config found for payment method: ${paymentMethod}`);
-                return null;
-        }
+        return null;
+    }
 
     // Find location with matching type and name (if specified)
     let location;
