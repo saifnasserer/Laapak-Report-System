@@ -142,7 +142,7 @@ function renderTable(searchTerm = '') {
         return `
         <tr class="${isReviewMode && hasMissingCost ? 'bg-light-warning' : ''} align-middle">
             <td>${new Date(inv.date).toLocaleDateString('ar-EG')}</td>
-            <td class="fw-bold">${inv.client_name}</td>
+            <!-- Removed Client Column -->
             <td>${inv.items_count || '-'} منتجات</td>
             <td class="fw-bold text-primary">${formatCurrency(inv.total)}</td>
             <td class="${hasMissingCost ? 'text-danger fw-bold' : ''}">${formatCurrency(inv.total_cost)}</td>
