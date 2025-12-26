@@ -467,6 +467,77 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             return colors[index % colors.length];
         }
 
+        // Calculate period-over-period changes (compare with previous period)
+        let changes = {
+            revenue: 0,
+            expenses: 0,
+            profit: 0,
+            margin: 0
+        };
+
+        try {
+            // Calculate previous period dates (same duration as current period)
+            const periodDuration = Math.abs(endDateObj - startDateObj);
+            const prevEndDate = new Date(startDateObj.getTime() - 1); // Day before current period
+            const prevStartDate = new Date(prevEndDate.getTime() - periodDuration);
+
+            const prevStartStr = formatDateForDB(prevStartDate);
+            const prevEndStr = formatDateForDB(prevEndDate);
+
+            console.log(`Calculating changes vs previous period: ${prevStartStr} to ${prevEndStr}`);
+
+            // Get previous period data
+            const prevInvoices = await Invoice.findAll({
+                where: {
+                    date: { [Op.between]: [prevStartStr, prevEndStr] },
+                    paymentStatus: ['paid', 'completed']
+                },
+                include: [{ model: InvoiceItem, as: 'InvoiceItems' }]
+            });
+
+            const prevExpenses = await Expense.findAll({
+                where: {
+                    date: { [Op.between]: [prevStartStr, prevEndStr] },
+                    status: 'approved'
+                }
+            });
+
+            let prevRevenue = 0;
+            let prevCost = 0;
+            let prevExpensesTotal = 0;
+
+            prevInvoices.forEach(inv => {
+                prevRevenue += parseFloat(inv.total) || 0;
+                if (inv.InvoiceItems) {
+                    inv.InvoiceItems.forEach(item => {
+                        if (item.cost_price) {
+                            prevCost += (parseFloat(item.cost_price) || 0) * (parseInt(item.quantity) || 1);
+                        }
+                    });
+                }
+            });
+
+            prevExpenses.forEach(exp => {
+                prevExpensesTotal += parseFloat(exp.amount) || 0;
+            });
+
+            const prevGrossProfit = prevCost > 0 ? prevRevenue - prevCost : 0;
+            const prevNetProfit = prevGrossProfit - prevExpensesTotal;
+            const prevMargin = prevCost > 0 && prevRevenue > 0 ? (prevGrossProfit / prevRevenue) * 100 : 0;
+
+            // Calculate percentage changes
+            changes.revenue = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
+            changes.expenses = prevExpensesTotal > 0 ? ((totalExpenses - prevExpensesTotal) / prevExpensesTotal) * 100 : 0;
+            changes.profit = prevNetProfit !== 0 ? ((netProfit - prevNetProfit) / Math.abs(prevNetProfit)) * 100 : 0;
+            changes.margin = prevMargin !== 0 ? profitMargin - prevMargin : 0; // Absolute change for margin
+
+            console.log('Period-over-period changes:', changes);
+        } catch (error) {
+            console.error('Error calculating period changes:', error);
+            // Keep changes at 0 if calculation fails
+        }
+
+
         res.json({
             success: true,
             data: {
@@ -488,6 +559,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                     trend: trendData,
                     expenseBreakdown: expenseBreakdown
                 },
+                changes: changes,
                 alerts: alerts,
                 dateRange: {
                     startDate: startDateStr,
