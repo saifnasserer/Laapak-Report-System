@@ -9,6 +9,7 @@ let selectedReports = [];
 let clientsData = [];
 let invoiceItems = [];
 let invoiceTemplates = [];
+let removedReports = []; // Track reports marked as removed
 let invoiceSettings = {
     title: 'فاتورة',
     date: new Date().toISOString().split('T')[0],
@@ -16,7 +17,8 @@ let invoiceSettings = {
     discountRate: 0,
     paymentMethod: 'cash',
     paymentStatus: 'unpaid', // Added default payment status
-    notes: ''
+    notes: '',
+    excludeFromInvoiceCreation: false // Option to exclude reports from appearing here after invoice creation
 };
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -28,6 +30,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize the page
     initPage();
+    
+    // Load removed reports from localStorage
+    loadRemovedReports();
     
     // Set up event listeners
     setupEventListeners();
@@ -106,6 +111,7 @@ function setupEventListeners() {
             invoiceSettings.paymentMethod = document.getElementById('paymentMethod').value;
             invoiceSettings.paymentStatus = document.getElementById('paymentStatusSelect').value; // Added payment status
             invoiceSettings.notes = document.getElementById('invoiceNotes').value;
+            invoiceSettings.excludeFromInvoiceCreation = document.getElementById('excludeFromInvoiceCreation').checked || false; // Added exclude option
             
             // Hide settings modal
             const settingsModal = bootstrap.Modal.getInstance(document.getElementById('invoiceSettingsModal'));
@@ -288,7 +294,7 @@ async function loadReports() {
                 // Get ALL reports first
                 reports = await service.getReports({ fetch_mode: 'all_reports' });
                 
-                // Filter out reports that already have invoices OR are cancelled
+                // Filter out reports that already have invoices OR are cancelled OR are marked as removed
                 reports = reports.filter(report => {
                     // Check if report has any invoice association
                     const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
@@ -303,8 +309,40 @@ async function loadReports() {
                         report.status === 'ملغي'
                     );
                     
-                    // Report is available if it has NO invoice associations AND is NOT cancelled
-                    return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
+                    // Check if report is marked as removed
+                    const isRemoved = removedReports.includes(report.id);
+                    
+                    // Check if report is excluded from invoice creation (has exclude_from_invoice_creation flag)
+                    const isExcluded = report.exclude_from_invoice_creation === true;
+                    
+                    // Report is available if it has NO invoice associations AND is NOT cancelled AND is NOT removed AND is NOT excluded
+                    return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled && !isRemoved && !isExcluded;
+                });
+                
+                // Sort by date: most recent at the top (descending order)
+                reports.sort((a, b) => {
+                    // Use inspection_date as primary, fallback to created_at
+                    const dateAStr = a.inspection_date || a.inspectionDate || a.created_at || a.createdAt || '';
+                    const dateBStr = b.inspection_date || b.inspectionDate || b.created_at || b.createdAt || '';
+                    
+                    const dateA = dateAStr ? new Date(dateAStr) : new Date(0);
+                    const dateB = dateBStr ? new Date(dateBStr) : new Date(0);
+                    
+                    // Get timestamps for comparison
+                    const timeA = dateA.getTime();
+                    const timeB = dateB.getTime();
+                    
+                    // If dates are equal, sort by created_at as secondary
+                    if (timeB === timeA) {
+                        const createdAStr = a.created_at || a.createdAt || '';
+                        const createdBStr = b.created_at || b.createdAt || '';
+                        const createdA = createdAStr ? new Date(createdAStr) : new Date(0);
+                        const createdB = createdBStr ? new Date(createdBStr) : new Date(0);
+                        return createdB.getTime() - createdA.getTime(); // Most recent first
+                    }
+                    
+                    // Most recent dates first (descending order)
+                    return timeB - timeA;
                 });
                 
                 console.log('Reports without invoices and not cancelled for create-invoice page:', reports);
@@ -319,7 +357,7 @@ async function loadReports() {
                 if (retryService && typeof retryService.getReports === 'function') {
                     reports = await retryService.getReports({ fetch_mode: 'all_reports' });
                     
-                    // Filter out reports that already have invoices OR are cancelled
+                    // Filter out reports that already have invoices OR are cancelled OR are marked as removed
                     reports = reports.filter(report => {
                         const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
                         const hasInvoice = report.invoice && report.invoice !== null;
@@ -333,7 +371,39 @@ async function loadReports() {
                             report.status === 'ملغي'
                         );
                         
-                        return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
+                        // Check if report is marked as removed
+                        const isRemoved = removedReports.includes(report.id);
+                        
+                        // Check if report is excluded from invoice creation
+                        const isExcluded = report.exclude_from_invoice_creation === true;
+                        
+                        return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled && !isRemoved && !isExcluded;
+                    });
+                    
+                    // Sort by date: most recent at the top (descending order)
+                    reports.sort((a, b) => {
+                        // Use inspection_date as primary, fallback to created_at
+                        const dateAStr = a.inspection_date || a.inspectionDate || a.created_at || a.createdAt || '';
+                        const dateBStr = b.inspection_date || b.inspectionDate || b.created_at || b.createdAt || '';
+                        
+                        const dateA = dateAStr ? new Date(dateAStr) : new Date(0);
+                        const dateB = dateBStr ? new Date(dateBStr) : new Date(0);
+                        
+                        // Get timestamps for comparison
+                        const timeA = dateA.getTime();
+                        const timeB = dateB.getTime();
+                        
+                        // If dates are equal, sort by created_at as secondary
+                        if (timeB === timeA) {
+                            const createdAStr = a.created_at || a.createdAt || '';
+                            const createdBStr = b.created_at || b.createdAt || '';
+                            const createdA = createdAStr ? new Date(createdAStr) : new Date(0);
+                            const createdB = createdBStr ? new Date(createdBStr) : new Date(0);
+                            return createdB.getTime() - createdA.getTime(); // Most recent first
+                        }
+                        
+                        // Most recent dates first (descending order)
+                        return timeB - timeA;
                     });
                     
                     console.log('Reports fetched on retry for create-invoice page:', reports);
@@ -347,7 +417,7 @@ async function loadReports() {
             const storedReports = localStorage.getItem('lpk_reports');
             reports = storedReports ? JSON.parse(storedReports) : [];
             
-            // Filter out reports that already have invoices OR are cancelled
+            // Filter out reports that already have invoices OR are cancelled OR are marked as removed
             reports = reports.filter(report => {
                 const hasInvoiceId = report.invoice_id && report.invoice_id !== null;
                 const hasInvoice = report.invoice && report.invoice !== null;
@@ -361,7 +431,39 @@ async function loadReports() {
                     report.status === 'ملغي'
                 );
                 
-                return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled;
+                // Check if report is marked as removed
+                const isRemoved = removedReports.includes(report.id);
+                
+                // Check if report is excluded from invoice creation
+                const isExcluded = report.exclude_from_invoice_creation === true;
+                
+                return !hasInvoiceId && !hasInvoice && !hasInvoices && !hasInvoiceCreated && !isCancelled && !isRemoved && !isExcluded;
+            });
+            
+            // Sort by date: most recent at the top (descending order)
+            reports.sort((a, b) => {
+                // Use inspection_date as primary, fallback to created_at
+                const dateAStr = a.inspection_date || a.inspectionDate || a.created_at || a.createdAt || '';
+                const dateBStr = b.inspection_date || b.inspectionDate || b.created_at || b.createdAt || '';
+                
+                const dateA = dateAStr ? new Date(dateAStr) : new Date(0);
+                const dateB = dateBStr ? new Date(dateBStr) : new Date(0);
+                
+                // Get timestamps for comparison
+                const timeA = dateA.getTime();
+                const timeB = dateB.getTime();
+                
+                // If dates are equal, sort by created_at as secondary
+                if (timeB === timeA) {
+                    const createdAStr = a.created_at || a.createdAt || '';
+                    const createdBStr = b.created_at || b.createdAt || '';
+                    const createdA = createdAStr ? new Date(createdAStr) : new Date(0);
+                    const createdB = createdBStr ? new Date(createdBStr) : new Date(0);
+                    return createdB.getTime() - createdA.getTime(); // Most recent first
+                }
+                
+                // Most recent dates first (descending order)
+                return timeB - timeA;
             });
             
             // If still no reports, use mock data
@@ -532,8 +634,34 @@ function displayReports(reports) {
         return;
     }
 
+    // Sort by date: most recent at the top (descending order) - sort reports before grouping
+    const sortedReports = [...reports].sort((a, b) => {
+        // Use inspection_date as primary, fallback to created_at
+        const dateAStr = a.inspection_date || a.inspectionDate || a.created_at || a.createdAt || '';
+        const dateBStr = b.inspection_date || b.inspectionDate || b.created_at || b.createdAt || '';
+        
+        const dateA = dateAStr ? new Date(dateAStr) : new Date(0);
+        const dateB = dateBStr ? new Date(dateBStr) : new Date(0);
+        
+        // Get timestamps for comparison
+        const timeA = dateA.getTime();
+        const timeB = dateB.getTime();
+        
+        // If dates are equal, sort by created_at as secondary
+        if (timeB === timeA) {
+            const createdAStr = a.created_at || a.createdAt || '';
+            const createdBStr = b.created_at || b.createdAt || '';
+            const createdA = createdAStr ? new Date(createdAStr) : new Date(0);
+            const createdB = createdBStr ? new Date(createdBStr) : new Date(0);
+            return createdB.getTime() - createdA.getTime(); // Most recent first
+        }
+        
+        // Most recent dates first (descending order)
+        return timeB - timeA;
+    });
+    
     // Group reports by client
-    const reportsByClient = reports.reduce((acc, report) => {
+    const reportsByClient = sortedReports.reduce((acc, report) => {
         const clientId = report.client_id;
         if (!acc[clientId]) {
             acc[clientId] = {
@@ -578,9 +706,14 @@ function displayReports(reports) {
                 <td>${new Date(report.inspection_date).toLocaleDateString()}</td>
                 <td><span class="badge bg-${getReportStatusBadge(report.status)}">${getReportStatusText(report.status)}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary view-report-btn" data-report-id="${report.id}" title="عرض التقرير">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary view-report-btn" data-report-id="${report.id}" title="عرض التقرير">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger remove-report-btn" data-report-id="${report.id}" title="إزالة من القائمة">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </td>
             `;
             reportsTableBody.appendChild(row);
@@ -624,6 +757,16 @@ function displayReports(reports) {
     document.querySelectorAll('.view-report-btn').forEach(button => {
         button.addEventListener('click', function() {
             viewReport(this.dataset.reportId);
+        });
+    });
+    
+    // Add event listeners for remove report buttons
+    document.querySelectorAll('.remove-report-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const reportId = this.dataset.reportId;
+            if (confirm('هل أنت متأكد من إزالة هذا التقرير من قائمة إنشاء الفواتير؟')) {
+                markReportAsRemoved(reportId);
+            }
         });
     });
 }
@@ -734,7 +877,8 @@ function initiateDirectInvoiceCreation() {
             report_id: report.id
         })),
         isNewInvoice: true, // Flag to indicate this is a new invoice
-        isBulkInvoice: true // Flag to indicate this is a bulk invoice
+        isBulkInvoice: true, // Flag to indicate this is a bulk invoice
+        excludeFromInvoiceCreation: invoiceSettings.excludeFromInvoiceCreation || false // Flag to exclude reports from appearing here
     };
 
     // Store the invoice data in localStorage for edit-invoice.js to pick up
@@ -938,6 +1082,55 @@ function viewReport(reportId) {
 }
 
 /**
+ * Load removed reports from localStorage
+ */
+function loadRemovedReports() {
+    try {
+        const stored = localStorage.getItem('lpk_removed_reports');
+        if (stored) {
+            removedReports = JSON.parse(stored);
+        } else {
+            removedReports = [];
+        }
+    } catch (error) {
+        console.error('Error loading removed reports:', error);
+        removedReports = [];
+    }
+}
+
+/**
+ * Save removed reports to localStorage
+ */
+function saveRemovedReports() {
+    try {
+        localStorage.setItem('lpk_removed_reports', JSON.stringify(removedReports));
+    } catch (error) {
+        console.error('Error saving removed reports:', error);
+    }
+}
+
+/**
+ * Mark a report as removed from the create-invoice page
+ * @param {string} reportId - ID of the report to mark as removed
+ */
+function markReportAsRemoved(reportId) {
+    // Add to removed reports list if not already there
+    if (!removedReports.includes(reportId)) {
+        removedReports.push(reportId);
+        saveRemovedReports();
+    }
+    
+    // Remove from selected reports if it was selected
+    selectedReports = selectedReports.filter(id => id !== reportId);
+    updateSelectedReportsSummary();
+    
+    // Reload reports to reflect the change
+    loadReports();
+    
+    showToast('تم إزالة التقرير من قائمة إنشاء الفواتير', 'success');
+}
+
+/**
  * Show invoice settings modal
  */
 function showInvoiceSettingsModal() {
@@ -964,6 +1157,11 @@ function showInvoiceSettingsModal() {
     document.getElementById('paymentMethod').value = invoiceSettings.paymentMethod;
     document.getElementById('paymentStatusSelect').value = invoiceSettings.paymentStatus; // Populate payment status
     document.getElementById('invoiceNotes').value = invoiceSettings.notes;
+    // Set exclude checkbox if it exists
+    const excludeCheckbox = document.getElementById('excludeFromInvoiceCreation');
+    if (excludeCheckbox) {
+        excludeCheckbox.checked = invoiceSettings.excludeFromInvoiceCreation || false;
+    }
 
     const settingsModal = new bootstrap.Modal(document.getElementById('invoiceSettingsModal'));
     settingsModal.show();
@@ -1755,6 +1953,11 @@ function loadTemplate(templateId) {
     document.getElementById('paymentMethod').value = invoiceSettings.paymentMethod;
     document.getElementById('paymentStatusSelect').value = invoiceSettings.paymentStatus; // Populate payment status
     document.getElementById('invoiceNotes').value = invoiceSettings.notes;
+    // Set exclude checkbox if it exists
+    const excludeCheckbox = document.getElementById('excludeFromInvoiceCreation');
+    if (excludeCheckbox) {
+        excludeCheckbox.checked = invoiceSettings.excludeFromInvoiceCreation || false;
+    }
     
     // Show success message
     showToast('تم تحميل القالب بنجاح', 'success');

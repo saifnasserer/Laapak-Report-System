@@ -6,7 +6,7 @@
 // Get a reference to the global apiService if it exists
 let formApiService;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Try to get apiService from global scope
     formApiService = window.apiService || (typeof apiService !== 'undefined' ? apiService : null);
     // Make sure error containers are hidden on page load
@@ -26,22 +26,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const formSteps = document.querySelectorAll('.form-step');
     const stepButtons = document.querySelectorAll('.step-button');
     const stepItems = document.querySelectorAll('.step-item');
-    
+
     // Centralized navigation buttons
     const globalNextBtn = document.getElementById('globalNextBtn');
     const globalPrevBtn = document.getElementById('globalPrevBtn');
     const submitBtn = document.getElementById('submitReportBtn');
     const progressBar = document.querySelector('.steps-progress-bar');
-    
+
     let currentStep = 0;
-    
+
     // Initialize form
     showStep(currentStep);
     updateProgressBar();
-    
+
     // Event listener for centralized next button
     if (globalNextBtn) {
-        globalNextBtn.addEventListener('click', function() {
+        globalNextBtn.addEventListener('click', function () {
             // Hide all step errors before validation
             if (typeof hideAllStepErrors === 'function') {
                 hideAllStepErrors();
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
-            
+
             // Special handling for step 1 - client validation
             if (currentStep === 0) {
                 const clientSelect = document.getElementById('clientSelect');
@@ -67,16 +67,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         errorContainer.style.display = 'block';
                         errorContainer.scrollIntoView({ behavior: 'smooth' });
                     }
-                    
+
                     // Add red border to the client select
                     if (clientSelect.parentNode) {
                         clientSelect.parentNode.classList.add('border', 'border-danger');
                     }
-                    
+
                     return false; // Stop here, don't proceed to next step
                 }
             }
-            
+
             if (validateStep(currentStep)) {
                 // If we're on step 1, update global device details and client details before moving to next step
                 if (currentStep === 0) {
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Get the existing device price if available
                     const existingDevicePrice = window.globalDeviceDetails?.devicePrice || '';
                     const devicePriceInput = document.getElementById('devicePrice');
-                    
+
                     window.globalDeviceDetails = {
                         orderNumber: document.getElementById('orderNumber')?.value || '',
                         inspectionDate: document.getElementById('inspectionDate')?.value || new Date().toISOString().split('T')[0],
@@ -97,9 +97,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         ram: document.getElementById('deviceRAM')?.value || '',
                         storage: document.getElementById('deviceStorage')?.value || ''
                     };
-                    
+
                     console.log('Updated globalDeviceDetails with price:', window.globalDeviceDetails);
-                    
+
                     // Store client selection in global variable
                     const clientSelect = document.getElementById('clientSelect');
                     if (clientSelect && clientSelect.value) {
@@ -107,10 +107,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (!window.globalClientDetails) {
                             window.globalClientDetails = {};
                         }
-                        
+
                         window.globalClientDetails.client_id = clientSelect.value;
                         console.log('Selected client ID stored globally:', window.globalClientDetails.client_id);
-                        
+
                         // If we have client data available, store more details
                         if (Array.isArray(window.clientsData)) {
                             const selectedClient = window.clientsData.find(client => client.id == clientSelect.value);
@@ -123,34 +123,34 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     }
-                    
+
                     // Call the update function if it exists
                     if (typeof updateGlobalDeviceDetails === 'function') {
                         updateGlobalDeviceDetails();
                     }
-                    
+
                     console.log('Step 1 → Step 2: Updated device details:', window.globalDeviceDetails);
                 }
-                
+
                 currentStep++;
                 showStep(currentStep);
                 updateProgressBar();
-                
+
                 // For step 5 (invoice), auto-populate device details from global variables
                 if (currentStep === 4) { // Zero-based index, so 4 is the fifth step
                     const invoiceDeviceInput = document.getElementById('invoiceDeviceName');
                     const invoiceSerialInput = document.getElementById('invoiceSerialNumber');
                     const invoicePriceInput = document.getElementById('invoicePrice');
-                    
+
                     console.log('Populating invoice device fields from global device details');
                     console.log('Global device details:', window.globalDeviceDetails);
-                    
+
                     // Force update global device details from the first step
                     if (typeof updateGlobalDeviceDetails === 'function') {
                         updateGlobalDeviceDetails();
                         console.log('Updated global device details before populating invoice fields:', window.globalDeviceDetails);
                     }
-                    
+
                     // Always use window.globalDeviceDetails to ensure we're accessing the global variable
                     if (window.globalDeviceDetails && invoiceDeviceInput && invoiceSerialInput) {
                         // Auto-fill device details from global variables
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             invoiceDeviceInput.value = window.globalDeviceDetails.deviceModel;
                             console.log('Auto-filled device model from global:', window.globalDeviceDetails.deviceModel);
                         }
-                        
+
                         // Get serial number from the first step
                         const serialNumberInput = document.getElementById('serialNumber');
                         if (serialNumberInput && serialNumberInput.value) {
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             invoiceSerialInput.value = window.globalDeviceDetails.serialNumber;
                             console.log('Auto-filled serial number from global:', window.globalDeviceDetails.serialNumber);
                         }
-                        
+
                         // Get price from the first step
                         const priceInput = document.getElementById('invoicePrice');
                         if (priceInput) {
@@ -191,13 +191,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Fallback to direct DOM access if global variables aren't available
                         const deviceModelInput = document.getElementById('deviceModel');
                         const serialNumberInput = document.getElementById('serialNumber');
-                        
+
                         if (deviceModelInput && serialNumberInput && invoiceDeviceInput && invoiceSerialInput) {
                             // Auto-fill device details from step 1
                             if (deviceModelInput.value) {
                                 invoiceDeviceInput.value = deviceModelInput.value;
                             }
-                            
+
                             if (serialNumberInput.value) {
                                 invoiceSerialInput.value = serialNumberInput.value;
                             }
@@ -207,16 +207,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Event listener for previous button
     if (globalPrevBtn) {
-        globalPrevBtn.addEventListener('click', function() {
+        globalPrevBtn.addEventListener('click', function () {
             currentStep--;
             showStep(currentStep);
             updateProgressBar();
         });
     }
-    
+
     // Allow clicking directly on step indicators (if previous steps are complete)
     stepButtons.forEach((button, index) => {
         button.addEventListener('click', () => {
@@ -227,28 +227,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // Show specific step and update indicators
     function showStep(stepIndex) {
         // Hide all form steps
         formSteps.forEach((step, index) => {
             step.style.display = 'none';
         });
-        
+
         // Show the current step
         if (formSteps[stepIndex]) {
             formSteps[stepIndex].style.display = 'block';
-            
+
             // Scroll to the top of the step
             formSteps[stepIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        
+
         // Add console logging for debugging
         console.log(`[form-steps] showStep called. currentStep (stepIndex): ${stepIndex}, formSteps.length: ${formSteps.length}`);
-        if(submitBtn) {
+        if (submitBtn) {
             console.log(`[form-steps] submitBtn found. Initial display style: ${submitBtn.style.display}`);
         }
-        if(globalNextBtn) {
+        if (globalNextBtn) {
             console.log(`[form-steps] globalNextBtn found. Initial display style: ${globalNextBtn.style.display}`);
         }
 
@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const button = item.querySelector('.step-button');
             button.classList.remove('btn-primary');
             button.classList.add('btn-outline-primary');
-            
+
             // Mark current and previous steps
             if (index < stepIndex) {
                 // Previous steps: completed
@@ -273,15 +273,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.classList.add('btn-primary');
             }
         });
-        
+
         // Update centralized navigation buttons
         if (globalPrevBtn) {
             globalPrevBtn.style.display = stepIndex === 0 ? 'none' : 'inline-block';
         }
-        
+
         // Debug formSteps length and current step index
         console.log(`[DEBUG] formSteps.length: ${formSteps.length}, stepIndex: ${stepIndex}, Last step index: ${formSteps.length - 1}`);
-        
+
         // Handle the last step for Submit button - Step 5 has index 4 (zero-based)
         if (stepIndex === 4) { // Explicitly check for step 5 (index 4)
             if (globalNextBtn) {
@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`[form-steps] Hiding submitBtn for step ${stepIndex}`);
             }
         }
-        
+
         // Change next button text on last step
         if (stepIndex === formSteps.length - 1) {
             document.querySelectorAll('.btn-next-step').forEach(btn => btn.textContent = 'إنشاء التقرير');
@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.btn-next-step').forEach(btn => btn.textContent = 'التالي');
         }
     }
-    
+
     // Update progress bar
     function updateProgressBar() {
         if (progressBar) {
@@ -318,25 +318,25 @@ document.addEventListener('DOMContentLoaded', function() {
             progressBar.style.width = progressPercentage + '%';
         }
     }
-    
+
     // Validate current step fields with enhanced validation
     function validateStep(stepIndex) {
         const currentStepEl = formSteps[stepIndex];
         let isValid = true;
         let errorMessages = [];
-        
+
         // Clear previous validation messages
         const existingAlerts = currentStepEl.querySelectorAll('.validation-alert');
         existingAlerts.forEach(alert => alert.remove());
-        
+
         // Hide step-specific error container
         const stepErrorContainer = document.getElementById(`step${stepIndex + 1}ErrorContainer`);
         if (stepErrorContainer) {
             stepErrorContainer.style.display = 'none';
         }
-        
+
         // Step-specific validation
-        switch(stepIndex) {
+        switch (stepIndex) {
             case 0: // Basic Information
                 isValid = validateBasicInfoStep(currentStepEl, errorMessages);
                 break;
@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Default validation for required fields
                 isValid = validateRequiredFields(currentStepEl, errorMessages);
         }
-        
+
         if (!isValid) {
             // Show error in the step-specific error container
             if (stepErrorContainer && document.getElementById(`step${stepIndex + 1}ErrorText`)) {
@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const alertEl = createValidationAlert(currentStepEl, errorMessages);
                 alertEl.style.display = 'block';
             }
-            
+
             // Scroll to the first error field
             const firstInvalidField = currentStepEl.querySelector('.is-invalid');
             if (firstInvalidField) {
@@ -377,32 +377,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => firstInvalidField.focus(), 500);
             }
         }
-        
+
         return isValid;
     }
-    
+
     // Validate basic information step
     function validateBasicInfoStep(stepEl, errorMessages) {
         let isValid = true;
-        
+
         // Client validation - this is now a critical requirement
         const clientSelect = stepEl.querySelector('#clientSelect');
         if (clientSelect && !clientSelect.value) {
             errorMessages.push('الرجاء اختيار عميل أو إضافة عميل جديد');
             isValid = false;
-            
+
             // Add red border to the client select
             if (clientSelect.parentNode) {
                 clientSelect.parentNode.classList.add('border', 'border-danger');
-                
+
                 // Remove highlight when client is selected
-                clientSelect.addEventListener('change', function() {
+                clientSelect.addEventListener('change', function () {
                     if (this.value) {
                         this.parentNode.classList.remove('border', 'border-danger');
                     }
                 }, { once: true });
             }
-            
+
             // Show specific error in step1 error container
             const stepErrorContainer = document.getElementById('step1ErrorContainer');
             const stepErrorText = document.getElementById('step1ErrorText');
@@ -411,9 +411,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 stepErrorContainer.style.display = 'block';
                 stepErrorContainer.scrollIntoView({ behavior: 'smooth' });
             }
-            
+
             // Add event listener to hide error when client is selected
-            clientSelect.addEventListener('change', function() {
+            clientSelect.addEventListener('change', function () {
                 if (this.value) {
                     const errorContainer = document.getElementById('step1ErrorContainer');
                     if (errorContainer) {
@@ -421,10 +421,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }, { once: true });
-            
+
             return false; // Stop validation here as client selection is required
         }
-        
+
         // Order number validation
         const orderNumber = stepEl.querySelector('#orderNumber');
         if (orderNumber && !orderNumber.value.trim()) {
@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
             markInvalid(orderNumber, 'هذا الحقل مطلوب');
         }
-        
+
         // Inspection date validation
         const inspectionDate = stepEl.querySelector('#inspectionDate');
         if (inspectionDate && !inspectionDate.value) {
@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
             markInvalid(inspectionDate, 'هذا الحقل مطلوب');
         }
-        
+
         // Device model validation
         const deviceModel = stepEl.querySelector('#deviceModel');
         if (deviceModel && !deviceModel.value.trim()) {
@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
             markInvalid(deviceModel, 'هذا الحقل مطلوب');
         }
-        
+
         // Serial number validation
         const serialNumber = stepEl.querySelector('#serialNumber');
         if (serialNumber && !serialNumber.value.trim()) {
@@ -456,54 +456,86 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
             markInvalid(serialNumber, 'هذا الحقل مطلوب');
         }
-        
+
+        // Device CPU validation
+        const deviceCPU = stepEl.querySelector('#deviceCPU');
+        if (deviceCPU && !deviceCPU.value.trim()) {
+            errorMessages.push('الرجاء إدخال معلومات المعالج (CPU)');
+            isValid = false;
+            markInvalid(deviceCPU, 'هذا الحقل مطلوب');
+        }
+
+        // Device GPU validation
+        const deviceGPU = stepEl.querySelector('#deviceGPU');
+        if (deviceGPU && !deviceGPU.value.trim()) {
+            errorMessages.push('الرجاء إدخال معلومات كرت الشاشة (GPU)');
+            isValid = false;
+            markInvalid(deviceGPU, 'هذا الحقل مطلوب');
+        }
+
+        // Device RAM validation
+        const deviceRAM = stepEl.querySelector('#deviceRAM');
+        if (deviceRAM && !deviceRAM.value.trim()) {
+            errorMessages.push('الرجاء إدخال معلومات الذاكرة (RAM)');
+            isValid = false;
+            markInvalid(deviceRAM, 'هذا الحقل مطلوب');
+        }
+
+        // Device Storage validation
+        const deviceStorage = stepEl.querySelector('#deviceStorage');
+        if (deviceStorage && !deviceStorage.value.trim()) {
+            errorMessages.push('الرجاء إدخال معلومات التخزين (Storage)');
+            isValid = false;
+            markInvalid(deviceStorage, 'هذا الحقل مطلوب');
+        }
+
         return isValid;
     }
-    
+
     // Validate technical tests step
     function validateTechnicalTestsStep(stepEl, errorMessages) {
         let isValid = true;
-        
+
         // Check hardware components
         const hardwareComponents = [
             'camera_status', 'speakers_status', 'microphone_status', 'wifi_status',
             'lan_status', 'usb_status', 'keyboard_status', 'touchpad_status',
             'card_reader_status', 'audio_jack_status'
         ];
-        
+
         const unselectedComponents = [];
-        
+
         hardwareComponents.forEach(component => {
             const checkedInput = stepEl.querySelector(`input[name="${component}"]:checked`);
             if (!checkedInput) {
                 unselectedComponents.push(component.replace('_status', '').replace('_', ' '));
                 isValid = false;
-                
+
                 // Highlight the component row
                 const componentRow = stepEl.querySelector(`input[name="${component}"]`).closest('tr');
                 if (componentRow) {
                     componentRow.classList.add('table-danger');
-                    
+
                     // Remove highlight when a radio is selected
                     const radios = componentRow.querySelectorAll('input[type="radio"]');
                     radios.forEach(radio => {
-                        radio.addEventListener('change', function() {
+                        radio.addEventListener('change', function () {
                             componentRow.classList.remove('table-danger');
                         }, { once: true });
                     });
                 }
             }
         });
-        
+
         if (unselectedComponents.length > 0) {
             errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedComponents.join('، ')}`);
         }
-        
+
         // Check test screenshots (now using URLs instead of file uploads)
         // We'll make this a warning rather than an error, as it's not strictly required
         const components = ['cpu', 'gpu', 'hdd', 'battery'];
         const missingScreenshots = [];
-        
+
         components.forEach(component => {
             const previewContainer = document.getElementById(`${component}ScreenshotPreview`);
             if (previewContainer) {
@@ -511,42 +543,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!hasScreenshots) {
                     // Get component display name
                     let componentName = component;
-                    switch(component) {
+                    switch (component) {
                         case 'cpu': componentName = 'المعالج'; break;
                         case 'gpu': componentName = 'كرت الشاشة'; break;
                         case 'hdd': componentName = 'القرص الصلب'; break;
                         case 'battery': componentName = 'البطارية'; break;
                     }
                     missingScreenshots.push(componentName);
-                    
+
                     // Highlight the input field
                     const input = document.getElementById(`${component}ScreenshotUrl`);
                     if (input) {
                         input.classList.add('border-warning');
-                        
+
                         // Remove highlight when a URL is entered
-                        input.addEventListener('input', function() {
+                        input.addEventListener('input', function () {
                             this.classList.remove('border-warning');
                         }, { once: true });
                     }
                 }
             }
         });
-        
+
         if (missingScreenshots.length > 0) {
             // Show warning in step2 warning container
             const stepWarningContainer = document.getElementById('step2WarningContainer');
             if (stepWarningContainer) {
                 stepWarningContainer.innerHTML = `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>لم تقم بإضافة صور لنتائج الاختبارات التالية: ${missingScreenshots.join('، ')}. يُفضل إضافة صور لتوثيق نتائج الاختبارات.</div>`;
                 stepWarningContainer.style.display = 'block';
-                
+
                 // Auto-hide after 5 seconds
                 setTimeout(() => {
                     stepWarningContainer.style.display = 'none';
                 }, 5000);
             }
         }
-        
+
         // Check system components if they exist
         const systemComponents = [
             { id: 'cpuStatus', label: 'المعالج' },
@@ -555,9 +587,9 @@ document.addEventListener('DOMContentLoaded', function() {
             { id: 'storageStatus', label: 'التخزين' },
             { id: 'batteryStatus', label: 'البطارية' }
         ];
-        
+
         const unselectedSystemComponents = [];
-        
+
         systemComponents.forEach(component => {
             const select = stepEl.querySelector(`#${component.id}`);
             if (select && !select.value) {
@@ -566,18 +598,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 markInvalid(select, 'الرجاء تحديد الحالة');
             }
         });
-        
+
         if (unselectedSystemComponents.length > 0) {
             errorMessages.push(`الرجاء تحديد حالة المكونات التالية: ${unselectedSystemComponents.join('، ')}`);
         }
-        
+
         return isValid;
     }
-    
+
     // Validate external inspection step
     function validateExternalInspectionStep(stepEl, errorMessages) {
         let isValid = true;
-        
+
         // Check external condition fields if they exist
         const conditionFields = [
             { id: 'caseCondition', label: 'حالة الهيكل الخارجي' },
@@ -587,9 +619,9 @@ document.addEventListener('DOMContentLoaded', function() {
             { id: 'portsCondition', label: 'حالة المنافذ' },
             { id: 'hingesCondition', label: 'حالة المفصلات' }
         ];
-        
+
         const unselectedConditions = [];
-        
+
         conditionFields.forEach(field => {
             const select = stepEl.querySelector(`#${field.id}`);
             if (select && select.required && !select.value) {
@@ -598,59 +630,59 @@ document.addEventListener('DOMContentLoaded', function() {
                 markInvalid(select, 'الرجاء تحديد الحالة');
             }
         });
-        
+
         if (unselectedConditions.length > 0) {
             errorMessages.push(`الرجاء تحديد ${unselectedConditions.join('، ')}`);
         }
-        
+
         // Check if at least one image URL has been added
         const imageUrlBadges = document.querySelectorAll('#imageUrlBadges .badge');
         if (imageUrlBadges.length === 0) {
             // Not making this a hard requirement, just a warning
-            const warningContainer = document.getElementById('step3WarningContainer') || 
-                                     document.querySelector('.step-warning-container');
-            
+            const warningContainer = document.getElementById('step3WarningContainer') ||
+                document.querySelector('.step-warning-container');
+
             if (warningContainer) {
                 warningContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>لم تقم بإضافة أي صور للفحص الخارجي. يُفضل إضافة صور لتوثيق حالة الجهاز.</div>';
                 warningContainer.style.display = 'block';
-                
+
                 // Auto-hide after 5 seconds
                 setTimeout(() => {
                     warningContainer.style.display = 'none';
                 }, 5000);
             }
         }
-        
+
         return isValid;
     }
-    
+
     // Validate notes step
     function validateNotesStep(stepEl, errorMessages) {
         // Notes step typically doesn't have required fields
         return validateRequiredFields(stepEl, errorMessages);
     }
-    
+
     // Validate invoice step
     function validateInvoiceStep(stepEl, errorMessages) {
         // Check if billing is enabled
         const billingEnabled = document.getElementById('enableBilling')?.checked || false;
-        
+
         // If billing is disabled, no validation needed
         if (!billingEnabled) {
             return true;
         }
-        
+
         // Auto-fill device details from global variables if they exist
         const invoiceDeviceInput = document.getElementById('invoiceDeviceName');
         const invoiceSerialInput = document.getElementById('invoiceSerialNumber');
-        
+
         // Check if global device details are available (from create-report.js)
         if (typeof globalDeviceDetails !== 'undefined') {
             // Only auto-fill if the invoice fields are empty
             if (invoiceDeviceInput && !invoiceDeviceInput.value && globalDeviceDetails.deviceModel) {
                 invoiceDeviceInput.value = globalDeviceDetails.deviceModel;
             }
-            
+
             if (invoiceSerialInput && !invoiceSerialInput.value && globalDeviceDetails.serialNumber) {
                 invoiceSerialInput.value = globalDeviceDetails.serialNumber;
             }
@@ -658,40 +690,40 @@ document.addEventListener('DOMContentLoaded', function() {
             // Fallback to direct DOM access if global variables aren't available
             const deviceModelInput = document.getElementById('deviceModel');
             const serialNumberInput = document.getElementById('serialNumber');
-            
+
             if (deviceModelInput && serialNumberInput && invoiceDeviceInput && invoiceSerialInput) {
                 // Only auto-fill if the invoice fields are empty
                 if (!invoiceDeviceInput.value && deviceModelInput.value) {
                     invoiceDeviceInput.value = deviceModelInput.value;
                 }
-                
+
                 if (!invoiceSerialInput.value && serialNumberInput.value) {
                     invoiceSerialInput.value = serialNumberInput.value;
                 }
             }
         }
-        
+
         // Validate required fields
         return validateRequiredFields(stepEl, errorMessages);
     }
-    
+
     // General validation for required fields
     function validateRequiredFields(stepEl, errorMessages, addMessages = true) {
         const requiredFields = stepEl.querySelectorAll('[required]');
         let isValid = true;
-        
+
         requiredFields.forEach(field => {
             if (!field.value.trim()) {
                 isValid = false;
                 field.classList.add('is-invalid');
-                
+
                 // Add event listener to remove invalid class when user types
-                field.addEventListener('input', function() {
+                field.addEventListener('input', function () {
                     if (this.value.trim()) {
                         this.classList.remove('is-invalid');
                     }
                 }, { once: true });
-                
+
                 // Add error message if needed
                 if (addMessages) {
                     const fieldLabel = getFieldLabel(field);
@@ -701,16 +733,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 field.classList.remove('is-invalid');
             }
         });
-        
+
         return isValid;
     }
-    
+
     // Mark a form input as invalid
     function markInvalid(input, message) {
         if (!input) return;
-        
+
         input.classList.add('is-invalid');
-        
+
         // Check if feedback element already exists
         let feedbackEl = input.nextElementSibling;
         if (!feedbackEl || !feedbackEl.classList.contains('invalid-feedback')) {
@@ -718,11 +750,11 @@ document.addEventListener('DOMContentLoaded', function() {
             feedbackEl.className = 'invalid-feedback';
             input.parentNode.insertBefore(feedbackEl, input.nextSibling);
         }
-        
+
         feedbackEl.textContent = message;
-        
+
         // Add event listener to remove invalid class when user interacts
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             if ((this.type === 'text' || this.type === 'textarea' || this.type === 'email' || this.type === 'tel') && this.value.trim()) {
                 this.classList.remove('is-invalid');
             } else if (this.type === 'select-one' && this.value) {
@@ -730,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, { once: true });
     }
-    
+
     // Get field label for error messages
     function getFieldLabel(field) {
         // Try to find a label for this field
@@ -741,11 +773,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return label.textContent;
             }
         }
-        
+
         // If no label found, use placeholder or name
         return field.placeholder || field.name || 'هذا الحقل';
     }
-    
+
     // Validate all steps before current one when jumping to a step
     function validateStepsBeforeJump(targetIndex) {
         for (let i = 0; i < targetIndex; i++) {
@@ -753,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return true;
     }
-    
+
     // Handle form submission for the final step
     // Form submission is now handled by create-report.js to prevent duplication
     // document.getElementById('reportForm').addEventListener('submit', async function(e) {
@@ -1057,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }); */
-    
+
     /**
      * Save report data to storage
      * @param {Object} reportData - The report data to save
@@ -1065,13 +1097,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function saveReportData(reportData) {
         // Get existing reports from storage
         let reports = JSON.parse(localStorage.getItem('lpk_reports') || '[]');
-        
+
         // Add new report
         reports.push(reportData);
-        
+
         // Save back to storage
         localStorage.setItem('lpk_reports', JSON.stringify(reports));
-        
+
         // Also save to client-specific reports if client_id exists
         if (reportData.client_id) {
             let clientReports = JSON.parse(localStorage.getItem(`lpk_client_${reportData.client_id}_reports`) || '[]');
@@ -1079,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem(`lpk_client_${reportData.client_id}_reports`, JSON.stringify(clientReports));
         }
     }
-    
+
     /**
      * Generate a unique invoice number
      * @returns {string} The generated invoice number
@@ -1090,10 +1122,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
         const random = Math.floor(1000 + Math.random() * 9000);
-        
+
         return `INV-${year}${month}${day}-${random}`;
     }
-    
+
     /**
      * Update success modal with report and invoice information
      * @param {Object} reportData - The saved report data
@@ -1102,15 +1134,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateSuccessModal(reportData, invoice) {
         const modal = document.getElementById('reportCreatedModal');
         if (!modal) return;
-        
+
         // Update report ID
         const reportIdEl = modal.querySelector('#createdReportId');
         if (reportIdEl) reportIdEl.textContent = reportData.id;
-        
+
         // Update report link
         const reportLinkEl = modal.querySelector('#reportLink');
         if (reportLinkEl) reportLinkEl.value = `${window.location.origin}/report.html?id=${reportData.id}`;
-        
+
         // Update invoice information if available
         const invoiceInfoEl = modal.querySelector('#invoiceInfo');
         if (invoiceInfoEl) {
@@ -1132,22 +1164,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 invoiceInfoEl.innerHTML = '';
             }
         }
-        
+
         // Set up view report button
         const viewReportBtn = modal.querySelector('#viewReportBtn');
         if (viewReportBtn) {
-            viewReportBtn.onclick = function(e) {
+            viewReportBtn.onclick = function (e) {
                 e.preventDefault();
                 window.location.href = `report.html?id=${reportData.id}`;
             };
         }
-        
+
         // Set up create invoice button if billing is enabled but no invoice was created
         const createInvoiceBtn = modal.querySelector('#createInvoiceBtn');
         if (createInvoiceBtn) {
             if (reportData.billing_enabled && !invoice) {
                 createInvoiceBtn.style.display = 'inline-block';
-                createInvoiceBtn.onclick = function(e) {
+                createInvoiceBtn.onclick = function (e) {
                     e.preventDefault();
                     window.location.href = 'create-invoice.html';
                 };
@@ -1156,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     /**
      * Populate invoice modal with invoice data
      * @param {Object} invoice - The invoice data
@@ -1164,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function populateInvoiceModal(invoice) {
         const invoiceModalContent = document.getElementById('invoiceModalContent');
         const invoiceDate = new Date(invoice.date);
-        
+
         if (invoiceModalContent) {
             invoiceModalContent.innerHTML = `
                 <div class="mb-4 text-center">
@@ -1256,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
     }
-    
+
     /**
      * Format date to local string
      * @param {Date} date - The date to format
@@ -1269,47 +1301,47 @@ document.addEventListener('DOMContentLoaded', function() {
             return date.toLocaleDateString();
         }
     }
-    
+
     // Video upload handling
     if (document.getElementById('deviceVideo')) {
-        document.getElementById('deviceVideo').addEventListener('change', function(e) {
+        document.getElementById('deviceVideo').addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (!file) return;
-            
+
             // Show video preview
             const videoPreviewContainer = document.getElementById('videoPreviewContainer');
             const videoPreview = document.getElementById('videoPreview');
             const videoFileName = document.getElementById('videoFileName');
-            
+
             // Create object URL for the file
             const videoURL = URL.createObjectURL(file);
             videoPreview.src = videoURL;
             videoFileName.textContent = file.name;
-            
+
             // Show the preview container
             videoPreviewContainer.classList.remove('d-none');
         });
     }
-    
+
     // Component test add/remove handlers
     if (document.getElementById('addComponentTest')) {
         // document.getElementById('addComponentTest').addEventListener('click', function() {
-            // Show component selection dialog
-            // This would be implemented later
-            // alert('سيتم إضافة فحص جديد قريباً...');
+        // Show component selection dialog
+        // This would be implemented later
+        // alert('سيتم إضافة فحص جديد قريباً...');
         // });
-        
+
         // Add event listeners to remove buttons
         document.querySelectorAll('.remove-test-btn').forEach(btn => {
             if (!btn.disabled) {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     const card = this.closest('.component-test-card');
                     if (card) {
                         // Add fade out animation
                         card.style.opacity = '1';
                         card.style.transition = 'opacity 0.3s ease';
                         card.style.opacity = '0';
-                        
+
                         // Remove after animation completes
                         setTimeout(() => {
                             card.remove();
@@ -1319,14 +1351,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Success modal functionality
     if (document.getElementById('copyLinkBtn')) {
-        document.getElementById('copyLinkBtn').addEventListener('click', function() {
+        document.getElementById('copyLinkBtn').addEventListener('click', function () {
             const reportLink = document.getElementById('reportLink');
             reportLink.select();
             document.execCommand('copy');
-            
+
             // Show copy success message
             this.innerHTML = '<i class="fas fa-check"></i>';
             setTimeout(() => {
@@ -1334,27 +1366,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 2000);
         });
     }
-    
+
     if (document.getElementById('whatsappShareBtn')) {
-        document.getElementById('whatsappShareBtn').addEventListener('click', function(e) {
+        document.getElementById('whatsappShareBtn').addEventListener('click', function (e) {
             e.preventDefault();
             const reportLink = document.getElementById('reportLink').value;
             const whatsappLink = `https://wa.me/?text=${encodeURIComponent('تقرير الفحص الخاص بك من Laapak: ' + reportLink)}`;
             window.open(whatsappLink, '_blank');
         });
     }
-    
+
     if (document.getElementById('copyLinkBtn')) {
-        document.getElementById('copyLinkBtn').addEventListener('click', function(e) {
+        document.getElementById('copyLinkBtn').addEventListener('click', function (e) {
             e.preventDefault();
             // Get the current URL
             const reportUrl = window.location.href;
-            
+
             // Copy to clipboard
-            navigator.clipboard.writeText(reportUrl).then(function() {
+            navigator.clipboard.writeText(reportUrl).then(function () {
                 // Show success message
                 alert('تم نسخ رابط التقرير بنجاح');
-            }).catch(function() {
+            }).catch(function () {
                 // Fallback for browsers that don't support clipboard API
                 const textArea = document.createElement('textarea');
                 textArea.value = reportUrl;
