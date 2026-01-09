@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>عرض الفاتورة - نظام تقارير لاباك</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             margin: 0;
@@ -11,11 +13,13 @@
             overflow: hidden;
             font-family: 'Cairo', 'Tajawal', sans-serif;
         }
+
         .invoice-iframe {
             width: 100%;
             height: 100vh;
             border: none;
         }
+
         .loading-container {
             display: flex;
             justify-content: center;
@@ -27,17 +31,14 @@
         }
     </style>
 </head>
+
 <body>
     <div class="loading-container" id="loading">
         <div>جاري تحميل الفاتورة...</div>
     </div>
-    <iframe 
-        id="invoiceFrame" 
-        class="invoice-iframe" 
-        style="display: none;"
+    <iframe id="invoiceFrame" class="invoice-iframe" style="display: none;"
         onload="document.getElementById('loading').style.display='none'; document.getElementById('invoiceFrame').style.display='block';"
-        onerror="document.getElementById('loading').innerHTML='<div style=\'color: red;\'>فشل تحميل الفاتورة. يرجى المحاولة مرة أخرى.</div>';"
-    ></iframe>
+        onerror="document.getElementById('loading').innerHTML='<div style=\'color: red;\'>فشل تحميل الفاتورة. يرجى المحاولة مرة أخرى.</div>';"></iframe>
 
     <!-- Auth Middleware -->
     <script src="../../scripts/core/auth-middleware.js"></script>
@@ -46,4 +47,5 @@
     <!-- Custom JS for this page -->
     <script src="../../scripts/pages/invoices/view-invoice.js"></script>
 </body>
+
 </html>

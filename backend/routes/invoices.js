@@ -944,12 +944,27 @@ router.get('/:id/print', async (req, res, next) => {
         <div class="invoice-info">
           ${getSetting('showInvoiceNumber', true) || getSetting('showInvoiceDate', true) ? `
           <div class="invoice-details">
-            ${getSetting('showHeader', true) ? `<div class="section-title">تفاصيل الفاتورة</div>` : ''}
-            ${getSetting('showInvoiceNumber', true) ? `<div class="info-row"><span class="label">رقم الفاتورة:</span><span class="value">${invoiceNumber}</span></div>` : ''}
-            ${repairRequestNumber ? `<div class="info-row"><span class="label">كود التقرير:</span><span class="value">${repairRequestNumber}</span></div>` : ''}
-            ${getSetting('showInvoiceDate', true) ? `<div class="info-row"><span class="label">تاريخ الإصدار:</span><span class="value">${dates.primary}</span></div>` : ''}
-            ${getSetting('showDueDate', true) && invoice.dueDate ? `<div class="info-row"><span class="label">تاريخ الاستحقاق:</span><span class="value">${formatDates(new Date(invoice.dueDate), 'gregorian').primary}</span></div>` : ''}
-            <div class="info-row"><span class="label">الحالة:</span><span class="value">${statusText}</span></div>
+            <div class="section-title">شروط وأحكام الضمان</div>
+            <div class="info-row">
+              <span class="label">• 14 يوم استبدال واسترجاع</span>
+            </div>
+            <div style="font-size: 11px; color: ${systemColors.textSecondary}; margin-right: 12px; margin-bottom: 6px;">
+              في حالة وجود مشكلة يتم تأكيدها بواسطة مركزنا فيكس زون
+            </div>
+            <div class="info-row">
+              <span class="label">• 6 شهور ضد عيوب الصناعة فقط</span>
+            </div>
+            <div class="info-row">
+              <span class="label">• 12 شهر ضمان صيانة دورية</span>
+            </div>
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid ${systemColors.border};">
+              <div style="font-size: 12px; font-weight: 600; color: ${systemColors.textPrimary}; margin-bottom: 6px;">استثناءات الضمان:</div>
+              <div style="font-size: 11px; color: ${systemColors.textSecondary}; line-height: 1.6;">
+                • الكسر أو التلف الناتج عن سوء الاستخدام<br>
+                • دخول السوائل أو الرطوبة<br>
+                • التعديلات غير المصرح بها<br>
+              </div>
+            </div>
           </div>
           ` : ''}
           ${getSetting('showCustomerInfo', true) ? `
@@ -959,6 +974,8 @@ router.get('/:id/print', async (req, res, next) => {
             <div class="info-row"><span class="label">الهاتف:</span><span class="value">${customerPhone}</span></div>
             ${customerEmail ? `<div class="info-row"><span class="label">البريد:</span><span class="value">${customerEmail}</span></div>` : ''}
             ${customerAddress ? `<div class="info-row"><span class="label">العنوان:</span><span class="value">${customerAddress}</span></div>` : ''}
+            ${getSetting('showInvoiceDate', true) ? `<div class="info-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${systemColors.border};"><span class="label">تاريخ الإصدار:</span><span class="value">${dates.primary}</span></div>` : ''}
+            <div class="info-row"><span class="label">الحالة:</span><span class="value">${statusText}</span></div>
           </div>
           ` : ''}
         </div>
@@ -1115,15 +1132,81 @@ router.get('/:id/print', async (req, res, next) => {
 
         <div class="no-print" style="text-align:center; margin-top:30px; padding:20px; background:${systemColors.surface}; border-radius:12px; border:1px solid ${systemColors.border};">
           <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-            <button onclick="window.print()" style="padding:14px 32px; border:none; border-radius:6px; background:${systemColors.primary}; color:#fff; cursor:pointer; font-size:15px; font-weight:500;">
+            <button onclick="window.print()" style="padding:10px 24px; border:none; border-radius:30px; background:${systemColors.primary}; color:#fff; cursor:pointer; font-size:15px; font-weight:500;">
               🖨️ طباعة الفاتورة
             </button>
-            <button onclick="window.close()" style="padding:14px 32px; border:1px solid ${systemColors.border}; border-radius:10px; background:${systemColors.background}; color:${systemColors.textPrimary}; cursor:pointer; font-size:15px; font-weight:600; transition: all 0.2s ease;" onmouseover="this.style.background='${systemColors.surfaceLight}';" onmouseout="this.style.background='${systemColors.background}';">
+            <button onclick="downloadPDF()" style="padding:10px 24px; border:none; border-radius:30px; background:#10B981; color:#fff; cursor:pointer; font-size:15px; font-weight:500;">
+              📥 تحميل PDF
+            </button>
+            <button onclick="window.close()" style="padding:10px 24px; border:1px solid ${systemColors.border}; border-radius:30px; background:${systemColors.background}; color:${systemColors.textPrimary}; cursor:pointer; font-size:15px; font-weight:600; transition: all 0.2s ease;" onmouseover="this.style.background='${systemColors.surfaceLight}';" onmouseout="this.style.background='${systemColors.background}';">
               ✕ إغلاق
             </button>
           </div>
           <p style="margin-top:12px; color:${systemColors.textSecondary}; font-size:13px;">تأكد من إعدادات الطباعة قبل الطباعة</p>
         </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script>
+          async function downloadPDF() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            try {
+              btn.disabled = true;
+              btn.innerHTML = '⏳ جاري التحميل...';
+              
+              // Clone the container to avoid modifying the original
+              const container = document.querySelector('.container');
+              const clone = container.cloneNode(true);
+              
+              // Remove all elements with .no-print class (buttons)
+              const noPrintElements = clone.querySelectorAll('.no-print');
+              noPrintElements.forEach(el => el.remove());
+              
+              // Find the footer and remove everything after it
+              const footer = clone.querySelector('.footer');
+              if (footer) {
+                // Remove all siblings after the footer
+                let nextSibling = footer.nextElementSibling;
+                while (nextSibling) {
+                  const toRemove = nextSibling;
+                  nextSibling = nextSibling.nextElementSibling;
+                  toRemove.remove();
+                }
+              }
+              
+              // Configure PDF options to match print quality
+              const opt = {
+                margin: [10, 10, 10, 10],
+                filename: 'invoice-${req.params.id}.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                  scale: 2,
+                  useCORS: true,
+                  letterRendering: true,
+                  scrollY: 0,
+                  scrollX: 0
+                },
+                jsPDF: { 
+                  unit: 'mm', 
+                  format: 'a4', 
+                  orientation: 'portrait',
+                  compress: true
+                },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+              };
+              
+              // Generate and download PDF from the clone (without buttons and post-footer content)
+              await html2pdf().set(opt).from(clone).save();
+              
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            } catch (error) {
+              console.error('Download error:', error);
+              alert('فشل تحميل الملف. يرجى المحاولة مرة أخرى.');
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            }
+          }
+        </script>
       </div>
       ${getSetting('showQrCode', false) ? `
       <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
