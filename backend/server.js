@@ -284,6 +284,11 @@ app.use('/api/external', apiKeysRoutes);
 app.use('/api/v2/external', apiKeysEnhancedRoutes);
 app.use('/api/admin', apiKeyManagementRoutes);
 
+// ETA (Egyptian Tax Authority) callback endpoint
+app.get('/eta/callback', (req, res) => {
+    res.send('OK');
+});
+
 // Protected routes examples
 app.get('/api/protected', auth, (req, res) => {
     res.json({ message: 'This is a protected route for all authenticated users', user: req.user });
