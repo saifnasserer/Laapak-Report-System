@@ -286,6 +286,15 @@ app.use('/api/admin', apiKeyManagementRoutes);
 
 // ETA (Egyptian Tax Authority) callback endpoint
 app.get('/eta/callback', (req, res) => {
+    // Log the callback request for monitoring
+    console.log('ETA Callback received:', {
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        headers: req.headers,
+        query: req.query,
+        ip: req.ip
+    });
+
     res.send('OK');
 });
 
