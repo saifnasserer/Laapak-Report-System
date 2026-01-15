@@ -681,7 +681,8 @@ router.get('/:id/print', async (req, res, next) => {
           display: grid;
           grid-template-areas: 
             "client warranty"
-            "items items";
+            "items items"
+            "totals totals";
           grid-template-columns: 1fr 1fr;
           gap: 15px;
           margin-bottom: 12px;
@@ -702,6 +703,9 @@ router.get('/:id/print', async (req, res, next) => {
         }
         .items-area {
           grid-area: items;
+        }
+        .totals-area {
+          grid-area: totals;
         }
         .section-title { 
           font-size: ${getSetting('sectionTitleFontSize', 15)}px;
@@ -1065,43 +1069,45 @@ router.get('/:id/print', async (req, res, next) => {
           </table>
           ` : ''}
         </div>
-      </div>
 
-        <div class="totals">
-          <table class="totals-table">
-            ${getSetting('showDiscount', true) && discountAmount > 0 ? `
-            <tr>
-              <td>الخصم:</td>
-              <td class="number">-${discountAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
-            </tr>
-            ` : ''}
-            ${getSetting('financial.showTax', true) && taxAmount > 0 ? `
-            <tr>
-              <td>الضريبة:</td>
-              <td class="number">${taxAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
-            </tr>
-            ` : ''}
-            ${getSetting('financial.showShipping', true) && shippingAmount > 0 ? `
-            <tr>
-              <td>الشحن:</td>
-              <td class="number">${shippingAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
-            </tr>
-            ` : ''}
-            ${getSetting('showTotal', true) ? `
-            <tr class="total-row">
-              <td>الإجمالي:</td>
-              <td class="number">${total.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
-            </tr>
-            ` : ''}
-            <tr>
-              <td>المدفوع:</td>
-              <td class="number">${amountPaid.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
-            </tr>
-            <tr>
-              <td>المتبقي:</td>
-              <td class="number" style="font-weight: 500;">${remaining.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
-            </tr>
-          </table>
+          <div class="totals-area" style="order: 4;">
+            <div class="totals">
+              <table class="totals-table">
+                ${getSetting('showDiscount', true) && discountAmount > 0 ? `
+                <tr>
+                  <td>الخصم:</td>
+                  <td class="number">-${discountAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+                </tr>
+                ` : ''}
+                ${getSetting('financial.showTax', true) && taxAmount > 0 ? `
+                <tr>
+                  <td>الضريبة:</td>
+                  <td class="number">${taxAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+                </tr>
+                ` : ''}
+                ${getSetting('financial.showShipping', true) && shippingAmount > 0 ? `
+                <tr>
+                  <td>الشحن:</td>
+                  <td class="number">${shippingAmount.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+                </tr>
+                ` : ''}
+                ${getSetting('showTotal', true) ? `
+                <tr class="total-row">
+                  <td>الإجمالي:</td>
+                  <td class="number">${total.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+                </tr>
+                ` : ''}
+                <tr>
+                  <td>المدفوع:</td>
+                  <td class="number">${amountPaid.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+                </tr>
+                <tr>
+                  <td>المتبقي:</td>
+                  <td class="number" style="font-weight: 500;">${remaining.toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
         </div>
 
         ${getSetting('showPaymentMethod', false) || getSetting('showPaymentStatus', false) ? `
