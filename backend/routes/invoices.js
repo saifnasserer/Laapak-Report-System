@@ -677,34 +677,31 @@ router.get('/:id/print', async (req, res, next) => {
           border-radius: 4px;
           padding: 8px;
         }
-        .invoice-info { 
-          display:grid;
+        .invoice-grid-system {
+          display: grid;
+          grid-template-areas: 
+            "client warranty"
+            "items items";
           grid-template-columns: 1fr 1fr;
           gap: 15px;
           margin-bottom: 12px;
         }
-        .invoice-details, .customer-details { 
+        .customer-details { 
+          grid-area: client;
           background: ${systemColors.background};
           padding: 16px;
           border-radius: 0;
           border: 1px solid ${systemColors.border};
         }
-        .invoice-details {
-          text-align: right;
-          direction: rtl;
+        .warranty-details { 
+          grid-area: warranty;
+          background: ${systemColors.background};
+          padding: 16px;
+          border-radius: 0;
+          border: 1px solid ${systemColors.border};
         }
-        .invoice-details .section-title {
-          text-align: right;
-          direction: rtl;
-        }
-        .invoice-details .info-row {
-          flex-direction: row;
-          justify-content: space-between;
-        }
-        .invoice-details .info-row .value {
-          text-align: left;
-          direction: ltr;
-          unicode-bidi: embed;
+        .items-area {
+          grid-area: items;
         }
         .section-title { 
           font-size: ${getSetting('sectionTitleFontSize', 15)}px;
@@ -843,11 +840,11 @@ router.get('/:id/print', async (req, res, next) => {
             padding-bottom: 15px;
             page-break-after: avoid;
           }
-          .invoice-info {
+          .invoice-grid-system {
             page-break-inside: avoid;
             margin-bottom: 20px;
           }
-          .invoice-details, .customer-details {
+          .customer-details, .warranty-details {
             page-break-inside: avoid;
           }
           .table {
@@ -881,13 +878,39 @@ router.get('/:id/print', async (req, res, next) => {
             box-shadow: none !important;
             background: ${systemColors.primary} !important;
           }
-          .table, .totals-table, .invoice-details, .customer-details {
+          .table, .totals-table, .customer-details, .warranty-details {
             box-shadow: none !important;
             border: 1px solid ${systemColors.border} !important;
           }
           * {
             box-shadow: none !important;
           }
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 15mm 10mm;
+                max-width: 100%;
+            }
+            .header-bottom {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            .company-info {
+                text-align: center;
+            }
+            .invoice-grid-system {
+                display: flex;
+                flex-direction: column;
+                grid-template-areas: none;
+            }
+            .totals-table {
+                width: 100%;
+            }
+            .table th, .table td {
+                padding: 8px 6px;
+                font-size: 11px !important;
+            }
         }
       </style>
     </head>
@@ -941,9 +964,20 @@ router.get('/:id/print', async (req, res, next) => {
         </div>
         ` : ''}
 
-        <div class="invoice-info">
-          ${getSetting('showInvoiceNumber', true) || getSetting('showInvoiceDate', true) ? `
-          <div class="invoice-details">
+        <div class="invoice-grid-system">
+          ${getSetting('showCustomerInfo', true) ? `
+          <div class="customer-details" style="order: 1;">
+            <div class="section-title">بيانات العميل</div>
+            <div class="info-row"><span class="label">الاسم:</span><span class="value">${customerName}</span></div>
+            <div class="info-row"><span class="label">الهاتف:</span><span class="value">${customerPhone}</span></div>
+            ${customerEmail ? `<div class="info-row"><span class="label">البريد:</span><span class="value">${customerEmail}</span></div>` : ''}
+            ${customerAddress ? `<div class="info-row"><span class="label">العنوان:</span><span class="value">${customerAddress}</span></div>` : ''}
+            ${getSetting('showInvoiceDate', true) ? `<div class="info-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${systemColors.border};"><span class="label">تاريخ الإصدار:</span><span class="value">${dates.primary}</span></div>` : ''}
+            <div class="info-row"><span class="label">الحالة:</span><span class="value">${statusText}</span></div>
+          </div>
+          ` : ''}
+
+          <div class="warranty-details" style="order: 3;">
             <div class="section-title">شروط وأحكام الضمان</div>
             <div class="info-row">
               <span class="label">• 14 يوم استبدال واسترجاع</span>
@@ -965,35 +999,21 @@ router.get('/:id/print', async (req, res, next) => {
                 • التعديلات غير المصرح بها<br>
               </div>
             </div>
-          </div>
-          ` : ''}
-          ${getSetting('showCustomerInfo', true) ? `
-          <div class="customer-details">
-            <div class="section-title">بيانات العميل</div>
-            <div class="info-row"><span class="label">الاسم:</span><span class="value">${customerName}</span></div>
-            <div class="info-row"><span class="label">الهاتف:</span><span class="value">${customerPhone}</span></div>
-            ${customerEmail ? `<div class="info-row"><span class="label">البريد:</span><span class="value">${customerEmail}</span></div>` : ''}
-            ${customerAddress ? `<div class="info-row"><span class="label">العنوان:</span><span class="value">${customerAddress}</span></div>` : ''}
-            ${getSetting('showInvoiceDate', true) ? `<div class="info-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${systemColors.border};"><span class="label">تاريخ الإصدار:</span><span class="value">${dates.primary}</span></div>` : ''}
-            <div class="info-row"><span class="label">الحالة:</span><span class="value">${statusText}</span></div>
-          </div>
-          ` : ''}
-        </div>
 
-
-        ${getSetting('showItemsTable', true) ? `
-        <div class="section-title" style="margin-top: 5px; margin-bottom: 10px;">المشتريات</div>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>اسم الجهاز</th>
-              <th>الرقم التسلسلي</th>
-              <th class="number">الكمية</th>
-              <th class="number">السعر</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.map(item => {
+          <div class="items-area" style="order: 2;">
+          ${getSetting('showItemsTable', true) ? `
+          <div class="section-title" style="margin-top: 5px; margin-bottom: 10px;">المشتريات</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>اسم الجهاز</th>
+                <th>الرقم التسلسلي</th>
+                <th class="number">الكمية</th>
+                <th class="number">السعر</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(item => {
       const itemTotal = (item.totalAmount !== null && item.totalAmount !== undefined)
         ? Number(item.totalAmount)
         : ((Number(item.quantity) || 1) * (Number(item.amount) || 0));
@@ -1032,18 +1052,20 @@ router.get('/:id/print', async (req, res, next) => {
       }
 
       return `
-              <tr>
-                <td style="font-weight: 400; color: ${systemColors.textPrimary}; font-size: ${getSetting('tableFontSize', 13)}px;">${deviceName}</td>
-                <td style="font-weight: 400; color: ${systemColors.textPrimary}; font-size: ${getSetting('tableFontSize', 13)}px;">${itemSerialNumber}</td>
-                <td class="number">${Number(item.quantity) || 1}</td>
-                <td class="number">${(Number(item.amount) || 0).toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
-              </tr>
-            `;
+                <tr>
+                  <td style="font-weight: 400; color: ${systemColors.textPrimary}; font-size: ${getSetting('tableFontSize', 13)}px;">${deviceName}</td>
+                  <td style="font-weight: 400; color: ${systemColors.textPrimary}; font-size: ${getSetting('tableFontSize', 13)}px;">${itemSerialNumber}</td>
+                  <td class="number">${Number(item.quantity) || 1}</td>
+                  <td class="number">${(Number(item.amount) || 0).toFixed(getSetting('numberFormat', {}).decimalPlaces || 2)} ${getSetting('currency', {}).showSymbol ? (getSetting('currency', {}).symbolPosition === 'before' ? 'ج.م ' : '') : ''}${getSetting('currency', {}).showSymbol && getSetting('currency', {}).symbolPosition === 'after' ? ' ج.م' : ''}</td>
+                </tr>
+              `;
     }).join('')}
-            ${items.length === 0 ? `<tr><td colspan="4" style="text-align:center; color:${systemColors.textSecondary};">لا توجد عناصر في الفاتورة</td></tr>` : ''}
-          </tbody>
-        </table>
-        ` : ''}
+              ${items.length === 0 ? `<tr><td colspan="4" style="text-align:center; color:${systemColors.textSecondary};">لا توجد عناصر في الفاتورة</td></tr>` : ''}
+            </tbody>
+          </table>
+          ` : ''}
+        </div>
+      </div>
 
         <div class="totals">
           <table class="totals-table">

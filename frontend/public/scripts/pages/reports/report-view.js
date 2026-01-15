@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeMuteIcon = document.getElementById('volumeMuteIcon');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const standaloneFullscreenBtn = document.getElementById('standaloneFullscreenBtn'); // New standalone button
-    
+
     const billingEnabled = document.getElementById('billingEnabled');
     const billingAmount = document.getElementById('billingAmount');
     const billingSummaryContainer = document.getElementById('billingSummaryContainer');
@@ -68,33 +68,33 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchReportData() {
         try {
             // Try to get apiService from different sources
-            const service = typeof apiService !== 'undefined' ? apiService : 
-                          (window && window.apiService) ? window.apiService : null;
-            
+            const service = typeof apiService !== 'undefined' ? apiService :
+                (window && window.apiService) ? window.apiService : null;
+
             // Determine base URL safely
-            const apiBaseUrl = service && service.baseUrl ? service.baseUrl : 
-                             (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
-                             (window.config && window.config.api && window.config.api.baseUrl) 
-                                 ? window.config.api.baseUrl 
-                                 : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-                                     ? 'http://localhost:3001'
-                                     : 'https://reports.laapak.com';
-                             
+            const apiBaseUrl = service && service.baseUrl ? service.baseUrl :
+                (window.config && window.config.api && window.config.api.baseUrl) ? window.config.api.baseUrl :
+                    (window.config && window.config.api && window.config.api.baseUrl)
+                        ? window.config.api.baseUrl
+                        : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                            ? 'http://localhost:3001'
+                            : 'https://reports.laapak.com';
+
             console.log('Using API base URL:', apiBaseUrl);
             console.log('Fetching report with ID:', reportId);
-            
+
             // The correct API endpoint structure
             const response = await fetch(`${apiBaseUrl}/api/reports/${reportId}`);
-            
+
             if (!response.ok) {
                 // Try alternative endpoint if the first one fails
                 console.log('First endpoint failed, trying alternative endpoint...');
                 const altResponse = await fetch(`${apiBaseUrl}/api/client/reports/${reportId}`);
-                
+
                 if (!altResponse.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 return await altResponse.json();
             }
             const data = await response.json();
@@ -129,11 +129,11 @@ document.addEventListener('DOMContentLoaded', () => {
         deviceModel.textContent = get(report, 'device_model');
         serialNumber.textContent = get(report, 'serial_number');
         inspectionDate.textContent = report.inspection_date ? new Date(report.inspection_date).toLocaleDateString('ar-EG-u-nu-arab') : '-';
-        
+
         const statusText = get(report, 'status');
         reportStatus.textContent = translateStatus(statusText);
         reportStatus.className = `badge ${getStatusBadgeClass(statusText)}`;
-        
+
         // Add enhanced styling to information items
         enhanceInformationDisplay();
 
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Step 4: Technician Notes
         let notesContent = '';
-        
+
         // First check if there are notes in hardware_status with type 'note'
         const notesComponent = hardwareStatusData.find(item => item.type === 'note' && item.componentName === 'notes');
         if (notesComponent && notesComponent.notes && notesComponent.notes.trim()) {
@@ -165,12 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 hasNotes = false;
             }
         }
-        
+
         // Set notes content if available
         if (technicianNotes) {
             technicianNotes.textContent = notesContent;
         }
-        
+
         // Hide notes step if no content
         if (!hasNotes) {
             console.log('No notes found, hiding notes step');
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Step 5: Billing Summary (Now handled by static content in Step 6 in HTML)
     }
-    
+
     /**
      * Hide the notes step if there's no content
      */
@@ -189,30 +189,30 @@ document.addEventListener('DOMContentLoaded', () => {
         // Find the notes step element (it's step 5 in the HTML structure)
         const notesStep = document.querySelector('.form-step[data-step="5"], .step-5, #step5');
         const notesStepItem = document.querySelector('.step-item[data-step="5"], .step-item:nth-child(5)');
-        
+
         if (notesStep) {
             notesStep.style.display = 'none';
             console.log('Notes step hidden');
         }
-        
+
         if (notesStepItem) {
             notesStepItem.style.display = 'none';
             console.log('Notes step item hidden');
         }
-        
+
         // Also hide the entire notes section container if it exists
         const notesSection = document.getElementById('notesSection');
         if (notesSection) {
             notesSection.style.display = 'none';
         }
-        
+
         // Set global hasNotes to false
         hasNotes = false;
-        
+
         // Update step navigation to skip the hidden step
         updateStepNavigation();
     }
-    
+
     /**
      * Update step navigation to handle hidden steps
      */
@@ -220,32 +220,32 @@ document.addEventListener('DOMContentLoaded', () => {
         // Recalculate total steps after hiding notes step
         const visibleSteps = document.querySelectorAll('.form-step:not([style*="display: none"])');
         const visibleStepItems = document.querySelectorAll('.step-item:not([style*="display: none"])');
-        
+
         console.log(`Notes step hidden. Total visible steps: ${visibleSteps.length}, Total visible step items: ${visibleStepItems.length}`);
-        
+
         // Update step navigation logic to account for hidden steps
         if (visibleSteps.length !== steps.length) {
             console.log(`Notes step hidden. Total steps: ${visibleSteps.length} (was ${steps.length})`);
-            
+
             // If we're currently on a step that's now hidden, move to the next visible step
             const currentStepElement = document.querySelector('.form-step.active');
             if (currentStepElement && currentStepElement.style.display === 'none') {
-                const nextVisibleStep = Array.from(visibleSteps).find(step => 
-                    step.style.display !== 'none' && 
+                const nextVisibleStep = Array.from(visibleSteps).find(step =>
+                    step.style.display !== 'none' &&
                     Array.from(steps).indexOf(step) > Array.from(steps).indexOf(currentStepElement)
                 );
-                
+
                 if (nextVisibleStep) {
                     currentStep = Array.from(visibleSteps).indexOf(nextVisibleStep) + 1;
                 } else {
                     // If no next step, go to the last visible step
                     currentStep = visibleSteps.length;
                 }
-                
+
                 updateSteps();
             }
         }
-        
+
         // Update the step navigation to reflect the correct total
         updateSteps();
     }
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return defaultValue;
         }
     }
-    
+
     function translateStatus(status) {
         const statuses = {
             'pending': 'قيد الانتظار',
@@ -286,20 +286,20 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Gallery container not found');
             return;
         }
-        
+
         galleryContainer.innerHTML = ''; // Clear previous
-        
+
         // Filter only image items and exclude test_screenshots
         const imageItems = imagesData.filter(item => {
-            return (item.type === 'image' && !item.url.match(/\.(mp4|webm|ogg|mov)$/i)) && 
-                   item.type !== 'test_screenshot' && 
-                   item.type !== 'youtube' && 
-                   item.type !== 'video';
+            return (item.type === 'image' && !item.url.match(/\.(mp4|webm|ogg|mov)$/i)) &&
+                item.type !== 'test_screenshot' &&
+                item.type !== 'youtube' &&
+                item.type !== 'video';
         });
-        
+
         // Store gallery images globally for navigation
         galleryImages = imageItems;
-        
+
         if (imageItems.length === 0) {
             galleryContainer.innerHTML = `
                 <div class="col-12">
@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="text-muted small">لم يتم اضافة أي صور خارجية للجهاز في هذا التقرير</p>
                     </div>
                 </div>`;
-            
+
             // Disable gallery controls
             const galleryControls = document.getElementById('galleryControls');
             if (galleryControls) {
@@ -319,28 +319,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
-        
+
         // Set up gallery control buttons
         // setupGalleryControls(imageItems.length);
-        
+
         // Create gallery items
         imageItems.forEach((item, index) => {
             const col = document.createElement('div');
             col.className = 'col-lg-4 col-md-6 col-sm-6 gallery-item';
-            
+
             const imgContainer = document.createElement('div');
             imgContainer.className = 'card border-0 shadow-sm h-100 overflow-hidden';
             imgContainer.style.borderRadius = 'var(--card-radius)';
             imgContainer.style.transition = 'all 0.3s ease';
             imgContainer.dataset.index = index;
-            
+
             // Image wrapper for fixed aspect ratio
             const imgWrapper = document.createElement('div');
             imgWrapper.className = 'img-wrapper position-relative';
             imgWrapper.style.overflow = 'hidden';
             imgWrapper.style.aspectRatio = '4/3';
             imgWrapper.style.backgroundColor = '#f8f9fa';
-            
+
             const img = document.createElement('img');
             img.src = item.url;
             img.alt = item.name || 'صورة الجهاز';
@@ -348,20 +348,20 @@ document.addEventListener('DOMContentLoaded', () => {
             img.style.objectFit = 'cover';
             img.style.transition = 'transform 0.5s ease';
             img.loading = 'lazy'; // Lazy loading for better performance
-            
+
             // Add hover effect
             imgContainer.onmouseenter = () => {
                 imgContainer.style.transform = 'translateY(-5px)';
                 imgContainer.style.boxShadow = '0 15px 30px rgba(0,0,0,0.1)';
                 img.style.transform = 'scale(1.05)';
             };
-            
+
             imgContainer.onmouseleave = () => {
                 imgContainer.style.transform = 'translateY(0)';
                 imgContainer.style.boxShadow = '';
                 img.style.transform = 'scale(1)';
             };
-            
+
             // Add modern overlay with actions
             const overlay = document.createElement('div');
             overlay.className = 'position-absolute d-flex flex-column justify-content-between w-100 h-100 p-3';
@@ -370,20 +370,20 @@ document.addEventListener('DOMContentLoaded', () => {
             overlay.style.background = 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.2) 100%)';
             overlay.style.opacity = '0';
             overlay.style.transition = 'opacity 0.3s ease';
-            
+
             // Top row with image number
             const topRow = document.createElement('div');
             topRow.className = 'd-flex justify-content-between align-items-center';
-            
+
             const imageNumber = document.createElement('span');
             imageNumber.className = 'badge bg-dark bg-opacity-50 fw-normal';
             imageNumber.innerHTML = `<i class="fas fa-image me-1"></i> ${index + 1}/${imageItems.length}`;
             topRow.appendChild(imageNumber);
-            
+
             // Bottom row with caption and action button
             const bottomRow = document.createElement('div');
             bottomRow.className = 'd-flex justify-content-between align-items-end';
-            
+
             if (item.name) {
                 const caption = document.createElement('h6');
                 caption.className = 'text-white mb-0 text-shadow';
@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 caption.style.textShadow = '0 1px 3px rgba(0,0,0,0.5)';
                 bottomRow.appendChild(caption);
             }
-            
+
             const viewBtn = document.createElement('button');
             viewBtn.className = 'btn btn-sm btn-light rounded-circle';
             viewBtn.style.width = '32px';
@@ -406,77 +406,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.stopPropagation();
                 openGalleryLightbox(index);
             };
-            
+
             bottomRow.appendChild(viewBtn);
-            
+
             overlay.appendChild(topRow);
             overlay.appendChild(bottomRow);
-            
+
             // Show overlay on hover
             imgContainer.addEventListener('mouseenter', () => overlay.style.opacity = '1');
             imgContainer.addEventListener('mouseleave', () => overlay.style.opacity = '0');
-            
+
             // Container click opens lightbox
             imgContainer.onclick = () => openGalleryLightbox(index);
-            
+
             imgWrapper.appendChild(img);
             imgWrapper.appendChild(overlay);
             imgContainer.appendChild(imgWrapper);
-            
+
             // Add optional footer with description if available
             if (item.description) {
                 const cardBody = document.createElement('div');
                 cardBody.className = 'card-body p-2';
                 cardBody.style.borderTop = '1px solid rgba(0,0,0,0.05)';
-                
+
                 const description = document.createElement('p');
                 description.className = 'card-text small text-muted mb-0';
-                description.textContent = item.description.length > 60 ? 
-                    item.description.substring(0, 60) + '...' : 
+                description.textContent = item.description.length > 60 ?
+                    item.description.substring(0, 60) + '...' :
                     item.description;
                 cardBody.appendChild(description);
                 imgContainer.appendChild(cardBody);
             }
-            
+
             col.appendChild(imgContainer);
             galleryContainer.appendChild(col);
         });
     }
-    
+
     // Set up gallery control buttons
     function setupGalleryControls(imageCount) {
-        
+
         const galleryControls = document.getElementById('galleryControls');
-        
+
         if (imageCount <= 1) {
             galleryControls.style.display = 'none';
             return;
         }
-        
+
         galleryControls.style.display = 'flex';
-        
+
         document.getElementById('externalImagesGallery').className = 'row g-3 gallery-grid';
-        
+
     }
-    
+
     // Simple lightbox function with navigation
     function openGalleryLightbox(index) {
         if (!galleryImages || galleryImages.length === 0) return;
-        
+
         currentImageIndex = index;
         const simpleLightbox = document.getElementById('simpleLightbox');
-        
+
         // Show the lightbox
         simpleLightbox.classList.remove('d-none');
         document.body.style.overflow = 'hidden'; // Prevent scrolling while lightbox is open
-        
+
         // Update content
         updateLightboxContent();
-        
+
         // Set up event handlers if not already set
         setupLightboxEvents();
     }
-    
+
     // Set up all event handlers for the simple lightbox
     function setupLightboxEvents() {
         // Close button event
@@ -484,23 +484,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (closeBtn) {
             closeBtn.onclick = closeLightbox;
         }
-        
+
         // Previous button event
         const prevBtn = document.getElementById('prevImageSimple');
         if (prevBtn) {
             prevBtn.onclick = navigatePrevImage;
         }
-        
+
         // Next button event
         const nextBtn = document.getElementById('nextImageSimple');
         if (nextBtn) {
             nextBtn.onclick = navigateNextImage;
         }
-        
+
         // Add keyboard navigation
         document.addEventListener('keydown', handleLightboxKeyboard);
     }
-    
+
     // Close the lightbox
     function closeLightbox() {
         const simpleLightbox = document.getElementById('simpleLightbox');
@@ -508,34 +508,34 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.overflow = ''; // Restore scrolling
         document.removeEventListener('keydown', handleLightboxKeyboard);
     }
-    
+
     // Update lightbox content with current image
     function updateLightboxContent() {
         if (!galleryImages || galleryImages.length === 0) return;
-        
+
         const currentImage = galleryImages[currentImageIndex];
         const lightboxImage = document.getElementById('lightboxImageSimple');
-        
+
         // Set the image source
         lightboxImage.src = currentImage.url;
         lightboxImage.alt = currentImage.name || 'صورة الجهاز';
-        
+
         // Update navigation buttons visibility
         const prevBtn = document.getElementById('prevImageSimple');
         const nextBtn = document.getElementById('nextImageSimple');
-        
+
         if (prevBtn) {
             prevBtn.style.visibility = currentImageIndex > 0 ? 'visible' : 'hidden';
         }
-        
+
         if (nextBtn) {
             nextBtn.style.visibility = currentImageIndex < galleryImages.length - 1 ? 'visible' : 'hidden';
         }
-        
+
         // Update counter
         updateImageCounter();
     }
-    
+
     // Navigate to previous image
     function navigatePrevImage() {
         if (currentImageIndex > 0) {
@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLightboxContent();
         }
     }
-    
+
     // Navigate to next image
     function navigateNextImage() {
         if (currentImageIndex < galleryImages.length - 1) {
@@ -551,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLightboxContent();
         }
     }
-    
+
     // Handle keyboard navigation in lightbox
     function handleLightboxKeyboard(e) {
         if (e.key === 'ArrowLeft') {
@@ -562,12 +562,12 @@ document.addEventListener('DOMContentLoaded', () => {
             closeLightbox();
         }
     }
-    
+
     // Update image counter
     function updateImageCounter() {
         const currentIndexElement = document.getElementById('currentIndexSimple');
         const totalImagesElement = document.getElementById('totalImagesSimple');
-        
+
         if (currentIndexElement && totalImagesElement) {
             currentIndexElement.textContent = (currentImageIndex + 1).toString();
             totalImagesElement.textContent = galleryImages.length.toString();
@@ -580,16 +580,16 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Video container, player wrapper, or placeholder element not found');
             return;
         }
-        
+
         videoPlayerWrapper.innerHTML = ''; // Clear previous player
         videoPlaceholder.style.display = 'flex'; // Show loading placeholder
-        if(videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden'; // Hide controls initially
-        
+        if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden'; // Hide controls initially
+
         // Show thumbnail if it exists
         if (videoThumbnail) {
             videoThumbnail.style.display = 'flex';
             // Add click event to play video
-            videoThumbnail.onclick = function() {
+            videoThumbnail.onclick = function () {
                 if (player) {
                     // Hide thumbnail
                     videoThumbnail.style.display = 'none';
@@ -607,23 +607,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
         }
-        
+
         // Find any video media (supports multiple types)
         const videoItems = externalImages.filter(item => {
-            return item.type === 'youtube' || 
-                  item.type === 'video' || 
-                  (item.type === 'image' && item.url && 
-                   (item.url.endsWith('.mp4') || item.url.endsWith('.webm') || item.url.endsWith('.mov')));
+            return item.type === 'youtube' ||
+                item.type === 'video' ||
+                (item.type === 'image' && item.url &&
+                    (item.url.endsWith('.mp4') || item.url.endsWith('.webm') || item.url.endsWith('.mov')));
         });
-        
+
         if (videoItems.length === 0) {
-            videoPlaceholder.innerHTML = '<div class="text-muted text-center py-5"><i class="fas fa-video-slash fa-3x mb-3 text-secondary"></i><p>لا يوجد فيديو مرفق للجهاز.</p></div>';
-            videoPlaceholder.style.display = 'flex';
-            if(videoPlayerWrapper) videoPlayerWrapper.innerHTML = ''; // Clear player wrapper if no video
-            if(videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
+            const videoSection = document.querySelector('.device-video-section');
+            if (videoSection) videoSection.style.display = 'none';
+            if (videoPlayerWrapper) videoPlayerWrapper.innerHTML = ''; // Clear player wrapper if no video
+            if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
             return;
         }
-        
+
+        // Show video section if it was previously hidden
+        const videoSection = document.querySelector('.device-video-section');
+        if (videoSection) videoSection.style.display = 'block';
+
         // Process the first video (primary video)
         const videoItem = videoItems[0];
         try {
@@ -644,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Vimeo video (Note: Custom controls might not work with Vimeo iframe without specific API)
                 embedVimeoVideo(videoItem.url, videoPlayerWrapper);
                 // For Vimeo, custom controls might be limited. Consider hiding custom controls if Vimeo.
-                if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden'; 
+                if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
             } else {
                 // Unknown format - try iframe as fallback
                 if (videoPlaceholder) {
@@ -654,14 +658,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
                 videoPlayerWrapper.innerHTML = ''; // Clear player wrapper for unsupported format
             }
-            
+
             // If there are multiple videos, add thumbnails below (optional feature for later)
             if (videoItems.length > 1) {
                 const videoNav = document.createElement('div');
                 videoNav.className = 'video-thumbnails d-flex mt-3 overflow-auto';
                 // ... Implementation for multiple video navigation (future feature)
             }
-            
+
         } catch (e) {
             console.error('Error processing video:', e);
             if (videoPlaceholder) {
@@ -671,15 +675,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (videoPlayerWrapper) videoPlayerWrapper.innerHTML = '';
             if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
         }
-        } // Closing brace for renderDeviceVideo function
+    } // Closing brace for renderDeviceVideo function
 
     // Helper function to check if URL is YouTube
     function isYouTubeUrl(url) {
         try {
             const videoUrl = new URL(url);
-            return videoUrl.hostname === 'www.youtube.com' || 
-                   videoUrl.hostname === 'youtube.com' || 
-                   videoUrl.hostname === 'youtu.be';
+            return videoUrl.hostname === 'www.youtube.com' ||
+                videoUrl.hostname === 'youtube.com' ||
+                videoUrl.hostname === 'youtu.be';
         } catch (e) {
             return false;
         }
@@ -687,177 +691,177 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Helper to embed YouTube videos with modern player interface
     function embedYouTubeVideo(url, playerWrapperArgument) { // Renamed argument to avoid conflict with global
-    try {
-        playerWrapperArgument.innerHTML = ''; // Clear previous player
-        const youtubeHostDiv = document.createElement('div');
-        youtubeHostDiv.id = 'youtubePlayerHost'; // API will replace this div
-        playerWrapperArgument.appendChild(youtubeHostDiv);
+        try {
+            playerWrapperArgument.innerHTML = ''; // Clear previous player
+            const youtubeHostDiv = document.createElement('div');
+            youtubeHostDiv.id = 'youtubePlayerHost'; // API will replace this div
+            playerWrapperArgument.appendChild(youtubeHostDiv);
 
-        const videoUrl = new URL(url);
-        let videoId = '';
-        if (videoUrl.hostname === 'youtu.be') {
-            videoId = videoUrl.pathname.substring(1);
-        } else if (videoUrl.pathname === '/watch') {
-            videoId = videoUrl.searchParams.get('v');
-        } else if (videoUrl.pathname.startsWith('/embed/')) {
-            videoId = videoUrl.pathname.split('/').pop();
-        }
+            const videoUrl = new URL(url);
+            let videoId = '';
+            if (videoUrl.hostname === 'youtu.be') {
+                videoId = videoUrl.pathname.substring(1);
+            } else if (videoUrl.pathname === '/watch') {
+                videoId = videoUrl.searchParams.get('v');
+            } else if (videoUrl.pathname.startsWith('/embed/')) {
+                videoId = videoUrl.pathname.split('/').pop();
+            }
 
-        if (videoId) {
-            const initPlayer = () => {
-                if (document.getElementById('youtubePlayerHost')) { // Ensure host element exists
-                    player = new YT.Player('youtubePlayerHost', {
-                        height: '100%',
-                        width: '100%',
-                        videoId: videoId,
-                        playerVars: {
-                            'playsinline': 1,
-                            'rel': 0,       // No related videos
-                            'controls': 0,  // Hide default YouTube controls
-                            'showinfo': 0,  // Hide video title, uploader before video starts
-                            'modestbranding': 1 // Hide YouTube logo as much as possible
-                        },
-                        events: {
-                            'onReady': onYouTubePlayerReady,
-                            'onStateChange': onYouTubePlayerStateChange
-                        }
-                    });
-                } else {
-                    console.error('YouTube player host element not found for initialization.');
-                }
-            };
-
-            if (window.YT && window.YT.Player) {
-                initPlayer();
-            } else {
-                window.onYouTubeIframeAPIReady = initPlayer; // This will be called once API is loaded
-                if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-                    const tag = document.createElement('script');
-                    tag.src = 'https://www.youtube.com/iframe_api';
-                    const firstScriptTag = document.getElementsByTagName('script')[0];
-                    if (firstScriptTag && firstScriptTag.parentNode) {
-                       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            if (videoId) {
+                const initPlayer = () => {
+                    if (document.getElementById('youtubePlayerHost')) { // Ensure host element exists
+                        player = new YT.Player('youtubePlayerHost', {
+                            height: '100%',
+                            width: '100%',
+                            videoId: videoId,
+                            playerVars: {
+                                'playsinline': 1,
+                                'rel': 0,       // No related videos
+                                'controls': 0,  // Hide default YouTube controls
+                                'showinfo': 0,  // Hide video title, uploader before video starts
+                                'modestbranding': 1 // Hide YouTube logo as much as possible
+                            },
+                            events: {
+                                'onReady': onYouTubePlayerReady,
+                                'onStateChange': onYouTubePlayerStateChange
+                            }
+                        });
                     } else {
-                       document.head.appendChild(tag);
+                        console.error('YouTube player host element not found for initialization.');
+                    }
+                };
+
+                if (window.YT && window.YT.Player) {
+                    initPlayer();
+                } else {
+                    window.onYouTubeIframeAPIReady = initPlayer; // This will be called once API is loaded
+                    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+                        const tag = document.createElement('script');
+                        tag.src = 'https://www.youtube.com/iframe_api';
+                        const firstScriptTag = document.getElementsByTagName('script')[0];
+                        if (firstScriptTag && firstScriptTag.parentNode) {
+                            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                        } else {
+                            document.head.appendChild(tag);
+                        }
                     }
                 }
+            } else {
+                throw new Error('Invalid YouTube URL');
             }
-        } else {
-            throw new Error('Invalid YouTube URL');
+        } catch (e) {
+            console.error('YouTube embedding error:', e);
+            playerWrapperArgument.innerHTML = `<div class="text-center p-4 alert alert-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><p class="mb-0">خطأ في تضمين فيديو YouTube</p></div>`;
+            if (videoPlaceholder) videoPlaceholder.style.display = 'none';
+            if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
         }
-    } catch (e) {
-        console.error('YouTube embedding error:', e);
-        playerWrapperArgument.innerHTML = `<div class="text-center p-4 alert alert-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><p class="mb-0">خطأ في تضمين فيديو YouTube</p></div>`;
-        if (videoPlaceholder) videoPlaceholder.style.display = 'none';
-        if (videoControlsOverlay) videoControlsOverlay.style.visibility = 'hidden';
     }
-}
 
-// Helper to embed direct video files with modern controls
-function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Renamed argument
-    playerWrapperArgument.innerHTML = ''; // Clear previous player
-    
-    const video = document.createElement('video');
-    video.id = 'html5VideoPlayer';
-    video.src = url;
-    video.controls = false; // We use custom controls
-    video.autoplay = autoplay;
-    video.style.width = '100%';
-    video.style.height = '100%'; // Fill the wrapper
-    video.style.objectFit = 'contain'; // Maintain aspect ratio and center
-    video.style.maxHeight = '100vh';
-    video.style.maxWidth = '100vw';
-    playerWrapperArgument.appendChild(video);
+    // Helper to embed direct video files with modern controls
+    function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Renamed argument
+        playerWrapperArgument.innerHTML = ''; // Clear previous player
 
-    player = video; // Store HTML5 video element as the player
+        const video = document.createElement('video');
+        video.id = 'html5VideoPlayer';
+        video.src = url;
+        video.controls = false; // We use custom controls
+        video.autoplay = autoplay;
+        video.style.width = '100%';
+        video.style.height = '100%'; // Fill the wrapper
+        video.style.objectFit = 'contain'; // Maintain aspect ratio and center
+        video.style.maxHeight = '100vh';
+        video.style.maxWidth = '100vw';
+        playerWrapperArgument.appendChild(video);
 
-    // Event listeners for HTML5 video
-    player.addEventListener('loadedmetadata', () => {
-        console.log('Video metadata loaded');
-        // Hide loading placeholder completely
-        if (videoPlaceholder) {
-            videoPlaceholder.style.display = 'none';
-            videoPlaceholder.style.visibility = 'hidden';
-            videoPlaceholder.style.opacity = '0';
-        }
-        
-        // Use first frame as thumbnail background if possible
-        if (videoThumbnail) {
-            // Try to set video frame as background for the thumbnail
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = player.videoWidth;
-                canvas.height = player.videoHeight;
-                canvas.getContext('2d').drawImage(player, 0, 0, canvas.width, canvas.height);
-                const thumbnailImage = canvas.toDataURL();
-                videoThumbnail.style.backgroundImage = `url(${thumbnailImage})`;
-                videoThumbnail.style.backgroundSize = 'cover';
-                videoThumbnail.style.backgroundPosition = 'center';
-            } catch (e) {
-                console.log('Could not set video frame as thumbnail:', e);
+        player = video; // Store HTML5 video element as the player
+
+        // Event listeners for HTML5 video
+        player.addEventListener('loadedmetadata', () => {
+            console.log('Video metadata loaded');
+            // Hide loading placeholder completely
+            if (videoPlaceholder) {
+                videoPlaceholder.style.display = 'none';
+                videoPlaceholder.style.visibility = 'hidden';
+                videoPlaceholder.style.opacity = '0';
             }
-        }
-        
-        // Force controls to be visible
-        if (videoControlsOverlay) {
-            console.log('Setting video controls visible');
-            videoControlsOverlay.style.visibility = 'visible';
-            videoControlsOverlay.style.opacity = '1';
-            videoControlsOverlay.style.display = 'block';
-        }
-        
-        // Directly get fullscreen button
-        const fsBtn = document.getElementById('fullscreenBtn');
-        if (fsBtn) {
-            console.log('Found fullscreen button, attaching event');
-            fsBtn.onclick = function() {
-                console.log('Fullscreen button clicked');
-                toggleFullscreen();
-            };
-            // Make sure it's visible
-            fsBtn.style.display = 'block';
-        } else {
-            console.warn('Fullscreen button not found!');
-        }
-        
-        initializeVideoControls();
-        updateVideoProgressBar(); // Initialize progress bar with duration
-        updatePlayPauseButton();
-        updateMuteButton();
-    });
-    
-    // Add more event listeners for HTML5 video controls
-    player.addEventListener('play', () => {
-        updatePlayPauseButton();
-    });
-    
-    player.addEventListener('pause', () => {
-        updatePlayPauseButton();
-    });
-    
-    player.addEventListener('volumechange', () => {
-        updateMuteButton();
-    });
-    
-    player.addEventListener('timeupdate', () => {
-        updateVideoProgressBar();
-    });
-    
-    player.addEventListener('ended', () => {
-        updatePlayPauseButton();
-        // Optionally reset to beginning
-        player.currentTime = 0;
-    });
-    
-    // Handle errors
-    player.addEventListener('error', () => {
-        console.error('Video error:', player.error);
-        if (videoPlaceholder) {
-            videoPlaceholder.innerHTML = '<div class="alert alert-danger text-center"><i class="fas fa-exclamation-triangle mb-2"></i><p>خطأ في تشغيل الفيديو</p></div>';
-            videoPlaceholder.style.display = 'flex';
-        }
-    });
-} // End of embedDirectVideo function
+
+            // Use first frame as thumbnail background if possible
+            if (videoThumbnail) {
+                // Try to set video frame as background for the thumbnail
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = player.videoWidth;
+                    canvas.height = player.videoHeight;
+                    canvas.getContext('2d').drawImage(player, 0, 0, canvas.width, canvas.height);
+                    const thumbnailImage = canvas.toDataURL();
+                    videoThumbnail.style.backgroundImage = `url(${thumbnailImage})`;
+                    videoThumbnail.style.backgroundSize = 'cover';
+                    videoThumbnail.style.backgroundPosition = 'center';
+                } catch (e) {
+                    console.log('Could not set video frame as thumbnail:', e);
+                }
+            }
+
+            // Force controls to be visible
+            if (videoControlsOverlay) {
+                console.log('Setting video controls visible');
+                videoControlsOverlay.style.visibility = 'visible';
+                videoControlsOverlay.style.opacity = '1';
+                videoControlsOverlay.style.display = 'block';
+            }
+
+            // Directly get fullscreen button
+            const fsBtn = document.getElementById('fullscreenBtn');
+            if (fsBtn) {
+                console.log('Found fullscreen button, attaching event');
+                fsBtn.onclick = function () {
+                    console.log('Fullscreen button clicked');
+                    toggleFullscreen();
+                };
+                // Make sure it's visible
+                fsBtn.style.display = 'block';
+            } else {
+                console.warn('Fullscreen button not found!');
+            }
+
+            initializeVideoControls();
+            updateVideoProgressBar(); // Initialize progress bar with duration
+            updatePlayPauseButton();
+            updateMuteButton();
+        });
+
+        // Add more event listeners for HTML5 video controls
+        player.addEventListener('play', () => {
+            updatePlayPauseButton();
+        });
+
+        player.addEventListener('pause', () => {
+            updatePlayPauseButton();
+        });
+
+        player.addEventListener('volumechange', () => {
+            updateMuteButton();
+        });
+
+        player.addEventListener('timeupdate', () => {
+            updateVideoProgressBar();
+        });
+
+        player.addEventListener('ended', () => {
+            updatePlayPauseButton();
+            // Optionally reset to beginning
+            player.currentTime = 0;
+        });
+
+        // Handle errors
+        player.addEventListener('error', () => {
+            console.error('Video error:', player.error);
+            if (videoPlaceholder) {
+                videoPlaceholder.innerHTML = '<div class="alert alert-danger text-center"><i class="fas fa-exclamation-triangle mb-2"></i><p>خطأ في تشغيل الفيديو</p></div>';
+                videoPlaceholder.style.display = 'flex';
+            }
+        });
+    } // End of embedDirectVideo function
 
     function onYouTubePlayerReady(event) {
         console.log('YouTube player ready');
@@ -867,20 +871,20 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             videoPlaceholder.style.visibility = 'hidden';
             videoPlaceholder.style.opacity = '0';
         }
-        
+
         // Show controls
         if (videoControlsOverlay) {
             videoControlsOverlay.style.visibility = 'visible';
             videoControlsOverlay.style.opacity = '1';
         }
-        
+
         // Initialize video controls
         initializeVideoControls();
-        
+
         // Set up thumbnail if available
         if (videoThumbnail) {
             videoThumbnail.style.display = 'flex';
-            videoThumbnail.onclick = function() {
+            videoThumbnail.onclick = function () {
                 videoThumbnail.style.display = 'none';
                 if (player && player.playVideo) {
                     player.playVideo();
@@ -900,11 +904,11 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         if (event.data === YT.PlayerState.PLAYING) {
             if (videoControlsOverlay) videoControlsOverlay.style.opacity = '1'; // Keep controls visible
         } else if (event.data === YT.PlayerState.ENDED) {
-            if(playIcon && pauseIcon) {
+            if (playIcon && pauseIcon) {
                 playIcon.style.display = 'inline-block';
                 pauseIcon.style.display = 'none';
             }
-            if(player && player.seekTo) player.seekTo(0, false); // Rewind to start, but don't play
+            if (player && player.seekTo) player.seekTo(0, false); // Rewind to start, but don't play
         }
     }
 
@@ -922,13 +926,13 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         } else {
             console.warn('Play/Pause button not found');
         }
-        
+
         if (muteBtn) {
             muteBtn.onclick = toggleMute;
         } else {
             console.warn('Mute button not found');
         }
-        
+
         if (fullscreenBtn) {
             console.log('Attaching fullscreen handler to button', fullscreenBtn);
             fullscreenBtn.onclick = toggleFullscreen;
@@ -943,7 +947,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 }
             }, 1000);
         }
-        
+
         if (videoProgressBarEl) {
             videoProgressBarEl.oninput = seekVideo;
         } else {
@@ -1023,18 +1027,18 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         // Get fullscreen button icons if they exist
         const fsIcon = fullscreenBtn ? fullscreenBtn.querySelector('i') : null;
         const standaloneFsIcon = standaloneFullscreenBtn ? standaloneFullscreenBtn.querySelector('i') : null;
-        
+
         console.log('Toggle fullscreen called', { deviceVideoContainer });
-        
+
         if (!deviceVideoContainer) {
             console.warn('Video container not found for fullscreen');
             return;
         }
-        
+
         try {
-            const isFullScreen = document.fullscreenElement || document.webkitFullscreenElement || 
-                              document.mozFullScreenElement || document.msFullscreenElement;
-                              
+            const isFullScreen = document.fullscreenElement || document.webkitFullscreenElement ||
+                document.mozFullScreenElement || document.msFullscreenElement;
+
             if (isFullScreen) {
                 // Exit fullscreen
                 if (document.exitFullscreen) {
@@ -1046,11 +1050,11 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 } else if (document.msExitFullscreen) { /* IE11 */
                     document.msExitFullscreen();
                 }
-                
+
                 // Change icons to expand
                 if (fsIcon) fsIcon.className = 'fas fa-expand';
                 if (standaloneFsIcon) standaloneFsIcon.className = 'fas fa-expand text-white';
-                
+
                 // Reset video container styling
                 setTimeout(() => {
                     if (deviceVideoContainer) {
@@ -1058,12 +1062,12 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                         deviceVideoContainer.style.height = '100%';
                         deviceVideoContainer.classList.remove('fullscreen-active');
                     }
-                    
+
                     if (videoPlayerWrapper) {
                         videoPlayerWrapper.style.width = '100%';
                         videoPlayerWrapper.style.height = '100%';
                     }
-                    
+
                     if (player) {
                         if (player.tagName === 'VIDEO') {
                             // Reset direct video styling
@@ -1081,7 +1085,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                             }
                         }
                     }
-                    
+
                     // Force repaint
                     document.body.style.display = 'none';
                     document.body.offsetHeight; // Force reflow
@@ -1098,11 +1102,11 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 } else if (deviceVideoContainer.msRequestFullscreen) { /* IE11 */
                     deviceVideoContainer.msRequestFullscreen();
                 }
-                
+
                 // Change icons to compress
                 if (fsIcon) fsIcon.className = 'fas fa-compress';
                 if (standaloneFsIcon) standaloneFsIcon.className = 'fas fa-compress text-white';
-                
+
                 // Optimize video container for fullscreen
                 setTimeout(() => {
                     if (deviceVideoContainer) {
@@ -1113,7 +1117,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                         deviceVideoContainer.style.justifyContent = 'center';
                         deviceVideoContainer.classList.add('fullscreen-active');
                     }
-                    
+
                     if (videoPlayerWrapper) {
                         videoPlayerWrapper.style.width = '100%';
                         videoPlayerWrapper.style.height = '100%';
@@ -1121,7 +1125,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                         videoPlayerWrapper.style.alignItems = 'center';
                         videoPlayerWrapper.style.justifyContent = 'center';
                     }
-                    
+
                     if (player) {
                         if (player.tagName === 'VIDEO') {
                             // Direct video
@@ -1177,7 +1181,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             durationEl.textContent = formatTime(0);
             return;
         }
-        
+
         currentTimeEl.textContent = formatTime(currentTime);
         durationEl.textContent = formatTime(duration);
         videoProgressBarEl.value = currentTime;
@@ -1194,12 +1198,12 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         }
     }
 
-// Helper to embed Vimeo videos
+    // Helper to embed Vimeo videos
     function embedVimeoVideo(url, container) {
         try {
             const videoUrl = new URL(url);
             let videoId = videoUrl.pathname.split('/').pop();
-            
+
             if (videoId) {
                 const iframe = document.createElement('iframe');
                 iframe.src = `https://player.vimeo.com/video/${videoId}`;
@@ -1237,27 +1241,27 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 </div>`;
             return;
         }
-        
+
         // Save test screenshots for lightbox navigation
         testScreenshots = [...screenshotItems]; // Assign to global variable
-        
+
         // Create full-width test screenshots with detailed explanations
         screenshotItems.forEach((item, index) => {
             // Create the main screenshot section container
             const screenshotSection = document.createElement('div');
             screenshotSection.className = 'test-screenshot-section mb-5';
-            
+
             // Create a premium card for the screenshot
             const card = document.createElement('div');
             card.className = 'card shadow-sm border-0 overflow-hidden';
-            
+
             // Card header with component name
             const cardHeader = document.createElement('div');
             cardHeader.className = 'card-header bg-light py-3 border-0';
-            
+
             const componentName = document.createElement('h5');
             componentName.className = 'mb-0 d-flex align-items-center';
-            
+
             // Use appropriate icon based on component type
             const componentIcon = document.createElement('i');
             let iconClass = 'fa-laptop-code';
@@ -1273,9 +1277,9 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             }
             componentIcon.className = `fas ${iconClass} me-2 text-primary`;
             componentName.appendChild(componentIcon);
-            
+
             const nameText = document.createElement('span');
-            
+
             // Use specific names for known component types
             if (item.component) {
                 const comp = item.component.toLowerCase();
@@ -1299,71 +1303,71 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             } else {
                 nameText.textContent = item.name || `اختبار المكون #${index + 1}`;
             }
-            
+
             componentName.appendChild(nameText);
-            
+
             cardHeader.appendChild(componentName);
             card.appendChild(cardHeader);
-            
+
             // Create card body with the screenshot in a row layout
             const cardBody = document.createElement('div');
             cardBody.className = 'card-body p-0';
-            
+
             const row = document.createElement('div');
             row.className = 'row g-0';
-            
+
             // Screenshot column - larger on desktop
             const imgCol = document.createElement('div');
             imgCol.className = 'col-lg-8 col-md-7';
-            
+
             const imgWrapper = document.createElement('div');
             imgWrapper.className = 'position-relative';
-            
+
             const img = document.createElement('img');
             img.src = item.url;
             img.alt = item.name || 'لقطة شاشة اختبار';
             img.className = 'img-fluid w-100';
             img.style.maxHeight = '550px';
             img.style.objectFit = 'contain';
-            
+
             // Add zoom button overlay
             const zoomOverlay = document.createElement('div');
             zoomOverlay.className = 'position-absolute bottom-0 end-0 p-3';
-            
+
             const zoomBtn = document.createElement('button');
             zoomBtn.className = 'btn btn-light btn-sm shadow-sm';
             zoomBtn.innerHTML = '<i class="fas fa-search-plus me-2"></i>عرض';
             zoomBtn.onclick = () => {
                 // Store current test screenshots for navigation
-                galleryImages = testScreenshots; 
+                galleryImages = testScreenshots;
                 openGalleryLightbox(index);
             };
-            
+
             zoomOverlay.appendChild(zoomBtn);
             imgWrapper.appendChild(img);
             imgWrapper.appendChild(zoomOverlay);
             imgCol.appendChild(imgWrapper);
-            
+
             // Explanation column
             const explanationCol = document.createElement('div');
             explanationCol.className = 'col-lg-4 col-md-5 bg-light';
-            
+
             const explanationContent = document.createElement('div');
             explanationContent.className = 'p-4';
-            
+
             // Test title and status
             const titleDiv = document.createElement('div');
             titleDiv.className = 'mb-4';
-            
+
             const title = document.createElement('h5');
             title.className = 'mb-3 border-bottom pb-2';
             title.innerHTML = '<i class="fas fa-info-circle me-2 text-primary"></i>شرح الاختبار';
             titleDiv.appendChild(title);
-            
+
             // Create description with default text if no notes provided
             const description = document.createElement('p');
             description.className = 'mb-4';
-            
+
             // Default descriptions based on component type
             let descriptionText = '';
             if (item.notes) {
@@ -1373,67 +1377,67 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 if (comp.includes('cpu')) {
                     descriptionText = 'لـ Stress Test للبروسيسور بيختبر قوة المعالج تحت ضغط تقيل، علشان يشوف لو هيقدر يشتغل بكفاءة في أقصى ظروف، وبيكشف لو في مشاكل زي السخونية أو الأداء الضعيف. يعني كأنك بتحط المعالج في "تمرين شاق" علشان تشوف هيستحمل ولا لأ..';
                 }
-                else if(comp.includes('gpu')){
+                else if (comp.includes('gpu')) {
                     descriptionText = 'برنامج FurMark بيعمل stress test لكارت الشاشة، يعني بيشغله بأقصى طاقته علشان يشوف هيسخن قد إيه ويقدر يستحمل الضغط ولا لأ. مفيد علشان تختبر التبريد وتشوف لو في مشاكل زي الحرارة العالية أو تهنيج الجهاز أثناء الألعاب او وقت الضغط.'
                 }
                 else if (comp.includes('hdd') || comp.includes('storage')) {
                     descriptionText = 'برنامج Hard Disk Sentinel بيكشف حالة الهارد، سواء HDD أو SSD، وبيقولك لو في مشاكل زي الباد سيكتور أو أداء ضعيف. كأنك بتعمل كشف شامل للهارد علشان تطمن إنه شغال تمام ومش هيفاجئك بعطل مفاجئ.';
-                    
+
                 }
                 else if (comp.includes('battery')) {
                     descriptionText = 'الصورة دي لقطة من شاشة بتبين تفاصيل حالة بطارية اللابتوب، من خلال الـ BIOS .\n\nليه بنعمل الاختبار؟\n\nالهدف إنك تتأكد إن البطارية شغالة كويس وسليمة، يعني مش بتسخن أكتر من اللازم، ومش بتفقد شحن بسرعة، وبتدي الأداء اللي المفروض.\n\nتبص على إيه؟\n\nالحالة العامة: لو مكتوب إن البطارية سليمة، يبقى تمام.\nالسعة الحالية: لو السعة قليلة جدًا، يبقى البطارية بقت ضعيفة.\nلو فيه رسايل تحذير أو مشاكل، يعني فيه عيب في البطارية.\nالمخرجات إيه؟\n\nالحالة: (ممتاز) البطارية سليمة وسعتها كويسة،وبتعدي اقل وقت استخدام داخل الضمان ساعتين.';
                 }
-                else if(comp.includes('keyboard')){
+                else if (comp.includes('keyboard')) {
                     descriptionText = 'اختبار زرار الكيبورد بيشوف إذا كانت كل الزراير شغالة صح ولا لأ. بتضغط على كل زر وبتشوف لو الجهاز بيستجيب، وده مفيد في ان نتأكد لو في زراير مش شغالة أو بتعلق.';
                 }
-                else if (comp.includes('info')){
+                else if (comp.includes('info')) {
                     descriptionText = 'الشاشة اللي بتعرض معلومات الجهاز بتوريك حاجات زي ال (Serial Number) واللي عامل زي البصمة لكل لابتوب ، نوع المعالج (CPU)، الرامات (Memory)، كارت الشاشة (GPU)، نسخة الـ BIOS، وكمان شوية معلومات عن النظام والتعريفات. يعني بتديك نظرة سريعة وشاملة عن مكونات الجهاز وتفاصيلة كاملة.';
                 }
-                else if (comp.includes('dxdiag')){
+                else if (comp.includes('dxdiag')) {
                     descriptionText = 'أداة dxdiag بتجمعلك معلومات عن الجهاز، زي كارت الشاشة، المعالج، الرامات، ونظام التشغيل، وكمان بتكشف لو في مشاكل في الـ DirectX. يعني باختصار، بتديك تقرير سريع عن حالة الجهاز، خصوصًا لو في مشكلة في الألعاب أو الجرافيكس.';
                 }
-                 else {
+                else {
                     descriptionText = 'الصورة دي بتوضح نتايج الاختبارات اللي اتعملت على الجهاز عشان نقيس الأداء ونتأكد إن كل حاجة حالتها ممتازة.';
                 }
             } else {
                 descriptionText = 'الصورة دي بتوضح نتايج الاختبارات اللي اتعملت على الجهاز عشان نقيس الأداء ونتأكد إن كل حاجة حالتها ممتازة.';
             }
-            
+
             description.textContent = descriptionText;
             explanationContent.appendChild(titleDiv);
             explanationContent.appendChild(description);
-            
+
             // Show test result if available
             if (item.status || item.result) {
                 const resultDiv = document.createElement('div');
                 resultDiv.className = 'alert alert-info mt-3';
-                
+
                 const resultTitle = document.createElement('h6');
                 resultTitle.className = 'alert-heading';
                 resultTitle.innerHTML = '<i class="fas fa-clipboard-check me-2"></i>نتيجة الاختبار';
-                
+
                 const resultText = document.createElement('p');
                 resultText.className = 'mb-0';
                 resultText.textContent = item.result || item.status || 'اكتمل الاختبار بنجاح';
-                
+
                 resultDiv.appendChild(resultTitle);
                 resultDiv.appendChild(resultText);
                 explanationContent.appendChild(resultDiv);
             }
-            
+
             explanationCol.appendChild(explanationContent);
-            
+
             // Add columns to row
             row.appendChild(imgCol);
             row.appendChild(explanationCol);
-            
+
             // Add row to card body
             cardBody.appendChild(row);
             card.appendChild(cardBody);
-            
+
             // Add full card to section container
             screenshotSection.appendChild(card);
-            
+
             // Add section to main container
             testScreenshotsContainer.appendChild(screenshotSection);
         });
@@ -1467,14 +1471,14 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
 
         // Filter out items with type "note"
         const filteredHardwareData = hardwareStatusData.filter(item => item.type !== 'note');
-        
+
         filteredHardwareData.forEach(item => {
             const row = hardwareStatusTableBody.insertRow();
             const cellComponent = row.insertCell();
             const cellStatus = row.insertCell();
 
             cellComponent.textContent = componentNameMap[item.componentName] || item.componentName;
-            
+
             const statusBadge = document.createElement('span');
             statusBadge.className = `badge ${getComponentStatusClass(item.status)}`;
             statusBadge.textContent = translateComponentStatus(item.status);
@@ -1506,11 +1510,11 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
 
     // Global variable to track if notes are available
     let hasNotes = false;
-    
+
     // Step navigation logic
     function updateSteps() {
         console.log('Updating steps, current step:', currentStep);
-        
+
         // Update body class to show/hide header based on step
         if (currentStep === 1) {
             document.body.classList.add('step-1-active');
@@ -1519,25 +1523,25 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             document.body.classList.remove('step-1-active');
             document.body.classList.add(`step-${currentStep}-active`);
         }
-        
+
         // Scroll to top of the page with a smooth animation
         window.scrollTo({
             top: 0,
             behavior: 'smooth'
         });
-        
+
         // Get visible steps and step items (excluding hidden ones)
         const visibleSteps = Array.from(steps).filter(step => step.style.display !== 'none');
         const visibleStepItems = Array.from(stepItems).filter(item => item.style.display !== 'none');
-        
+
         console.log('Visible steps:', visibleSteps.length, 'Visible step items:', visibleStepItems.length);
-        
+
         // Update step visibility - handle the correct step order
         steps.forEach((step, index) => {
             // Map the step order correctly based on HTML structure
             let stepNumber;
             const stepId = step.id;
-            
+
             if (stepId === 'step1') stepNumber = 1;
             else if (stepId === 'step2') stepNumber = 2;
             else if (stepId === 'step3') stepNumber = 3; // Hardware tests
@@ -1545,7 +1549,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             else if (stepId === 'step5') stepNumber = 5; // Notes
             else if (stepId === 'step6') stepNumber = 6; // Next steps
             else stepNumber = index + 1; // Fallback
-            
+
             // If notes are hidden, adjust the step numbers
             if (!hasNotes) {
                 if (stepId === 'step5') {
@@ -1562,7 +1566,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                     step.style.display = 'block';
                 }
             }
-            
+
             if (stepNumber === currentStep) {
                 step.classList.add('active');
                 console.log('Activated step:', stepNumber, 'for element:', stepId);
@@ -1575,15 +1579,15 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         stepItems.forEach((item, index) => {
             const button = item.querySelector('.step-button');
             if (!button) return;
-            
+
             // Skip hidden items
             if (item.style.display === 'none') {
                 return;
             }
-            
+
             // Get the step number from data-step attribute
             const stepNumber = parseInt(item.dataset.step);
-            
+
             // Map the step numbers correctly based on the actual content order
             let actualStepNumber;
             if (stepNumber === 1) actualStepNumber = 1; // General Information
@@ -1593,10 +1597,10 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             else if (stepNumber === 5) actualStepNumber = 5; // Notes
             else if (stepNumber === 6) actualStepNumber = 6; // Next Steps
             else actualStepNumber = stepNumber; // Fallback
-            
+
             console.log('🔍 Processing step item - data-step:', stepNumber, 'index:', index);
             console.log('🔄 Step mapping in updateSteps - data-step:', stepNumber, 'actualStepNumber:', actualStepNumber, 'currentStep:', currentStep);
-            
+
             // If notes are hidden, adjust the step numbers and update button text
             if (!hasNotes) {
                 if (stepNumber === 5) {
@@ -1615,7 +1619,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                     button.textContent = '6';
                 }
             }
-            
+
             // Fix the step titles to match the actual content order
             const stepTitle = item.querySelector('.step-title');
             if (stepTitle) {
@@ -1627,7 +1631,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                     stepTitle.textContent = 'الفحص الداخلي';
                 }
             }
-            
+
             if (actualStepNumber === currentStep) {
                 item.classList.add('active');
                 button.classList.remove('btn-outline-primary');
@@ -1647,27 +1651,27 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
 
         // Update navigation buttons
         prevBtn.disabled = currentStep === 1;
-        
+
         // Calculate the correct total steps (considering hidden notes step)
         const totalSteps = hasNotes ? 6 : 5; // If notes are hidden, we have 5 steps instead of 6
         nextBtn.disabled = currentStep === totalSteps;
-        
+
         // Update progress bar based on total steps
         const progressPercentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
         progressBar.style.width = `${progressPercentage}%`;
-        
+
         // Update mobile step indicator
         const totalStepsElement = document.querySelector('.total-steps');
         const currentStepNumberElement = document.querySelector('.current-step-number');
-        
+
         if (totalStepsElement) {
             totalStepsElement.textContent = totalSteps;
         }
-        
+
         if (currentStepNumberElement) {
             currentStepNumberElement.textContent = currentStep;
         }
-        
+
         console.log('🎯 Navigation updated - current step:', currentStep, 'total steps:', totalSteps, 'has notes:', hasNotes);
         console.log('📱 Mobile indicator updated - current:', currentStep, 'total:', totalSteps);
         console.log('🔍 Step mapping summary:');
@@ -1687,7 +1691,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 top: 0,
                 behavior: 'smooth'
             });
-            
+
             currentStep++;
             updateSteps();
         }
@@ -1706,11 +1710,11 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             if (item.style.display === 'none') {
                 return;
             }
-            
+
             // Allow navigation by clicking step items if needed and if step is not disabled
             const stepNumber = parseInt(item.dataset.step);
             console.log('🔍 Step item clicked - data-step:', stepNumber, 'item:', item);
-            
+
             if (stepNumber) {
                 // Map the step number to the correct content step
                 let mappedStep;
@@ -1721,7 +1725,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 else if (stepNumber === 5) mappedStep = 5; // Notes
                 else if (stepNumber === 6) mappedStep = 6; // Next Steps
                 else mappedStep = stepNumber;
-                
+
                 console.log('🔄 Step mapping - Original:', stepNumber, 'Mapped:', mappedStep);
                 currentStep = mappedStep;
                 console.log('📌 Setting currentStep to:', currentStep);
@@ -1729,11 +1733,11 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             }
         });
     });
-    
+
     // Set up mobile navigation buttons
     const mobilePrevBtn = document.querySelector('.prev-step');
     const mobileNextBtn = document.querySelector('.next-step');
-    
+
     if (mobilePrevBtn) {
         mobilePrevBtn.addEventListener('click', () => {
             if (currentStep > 1) {
@@ -1742,7 +1746,7 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             }
         });
     }
-    
+
     if (mobileNextBtn) {
         mobileNextBtn.addEventListener('click', () => {
             const totalSteps = hasNotes ? 6 : 5;
@@ -1755,12 +1759,12 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
 
     // Set up standalone fullscreen button
     if (standaloneFullscreenBtn) {
-        standaloneFullscreenBtn.addEventListener('click', function() {
+        standaloneFullscreenBtn.addEventListener('click', function () {
             console.log('Standalone fullscreen button clicked');
             toggleFullscreen();
         });
     }
-    
+
     /**
      * Add enhanced CSS styles for step buttons and overall report view
      */
@@ -2209,10 +2213,10 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             document.head.appendChild(style);
         }
     }
-    
+
     // Add enhanced step button styles
     addEnhancedStepStyles();
-    
+
     /**
      * Enhance information display with modern styling
      */
@@ -2221,13 +2225,13 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
         const infoParagraphs = document.querySelectorAll('#step1 p');
         infoParagraphs.forEach(p => {
             p.classList.add('info-item');
-            
+
             // Add icons to information items
             const strong = p.querySelector('strong');
             if (strong) {
                 const text = strong.textContent;
                 let icon = 'fas fa-info-circle';
-                
+
                 if (text.includes('اسم العميل')) icon = 'fas fa-user';
                 else if (text.includes('رقم الهاتف')) icon = 'fas fa-phone';
                 else if (text.includes('البريد الإلكتروني')) icon = 'fas fa-envelope';
@@ -2237,13 +2241,13 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
                 else if (text.includes('الرقم التسلسلي')) icon = 'fas fa-barcode';
                 else if (text.includes('تاريخ الفحص')) icon = 'fas fa-calendar-alt';
                 else if (text.includes('حالة التقرير')) icon = 'fas fa-clipboard-check';
-                
+
                 const iconElement = document.createElement('i');
                 iconElement.className = `${icon} me-2 text-primary`;
                 strong.insertBefore(iconElement, strong.firstChild);
             }
         });
-        
+
         // Add enhanced styling to status badge
         const statusBadge = document.getElementById('reportStatus');
         if (statusBadge) {
@@ -2251,17 +2255,17 @@ function embedDirectVideo(url, playerWrapperArgument, autoplay = false) { // Ren
             statusBadge.style.padding = '0.5rem 1rem';
             statusBadge.style.borderRadius = '20px';
         }
-        
+
         // Add enhanced styling to mobile step titles
         const mobileTitles = document.querySelectorAll('.mobile-step-title');
         mobileTitles.forEach(title => {
             title.style.fontWeight = '600';
             title.style.color = 'var(--primary-color)';
         });
-        
+
         console.log('🎨 Enhanced information display styling applied');
     }
-    
+
     // Initial setup
     fetchReportData();
     updateSteps();
