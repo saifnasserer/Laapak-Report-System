@@ -1158,87 +1158,16 @@ router.get('/:id/print', async (req, res, next) => {
           ${getSetting('footerText', '') ? `<br>${getSetting('footerText', '')}` : ''}
         </div>
         ` : ''}
-
-        <div class="no-print" style="text-align:center; margin-top:30px; padding:20px; background:${systemColors.surface}; border-radius:12px; border:1px solid ${systemColors.border};">
-          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-            <button onclick="window.print()" style="padding:10px 24px; border:none; border-radius:30px; background:${systemColors.primary}; color:#fff; cursor:pointer; font-size:15px; font-weight:500;">
-              🖨️ طباعة الفاتورة
-            </button>
-            <button onclick="downloadPDF()" style="padding:10px 24px; border:none; border-radius:30px; background:#10B981; color:#fff; cursor:pointer; font-size:15px; font-weight:500;">
-              📥 تحميل PDF
+        <div class="no-print" style="text-align:center; margin-top:40px; padding:20px;">
+          <div style="display:flex; justify-content:center;">
+            <button onclick="window.print()" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border: 1px solid ${systemColors.border}; border-radius: 50%; background: ${systemColors.surface}; color: ${systemColors.textPrimary}; cursor: pointer; font-size: 24px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(0,0,0,0.08);" onmouseover="this.style.background='${systemColors.background}'; this.style.transform='translateY(-2px) scale(1.05)'; this.style.boxShadow='0 6px 15px rgba(0,0,0,0.12)';" onmouseout="this.style.background='${systemColors.surface}'; this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';" title="طباعة الفاتورة">
+              🖨️
             </button>
           </div>
-          <p style="margin-top:12px; color:${systemColors.textSecondary}; font-size:13px;">تأكد من إعدادات الطباعة قبل الطباعة</p>
+          <p style="margin-top:16px; color:${systemColors.textSecondary}; font-size:13px; font-weight: 500;">اضبط إعدادات الطباعة للحصول على أفضل نتيجة</p>
         </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
         <script>
-          async function downloadPDF() {
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            try {
-              btn.disabled = true;
-              btn.innerHTML = '⏳ جاري التحميل...';
-              
-              // Clone the container to avoid modifying the original
-              const container = document.querySelector('.container');
-              const clone = container.cloneNode(true);
-              
-              // Force desktop dimensions on the clone for the PDF capture
-              clone.style.width = '210mm'; 
-              clone.style.minWidth = '210mm';
-              clone.style.margin = '0 auto';
-              clone.style.float = 'none';
-              
-              // Remove all elements with .no-print class (buttons)
-              const noPrintElements = clone.querySelectorAll('.no-print');
-              noPrintElements.forEach(el => el.remove());
-              
-              // Find the footer and remove everything after it
-              const footer = clone.querySelector('.footer');
-              if (footer) {
-                // Remove all siblings after the footer
-                let nextSibling = footer.nextElementSibling;
-                while (nextSibling) {
-                  const toRemove = nextSibling;
-                  nextSibling = nextSibling.nextElementSibling;
-                  toRemove.remove();
-                }
-              }
-              
-              // Configure PDF options to match print quality
-              const opt = {
-                margin: [10, 10, 10, 10],
-                filename: 'invoice-${req.params.id}.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                  scale: 2,
-                  useCORS: true,
-                  letterRendering: true,
-                  scrollY: 0,
-                  scrollX: 0,
-                  windowWidth: 1200
-                },
-                jsPDF: { 
-                  unit: 'mm', 
-                  format: 'a4', 
-                  orientation: 'portrait',
-                  compress: true
-                },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-              };
-              
-              // Generate and download PDF from the clone (without buttons and post-footer content)
-              await html2pdf().set(opt).from(clone).save();
-              
-              btn.disabled = false;
-              btn.innerHTML = originalText;
-            } catch (error) {
-              console.error('Download error:', error);
-              alert('فشل تحميل الملف. يرجى المحاولة مرة أخرى.');
-              btn.disabled = false;
-              btn.innerHTML = originalText;
-            }
-          }
+          // Print logic is handled by window.print()
         </script>
       </div>
       ${getSetting('showQrCode', false) ? `
