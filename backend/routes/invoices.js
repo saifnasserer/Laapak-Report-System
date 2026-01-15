@@ -890,7 +890,7 @@ router.get('/:id/print', async (req, res, next) => {
             box-shadow: none !important;
           }
         }
-        @media (max-width: 768px) {
+        @media screen and (max-width: 768px) {
             .container {
                 padding: 15mm 10mm;
                 max-width: 100%;
@@ -1003,6 +1003,7 @@ router.get('/:id/print', async (req, res, next) => {
                 • التعديلات غير المصرح بها<br>
               </div>
             </div>
+          </div>
 
           <div class="items-area" style="order: 2;">
           ${getSetting('showItemsTable', true) ? `
@@ -1166,9 +1167,6 @@ router.get('/:id/print', async (req, res, next) => {
             <button onclick="downloadPDF()" style="padding:10px 24px; border:none; border-radius:30px; background:#10B981; color:#fff; cursor:pointer; font-size:15px; font-weight:500;">
               📥 تحميل PDF
             </button>
-            <button onclick="window.close()" style="padding:10px 24px; border:1px solid ${systemColors.border}; border-radius:30px; background:${systemColors.background}; color:${systemColors.textPrimary}; cursor:pointer; font-size:15px; font-weight:600; transition: all 0.2s ease;" onmouseover="this.style.background='${systemColors.surfaceLight}';" onmouseout="this.style.background='${systemColors.background}';">
-              ✕ إغلاق
-            </button>
           </div>
           <p style="margin-top:12px; color:${systemColors.textSecondary}; font-size:13px;">تأكد من إعدادات الطباعة قبل الطباعة</p>
         </div>
@@ -1184,6 +1182,12 @@ router.get('/:id/print', async (req, res, next) => {
               // Clone the container to avoid modifying the original
               const container = document.querySelector('.container');
               const clone = container.cloneNode(true);
+              
+              // Force desktop dimensions on the clone for the PDF capture
+              clone.style.width = '210mm'; 
+              clone.style.minWidth = '210mm';
+              clone.style.margin = '0 auto';
+              clone.style.float = 'none';
               
               // Remove all elements with .no-print class (buttons)
               const noPrintElements = clone.querySelectorAll('.no-print');
@@ -1211,7 +1215,8 @@ router.get('/:id/print', async (req, res, next) => {
                   useCORS: true,
                   letterRendering: true,
                   scrollY: 0,
-                  scrollX: 0
+                  scrollX: 0,
+                  windowWidth: 1200
                 },
                 jsPDF: { 
                   unit: 'mm', 
