@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { Client, Report, Invoice, InvoiceItem, ApiKey, ApiUsageLog } = require('../models');
+const { Client, Report, Invoice, InvoiceItem, ApiKey, ApiUsageLog, Expense, ExpenseCategory } = require('../models');
 const { Op } = require('sequelize');
 const { apiKeyAuth, clientApiKeyAuth, systemApiKeyAuth } = require('../middleware/apiKeyAuth');
 
@@ -17,47 +17,47 @@ const { apiKeyAuth, clientApiKeyAuth, systemApiKeyAuth } = require('../middlewar
 router.post('/auth/verify-client', apiKeyAuth(), async (req, res) => {
     try {
         const { phone, orderCode, email } = req.body;
-        
+
         if (!phone && !email) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: 'Phone number or email is required',
                 error: 'MISSING_PARAMETERS'
             });
         }
-        
+
         let whereClause = {};
-        
+
         if (phone) {
             whereClause.phone = phone;
         }
-        
+
         if (email) {
             whereClause.email = email;
         }
-        
+
         if (orderCode) {
             whereClause.orderCode = orderCode;
         }
-        
+
         const client = await Client.findOne({
             where: whereClause,
             attributes: ['id', 'name', 'phone', 'email', 'status', 'createdAt', 'lastLogin']
         });
-        
+
         if (!client) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 message: 'Client not found',
                 error: 'CLIENT_NOT_FOUND'
             });
         }
-        
+
         if (client.status !== 'active') {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 message: 'Client account is inactive',
                 error: 'CLIENT_INACTIVE'
             });
         }
-        
+
         res.json({
             success: true,
             client: client,
@@ -65,9 +65,9 @@ router.post('/auth/verify-client', apiKeyAuth(), async (req, res) => {
         });
     } catch (error) {
         console.error('Error verifying client:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -78,27 +78,27 @@ router.post('/auth/verify-client', apiKeyAuth(), async (req, res) => {
 router.get('/clients/:id/profile', apiKeyAuth({ clients: { read: true } }), async (req, res) => {
     try {
         const clientId = req.params.id;
-        
+
         const client = await Client.findByPk(clientId, {
             attributes: ['id', 'name', 'phone', 'email', 'address', 'status', 'createdAt', 'lastLogin']
         });
-        
+
         if (!client) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 message: 'Client not found',
                 error: 'CLIENT_NOT_FOUND'
             });
         }
-        
+
         res.json({
             success: true,
             client: client
         });
     } catch (error) {
         console.error('Error fetching client profile:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -111,38 +111,38 @@ router.get('/clients/:id/profile', apiKeyAuth({ clients: { read: true } }), asyn
 router.get('/clients/:id/reports', apiKeyAuth({ reports: { read: true } }), async (req, res) => {
     try {
         const clientId = req.params.id;
-        const { 
-            status, 
-            startDate, 
-            endDate, 
-            deviceModel, 
-            limit = 50, 
+        const {
+            status,
+            startDate,
+            endDate,
+            deviceModel,
+            limit = 50,
             offset = 0,
             sortBy = 'created_at',
             sortOrder = 'DESC'
         } = req.query;
-        
+
         let whereClause = { client_id: clientId };
-        
+
         // Apply filters
         if (status) {
             whereClause.status = status;
         }
-        
+
         if (startDate || endDate) {
             whereClause.inspection_date = {};
             if (startDate) whereClause.inspection_date[Op.gte] = new Date(startDate);
             if (endDate) whereClause.inspection_date[Op.lte] = new Date(endDate);
         }
-        
+
         if (deviceModel) {
             whereClause.device_model = { [Op.like]: `%${deviceModel}%` };
         }
-        
+
         const reports = await Report.findAll({
             where: whereClause,
             attributes: [
-                'id', 'device_model', 'serial_number', 'inspection_date', 
+                'id', 'device_model', 'serial_number', 'inspection_date',
                 'status', 'billing_enabled', 'amount', 'invoice_created',
                 'invoice_id', 'invoice_date', 'created_at', 'updated_at'
             ],
@@ -150,10 +150,10 @@ router.get('/clients/:id/reports', apiKeyAuth({ reports: { read: true } }), asyn
             limit: parseInt(limit),
             offset: parseInt(offset)
         });
-        
+
         // Get total count for pagination
         const totalCount = await Report.count({ where: whereClause });
-        
+
         res.json({
             success: true,
             reports: reports,
@@ -166,9 +166,9 @@ router.get('/clients/:id/reports', apiKeyAuth({ reports: { read: true } }), asyn
         });
     } catch (error) {
         console.error('Error fetching client reports:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -179,7 +179,7 @@ router.get('/clients/:id/reports', apiKeyAuth({ reports: { read: true } }), asyn
 router.get('/reports/:id', apiKeyAuth({ reports: { read: true } }), async (req, res) => {
     try {
         const reportId = req.params.id;
-        
+
         const report = await Report.findByPk(reportId, {
             attributes: [
                 'id', 'client_id', 'client_name', 'client_phone', 'client_email',
@@ -189,23 +189,23 @@ router.get('/reports/:id', apiKeyAuth({ reports: { read: true } }), async (req, 
                 'invoice_id', 'invoice_date', 'created_at', 'updated_at'
             ]
         });
-        
+
         if (!report) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 message: 'Report not found',
                 error: 'REPORT_NOT_FOUND'
             });
         }
-        
+
         res.json({
             success: true,
             report: report
         });
     } catch (error) {
         console.error('Error fetching report:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -218,29 +218,29 @@ router.get('/reports/:id', apiKeyAuth({ reports: { read: true } }), async (req, 
 router.get('/clients/:id/invoices', apiKeyAuth({ invoices: { read: true } }), async (req, res) => {
     try {
         const clientId = req.params.id;
-        const { 
-            paymentStatus, 
-            startDate, 
-            endDate, 
-            limit = 50, 
+        const {
+            paymentStatus,
+            startDate,
+            endDate,
+            limit = 50,
             offset = 0,
             sortBy = 'created_at',
             sortOrder = 'DESC'
         } = req.query;
-        
+
         let whereClause = { client_id: clientId };
-        
+
         // Apply filters
         if (paymentStatus) {
             whereClause.paymentStatus = paymentStatus;
         }
-        
+
         if (startDate || endDate) {
             whereClause.date = {};
             if (startDate) whereClause.date[Op.gte] = new Date(startDate);
             if (endDate) whereClause.date[Op.lte] = new Date(endDate);
         }
-        
+
         const invoices = await Invoice.findAll({
             where: whereClause,
             attributes: [
@@ -253,10 +253,10 @@ router.get('/clients/:id/invoices', apiKeyAuth({ invoices: { read: true } }), as
             limit: parseInt(limit),
             offset: parseInt(offset)
         });
-        
+
         // Get total count for pagination
         const totalCount = await Invoice.count({ where: whereClause });
-        
+
         res.json({
             success: true,
             invoices: invoices,
@@ -269,9 +269,9 @@ router.get('/clients/:id/invoices', apiKeyAuth({ invoices: { read: true } }), as
         });
     } catch (error) {
         console.error('Error fetching client invoices:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -282,7 +282,7 @@ router.get('/clients/:id/invoices', apiKeyAuth({ invoices: { read: true } }), as
 router.get('/invoices/:id', apiKeyAuth({ invoices: { read: true } }), async (req, res) => {
     try {
         const invoiceId = req.params.id;
-        
+
         const invoice = await Invoice.findByPk(invoiceId, {
             attributes: [
                 'id', 'client_id', 'date', 'subtotal', 'discount', 'taxRate', 'tax', 'total',
@@ -298,23 +298,23 @@ router.get('/invoices/:id', apiKeyAuth({ invoices: { read: true } }), async (req
                 ]
             }]
         });
-        
+
         if (!invoice) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 message: 'Invoice not found',
                 error: 'INVOICE_NOT_FOUND'
             });
         }
-        
+
         res.json({
             success: true,
             invoice: invoice
         });
     } catch (error) {
         console.error('Error fetching invoice:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -327,33 +327,33 @@ router.get('/invoices/:id', apiKeyAuth({ invoices: { read: true } }), async (req
 router.post('/clients/bulk-lookup', apiKeyAuth({ clients: { read: true } }), async (req, res) => {
     try {
         const { phones, emails, orderCodes } = req.body;
-        
+
         if (!phones && !emails && !orderCodes) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: 'At least one search parameter is required',
                 error: 'MISSING_PARAMETERS'
             });
         }
-        
+
         let whereClause = { [Op.or]: [] };
-        
+
         if (phones && phones.length > 0) {
             whereClause[Op.or].push({ phone: { [Op.in]: phones } });
         }
-        
+
         if (emails && emails.length > 0) {
             whereClause[Op.or].push({ email: { [Op.in]: emails } });
         }
-        
+
         if (orderCodes && orderCodes.length > 0) {
             whereClause[Op.or].push({ orderCode: { [Op.in]: orderCodes } });
         }
-        
+
         const clients = await Client.findAll({
             where: whereClause,
             attributes: ['id', 'name', 'phone', 'email', 'status', 'createdAt']
         });
-        
+
         res.json({
             success: true,
             clients: clients,
@@ -361,9 +361,9 @@ router.post('/clients/bulk-lookup', apiKeyAuth({ clients: { read: true } }), asy
         });
     } catch (error) {
         console.error('Error in bulk client lookup:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -371,38 +371,38 @@ router.post('/clients/bulk-lookup', apiKeyAuth({ clients: { read: true } }), asy
 /**
  * Get comprehensive client data export
  */
-router.get('/clients/:id/data-export', apiKeyAuth({ 
-    reports: { read: true }, 
+router.get('/clients/:id/data-export', apiKeyAuth({
+    reports: { read: true },
     invoices: { read: true },
     clients: { read: true }
 }), async (req, res) => {
     try {
         const clientId = req.params.id;
         const { format = 'json' } = req.query;
-        
+
         // Get client info
         const client = await Client.findByPk(clientId, {
             attributes: ['id', 'name', 'phone', 'email', 'address', 'status', 'createdAt', 'lastLogin']
         });
-        
+
         if (!client) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 message: 'Client not found',
                 error: 'CLIENT_NOT_FOUND'
             });
         }
-        
+
         // Get all reports
         const reports = await Report.findAll({
             where: { client_id: clientId },
             attributes: [
-                'id', 'device_model', 'serial_number', 'inspection_date', 
+                'id', 'device_model', 'serial_number', 'inspection_date',
                 'status', 'billing_enabled', 'amount', 'invoice_created',
                 'invoice_id', 'invoice_date', 'created_at'
             ],
             order: [['created_at', 'DESC']]
         });
-        
+
         // Get all invoices
         const invoices = await Invoice.findAll({
             where: { client_id: clientId },
@@ -412,7 +412,7 @@ router.get('/clients/:id/data-export', apiKeyAuth({
             ],
             order: [['created_at', 'DESC']]
         });
-        
+
         const exportData = {
             client: client,
             reports: reports,
@@ -424,7 +424,7 @@ router.get('/clients/:id/data-export', apiKeyAuth({
                 export_date: new Date().toISOString()
             }
         };
-        
+
         if (format === 'csv') {
             // TODO: Implement CSV export
             res.json(exportData);
@@ -436,9 +436,208 @@ router.get('/clients/:id/data-export', apiKeyAuth({
         }
     } catch (error) {
         console.error('Error in data export:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
+        });
+    }
+});
+
+// ==================== FINANCIAL ACCESS ====================
+
+/**
+ * Get Financial Summary (KPIs)
+ */
+router.get('/financial/summary', apiKeyAuth({ financial: { read: true } }), async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        let dateFilter = {};
+        if (startDate && endDate) {
+            dateFilter = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        } else {
+            // Default to current month if no date provided
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            dateFilter = {
+                [Op.between]: [startOfMonth, endOfMonth]
+            };
+        }
+
+        // 1. Calculate Revenue (Invoices)
+        // We consider 'paid' and 'completed' invoices as realized revenue
+        const invoices = await Invoice.findAll({
+            where: {
+                date: dateFilter,
+                paymentStatus: ['paid', 'completed']
+            },
+            attributes: ['total']
+        });
+
+        const totalRevenue = invoices.reduce((sum, inv) => sum + (parseFloat(inv.total) || 0), 0);
+
+        // 2. Calculate Expenses
+        const expenses = await Expense.findAll({
+            where: {
+                date: dateFilter,
+                status: 'approved'
+            },
+            attributes: ['amount']
+        });
+
+        const totalExpenses = expenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+
+        // 3. Calculate COGS (Cost of Goods Sold)
+        // This requires joining invoices with invoice items
+        const invoiceItems = await InvoiceItem.findAll({
+            include: [{
+                model: Invoice,
+                as: 'invoice',
+                where: {
+                    date: dateFilter,
+                    paymentStatus: ['paid', 'completed']
+                },
+                attributes: []
+            }],
+            attributes: ['cost_price', 'quantity']
+        });
+
+        const totalCOGS = invoiceItems.reduce((sum, item) => {
+            const cost = parseFloat(item.cost_price) || 0;
+            const qty = parseInt(item.quantity) || 1;
+            return sum + (cost * qty);
+        }, 0);
+
+        // 4. Calculate Net Profit
+        // Net Profit = Revenue - COGS - Expenses
+        const grossProfit = totalRevenue - totalCOGS;
+        const netProfit = grossProfit - totalExpenses;
+
+        res.json({
+            success: true,
+            period: {
+                startDate: startDate || 'current-month-start',
+                endDate: endDate || 'current-month-end'
+            },
+            summary: {
+                revenue: totalRevenue,
+                cogs: totalCOGS,
+                grossProfit: grossProfit,
+                expenses: totalExpenses,
+                netProfit: netProfit,
+                profitMargin: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching financial summary:', error);
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Get Financial Ledger (Invoices & Expenses)
+ */
+router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async (req, res) => {
+    try {
+        const { startDate, endDate, limit = 50, offset = 0, type } = req.query; // type: 'income' | 'expense' | 'all'
+
+        const effectiveLimit = parseInt(limit);
+        const effectiveOffset = parseInt(offset);
+
+        let dateFilter = {};
+        if (startDate && endDate) {
+            dateFilter = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        }
+
+        let transactions = [];
+
+        // Fetch Income (Invoices)
+        if (!type || type === 'all' || type === 'income') {
+            const invoices = await Invoice.findAll({
+                where: {
+                    ...(startDate || endDate ? { date: dateFilter } : {}),
+                    paymentStatus: ['paid', 'completed'] // Only confirmed income
+                },
+                attributes: ['id', 'date', 'total', 'client_id'], // fetch minimal fields
+                include: [{
+                    model: Client,
+                    as: 'client',
+                    attributes: ['name']
+                }],
+                order: [['date', 'DESC']],
+                limit: effectiveLimit,
+                offset: effectiveOffset // Note: handling mixed pagination is tricky, simplifying here to separate or fetch-all-and-sort
+            });
+
+            transactions.push(...invoices.map(inv => ({
+                id: inv.id,
+                date: inv.date,
+                amount: parseFloat(inv.total),
+                type: 'income',
+                category: 'Sales',
+                description: `Invoice #${inv.id} - ${inv.client ? inv.client.name : 'Unknown Client'}`,
+                status: 'verified'
+            })));
+        }
+
+        // Fetch Expenses
+        if (!type || type === 'all' || type === 'expense') {
+            const expenses = await Expense.findAll({
+                where: {
+                    ...(startDate || endDate ? { date: dateFilter } : {}),
+                    status: 'approved'
+                },
+                include: [{
+                    model: ExpenseCategory,
+                    as: 'category',
+                    attributes: ['name']
+                }],
+                attributes: ['id', 'date', 'amount', 'name', 'notes'],
+                order: [['date', 'DESC']],
+                limit: effectiveLimit,
+                offset: effectiveOffset
+            });
+
+            transactions.push(...expenses.map(exp => ({
+                id: `EXP-${exp.id}`,
+                date: exp.date,
+                amount: parseFloat(exp.amount),
+                type: 'expense',
+                category: exp.category ? exp.category.name : 'Uncategorized',
+                description: exp.name || exp.notes || 'Expense',
+                status: 'verified'
+            })));
+        }
+
+        // Sort combined results
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // If 'mixed' pagination is needed properly, one would usually fetch limit items from EACH and then merge/slice.
+        // For simplicity in this implementation, we return the combined list. 
+        // A robust solution would require a UNION query or more complex logic.
+        // We will slice the memory array to simulate pagination on the merged set.
+        const paginatedTransactions = transactions.slice(0, effectiveLimit);
+
+        res.json({
+            success: true,
+            count: paginatedTransactions.length,
+            transactions: paginatedTransactions
+        });
+
+    } catch (error) {
+        console.error('Error fetching financial ledger:', error);
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -469,7 +668,7 @@ router.get('/usage-stats', systemApiKeyAuth(), async (req, res) => {
         const { days = 30 } = req.query;
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - parseInt(days));
-        
+
         const stats = await ApiUsageLog.findAll({
             where: {
                 created_at: { [Op.gte]: startDate }
@@ -484,7 +683,7 @@ router.get('/usage-stats', systemApiKeyAuth(), async (req, res) => {
             group: ['endpoint', 'method', 'response_status'],
             order: [[ApiUsageLog.sequelize.fn('COUNT', ApiUsageLog.sequelize.col('id')), 'DESC']]
         });
-        
+
         res.json({
             success: true,
             period: `${days} days`,
@@ -492,9 +691,9 @@ router.get('/usage-stats', systemApiKeyAuth(), async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching usage stats:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });

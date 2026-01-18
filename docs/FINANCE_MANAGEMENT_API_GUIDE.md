@@ -1,0 +1,283 @@
+# Laapak Report System - Finance Management API Guide
+
+## 📋 Table of Contents
+
+1. [Overview](#overview)
+2. [Authentication](#authentication)
+3. [Financial Endpoints](#financial-endpoints)
+4. [Building the Finance App](#building-the-finance-app)
+
+---
+
+## Overview
+
+This guide details the integration points for the **Finance Management App**, a dedicated interface for managing the financial health of the Laapak Report System. It allows external applications to retrieve financial summaries (KPIs) and detailed ledgers (invoices and expenses).
+
+### Key Features
+
+- ✅ **Financial Summary** - Real-time calculation of Revenue, Expenses, COGS, and Net Profit.
+- ✅ **Ledger Access** - Unified view of income and expense transactions.
+- ✅ **Date Filtering** - Flexible reporting periods.
+
+---
+
+## Authentication
+
+Access to financial data requires an API Key with specific permissions.
+
+### Required Permissions
+
+Your API Key must have the `financial` scope enabled:
+
+```json
+{
+  "financial": {
+    "read": true,
+    "write": false, // Write access is not currently supported via external API
+    "delete": false
+  }
+}
+```
+
+### Enable Write Access
+
+To create or update records, your API Key must have the `write` or `delete` flags enabled:
+
+```json
+{
+  "financial": {
+    "read": true,
+    "write": true,
+    "delete": true
+  }
+}
+```
+
+### Headers
+
+Include your API Key in the `x-api-key` header:
+
+```http
+x-api-key: ak_live_your_financial_api_key
+```
+
+---
+
+## Financial Endpoints
+
+Base URL: `https://reports.laapak.com/api/v2/external/financial`
+
+### 1. Get Financial Summary
+
+Retrieves Key Performance Indicators (KPIs) for a specific period.
+
+**Endpoint:** `GET /summary`
+
+**Query Parameters:**
+- `startDate` (optional): Start date (YYYY-MM-DD). Defaults to start of current month.
+- `endDate` (optional): End date (YYYY-MM-DD). Defaults to end of current month.
+
+**Example Request:**
+```bash
+curl -X GET "https://reports.laapak.com/api/v2/external/financial/summary?startDate=2024-01-01&endDate=2024-01-31" \
+  -H "x-api-key: your_api_key"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "period": {
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-31"
+  },
+  "summary": {
+    "revenue": 15000.00,       // Total from paid/completed invoices
+    "cogs": 5000.00,           // Cost of Goods Sold (from invoice items)
+    "grossProfit": 10000.00,   // Revenue - COGS
+    "expenses": 2000.00,       // Variable expenses
+    "netProfit": 8000.00,      // Gross Profit - Expenses
+    "profitMargin": 53.33      // (Net Profit / Revenue) * 100
+  }
+}
+```
+
+### 2. Get Financial Ledger
+
+Retrieves a list of financial transactions (both income and expenses).
+
+**Endpoint:** `GET /ledger`
+
+**Query Parameters:**
+- `startDate` (optional): Filter from date.
+- `endDate` (optional): Filter to date.
+- `type` (optional): `income`, `expense`, or `all` (default).
+- `limit` (optional): Number of records (default: 50).
+- `offset` (optional): Pagination offset (default: 0).
+
+**Example Request:**
+```bash
+curl -X GET "https://reports.laapak.com/api/v2/external/financial/ledger?type=all&limit=10" \
+  -H "x-api-key: your_api_key"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 2,
+  "transactions": [
+    {
+      "id": "INV1001",
+      "date": "2024-01-15T10:30:00.000Z",
+      "amount": 1200.00,
+      "type": "income",
+      "category": "Sales",
+      "description": "Invoice #INV1001 - Client Name",
+      "status": "verified"
+    },
+    {
+      "id": "EXP-55",
+      "date": "2024-01-14T09:00:00.000Z",
+      "amount": 150.00,
+      "type": "expense",
+      "category": "Utilities",
+      "description": "Electricity Bill",
+      "status": "verified"
+    }
+  ]
+}
+```
+
+### 3. Create Expense
+
+Records a new business expense.
+
+**Endpoint:** `POST /expenses`
+
+**Body:**
+```json
+{
+  "name": "Office Rent",         // Required (English name)
+  "name_ar": "إيجار المكتب",      // Optional (Arabic name)
+  "amount": 5000.00,             // Required
+  "category_id": 1,              // Required (ID from expense categories)
+  "date": "2024-02-01",          // Required (YYYY-MM-DD)
+  "type": "fixed",               // Optional ('fixed' or 'variable', default 'variable')
+  "description": "Monthly rent", // Optional
+  "receipt_url": "https://..."   // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Expense created successfully",
+  "data": { "expense": { ... } }
+}
+```
+
+### 4. Update Expense
+
+Updates an existing expense.
+
+**Endpoint:** `PUT /expenses/{id}`
+
+**Body:**
+```json
+{
+  "amount": 5500.00,
+  "description": "Rent increase"
+}
+```
+
+### 5. Delete Expense
+
+Permanently deletes an expense record.
+
+**Endpoint:** `DELETE /expenses/{id}`
+
+### 6. Record Invoice Payment
+
+Marks an invoice as paid.
+
+**Endpoint:** `POST /invoices/{id}/payment`
+
+**Body:**
+```json
+{
+  "paymentDate": "2024-02-15",
+  "paymentMethod": "Bank Transfer" // Optional
+}
+```
+
+---
+
+### 7. Update Invoice Item Cost
+
+Use this endpoint to enter the cost price for a specific product sold in an invoice. This is essential for accurate profit calculation.
+
+**Endpoint:** `PATCH /financial/invoice-items/{id}/cost`
+
+**Body:**
+```json
+{
+  "cost_price": 450.00
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "item_id": 123,
+    "cost_price": 450,
+    "profit_amount": 150,
+    "profit_margin": 25.0
+  }
+}
+```
+
+---
+
+## Building the Finance App
+
+### Core Workflows
+
+#### 1. Profit Management Workflow (Crucial)
+
+To replicate the system's "Week by Week" profit management logic, follow these steps:
+
+**Goal:** Allow admins to review invoices week-by-week and ensure every item has a cost price associated with it.
+
+1.  **Weekly View (The Dashboard)**
+    -   Your UI should allow users to select a date range (defaults to current week).
+    -   **API Call:** Fetch `GET /financial/ledger?type=income&startDate=...&endDate=...`.
+    -   **Display:** List invoices grouped by date or flat list. Show "Total Revenue", "Total Cost", and "Profit" for that week.
+
+2.  **Identifying Missing Costs**
+    -   The system needs to flag items where `cost_price` is missing or `0`.
+    -   **Logic:**
+        -   Iterate through the fetched ledger/invoices.
+        -   If `cost_price` is null/zero, highlight the row in **RED** (e.g., "Profit Calculation Pending").
+        -   *Note: The Ledger summary might not show granular items. For deep inspection, perform a secondary fetch or use `GET /invoices/{id}` for the specific problematic invoice.*
+
+3.  **Entering Cost Price (The Fix)**
+    -   When a user clicks on a flagged invoice/item to fix it:
+    -   **UI:** Open a modal showing the product name (e.g., "iPhone 13 Screen").
+    -   **Input:** Ask user for "Cost Price".
+    -   **Action:** Call `PATCH /financial/invoice-items/{itemId}/cost` with the new value.
+
+4.  **Real-time Update**
+    -   Upon success, the API returns the calculated `profit_amount`.
+    -   Update the local UI state immediately to turn the row **GREEN** and update the weekly total profit.
+
+This cyclical process (Review Week -> Find Red Rows -> Enter Cost -> See Green Rows) is the heart of the profit management system.
+
+#### 2. Expense Tracking Workflow
+
+1.  **View Ledger:** `GET /financial/ledger?type=expense`.
+2.  **Add Receipt:** User uploads a receipt image (handle upload separately) and calls `POST /expenses`.
+3.  **Verify:** The new expense immediately reduces the "Net Profit" shown on the dashboard.
