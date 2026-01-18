@@ -5,9 +5,16 @@
 
 const express = require('express');
 const router = express.Router();
-const { Client, Report, Invoice, InvoiceItem, ApiKey, ApiUsageLog, Expense, ExpenseCategory } = require('../models');
+const { Client, Report, Invoice, InvoiceItem, ApiKey, ApiUsageLog, Expense, ExpenseCategory, Admin } = require('../models');
 const { Op } = require('sequelize');
 const { apiKeyAuth, clientApiKeyAuth, systemApiKeyAuth } = require('../middleware/apiKeyAuth');
+
+// Helper to verify superadmin status
+const isSuperAdmin = async (adminId) => {
+    if (!adminId) return false;
+    const admin = await Admin.findByPk(adminId);
+    return admin && admin.role === 'superadmin';
+};
 
 // ==================== CLIENT AUTHENTICATION ====================
 
@@ -639,6 +646,201 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
             message: 'Server error',
             error: error.message
         });
+    }
+});
+
+/**
+ * Create Expense
+ */
+router.post('/financial/expenses', apiKeyAuth({ financial: { write: true } }), async (req, res) => {
+    try {
+        if (!await isSuperAdmin(req.apiKey.created_by)) {
+            return res.status(401).json({
+                message: 'Superadmin privileges required',
+                error: 'SUPERADMIN_REQUIRED'
+            });
+        }
+
+        const {
+            name, name_ar, amount, category_id, type, date, repeat_monthly, description, receipt_url
+        } = req.body;
+
+        // Validation
+        if (!name && !name_ar) return res.status(400).json({ message: 'Name required', error: 'VALIDATION_ERROR' });
+        if (!amount || isNaN(amount)) return res.status(400).json({ message: 'Valid amount required', error: 'VALIDATION_ERROR' });
+        if (!category_id) return res.status(400).json({ message: 'Category ID required', error: 'VALIDATION_ERROR' });
+        if (!date) return res.status(400).json({ message: 'Date required', error: 'VALIDATION_ERROR' });
+
+        const expense = await Expense.create({
+            name: name || name_ar,
+            name_ar: name_ar || name,
+            amount,
+            category_id,
+            type: type || 'variable',
+            date,
+            repeat_monthly: repeat_monthly || false,
+            description,
+            receipt_url,
+            created_by: req.apiKey.created_by,
+            status: 'approved'
+        });
+
+        const newExpense = await Expense.findByPk(expense.id, {
+            include: [{ model: ExpenseCategory, as: 'category', attributes: ['name', 'name_ar', 'color'] }]
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Expense created successfully',
+            data: { expense: newExpense }
+        });
+
+    } catch (error) {
+        console.error('Error creating expense:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+/**
+ * Update Expense
+ */
+router.put('/financial/expenses/:id', apiKeyAuth({ financial: { write: true } }), async (req, res) => {
+    try {
+        if (!await isSuperAdmin(req.apiKey.created_by)) {
+            return res.status(401).json({
+                message: 'Superadmin privileges required',
+                error: 'SUPERADMIN_REQUIRED'
+            });
+        }
+
+        const { id } = req.params;
+        const updateData = req.body;
+
+        const expense = await Expense.findByPk(id);
+        if (!expense) return res.status(404).json({ message: 'Expense not found', error: 'NOT_FOUND' });
+
+        await expense.update(updateData);
+
+        res.json({
+            success: true,
+            message: 'Expense updated successfully',
+            data: { expense }
+        });
+
+    } catch (error) {
+        console.error('Error updating expense:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+/**
+ * Delete Expense
+ */
+router.delete('/financial/expenses/:id', apiKeyAuth({ financial: { delete: true } }), async (req, res) => {
+    try {
+        if (!await isSuperAdmin(req.apiKey.created_by)) {
+            return res.status(401).json({
+                message: 'Superadmin privileges required',
+                error: 'SUPERADMIN_REQUIRED'
+            });
+        }
+
+        const { id } = req.params;
+        const expense = await Expense.findByPk(id);
+
+        if (!expense) return res.status(404).json({ message: 'Expense not found', error: 'NOT_FOUND' });
+
+        await expense.destroy();
+
+        res.json({ success: true, message: 'Expense deleted successfully' });
+
+    } catch (error) {
+        console.error('Error deleting expense:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+/**
+ * Record Invoice Payment
+ */
+router.post('/financial/invoices/:id/payment', apiKeyAuth({ financial: { write: true } }), async (req, res) => {
+    try {
+        if (!await isSuperAdmin(req.apiKey.created_by)) {
+            return res.status(401).json({
+                message: 'Superadmin privileges required',
+                error: 'SUPERADMIN_REQUIRED'
+            });
+        }
+
+        const { id } = req.params;
+        const { paymentDate, paymentMethod } = req.body;
+
+        const invoice = await Invoice.findByPk(id);
+        if (!invoice) return res.status(404).json({ message: 'Invoice not found', error: 'NOT_FOUND' });
+        if (invoice.paymentStatus === 'paid') return res.status(400).json({ message: 'Invoice is already paid', error: 'ALREADY_PAID' });
+
+        await invoice.update({
+            paymentStatus: 'paid',
+            paymentDate: paymentDate || new Date(),
+            paymentMethod: paymentMethod || invoice.paymentMethod
+        });
+
+        res.json({
+            success: true,
+            message: 'Payment recorded successfully',
+            data: { id: invoice.id, status: 'paid', paymentDate: invoice.paymentDate }
+        });
+
+    } catch (error) {
+        console.error('Error recording payment:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+/**
+ * Update Invoice Item Cost
+ */
+router.patch('/financial/invoice-items/:id/cost', apiKeyAuth({ financial: { write: true } }), async (req, res) => {
+    try {
+        if (!await isSuperAdmin(req.apiKey.created_by)) {
+            return res.status(401).json({
+                message: 'Superadmin privileges required',
+                error: 'SUPERADMIN_REQUIRED'
+            });
+        }
+
+        const { id } = req.params;
+        const { cost_price } = req.body;
+
+        if (cost_price === undefined) return res.status(400).json({ message: 'Cost price required', error: 'VALIDATION_ERROR' });
+
+        const item = await InvoiceItem.findByPk(id);
+        if (!item) return res.status(404).json({ message: 'Invoice item not found', error: 'NOT_FOUND' });
+
+        await item.update({ cost_price: parseFloat(cost_price) });
+
+        // Update profit
+        const quantity = parseInt(item.quantity) || 1;
+        const salePrice = parseFloat(item.amount);
+        const costPrice = parseFloat(cost_price);
+        const profitAmount = (salePrice - costPrice) * quantity;
+        const profitMargin = salePrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
+
+        await item.update({ profit_amount: profitAmount, profit_margin: profitMargin });
+
+        res.json({
+            success: true,
+            data: {
+                item_id: item.id,
+                cost_price: costPrice,
+                profit_amount: profitAmount,
+                profit_margin: profitMargin
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating item cost:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 

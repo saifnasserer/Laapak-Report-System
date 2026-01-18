@@ -105,11 +105,13 @@ API keys have granular permissions:
     "delete": false
   },
   "financial": {
-    "read": false,
+    "read": true,
     "write": false,
     "delete": false
   }
 }
+
+> **Note:** Financial `write` and `delete` permissions are restricted to API keys created by **Superadmins**. See [Finance Management API Guide](./FINANCE_MANAGEMENT_API_GUIDE.md) for details.
 ```
 
 #### Health Check with API Key
