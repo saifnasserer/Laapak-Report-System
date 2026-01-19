@@ -594,6 +594,11 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
                     ? inv.InvoiceItems.reduce((sum, item) => sum + ((parseFloat(item.cost_price) || 0) * (parseInt(item.quantity) || 1)), 0)
                     : 0;
 
+                // Check if any item has zero/missing cost
+                const hasMissingCosts = inv.InvoiceItems
+                    ? inv.InvoiceItems.some(item => (parseFloat(item.cost_price) || 0) === 0)
+                    : true; // Default to true if no items (or strictly dependent on if invoice is empty, but usually safe)
+
                 return {
                     id: inv.id,
                     date: inv.date,
@@ -603,7 +608,8 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
                     description: `Invoice #${inv.id} - ${inv.client ? inv.client.name : 'Unknown Client'}`,
                     status: 'verified',
                     cost: totalCost,
-                    profit: parseFloat(inv.total) - totalCost
+                    profit: parseFloat(inv.total) - totalCost,
+                    has_missing_costs: hasMissingCosts
                 };
             }));
         }
