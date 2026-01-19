@@ -844,34 +844,16 @@ router.patch('/financial/invoice-items/:id/cost', apiKeyAuth({ financial: { writ
 
         await item.update({ cost_price: parsedCost });
 
-        // Update profit
-        const quantity = parseInt(item.quantity) || 1;
-        const salePrice = parseFloat(item.amount) || 0;
-        const costPrice = parsedCost;
-
-        // Safety check
-        let profitAmount = 0;
-        let profitMargin = 0;
-
-        if (!isNaN(salePrice) && !isNaN(costPrice)) {
-            profitAmount = (salePrice - costPrice) * quantity;
-            profitMargin = salePrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
-        }
-
-        console.log(`[ItemCostUpdate] Calculated Profit: ${profitAmount}, Margin: ${profitMargin}`);
-
-        await item.update({
-            profit_amount: isNaN(profitAmount) ? 0 : profitAmount,
-            profit_margin: isNaN(profitMargin) ? 0 : profitMargin
-        });
+        // Reload the item to get the DB-calculated generated columns (profit_amount, profit_margin)
+        await item.reload();
 
         res.json({
             success: true,
             data: {
                 item_id: item.id,
-                cost_price: costPrice,
-                profit_amount: profitAmount,
-                profit_margin: profitMargin
+                cost_price: item.cost_price,
+                profit_amount: item.profit_amount,
+                profit_margin: item.profit_margin
             }
         });
 
