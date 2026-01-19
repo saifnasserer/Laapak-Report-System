@@ -579,21 +579,33 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
                     model: Client,
                     as: 'client',
                     attributes: ['name']
+                }, {
+                    model: InvoiceItem,
+                    as: 'InvoiceItems',
+                    attributes: ['cost_price', 'quantity']
                 }],
                 order: [['date', 'DESC']],
                 limit: effectiveLimit,
                 offset: effectiveOffset // Note: handling mixed pagination is tricky, simplifying here to separate or fetch-all-and-sort
             });
 
-            transactions.push(...invoices.map(inv => ({
-                id: inv.id,
-                date: inv.date,
-                amount: parseFloat(inv.total),
-                type: 'income',
-                category: 'Sales',
-                description: `Invoice #${inv.id} - ${inv.client ? inv.client.name : 'Unknown Client'}`,
-                status: 'verified'
-            })));
+            transactions.push(...invoices.map(inv => {
+                const totalCost = inv.InvoiceItems
+                    ? inv.InvoiceItems.reduce((sum, item) => sum + ((parseFloat(item.cost_price) || 0) * (parseInt(item.quantity) || 1)), 0)
+                    : 0;
+
+                return {
+                    id: inv.id,
+                    date: inv.date,
+                    amount: parseFloat(inv.total),
+                    type: 'income',
+                    category: 'Sales',
+                    description: `Invoice #${inv.id} - ${inv.client ? inv.client.name : 'Unknown Client'}`,
+                    status: 'verified',
+                    cost: totalCost,
+                    profit: parseFloat(inv.total) - totalCost
+                };
+            }));
         }
 
         // Fetch Expenses
@@ -608,7 +620,7 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
                     as: 'category',
                     attributes: ['name']
                 }],
-                attributes: ['id', 'date', 'amount', 'name', 'notes'],
+                attributes: ['id', 'date', 'amount', 'name', 'description'], // Fixed: 'notes' -> 'description'
                 order: [['date', 'DESC']],
                 limit: effectiveLimit,
                 offset: effectiveOffset
@@ -620,7 +632,7 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
                 amount: parseFloat(exp.amount),
                 type: 'expense',
                 category: exp.category ? exp.category.name : 'Uncategorized',
-                description: exp.name || exp.notes || 'Expense',
+                description: exp.name || exp.description || 'Expense',
                 status: 'verified'
             })));
         }
