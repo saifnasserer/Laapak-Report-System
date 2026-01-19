@@ -813,6 +813,7 @@ router.post('/financial/invoices/:id/payment', apiKeyAuth({ financial: { write: 
  * Update Invoice Item Cost
  */
 router.patch('/financial/invoice-items/:id/cost', apiKeyAuth({ financial: { write: true } }), async (req, res) => {
+    // ... (Route: PATCH /financial/invoice-items/:id/cost)
     try {
         if (!await isSuperAdmin(req.apiKey.created_by)) {
             return res.status(401).json({
@@ -824,21 +825,45 @@ router.patch('/financial/invoice-items/:id/cost', apiKeyAuth({ financial: { writ
         const { id } = req.params;
         const { cost_price } = req.body;
 
+        console.log(`[ItemCostUpdate] Update request for item ${id}, cost: ${cost_price}`);
+
         if (cost_price === undefined) return res.status(400).json({ message: 'Cost price required', error: 'VALIDATION_ERROR' });
 
         const item = await InvoiceItem.findByPk(id);
-        if (!item) return res.status(404).json({ message: 'Invoice item not found', error: 'NOT_FOUND' });
+        if (!item) {
+            console.error(`[ItemCostUpdate] Item ${id} not found`);
+            return res.status(404).json({ message: 'Invoice item not found', error: 'NOT_FOUND' });
+        }
 
-        await item.update({ cost_price: parseFloat(cost_price) });
+        const parsedCost = parseFloat(cost_price);
+        if (isNaN(parsedCost)) {
+            return res.status(400).json({ message: 'Invalid cost price value', error: 'VALIDATION_ERROR' });
+        }
+
+        console.log(`[ItemCostUpdate] Updating item ${id} with cost ${parsedCost}. Prev cost: ${item.cost_price}`);
+
+        await item.update({ cost_price: parsedCost });
 
         // Update profit
         const quantity = parseInt(item.quantity) || 1;
-        const salePrice = parseFloat(item.amount);
-        const costPrice = parseFloat(cost_price);
-        const profitAmount = (salePrice - costPrice) * quantity;
-        const profitMargin = salePrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
+        const salePrice = parseFloat(item.amount) || 0;
+        const costPrice = parsedCost;
 
-        await item.update({ profit_amount: profitAmount, profit_margin: profitMargin });
+        // Safety check
+        let profitAmount = 0;
+        let profitMargin = 0;
+
+        if (!isNaN(salePrice) && !isNaN(costPrice)) {
+            profitAmount = (salePrice - costPrice) * quantity;
+            profitMargin = salePrice > 0 ? ((salePrice - costPrice) / salePrice) * 100 : 0;
+        }
+
+        console.log(`[ItemCostUpdate] Calculated Profit: ${profitAmount}, Margin: ${profitMargin}`);
+
+        await item.update({
+            profit_amount: isNaN(profitAmount) ? 0 : profitAmount,
+            profit_margin: isNaN(profitMargin) ? 0 : profitMargin
+        });
 
         res.json({
             success: true,
@@ -851,8 +876,13 @@ router.patch('/financial/invoice-items/:id/cost', apiKeyAuth({ financial: { writ
         });
 
     } catch (error) {
-        console.error('Error updating item cost:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Error updating item cost [CRITICAL]:', error);
+        // Ensure we send a useful error message back
+        res.status(500).json({
+            message: 'Server error updating item cost',
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 
