@@ -626,7 +626,7 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
                     as: 'category',
                     attributes: ['id', 'name', 'name_ar']
                 }],
-                attributes: ['id', 'date', 'amount', 'name', 'description', 'ExpenseCategoryId'], // Fixed: 'notes' -> 'description'
+                attributes: ['id', 'date', 'amount', 'name', 'description', 'category_id'], // Corrected FK
                 order: [['date', 'DESC']],
                 limit: effectiveLimit,
                 offset: effectiveOffset
@@ -638,7 +638,7 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
                 amount: parseFloat(exp.amount),
                 type: 'expense',
                 category: exp.category ? (exp.category.name_ar || exp.category.name) : 'Uncategorized',
-                category_id: exp.ExpenseCategoryId,
+                category_id: exp.category_id,
                 description: exp.description,
                 name: exp.name,
                 status: 'verified'
