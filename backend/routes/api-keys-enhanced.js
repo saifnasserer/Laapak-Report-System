@@ -720,6 +720,25 @@ router.post('/financial/expenses', apiKeyAuth({ financial: { write: true } }), a
 });
 
 /**
+ * Get Expense Categories
+ */
+router.get('/financial/expense-categories', apiKeyAuth({ financial: { read: true } }), async (req, res) => {
+    try {
+        const categories = await ExpenseCategory.findAll({
+            attributes: ['id', 'name', 'name_ar', 'color']
+        });
+
+        res.json({
+            success: true,
+            data: categories
+        });
+    } catch (error) {
+        console.error('Error fetching expense categories:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+/**
  * Update Expense
  */
 router.put('/financial/expenses/:id', apiKeyAuth({ financial: { write: true } }), async (req, res) => {
