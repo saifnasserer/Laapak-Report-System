@@ -321,16 +321,31 @@ app.get('*', (req, res) => {
     }
 });
 
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+async function connectWithRetry(connectFn, retries = 10) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            await connectFn();
+            console.log("✅ Database connected");
+            return;
+        } catch (err) {
+            console.log(`⏳ DB not ready, retrying (${i + 1}/${retries})`);
+            await wait(3000);
+        }
+    }
+    console.error("❌ DB connection failed after retries");
+    process.exit(1);
+}
+
 // Initialize database and start server
 const startServer = async () => {
     try {
-        // Test database connection
-        const dbConnected = await testConnection();
-
-        if (!dbConnected) {
-            console.error('Failed to connect to database. Please check your database configuration.');
-            process.exit(1);
-        }
+        // Test database connection with retry
+        await connectWithRetry(async () => {
+            const dbConnected = await testConnection();
+            if (!dbConnected) throw new Error('Database connection failed');
+        });
 
         // Initialize database (create tables and seed data)
         const dbInitialized = await initDatabase();
