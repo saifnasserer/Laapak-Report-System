@@ -18,6 +18,7 @@ services:
   app:
     build:
       context: ../../
+      dockerfile: scripts/deployment/Dockerfile
     container_name: reports-system-app-1
     restart: always
     ports:
