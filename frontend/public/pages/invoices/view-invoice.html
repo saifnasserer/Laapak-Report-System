@@ -30,6 +30,32 @@
             color: #0a592c;
             background: #f8f9fa;
         }
+
+        .whatsapp-float-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background-color: #25d366;
+            color: #fff;
+            border-radius: 50px;
+            text-align: center;
+            font-size: 30px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .whatsapp-float-btn:hover {
+            transform: scale(1.1);
+            background-color: #128c7e;
+        }
     </style>
 </head>
 
@@ -40,6 +66,10 @@
     <iframe id="invoiceFrame" class="invoice-iframe" style="display: none;"
         onload="document.getElementById('loading').style.display='none'; document.getElementById('invoiceFrame').style.display='block';"
         onerror="document.getElementById('loading').innerHTML='<div style=\'color: red;\'>فشل تحميل الفاتورة. يرجى المحاولة مرة أخرى.</div>';"></iframe>
+
+    <button class="whatsapp-float-btn" onclick="shareInvoiceWhatsApp()" title="مشاركة عبر واتساب">
+        <i class="fab fa-whatsapp"></i>
+    </button>
 
     <!-- Auth Middleware -->
     <script src="../../scripts/core/auth-middleware.js"></script>

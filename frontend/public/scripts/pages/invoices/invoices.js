@@ -11,11 +11,8 @@ function getApiBaseUrl() {
     if (window.config && window.config.api && window.config.api.baseUrl) {
         return window.config.api.baseUrl;
     }
-    // Auto-detect based on hostname
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:3001';
-    }
-    return 'https://reports.laapak.com';
+    // Return empty string to use relative paths if we're on the same origin
+    return '';
 }
 
 let invoicesTable; // Global variable for the DataTable instance
@@ -351,6 +348,7 @@ function formatInvoiceForTable(invoice) {
                     <li><a class="dropdown-item py-2" href="view-invoice.html?id=${invoice.id}"><i class="fas fa-eye me-2 text-primary"></i> عرض</a></li>
                     <li><a class="dropdown-item py-2" href="edit-invoice.html?id=${invoice.id}"><i class="fas fa-edit me-2 text-success"></i> تعديل</a></li>
                     <li><a class="dropdown-item py-2" href="#" onclick="printInvoice('${invoice.id}'); return false;"><i class="fas fa-print me-2 text-info"></i> طباعة</a></li>
+                    <li><a class="dropdown-item py-2" href="#" onclick="shareInvoiceWhatsApp('${invoice.id}'); return false;"><i class="fab fa-whatsapp me-2 text-success"></i> واتساب</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item py-2" href="#" onclick="deleteInvoice('${invoice.id}'); return false;"><i class="fas fa-trash me-2 text-danger"></i> حذف</a></li>
                 </ul>
@@ -2248,3 +2246,45 @@ async function updateReportStatusFromInvoice(reportId, newStatus) {
         throw error;
     }
 }
+
+/**
+ * Share invoice via WhatsApp
+ * @param {string} invoiceId - The invoice ID to share
+ */
+window.shareInvoiceWhatsApp = async (invoiceId) => {
+    try {
+        if (!invoiceId) {
+            showToast('معرف الفاتورة غير موجود', 'error');
+            return;
+        }
+
+        const apiBaseUrl = getApiBaseUrl();
+        const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+
+        if (!token) {
+            showToast('يرجى تسجيل الدخول أولاً', 'error');
+            return;
+        }
+
+        console.log('Initiating WhatsApp share for invoice:', invoiceId);
+        showToast('جاري إرسال الفاتورة عبر واتساب...', 'info');
+
+        const response = await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}/share/whatsapp`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast('تم إرسال الفاتورة بنجاح عبر واتساب', 'success');
+        } else {
+            throw new Error(data.message || 'فشل إرسال الفاتورة');
+        }
+    } catch (error) {
+        console.error('Error sharing invoice via WhatsApp:', error);
+        showToast(error.message || 'حدث خطأ أثناء مشاركة الفاتورة', 'error');
+    }
+};

@@ -28,6 +28,8 @@ services:
       - db
     env_file:
       - .env
+    environment:
+      - DB_HOST=db
     networks:
       - reports-network
     volumes:
