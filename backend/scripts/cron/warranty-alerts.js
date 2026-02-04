@@ -40,13 +40,20 @@ async function sendWarrantyAlerts() {
                 // Or just within range if running weekly
                 if (w.date >= currentDate && w.date <= sevenDaysFromNow) {
                     const phone = report.client_phone || report.client?.phone;
-                    if (!phone) continue;
+                    if (!phone) {
+                        console.log(`Skipping report ${report.id}: No phone number found.`);
+                        continue;
+                    }
 
-                    const message = `🛠️ *Maintenance Reminder*\n\n` +
-                        `Hi ${report.client_name || 'Customer'},\n\n` +
-                        `Your *${w.type}* for your device (*${report.device_model}*) is due on *${w.date.toISOString().split('T')[0]}*.\n\n` +
-                        `Regular maintenance ensures your device stays in top condition. Please contact us to schedule your service.\n\n` +
-                        `_Best regards, Laapak Service Team_`;
+                    console.log(`Processing ${w.type} for Report ${report.id} (Client: ${report.client_name}, Phone: ${phone}) due on ${w.date.toISOString().split('T')[0]}`);
+
+                    const wTypeArabic = w.type === 'Annual Maintenance' ? 'صيانة سنوية' : 'صيانة كل 6 أشهر';
+
+                    const message = `🛠️ *تذكير بالصيانة الدورية*\n\n` +
+                        `أهلاً ${report.client_name || 'عميلنا العزيز'}،\n\n` +
+                        `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${report.device_model}*) في تاريخ *${w.date.toISOString().split('T')[0]}*.\n\n` +
+                        `الصيانة الدورية تضمن بقاء جهازك في حالة ممتازة وتطيل عمره الافتراضي. يرجى التواصل معنا لترتيب الموعد.\n\n` +
+                        `_مع تحيات فريق عمل لابك_`;
 
                     await notifier.sendText(phone, message);
                     notificationsSent++;

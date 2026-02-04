@@ -58,6 +58,9 @@ class Notifier {
             return response.data;
         } catch (error) {
             console.error('WhatsApp Notifier [Text] Error:', error.response?.data || error.message);
+            if (error.response?.data) {
+                console.error('Full Error Response:', JSON.stringify(error.response.data, null, 2));
+            }
             throw error;
         }
     }
