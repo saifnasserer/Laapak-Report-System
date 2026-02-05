@@ -1,3 +1,25 @@
 node_modules
 .env
 .env.local
+.DS_Store
+.vscode
+*.log
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Dependencies
+frontend-react/node_modules/
+backend/node_modules/
+frontend/node_modules/
+inventory-system/node_modules/
+laapak-projects/laapak-po/node_modules/
+
+# Next.js specific
+frontend-react/.next/
+frontend-react/out/
+frontend-react/build/
+

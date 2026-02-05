@@ -16,55 +16,129 @@ if (!JWT_SECRET) {
     process.exit(1);
 }
 
-// Admin Login
+// Unified Login
+router.post('/login', async (req, res) => {
+    const { identifier, password, phone, orderCode } = req.body;
+
+    // 1. Try Admin Login (using identifier as username and password as password)
+    if (identifier && password) {
+        try {
+            const admin = await Admin.findOne({ where: { username: identifier } });
+            if (admin) {
+                const isMatch = await admin.checkPassword(password);
+                if (isMatch) {
+                    await admin.update({ lastLogin: new Date() });
+                    const token = jwt.sign(
+                        { id: admin.id, username: admin.username, role: admin.role, type: 'admin' },
+                        JWT_SECRET,
+                        { expiresIn: '24h' }
+                    );
+                    return res.json({
+                        token,
+                        user: {
+                            id: admin.id,
+                            name: admin.name,
+                            username: admin.username,
+                            role: admin.role,
+                            type: 'admin'
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Unified login - Admin attempt error:', error);
+            // Don't return yet, try client login
+        }
+    }
+
+    // 2. Try Client Login (using identifier as phone and password as orderCode if present, or explicit phone/orderCode)
+    const clientPhone = phone || identifier;
+    const clientOrderCode = orderCode || password;
+
+    if (clientPhone && clientOrderCode) {
+        try {
+            const client = await Client.findOne({
+                where: {
+                    phone: clientPhone,
+                    orderCode: clientOrderCode
+                }
+            });
+
+            if (client) {
+                await client.update({ lastLogin: new Date() });
+                const token = jwt.sign(
+                    { id: client.id, phone: client.phone, type: 'client' },
+                    JWT_SECRET,
+                    { expiresIn: '24h' }
+                );
+                return res.json({
+                    token,
+                    user: {
+                        id: client.id,
+                        name: client.name,
+                        phone: client.phone,
+                        type: 'client'
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Unified login - Client attempt error:', error);
+        }
+    }
+
+    return res.status(401).json({ message: 'Invalid credentials' });
+});
+
+// Admin Login (Legacy/Specific)
 router.post('/admin', async (req, res) => {
     const { username, password } = req.body;
-    
+
     console.log('Admin login attempt:', { username });
-    
+
     if (!username || !password) {
         console.log('Missing username or password');
         return res.status(400).json({ message: 'Please provide username and password' });
     }
-    
+
     try {
         // Find admin by username
         const admin = await Admin.findOne({ where: { username } });
-        
+
         if (!admin) {
             console.log('Admin not found:', username);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-        
+
         console.log('Admin found:', { id: admin.id, username: admin.username, role: admin.role });
-        
+
         // Regular password check for users
         console.log('Checking password...');
         const isMatch = await admin.checkPassword(password);
         console.log('Password match result:', isMatch);
-        
+
         if (!isMatch) {
             console.log('Password does not match');
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-        
+
         // Update last login time
         await admin.update({ lastLogin: new Date() });
-        
+
         // Create JWT token
         const token = jwt.sign(
             { id: admin.id, username: admin.username, role: admin.role, type: 'admin' },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
-        
+
         res.json({
             token,
             user: {
                 id: admin.id,
                 name: admin.name,
                 username: admin.username,
-                role: admin.role
+                role: admin.role,
+                type: 'admin'
             }
         });
     } catch (error) {
@@ -73,43 +147,44 @@ router.post('/admin', async (req, res) => {
     }
 });
 
-// Client Login
+// Client Login (Legacy/Specific)
 router.post('/client', async (req, res) => {
     const { phone, orderCode } = req.body;
-    
+
     if (!phone || !orderCode) {
         return res.status(400).json({ message: 'Please provide phone number and order code' });
     }
-    
+
     try {
         // Find client by phone and order code
-        const client = await Client.findOne({ 
-            where: { 
+        const client = await Client.findOne({
+            where: {
                 phone,
                 orderCode
-            } 
+            }
         });
-        
+
         if (!client) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-        
+
         // Update last login time
         await client.update({ lastLogin: new Date() });
-        
+
         // Create JWT token
         const token = jwt.sign(
             { id: client.id, phone: client.phone, type: 'client' },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
-        
+
         res.json({
             token,
             user: {
                 id: client.id,
                 name: client.name,
-                phone: client.phone
+                phone: client.phone,
+                type: 'client'
             }
         });
     } catch (error) {
@@ -125,11 +200,11 @@ router.get('/me', auth, async (req, res) => {
             const admin = await Admin.findByPk(req.user.id, {
                 attributes: { exclude: ['password'] }
             });
-            
+
             if (!admin) {
                 return res.status(404).json({ message: 'User not found' });
             }
-            
+
             return res.json({
                 id: admin.id,
                 name: admin.name,
@@ -140,11 +215,11 @@ router.get('/me', auth, async (req, res) => {
             });
         } else {
             const client = await Client.findByPk(req.user.id);
-            
+
             if (!client) {
                 return res.status(404).json({ message: 'User not found' });
             }
-            
+
             return res.json({
                 id: client.id,
                 name: client.name,

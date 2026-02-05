@@ -1,0 +1,54 @@
+{
+    "auth": {
+        "title": "Laapak Report System",
+        "subtitle": "Integrated platform for report management and warranty system",
+        "identifier_label": "Username or Phone Number",
+        "identifier_placeholder": "Enter username or phone number",
+        "credential_label": "Password or Order Code",
+        "credential_placeholder": "Enter password or order code",
+        "remember_me": "Remember me",
+        "submit": "Log In",
+        "error": "Invalid login credentials. Please try again.",
+        "hint_identifier": "Enter username for staff or phone number for clients",
+        "hint_credential": "Enter password for staff or order code for clients"
+    },
+    "dashboard": {
+        "navigation": {
+            "overview": "Overview",
+            "reports": "Reports",
+            "my_reports": "My Reports",
+            "clients": "Clients",
+            "invoices": "Invoices",
+            "my_invoices": "My Invoices",
+            "financial": "Financial Management",
+            "money": "Expected Money",
+            "logout": "Log Out"
+        },
+        "admin": {
+            "overview": "Overview",
+            "stats": {
+                "reports": "Total Reports",
+                "clients": "Active Clients",
+                "revenue": "Monthly Revenue",
+                "pending": "Pending Reports"
+            }
+        },
+        "client": {
+            "overview": "Welcome back",
+            "stats": {
+                "warranty": "Active Warranty",
+                "reports": "Total Reports",
+                "unpaid": "Unpaid Invoices"
+            }
+        },
+        "reports": {
+            "title": "Reports",
+            "subtitle": "Manage and track all maintenance and warranty reports",
+            "new_report": "New Report"
+        }
+    },
+    "common": {
+        "loading": "Loading...",
+        "copyright": "© 2025 Laapak"
+    }
+}

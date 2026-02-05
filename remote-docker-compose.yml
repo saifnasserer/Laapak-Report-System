@@ -1,0 +1,247 @@
+networks:
+  laapak-network:
+    driver: bridge
+    name: laapak-network
+services:
+  evolution-api:
+    container_name: evolution-api
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - SERVER_URL=https://wa.fixzzone.com
+      - SERVER_TYPE=http
+      - LOG_LEVEL=ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS
+      - LOG_BAILEYS=error
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - MANAGER_URL=https://wa.fixzzone.com
+      - DOCKER_ENV=true
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:0000@postgres-db:5432/evolution?schema=public
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=laapak_wa_2026_secret
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      - CORS_ORIGIN=*
+      - CORS_METHODS=GET,POST,PUT,DELETE,PATCH,OPTIONS
+      - WEBSOCKET_ENABLED=true
+      - WEBSOCKET_GLOBAL_EVENTS=true
+      - WEBSOCKET_PORT=8080
+      - QRCODE_LIMIT=50
+      - QRCODE_COLOR=#25D366
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/1
+      - CACHE_LOCAL_ENABLED=false
+      - CONFIG_SESSION_PHONE_CLIENT=FixZone_Server
+      - CONFIG_SESSION_PHONE_NAME=Linux_Chrome
+      - WEBHOOK_EVENTS_ERRORS_RETRY_COUNT=3
+      - WEBHOOK_EVENTS_ERRORS_RETRY_DELAY=60000
+    image: evoapicloud/evolution-api:v2.3.7
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    networks:
+      - laapak-network
+    ports:
+      - 8080:8080
+    restart: always
+  fz-frontend:
+    build:
+      context: ../frontend/react-app
+      dockerfile: Dockerfile
+    container_name: fz-frontend
+    networks:
+      - laapak-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    restart: always
+  fz-system:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: fz-system
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=0000
+      - DB_NAME=FZ
+    networks:
+      - laapak-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    restart: always
+  inventory-system:
+    build:
+      context: ../inventory-system
+      dockerfile: Dockerfile
+    container_name: inventory-system
+    networks:
+      - laapak-network
+    ports:
+      - 4005:4005
+    restart: always
+  laapak-po:
+    build:
+      context: ../laapak-projects/laapak-po
+      dockerfile: Dockerfile
+    container_name: laapak-po
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=mysql://root:0000@mysql:3306/laapak_po
+      - REPORTS_DB_HOST=mysql
+      - REPORTS_DB_PORT=3306
+      - REPORTS_DB_USER=po_readonly
+      - REPORTS_DB_PASSWORD=PO_Reader_2026!
+      - REPORTS_DB_NAME=laapak_report_system
+    networks:
+      - laapak-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    ports:
+      - 3002:3002
+    restart: always
+  mysql:
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: '0000'
+    healthcheck:
+      interval: 10s
+      retries: 5
+      test:
+        - CMD
+        - mysqladmin
+        - ping
+        - -h
+        - localhost
+        - -u
+        - root
+        - -p0000
+      timeout: 5s
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max_allowed_packet=64M
+    networks:
+      - laapak-network
+    ports:
+      - 127.0.0.1:3306:3306
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: always
+    environment:
+      - WEBHOOK_URL=https://n8n-auto.fixzzone.com/
+      - N8N_HOST=n8n-auto.fixzzone.com
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - GENERIC_TIMEZONE=Africa/Cairo
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    networks:
+      - laapak-network
+    volumes:
+      - n8n_data:/home/node/.n8n
+  postgres-db:
+    container_name: postgres-db
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: '0000'
+      POSTGRES_DB: 'evolution'
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - laapak-network
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  nginx-proxy:
+    container_name: nginx-proxy
+    depends_on:
+      - report-system
+      - laapak-po
+      - fz-system
+      - fz-frontend
+      - inventory-system
+      - evolution-api
+      - n8n
+    image: nginx:latest
+    networks:
+      - laapak-network
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+  redis:
+    container_name: redis
+    image: redis:alpine
+    networks:
+      - laapak-network
+    restart: always
+  report-system:
+    build:
+      context: ../laapak-projects/reports
+      dockerfile: Dockerfile
+    container_name: report-system
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=laapak
+      - DB_PASSWORD=laapaksql
+      - DB_NAME=laapak_report_system
+      - DB_PORT=3306
+    networks:
+      - laapak-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    ports:
+      - 3001:3001
+    restart: always
+volumes:
+  mysql_data: null
+  postgres_data: null
+  n8n_data: null
