@@ -9,6 +9,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: report-system
+    env_file:
+      - .env
     environment:
       - DB_HOST=mysql-db
       - DB_USER=laapak
