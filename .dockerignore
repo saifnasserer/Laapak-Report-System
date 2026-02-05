@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+Dockerfile
+.dockerignore
+frontend/node_modules
+frontend-react/node_modules
+frontend-react/.next
+brain/
+.agent/
+.vscode/
+.idea/
+*.sqlite
+logs/
