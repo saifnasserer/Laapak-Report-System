@@ -66,7 +66,11 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
     const [isReportsLoading, setIsReportsLoading] = useState(true);
     const [isWarrantyAlertsOpen, setIsWarrantyAlertsOpen] = useState(false);
     const [sendingReminder, setSendingReminder] = useState<string | null>(null);
-    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; alert: any | null }>({ open: false, alert: null });
+    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; alert: any | null; message: string }>({
+        open: false,
+        alert: null,
+        message: ''
+    });
 
     const fetchDashboardData = async () => {
         setStats(prev => ({ ...prev, isLoading: true }));
@@ -103,24 +107,55 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
         fetchDashboardData();
     }, []);
 
-    const handleSendReminder = async (alert: any) => {
+    const handleSendReminder = async (alert: any, message: string) => {
         try {
             setSendingReminder(alert.report_id);
 
             await api.post(`/reports/${alert.report_id}/send-warranty-reminder`, {
-                warranty_type: alert.warranty_type
+                warranty_type: alert.warranty_type,
+                message: message
             });
 
             // Refresh dashboard data to update the UI
             await fetchDashboardData();
 
-            setConfirmDialog({ open: false, alert: null });
+            setConfirmDialog({ open: false, alert: null, message: '' });
         } catch (error: any) {
             console.error('Failed to send reminder:', error);
-            alert('فشل إرسال التذكير: ' + (error.response?.data?.message || error.message));
+            const errorMsg = error.response?.data?.message || error.message;
+            const errorDetails = error.response?.data?.details?.message || '';
+            alert(`فشل إرسال التذكير: ${errorMsg}${errorDetails ? '\n\nالتفاصيل: ' + errorDetails : ''}`);
         } finally {
             setSendingReminder(null);
         }
+    };
+
+    const handleSendReminderClick = (alert: any) => {
+        const inspectionDate = new Date(alert.inspection_date);
+        let warrantyEndDate = new Date(inspectionDate);
+        let wTypeArabic = '';
+
+        if (alert.warranty_type === 'maintenance_6months') {
+            warrantyEndDate.setMonth(warrantyEndDate.getMonth() + 6);
+            wTypeArabic = 'صيانة كل 6 أشهر';
+        } else {
+            warrantyEndDate.setFullYear(warrantyEndDate.getFullYear() + 1);
+            wTypeArabic = 'صيانة سنوية';
+        }
+
+        const dateString = warrantyEndDate.toISOString().split('T')[0];
+
+        const defaultMessage = `🛠️ *تذكير بالصيانة الدورية*\n\n` +
+            `أهلاً ${alert.client_name || 'عميلنا العزيز'}،\n\n` +
+            `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${alert.device_model}*) في تاريخ *${dateString}*.\n\n` +
+            `الصيانة الدورية تضمن بقاء جهازك في حالة ممتازة وتطيل عمره الافتراضي. يرجى التواصل معنا لترتيب الموعد.\n\n` +
+            `_مع تحيات فريق عمل لابك_`;
+
+        setConfirmDialog({
+            open: true,
+            alert,
+            message: defaultMessage
+        });
     };
 
     const getStatusBadge = (status: string) => {
@@ -294,9 +329,10 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                                         const isCritical = alert.days_remaining <= 3;
                                         const isWarning = alert.days_remaining > 3 && alert.days_remaining <= 5;
 
-                                        let colorClass = isCritical ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/30' :
-                                            isWarning ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/30' :
-                                                'bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/30';
+                                        let colorClass = alert.is_sent ? 'bg-green-500/10 border-green-500/20 hover:border-green-500/30' :
+                                            isCritical ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/30' :
+                                                isWarning ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/30' :
+                                                    'bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/30';
 
                                         let badgeVariant: 'destructive' | 'warning' | 'secondary' = isCritical ? 'destructive' : isWarning ? 'warning' : 'secondary';
                                         let badgeLabel = isCritical ? 'عاجل' : isWarning ? 'تحذير' : 'تنبيه';
@@ -365,7 +401,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    setConfirmDialog({ open: true, alert });
+                                                                    handleSendReminderClick(alert);
                                                                 }}
                                                                 disabled={sendingReminder === alert.report_id}
                                                                 className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/20 hover:border-green-500/40 hover:bg-green-500 hover:text-white text-green-600 transition-all flex items-center justify-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -415,37 +451,56 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                                 </div>
                             </div>
 
-                            <div className="bg-surface-variant/30 rounded-xl p-4 space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <User size={16} className="text-secondary/60" />
-                                    <span className="font-bold text-foreground">{confirmDialog.alert.client_name}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Phone size={16} className="text-secondary/60" />
-                                    <span className="text-sm text-secondary">{confirmDialog.alert.client_phone}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <ScanBarcode size={16} className="text-secondary/60" />
-                                    <span className="text-sm text-secondary">{confirmDialog.alert.device_model}</span>
+                            <div className="bg-surface-variant/30 rounded-xl p-4 space-y-3">
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <User size={16} className="text-secondary/60" />
+                                            <span className="font-bold text-foreground">{confirmDialog.alert?.client_name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Phone size={16} className="text-secondary/60" />
+                                            <span className="text-sm text-secondary font-medium">{confirmDialog.alert?.client_phone}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-black/5">
+                                        <label className="text-[10px] font-black uppercase tracking-wider text-secondary/40 mb-2 block">
+                                            نص الرسالة
+                                        </label>
+                                        <textarea
+                                            className="w-full bg-white/50 border border-black/5 rounded-xl p-3 text-sm text-secondary leading-relaxed min-h-[150px] focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500/30 transition-all resize-none"
+                                            value={confirmDialog.message}
+                                            onChange={(e) => setConfirmDialog(prev => ({ ...prev, message: e.target.value }))}
+                                            dir="rtl"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="flex gap-3">
                                 <Button
                                     variant="outline"
-                                    onClick={() => setConfirmDialog({ open: false, alert: null })}
-                                    className="flex-1"
+                                    onClick={() => setConfirmDialog({ open: false, alert: null, message: '' })}
+                                    className="flex-1 rounded-2xl h-12 font-bold"
                                     disabled={sendingReminder !== null}
                                 >
                                     إلغاء
                                 </Button>
                                 <Button
                                     variant="primary"
-                                    onClick={() => handleSendReminder(confirmDialog.alert)}
-                                    className="flex-1 bg-green-600 hover:bg-green-700"
+                                    onClick={() => handleSendReminder(confirmDialog.alert, confirmDialog.message)}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 rounded-2xl h-12 font-bold text-white shadow-lg shadow-green-500/20 border-none"
                                     disabled={sendingReminder !== null}
                                 >
-                                    {sendingReminder ? 'جاري الإرسال...' : 'إرسال التذكير'}
+                                    {sendingReminder ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            <span>جاري الإرسال...</span>
+                                        </div>
+                                    ) : (
+                                        'إرسال التذكير'
+                                    )}
                                 </Button>
                             </div>
                         </div>
