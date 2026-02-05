@@ -12,9 +12,15 @@ Tools and workflows for managing the **FixZone VPS**.
 - **Host:** `82.112.253.29`
 - **User:** `deploy`
 - **Identity:** Use password `0000` (Use `sshpass -p "0000"` for automated scripts)
-- **Active Deployment Path:** `/home/deploy/fz-projects/system/docker-infra` (Central infrastructure & Proxy)
-- **Source Code Path:** `/home/deploy/fz-projects/system` (Git Repo Root)
-- **Structure Snapshot:** 👉 **[`resources/server-snapshot.md`](resources/server-snapshot.md)**
+
+## Project Locations
+
+| Project | Source Path | Docker Config | Description |
+| :--- | :--- | :--- | :--- |
+| **Central Infra** | `/home/deploy/fz-projects/system/docker-infra` | `docker-compose.yml` | Nginx Proxy, Shared MySQL/Postgres |
+| **FixZone Main** | `/home/deploy/fz-projects/system` | `docker-infra/docker-compose.yml` | Original FZ Backend & Frontend |
+| **Laapak Reports** | `/home/deploy/laapak-projects/reports` | `remote-docker-compose.yml` | **Current Active Project** (React + Node) |
+| **Laapak PO** | `/home/deploy/laapak-projects/laapak-po` | `remote-docker-compose.yml` | Purchase Order System |
 
 ## When to Use
 - User wants to check server status (Docker containers)
@@ -22,62 +28,54 @@ Tools and workflows for managing the **FixZone VPS**.
 - User wants to run database migrations on production (Inside Docker)
 - User needs to check remote logs (Docker logs)
 
-## Workflow: Deployment & File Transfer
+## Workflow: Standard Deployment (Git-Driven)
 
-**PRIMARY METHOD: GitHub**
 Always prefer using Git to move code to the server. This ensures version control and consistency.
 
-```markdown
-- [ ] Push local changes to GitHub (`git push origin main`)
-- [ ] SSH into server
-- [ ] Navigate to source: `cd /home/deploy/fz-projects/system`
-- [ ] Pull latest code: `git pull`
-- [ ] Go to infra: `cd docker-infra`
-- [ ] Rebuild service: `docker compose up -d --build fz-system` (or `fz-frontend`)
+### 1. Laapak Report System (Backend & React Frontend)
+```bash
+# SSH command for full update
+sshpass -p "0000" ssh deploy@82.112.253.29 "cd /home/deploy/laapak-projects/reports && git pull origin main && docker compose -f remote-docker-compose.yml up -d --build"
+```
+*   **Infrastructure:** Connects to `mysql-db` on the external `laapak-network`.
+*   **Env:** Sensitive keys (JWT, API keys) are managed in `/home/deploy/laapak-projects/reports/.env` on the VPS.
+
+### 2. Central Infrastructure (Nginx / Shared DBs)
+```bash
+sshpass -p "0000" ssh deploy@82.112.253.29 "cd /home/deploy/fz-projects/system/docker-infra && docker compose up -d"
 ```
 
 ## Common Commands
 
-### 1. Docker-Based Deployment (Recommended)
-```bash
-# 1. Local: Push changes
-git push origin main
-
-# 2. Remote: Pull Code & Rebuild
-sshpass -p "0000" ssh deploy@82.112.253.29 "cd /home/deploy/fz-projects/system && git pull && cd docker-infra && docker compose up -d --build fz-system fz-frontend"
-```
-
-### 2. Server Maintenance
+### 1. Monitoring & Logs
 ```bash
 # Check all container status
 docker ps
 
-# Check logs for a specific service (Backend is 'fz-system')
-docker logs --tail 100 -f fz-system
+# Check logs for Laapak Backend
+docker logs --tail 100 -f report-system
 
-# Check logs for Frontend
-docker logs --tail 100 -f fz-frontend
+# Check logs for Laapak React Frontend
+docker logs --tail 100 -f laapak-frontend-react
 
-# Restart the backend
-cd /home/deploy/fz-projects/system/docker-infra && docker compose restart fz-system
-
-# Check system resources
-htop
+# System resources
+docker stats --no-stream
 df -h
 ```
 
-### 3. Service Mapping
-- **Frontend & API:** `system.fixzzone.com` -> `fz-frontend` (80), `fz-system` (4000)
-- **Evolution API:** `wa.fixzzone.com` -> `evolution-api` (8080)
-- **n8n Automation:** `n8n-auto.fixzzone.com` -> `n8n` (5678)
-- **Laapak Services:** `reports.laapak.com` (3001), `po.laapak.com` (3002)
-- **Database:** `mysql-db` (MySQL 8.0)
-
-### 4. Direct File Transfer (Fallback)
+### 2. Service Restart (No Rebuild)
 ```bash
-# Upload .env or config files
-sshpass -p "0000" scp .env.production deploy@82.112.253.29:/home/deploy/fz-projects/system/backend/.env
+# Restart reports stack
+cd /home/deploy/laapak-projects/reports && docker compose -f remote-docker-compose.yml restart
 ```
+
+### 3. Service Mapping
+- **FixZone Main:** `system.fixzzone.com` -> `fz-frontend` (80), `fz-system` (4000)
+- **Evolution WhatsApp API:** `wa.fixzzone.com` -> `evolution-api` (8080)
+- **n8n Automation:** `n8n-auto.fixzzone.com` -> `n8n` (5678)
+- **Laapak Reports Backend:** `82.112.253.29:3001` (`report-system`)
+- **Laapak Reports Frontend:** `82.112.253.29:3000` (`laapak-frontend-react`)
+- **Database:** `mysql-db` (MySQL 8.0), `postgres-db` (PostgreSQL)
 
 ## Security & Best Practices
 
@@ -133,4 +131,44 @@ If you deploy but changes don't appear:
 ### 3. Debugging Health Checks
 - **Problem:** Alpine images often resolve `localhost` to IPv6 (`::1`), causing `wget` connection refused errors if the service listens on IPv4 only.
 - **Solution:** Always use `http://127.0.0.1/` in `HEALTHCHECK` commands for Alpine-based containers.
+
+## High-CPU Spike Management
+
+### 1. Diagnosis
+If CPU is pinned at 100%:
+1.  Run `top -b -n 1` to find the process name.
+2.  If it's a Docker process (`containerd`, `node`, `mysql`), check `docker stats`.
+3.  If it's a host process (e.g., `systemp`), it might be malware or a rogue service.
+
+### 2. Mandatory Resource Limits
+Every service in `docker-compose.yml` MUST have resource limits defined to protect the host:
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '0.5'    # or '1.0' for heavy tasks
+      memory: 512M   # or '1G' for databases/n8n
+```
+
+## Malware Eradication (`systemp`/`observed`)
+
+The server has previously been infected with the `systemp` malware chain. If it reappears:
+
+### Infection Symptoms:
+- `systemp` process consuming 100%+ CPU on the host.
+- Legitimate processes (MySQL, n8n) being killed unexpectedly (watchdog behavior).
+- Service files `systemp.service` and `observed.service` appearing in `/etc/systemd/system/`.
+
+### Complete Removal Procedure:
+1.  **Identify Components**: Checks for `/usr/local/bin/systemp`, `/usr/local/bin/free_proc.sh`, and `.config.json`.
+2.  **Stop & Eradicate**:
+    ```bash
+    sudo systemctl stop systemp observed
+    sudo systemctl disable systemp observed
+    sudo rm -f /etc/systemd/system/systemp.service /etc/systemd/system/observed.service
+    sudo rm -f /usr/local/bin/systemp /usr/local/bin/free_proc.sh /usr/local/bin/.config.json
+    sudo systemctl daemon-reload
+    sudo killall -9 systemp free_proc.sh
+    ```
+3.  **Watchdog Alert**: `observed.service` is a watchdog that recreates `systemp`. You MUST stop/delete both simultaneously.
 
