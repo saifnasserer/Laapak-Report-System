@@ -128,17 +128,17 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
             <CardContent className="p-8 space-y-6">
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-4">
-                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-colors",
+                        <div className={cn("w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-colors",
                             data.isExpired ? "bg-destructive/10 text-destructive" :
                                 data.isNotStarted ? "bg-black/5 text-secondary/40" : "bg-primary/10 text-primary")}>
-                            <Icon size={28} />
+                            <Icon className="w-6 h-6 md:w-7 md:h-7" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-black text-secondary">{title}</h3>
-                            <p className="text-xs text-secondary/40 font-bold uppercase tracking-wider">{description}</p>
+                            <h3 className="text-lg md:text-xl font-black text-secondary">{title}</h3>
+                            <p className="text-[10px] md:text-xs text-secondary/40 font-bold uppercase tracking-wider">{description}</p>
                         </div>
                     </div>
-                    <div className={cn("px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest",
+                    <div className={cn("px-3 py-1 md:px-4 md:py-1.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest",
                         data.isExpired ? "bg-destructive/10 text-destructive" :
                             data.isNotStarted ? "bg-secondary/10 text-secondary/40" :
                                 "bg-green-500/10 text-green-600")}>
@@ -184,18 +184,18 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
             <Card className="overflow-hidden border border-black/5 bg-white/60 backdrop-blur-sm rounded-[2rem]">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full p-8 flex items-center justify-between hover:bg-black/[0.02] transition-colors"
+                    className="w-full p-6 md:p-8 flex items-center justify-between hover:bg-black/[0.02] transition-colors text-right"
                 >
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                             <Icon size={24} />
                         </div>
-                        <h3 className="text-xl font-black text-secondary">{title}</h3>
+                        <h3 className="text-lg md:text-xl font-black text-secondary">{title}</h3>
                     </div>
                     <ChevronDown size={24} className={cn("text-secondary/20 transition-transform duration-500", isOpen && "rotate-180")} />
                 </button>
                 <div className={cn("transition-all duration-500 overflow-hidden", isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0")}>
-                    <div className="px-8 pb-8 space-y-6 pt-2 border-t border-black/[0.03]">
+                    <div className="px-6 pb-6 md:px-8 md:pb-8 space-y-6 pt-2 border-t border-black/[0.03]">
                         {children}
                     </div>
                 </div>
@@ -239,21 +239,21 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
             <div className="space-y-8 pb-12">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 md:gap-4">
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => router.push(`/dashboard/client`)}
-                            className="rounded-2xl bg-white border border-black/5 shadow-sm hover:bg-surface-variant h-12 w-12 p-0 flex items-center justify-center text-secondary"
+                            className="rounded-2xl bg-white border border-black/5 shadow-sm hover:bg-surface-variant h-10 w-10 md:h-12 md:w-12 p-0 flex items-center justify-center text-secondary"
                         >
-                            <ArrowLeft size={24} />
+                            <ArrowLeft size={20} className="md:w-6 md:h-6" />
                         </Button>
                         <div>
-                            <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
-                                <ShieldCheck className="text-primary" size={32} />
+                            <h1 className="text-xl md:text-3xl font-black tracking-tight flex items-center gap-3">
+                                <ShieldCheck className="text-primary" size={24} />
                                 متتبع الضمان
                             </h1>
-                            <p className="text-secondary font-medium">متابعة فترات الضمان والصيانة لأجهزتك</p>
+                            <p className="text-xs md:text-base text-secondary font-medium">متابعة فترات الضمان والصيانة لأجهزتك</p>
                         </div>
                     </div>
                 </div>
@@ -269,9 +269,9 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                 ) : (
                     <>
                         {/* Device Info Summary */}
-                        <div className="bg-white/60 backdrop-blur-md p-8 rounded-[2.5rem] border border-black/5 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-12 opacity-[0.03] rotate-12 group-hover:scale-110 transition-transform duration-1000 pointer-events-none">
-                                <ShieldCheck size={280} />
+                        <div className="bg-white/60 backdrop-blur-md p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-black/5 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-8 md:p-12 opacity-[0.03] rotate-12 group-hover:scale-110 transition-transform duration-1000 pointer-events-none">
+                                <ShieldCheck size={200} className="md:w-[280px] md:h-[280px]" />
                             </div>
                             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
                                 <div className="space-y-6">
@@ -286,26 +286,26 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                                     </div>
 
                                     <div className="space-y-1">
-                                        <h2 className="text-4xl md:text-5xl font-black text-secondary tracking-tight">{latestReport.device_model}</h2>
+                                        <h2 className="text-2xl md:text-5xl font-black text-secondary tracking-tight">{latestReport.device_model}</h2>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-black text-secondary/20 uppercase tracking-[0.3em]">Serial Number:</span>
-                                            <span className="text-sm font-mono font-bold text-secondary/60 bg-surface-variant/20 px-3 py-1 rounded-lg">{latestReport.serial_number || 'N/A'}</span>
+                                            <span className="text-[9px] md:text-[10px] font-black text-secondary/20 uppercase tracking-[0.2em] md:tracking-[0.3em]">Serial Number:</span>
+                                            <span className="text-xs md:text-sm font-mono font-bold text-secondary/60 bg-surface-variant/20 px-2 md:px-3 py-0.5 md:py-1 rounded-lg">{latestReport.serial_number || 'N/A'}</span>
                                         </div>
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-6">
-                                        <div className="flex items-center gap-3 bg-white/40 px-4 py-2 rounded-2xl border border-black/[0.03]">
-                                            <Calendar size={18} className="text-primary/40" />
+                                        <div className="flex items-center gap-3 bg-white/40 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-black/[0.03]">
+                                            <Calendar size={16} className="text-primary/40" />
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] font-black text-secondary/20 uppercase">تاريخ التفعيل</span>
-                                                <span className="text-sm font-bold text-secondary">{format(startDate, 'dd MMMM yyyy', { locale: ar })}</span>
+                                                <span className="text-[8px] md:text-[9px] font-black text-secondary/20 uppercase">تاريخ التفعيل</span>
+                                                <span className="text-xs md:text-sm font-bold text-secondary">{format(startDate, 'dd MMMM yyyy', { locale: ar })}</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 bg-white/40 px-4 py-2 rounded-2xl border border-black/[0.03]">
-                                            <ShieldCheck size={18} className="text-primary/40" />
+                                        <div className="flex items-center gap-3 bg-white/40 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-black/[0.03]">
+                                            <ShieldCheck size={16} className="text-primary/40" />
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] font-black text-secondary/20 uppercase">نوع الضمان</span>
-                                                <span className="text-sm font-bold text-secondary">ضمان لابك الرسمي (12 شهر)</span>
+                                                <span className="text-[8px] md:text-[9px] font-black text-secondary/20 uppercase">نوع الضمان</span>
+                                                <span className="text-xs md:text-sm font-bold text-secondary text-nowrap">ضمان لابك الرسمي (12 شهر)</span>
                                             </div>
                                         </div>
                                     </div>
@@ -410,14 +410,14 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
 
                                 {/* Notification Status Card */}
                                 <Card className="overflow-hidden border border-black/5 bg-white/60 backdrop-blur-sm rounded-[2rem]">
-                                    <CardContent className="p-8 flex items-center justify-between gap-6">
-                                        <div className="flex items-center gap-6">
-                                            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg shadow-primary/5">
-                                                <Bell size={28} />
+                                    <CardContent className="p-6 md:p-8 flex items-center justify-between gap-6">
+                                        <div className="flex items-center gap-4 md:gap-6">
+                                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg shadow-primary/5">
+                                                <Bell size={24} className="md:w-7 md:h-7" />
                                             </div>
                                             <div className="space-y-1">
-                                                <h3 className="text-xl font-black text-secondary">تنبيهات الصيانة</h3>
-                                                <p className="text-sm font-bold text-secondary/40">تذكير تلقائي بمواعيد الصيانة المجانية لجهازك</p>
+                                                <h3 className="text-lg md:text-xl font-black text-secondary">تنبيهات الصيانة</h3>
+                                                <p className="text-xs md:text-sm font-bold text-secondary/40">تذكير تلقائي بمواعيد الصيانة لأجهزتك</p>
                                             </div>
                                         </div>
                                         <div className="hidden sm:flex items-center gap-3 bg-primary/5 px-6 py-3 rounded-2xl border border-primary/10">

@@ -133,6 +133,12 @@ const Report = sequelize.define('Report', {
         allowNull: true,
         field: 'warranty_alerts_log',
         comment: 'Log of sent warranty alerts (6-month, annual)'
+    },
+    is_confirmed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        field: 'is_confirmed',
+        comment: 'Indicates if the user has confirmed the order via WhatsApp'
     }
 }, {
     tableName: 'reports',

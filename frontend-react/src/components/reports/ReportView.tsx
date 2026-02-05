@@ -49,9 +49,17 @@ import {
 } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { useRouter } from '@/i18n/routing';
-import api from '@/lib/api';
+import api, { confirmReport } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingCart, Send, ExternalLink, Package } from 'lucide-react';
+import axios from 'axios';
+
+// WooCommerce Configuration
+const WOO_BASE_URL = 'https://laapak.com';
+const WOO_CONSUMER_KEY = 'ck_a00837182f934a0f93d63877b3e33e127cefc11b';
+const WOO_CONSUMER_SECRET = 'cs_2186f8d150aa716f9c6b3d1c66e9c96f5e6b209d';
+const ACCESSORIES_CATEGORY_ID = 462;
 
 interface ReportViewProps {
     id: string;
@@ -66,6 +74,9 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
     const [error, setError] = useState<string | null>(null);
     const [activeStep, setActiveStep] = useState(1);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isConfirmed, setIsConfirmed] = useState(false);
+    const [products, setProducts] = useState<any[]>([]);
+    const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
     const isRtl = locale === 'ar';
 
@@ -74,18 +85,19 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         { id: 2, title: 'المعاينة الخارجية' },
         { id: 3, title: 'الفحص التقني' },
         { id: 4, title: 'الفحص الداخلي' },
-        { id: 5, title: 'المالية والفوترة' },
-        { id: 6, title: 'الإجراءات النهائية' },
+        { id: 5, title: 'اكسسوارات العناية' },
+        { id: 6, title: 'المالية والفوترة' },
+        { id: 7, title: 'تأكيد ومشاركة' },
     ];
 
     useEffect(() => {
         const fetchReport = async () => {
             try {
                 setIsLoading(true);
-                // Public view might need a different endpoint or special handling
-                // For now assuming the standard endpoint works or is made public
                 const response = await api.get(`/reports/${id}`);
-                setReport(response.data.report);
+                const reportData = response.data.report;
+                setReport(reportData);
+                setIsConfirmed(!!reportData.is_confirmed);
                 setError(null);
             } catch (err: any) {
                 console.error('Failed to fetch report:', err);
@@ -97,6 +109,47 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
         fetchReport();
     }, [id]);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            if (activeStep === 5 && products.length === 0) {
+                try {
+                    setIsLoadingProducts(true);
+                    const auth = Buffer.from(`${WOO_CONSUMER_KEY}:${WOO_CONSUMER_SECRET}`).toString('base64');
+                    const response = await axios.get(`${WOO_BASE_URL}/wp-json/wc/v3/products`, {
+                        params: {
+                            category: ACCESSORIES_CATEGORY_ID,
+                            status: 'publish',
+                            per_page: 20
+                        },
+                        headers: {
+                            'Authorization': `Basic ${auth}`
+                        }
+                    });
+                    setProducts(response.data);
+                } catch (err) {
+                    console.error('Failed to fetch products:', err);
+                } finally {
+                    setIsLoadingProducts(false);
+                }
+            }
+        };
+
+        fetchProducts();
+    }, [activeStep, products.length]);
+
+    const handleConfirmOrder = async () => {
+        try {
+            await confirmReport(id);
+            setIsConfirmed(true);
+
+            const message = encodeURIComponent('مساء الخير انا راحعت الريبوت وجاهز ااكد الاوردر');
+            const phone = '201013148007';
+            window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+        } catch (err) {
+            console.error('Failed to confirm report:', err);
+        }
+    };
 
     const handlePrint = (invoiceId: string) => {
         const token = localStorage.getItem('token');
@@ -143,24 +196,24 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         exit={{ opacity: 0, y: -20 }}
                         className="space-y-12"
                     >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                             <div className="space-y-8">
                                 <h3 className="text-xl font-black text-primary/80 flex items-center gap-3">
                                     <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">01</span>
                                     بيانات العميل والطلب
                                 </h3>
-                                <div className="space-y-6 px-4 md:px-11">
+                                <div className="space-y-6 px-2 md:px-11">
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">اسم العميل</p>
-                                        <p className="text-2xl font-bold text-secondary">{report.client_name}</p>
+                                        <p className="text-xl md:text-2xl font-bold text-secondary">{report.client_name}</p>
                                     </div>
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">رقم الهاتف</p>
-                                        <p className="text-2xl font-bold text-secondary dir-ltr inline-block">{report.client_phone}</p>
+                                        <p className="text-xl md:text-2xl font-bold text-secondary dir-ltr inline-block">{report.client_phone}</p>
                                     </div>
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">العنوان</p>
-                                        <p className="text-lg font-medium text-secondary/80">{report.client_address || 'لم يتم تحديد عنوان'}</p>
+                                        <p className="text-base md:text-lg font-medium text-secondary/80">{report.client_address || 'لم يتم تحديد عنوان'}</p>
                                     </div>
                                 </div>
                             </div>
@@ -170,26 +223,26 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">02</span>
                                     هوية الجهاز والتحقق
                                 </h3>
-                                <div className="space-y-6 px-4 md:px-11">
+                                <div className="space-y-6 px-2 md:px-11">
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">موديل الجهاز</p>
                                         <div className="flex items-center gap-3">
                                             <Smartphone className="text-primary/40" size={24} />
-                                            <p className="text-2xl font-bold text-secondary">{report.device_model}</p>
+                                            <p className="text-xl md:text-2xl font-bold text-secondary">{report.device_model}</p>
                                         </div>
                                     </div>
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">الرقم التسلسلي (IMEI/SN)</p>
-                                        <p className="text-2xl font-mono font-bold text-secondary/60 bg-surface-variant/20 px-3 py-1 rounded-xl inline-block">{report.serial_number || 'N/A'}</p>
+                                        <p className="text-xl md:text-2xl font-mono font-bold text-secondary/60 bg-surface-variant/20 px-3 py-1 rounded-xl inline-block">{report.serial_number || 'N/A'}</p>
                                     </div>
-                                    <div className="flex items-center gap-12">
+                                    <div className="flex items-center gap-6 md:gap-12">
                                         <div className="group">
                                             <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">رقم الطلب</p>
-                                            <p className="text-lg font-black text-primary">#{report.order_number || report.id}</p>
+                                            <p className="text-base md:text-lg font-black text-primary">#{report.order_number || report.id}</p>
                                         </div>
                                         <div className="group">
                                             <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">تاريخ الفحص</p>
-                                            <p className="text-lg font-bold text-secondary/80">{report.inspection_date ? new Date(report.inspection_date).toLocaleDateString('ar-EG') : '-'}</p>
+                                            <p className="text-base md:text-lg font-bold text-secondary/80">{report.inspection_date ? new Date(report.inspection_date).toLocaleDateString('ar-EG') : '-'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -201,7 +254,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">03</span>
                                 المواصفات التقنية
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-4 md:px-11">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-2 md:px-11">
                                 {[
                                     { label: 'Processor', value: report.cpu || 'Not Specified', icon: <Cpu size={20} /> },
                                     { label: 'Graphics', value: report.gpu || 'Not Specified', icon: <Monitor size={20} /> },
@@ -242,7 +295,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         className="space-y-12"
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="text-2xl font-black text-secondary flex items-center gap-3">
+                            <h3 className="text-xl md:text-2xl font-black text-secondary flex items-center gap-3">
                                 <ShieldCheck className="text-primary" size={28} />
                                 سجل الفحص التقني
                             </h3>
@@ -309,12 +362,12 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                                 <td className="px-6 py-5">
                                                                     <div className="flex justify-center">
                                                                         {status === 'pass' ? (
-                                                                            <div className="bg-green-500 text-white px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-tight shadow-md flex items-center gap-2 cursor-default">
-                                                                                <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                                                            <div className="bg-green-500 text-white px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] font-black uppercase tracking-tight shadow-md flex items-center gap-2 cursor-default">
+                                                                                <div className="w-1.5 md:w-2 h-1.5 md:h-2 rounded-full bg-white animate-pulse" />
                                                                                 تم الفحص بنجاح
                                                                             </div>
                                                                         ) : (
-                                                                            <div className="bg-green-50/50 text-green-600/40 border border-green-100/50 px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-tight flex items-center gap-2 cursor-default">
+                                                                            <div className="bg-green-50/50 text-green-600/40 border border-green-100/50 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] font-black uppercase tracking-tight flex items-center gap-2 cursor-default">
                                                                                 تم التحقق
                                                                             </div>
                                                                         )}
@@ -381,6 +434,58 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             case 5:
                 return (
                     <motion.div
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.02 }}
+                        className="space-y-8"
+                    >
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                                <ShoppingCart size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-secondary">إكسسوارات العناية بالجهاز</h3>
+                                <p className="text-sm text-secondary/60">اكتشف أفضل الخيارات لحماية جهازك وزيادة كفاءته</p>
+                            </div>
+                        </div>
+
+                        {isLoadingProducts ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {[1, 2, 3].map((n) => (
+                                    <div key={n} className="h-64 rounded-3xl bg-surface-variant/10 animate-pulse" />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {products.map((product: any) => (
+                                    <div key={product.id} className="group bg-white rounded-[2rem] border border-black/5 p-4 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col">
+                                        <div className="aspect-square w-full rounded-2xl overflow-hidden bg-surface-variant/5 mb-4 relative">
+                                            {product.images && product.images[0] ? (
+                                                <img src={product.images[0].src} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-secondary/20">
+                                                    <Package size={48} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-2 flex-1">
+                                            <h4 className="font-bold text-secondary group-hover:text-primary transition-colors line-clamp-2">{product.name}</h4>
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xl font-black text-primary">{product.price} <span className="text-[10px] font-bold">ج.م</span></p>
+                                                <a href={product.permalink} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all">
+                                                    <ExternalLink size={18} />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </motion.div>
+                );
+            case 6:
+                return (
+                    <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
@@ -388,7 +493,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                     >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pb-12 border-b border-black/5">
                             <div className="space-y-2">
-                                <h3 className="text-2xl font-black text-secondary flex items-center gap-3">
+                                <h3 className="text-xl md:text-2xl font-black text-secondary flex items-center gap-3">
                                     <CreditCard className="text-primary" size={28} />
                                     المبالغ والفوترة
                                 </h3>
@@ -397,7 +502,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             <div className="bg-primary/[0.03] p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-primary/10 w-full md:w-auto md:min-w-[300px] text-center">
                                 <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">إجمالي مبلغ الفحص</p>
                                 <div className="flex items-baseline justify-center gap-2">
-                                    <h2 className="text-4xl md:text-5xl font-black text-primary">{parseFloat(report.amount || 0).toLocaleString()}</h2>
+                                    <h2 className="text-3xl md:text-5xl font-black text-primary">{parseFloat(report.amount || 0).toLocaleString()}</h2>
                                     <span className="text-lg font-bold text-primary/60">ج.م</span>
                                 </div>
                             </div>
@@ -430,7 +535,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center justify-between md:justify-end gap-3 md:gap-8 border-t md:border-t-0 pt-4 md:pt-0 border-black/5">
-                                                    <p className="text-base md:text-lg font-black text-secondary">{parseFloat(inv.total).toLocaleString()} ج.م</p>
+                                                    <p className="text-sm md:text-lg font-black text-secondary">{parseFloat(inv.total).toLocaleString()} ج.م</p>
                                                     <div className="flex items-center gap-3">
                                                         <Badge variant={inv.paymentStatus === 'paid' ? 'success' : 'warning'} className="text-[10px] px-3 py-0.5 rounded-full">
                                                             {inv.paymentStatus === 'paid' ? 'مدفوعة' : 'معلقة'}
@@ -456,7 +561,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         </div>
                     </motion.div>
                 );
-            case 6:
+            case 7:
                 return (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -469,10 +574,31 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 <CheckCircle2 size={48} />
                             </div>
                             <h3 className="text-3xl font-black text-secondary">إتمام مراجعة التقرير</h3>
-                            <p className="text-secondary/60 font-medium">يمكنك الآن طباعة التقرير أو مشاركته مع العميل.</p>
+                            <p className="text-secondary/60 font-medium">يمكنك الآن تأكيد الطلب أو مشاركته مع العميل.</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {viewMode === 'client' && (
+                                <div
+                                    onClick={!isConfirmed ? handleConfirmOrder : undefined}
+                                    className={cn(
+                                        "p-8 rounded-[2.5rem] bg-white border transition-all cursor-pointer group flex items-center gap-6",
+                                        isConfirmed ? "border-green-500/30 bg-green-50/10" : "border-black/5 hover:border-primary/20 hover:-translate-y-1 shadow-sm"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group-hover:scale-110",
+                                        isConfirmed ? "bg-green-500 text-white" : "bg-primary text-white shadow-lg shadow-primary/20"
+                                    )}>
+                                        {isConfirmed ? <Check size={32} /> : <Send size={32} />}
+                                    </div>
+                                    <div className="text-right">
+                                        <h4 className="text-xl font-black text-secondary">{isConfirmed ? 'تم تأكيد الطلب' : 'تأكيد الـ Order'}</h4>
+                                        <p className="text-sm text-secondary/40 mt-1">{isConfirmed ? 'شكراً لثقتكم بنا' : 'اضغط للتأكيد عبر واتساب'}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {[
                                 {
                                     title: 'مشاركة واتساب',
@@ -486,7 +612,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     }
                                 },
                                 ...(viewMode === 'admin' ? [
-                                    { title: 'تعديل البيانات', desc: 'تحديث المواصفات أو نتائج الفحص', icon: <Edit />, color: 'secondary', action: () => router.push(`/${locale}/dashboard/admin/reports/${id}/edit`) },
+                                    { title: 'تعديل البيانات', desc: 'تحديث المواصفات أو نتائج الفحص', icon: <Edit />, color: 'secondary', action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
                                     { title: 'إضافة للمخزن', desc: 'تسجيل الجهاز في قاعدة بيانات المخزن', icon: <Smartphone />, color: 'secondary' }
                                 ] : [])
                             ].map((item, i) => (
@@ -549,16 +675,36 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 <div className="flex flex-col lg:flex-row gap-8 lg:gap-20 items-start">
                     <div className="w-full lg:hidden mb-8">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-black text-secondary/40 uppercase tracking-widest">Step {activeStep} of 6</span>
-                            <span className="text-xs font-bold text-primary">{Math.round((activeStep / 6) * 100)}%</span>
+                            <span className="text-xs font-black text-secondary/40 uppercase tracking-widest">المرحلة {activeStep} من 7</span>
+                            <span className="text-xs font-bold text-primary">{Math.round((activeStep / 7) * 100)}%</span>
                         </div>
-                        <div className="h-1.5 w-full bg-black/5 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full bg-black/5 rounded-full overflow-hidden mb-6">
                             <motion.div
                                 className="h-full bg-primary"
                                 initial={{ width: 0 }}
-                                animate={{ width: `${(activeStep / 6) * 100}%` }}
+                                animate={{ width: `${(activeStep / 7) * 100}%` }}
                                 transition={{ duration: 0.5, ease: "circOut" }}
                             />
+                        </div>
+                        {/* Mobile Step Navigator */}
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 px-1 snap-x">
+                            {steps.map((step) => {
+                                const isActive = activeStep === step.id;
+                                return (
+                                    <button
+                                        key={step.id}
+                                        onClick={() => setActiveStep(step.id)}
+                                        className={cn(
+                                            "flex-shrink-0 px-4 py-2.5 rounded-2xl text-[11px] font-black transition-all snap-start border",
+                                            isActive
+                                                ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
+                                                : "bg-white text-secondary/40 border-black/5"
+                                        )}
+                                    >
+                                        {step.title}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 

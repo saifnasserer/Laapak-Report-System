@@ -12,7 +12,7 @@ const REPORT_BASE_ATTRIBUTES = [
   'order_number', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
   'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
   'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id',
-  'created_at', 'updated_at', 'warranty_alerts_log'
+  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed'
 ];
 
 
@@ -1428,6 +1428,28 @@ router.post('/:id/send-warranty-reminder', auth, async (req, res) => {
       error: error.message,
       details: error.response?.data || null
     });
+  }
+});
+
+// PUT /reports/:id/confirm - mark a report as confirmed by the client
+router.put('/:id/confirm', clientAuth, async (req, res) => {
+  try {
+    const report = await Report.findByPk(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({ message: 'التقرير غير موجود' });
+    }
+
+    // Update is_confirmed flag
+    await report.update({ is_confirmed: true });
+
+    res.json({
+      message: 'تم تأكيد الطلب بنجاح',
+      is_confirmed: true
+    });
+  } catch (error) {
+    console.error('Error confirming report:', error);
+    res.status(500).json({ message: 'حدث خطأ أثناء تأكيد الطلب', error: error.message });
   }
 });
 

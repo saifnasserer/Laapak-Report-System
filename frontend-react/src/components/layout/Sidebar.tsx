@@ -55,27 +55,27 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     return (
         <aside
             className={cn(
-                "fixed inset-y-0 w-72 h-screen bg-white flex flex-col z-[100] transition-transform duration-500 ease-in-out",
+                "fixed inset-y-0 w-[280px] md:w-72 h-screen bg-white flex flex-col z-[100] transition-transform duration-500 ease-in-out",
                 isRtl ? "right-0 border-l border-black/10" : "left-0 border-r border-black/10",
                 isOpen
                     ? "translate-x-0"
                     : (isRtl ? "translate-x-full" : "-translate-x-full")
             )}
         >
-            <div className="p-8 pb-4 flex items-center justify-between">
+            <div className="p-6 md:p-8 pb-4 flex items-center justify-between">
                 <Image
                     src="/logo.png"
                     alt="Laapak"
                     width={180}
                     height={60}
-                    className="h-10 w-auto object-contain"
+                    className="h-8 md:h-10 w-auto object-contain"
                     priority
                 />
                 <button
                     onClick={() => setIsOpen(false)}
-                    className="p-2 hover:bg-surface-variant rounded-xl transition-colors text-secondary"
+                    className="p-2.5 md:p-2 hover:bg-surface-variant rounded-xl transition-all active:scale-95 text-secondary border border-transparent active:border-black/5"
                 >
-                    <X size={20} />
+                    <X size={20} className="md:w-5 md:h-5" />
                 </button>
             </div>
 
@@ -92,17 +92,17 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                                 href={link.href}
                                 onClick={() => setIsOpen(false)}
                                 className={cn(
-                                    'group flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all no-ripple',
+                                    'group flex items-center justify-between px-4 py-3 md:py-3.5 rounded-2xl transition-all no-ripple active:scale-[0.98]',
                                     isActive
-                                        ? 'bg-primary text-white'
+                                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
                                         : 'text-secondary/70 hover:bg-primary/5 hover:text-primary'
                                 )}
                             >
                                 <div className="flex items-center">
-                                    <Icon size={22} className={cn('transition-colors', isActive ? 'text-white' : 'group-hover:text-primary')} />
+                                    <Icon size={20} className={cn('transition-colors md:w-[22px] md:h-[22px]', isActive ? 'text-white' : 'group-hover:text-primary')} />
                                     {/* Sizedbox equivalent */}
-                                    <div className="w-4" />
-                                    <span className="font-bold text-[15px]">{link.label}</span>
+                                    <div className="w-3 md:w-4" />
+                                    <span className="font-bold text-sm md:text-[15px]">{link.label}</span>
                                 </div>
                                 <ChevronRight size={16} className={cn(
                                     'transition-all',
@@ -116,26 +116,26 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                 </nav>
             </div>
 
-            <div className="mt-auto p-6 space-y-4">
-                <div className="bg-surface-variant/50 p-4 rounded-2xl border border-black/5">
-                    <div className="flex items-center space-x-3 space-x-reverse mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-white border border-black/5 flex items-center justify-center font-bold text-primary">
+            <div className="mt-auto p-4 md:p-6 space-y-4">
+                <div className="bg-surface-variant/50 p-4 rounded-3xl border border-black/5">
+                    <div className="flex items-center space-x-3 space-x-reverse mb-4">
+                        <div className="w-10 h-10 rounded-2xl bg-white border border-black/5 flex items-center justify-center font-black text-primary shadow-sm">
                             {user?.username?.[0]?.toUpperCase() || 'U'}
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-secondary/60">مرحباً</p>
-                            <p className="text-sm font-black text-foreground">{user?.username}</p>
+                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-wider">مرحباً</p>
+                            <p className="text-sm font-black text-secondary">{user?.username}</p>
                         </div>
                     </div>
                     <button
                         onClick={logout}
-                        className="w-full flex items-center justify-center space-x-2 space-x-reverse px-4 py-2.5 text-destructive font-bold text-sm bg-destructive/5 hover:bg-destructive/10 rounded-xl transition-colors no-ripple"
+                        className="w-full flex items-center justify-center space-x-2 space-x-reverse px-4 py-3 text-destructive font-black text-[13px] bg-destructive/5 hover:bg-destructive/10 rounded-2xl transition-all active:scale-95 no-ripple"
                     >
-                        <LogOut size={18} />
+                        <LogOut size={16} />
                         <span>{t('logout')}</span>
                     </button>
                 </div>
-                <p className="text-[10px] text-center text-secondary/30 font-bold">LAAPAK v1.0.0</p>
+                <p className="text-[10px] text-center text-secondary/20 font-black tracking-[0.2em]">LAAPAK v1.0.0</p>
             </div>
         </aside>
     );

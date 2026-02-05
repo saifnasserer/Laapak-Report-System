@@ -41,4 +41,14 @@ api.interceptors.response.use(
     }
 );
 
+export const confirmReport = async (reportId: string) => {
+    try {
+        const response = await api.put(`/reports/${reportId}/confirm`);
+        return response.data;
+    } catch (error) {
+        console.error('Error confirming report:', error);
+        throw error;
+    }
+};
+
 export default api;
