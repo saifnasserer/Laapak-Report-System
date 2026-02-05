@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -23,7 +23,7 @@ import api from '@/lib/api';
 import { format, differenceInDays, addMonths, addDays, isAfter } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
-export default function WarrantyPage({ params }: { params: Promise<{ locale: string }> }) {
+function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -244,4 +244,19 @@ export default function WarrantyPage({ params }: { params: Promise<{ locale: str
 
 function cn(...inputs: any[]) {
     return inputs.filter(Boolean).join(' ');
+}
+
+export default function WarrantyPage({ params }: { params: Promise<{ locale: string }> }) {
+    return (
+        <Suspense fallback={
+            <DashboardLayout>
+                <div className="h-[60vh] flex flex-col items-center justify-center space-y-4">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                    <p className="text-secondary font-medium">جاري التحميل...</p>
+                </div>
+            </DashboardLayout>
+        }>
+            <WarrantyPageContent params={params} />
+        </Suspense>
+    );
 }

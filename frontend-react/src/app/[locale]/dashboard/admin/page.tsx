@@ -18,6 +18,8 @@ import {
     TriangleAlert,
     ShieldCheck,
     AlertCircle,
+    ChevronDown,
+    ChevronUp,
     ScanBarcode,
     CalendarCheck,
     CalendarX,
@@ -28,7 +30,10 @@ import {
     FileText,
     Users,
     Calendar,
-    ArrowRight
+    ArrowRight,
+    CheckCircle2,
+    Circle,
+    Send
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useRouter } from '@/i18n/routing';
@@ -59,6 +64,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
     const [warrantyAlerts, setWarrantyAlerts] = useState<any[]>([]);
     const [recentReports, setRecentReports] = useState<any[]>([]);
     const [isReportsLoading, setIsReportsLoading] = useState(true);
+    const [isWarrantyAlertsOpen, setIsWarrantyAlertsOpen] = useState(false);
+    const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; alert: any | null }>({ open: false, alert: null });
 
     const fetchDashboardData = async () => {
         setStats(prev => ({ ...prev, isLoading: true }));
@@ -94,6 +102,26 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
+    const handleSendReminder = async (alert: any) => {
+        try {
+            setSendingReminder(alert.report_id);
+
+            await api.post(`/reports/${alert.report_id}/send-warranty-reminder`, {
+                warranty_type: alert.warranty_type
+            });
+
+            // Refresh dashboard data to update the UI
+            await fetchDashboardData();
+
+            setConfirmDialog({ open: false, alert: null });
+        } catch (error: any) {
+            console.error('Failed to send reminder:', error);
+            alert('فشل إرسال التذكير: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setSendingReminder(null);
+        }
+    };
 
     const getStatusBadge = (status: string) => {
         const statusMap: any = {
@@ -145,146 +173,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                             </Button>
                         </div>
                     </div>
-                </div>
-
-                <div className="mb-8">
-                    {/* Warranty Alerts Section */}
-                    <Card variant="glass" className="h-full border-black/5 bg-white/60 backdrop-blur-sm">
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 shadow-sm border border-amber-500/10">
-                                    <TriangleAlert size={24} />
-                                </div>
-                                <div>
-                                    <h5 className="font-bold text-lg m-0 text-amber-950">تنبيهات الضمان</h5>
-                                    <p className="text-secondary/60 text-sm m-0 font-medium">العملاء الذين تنتهي ضماناتهم قريباً</p>
-                                </div>
-                            </div>
-                            <Badge variant="warning" circular className="text-sm px-4 py-1.5 shadow-sm">
-                                {warrantyAlerts.length}
-                            </Badge>
-                        </div>
-
-                        {stats.isLoading ? (
-                            <div className="flex flex-col gap-3">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-24 bg-surface-variant/50 animate-pulse rounded-2xl" />
-                                ))}
-                            </div>
-                        ) : warrantyAlerts.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 mb-4 animate-in zoom-in duration-500">
-                                    <ShieldCheck size={32} />
-                                </div>
-                                <p className="text-lg font-bold text-green-900">لا توجد تنبيهات ضمان</p>
-                                <p className="text-secondary/60 text-sm font-medium">جميع الضمانات سارية المفعول لفترة كافية</p>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-4">
-                                {/* Summary Rows */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-                                    <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-4 text-center hover:bg-red-500/10 transition-colors cursor-default">
-                                        <div className="text-red-600 font-black text-2xl leading-none mb-1.5 font-mono">
-                                            {Number(warrantyAlerts.filter(a => a.days_remaining <= 3).length).toLocaleString()}
-                                        </div>
-                                        <div className="text-[11px] font-bold text-red-700/70 uppercase tracking-wide">عاجلة (≤ 3)</div>
-                                    </div>
-                                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 text-center hover:bg-amber-500/10 transition-colors cursor-default">
-                                        <div className="text-amber-600 font-black text-2xl leading-none mb-1.5 font-mono">
-                                            {Number(warrantyAlerts.filter(a => a.days_remaining > 3 && a.days_remaining <= 5).length).toLocaleString()}
-                                        </div>
-                                        <div className="text-[11px] font-bold text-amber-700/70 uppercase tracking-wide">تحذير (4-5)</div>
-                                    </div>
-                                    <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-2xl p-4 text-center hover:bg-cyan-500/10 transition-colors cursor-default">
-                                        <div className="text-cyan-600 font-black text-2xl leading-none mb-1.5 font-mono">
-                                            {Number(warrantyAlerts.filter(a => a.days_remaining > 5).length).toLocaleString()}
-                                        </div>
-                                        <div className="text-[11px] font-bold text-cyan-700/70 uppercase tracking-wide">تنبيه (&gt; 5)</div>
-                                    </div>
-                                </div>
-
-                                {/* Alerts List */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {/* Sort by days remaining ascending */}
-                                    {[...warrantyAlerts].sort((a, b) => a.days_remaining - b.days_remaining).map((alert, idx) => {
-                                        const isCritical = alert.days_remaining <= 3;
-                                        const isWarning = alert.days_remaining > 3 && alert.days_remaining <= 5;
-
-                                        let colorClass = isCritical ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/30' :
-                                            isWarning ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/30' :
-                                                'bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/30';
-
-                                        let badgeVariant: 'destructive' | 'warning' | 'secondary' = isCritical ? 'destructive' : isWarning ? 'warning' : 'secondary';
-                                        let badgeLabel = isCritical ? 'عاجل' : isWarning ? 'تحذير' : 'تنبيه';
-
-                                        let iconColor = isCritical ? 'text-red-500' :
-                                            isWarning ? 'text-amber-500' :
-                                                'text-cyan-500';
-
-                                        return (
-                                            <div key={idx} className={`rounded-2xl p-4 border ${colorClass} transition-all duration-300 hover:shadow-md group`}>
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <div className="flex gap-3">
-                                                        <div className={`mt-1 ${iconColor} p-2 rounded-xl bg-white/50 backdrop-blur-sm border border-black/5`}>
-                                                            {isCritical ? <AlertCircle size={18} /> : <TriangleAlert size={18} />}
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <h6 className="font-bold text-sm text-foreground">{alert.client_name || 'عميل غير معروف'}</h6>
-                                                                <Badge variant={badgeVariant} className="text-[10px] h-5 px-1.5">
-                                                                    {badgeLabel}
-                                                                </Badge>
-                                                            </div>
-                                                            <p className="font-bold text-xs text-secondary/60 mb-1">{alert.device_model || 'جهاز غير معروف'}</p>
-                                                            {alert.serial_number && (
-                                                                <div className="flex items-center gap-1 text-[10px] text-secondary/50 font-mono bg-white/50 px-2 py-0.5 rounded border border-black/5 w-fit">
-                                                                    <ScanBarcode size={10} />
-                                                                    {alert.serial_number}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-col items-end gap-2">
-                                                        <span className={`text-xs font-black px-2 py-1 rounded-lg border ${isCritical ? 'bg-red-50 border-red-100 text-red-700' : 'bg-surface-variant border-surface text-secondary'}`}>
-                                                            {alert.days_remaining} أيام
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-black/5 mt-2">
-                                                    <div className="text-xs">
-                                                        <p className="text-secondary/40 font-bold mb-0.5 flex items-center gap-1"><CalendarCheck size={10} /> تاريخ الفحص</p>
-                                                        <p className="font-bold text-foreground/80">{alert.inspection_date ? new Date(alert.inspection_date).toLocaleDateString('ar-EG') : '-'}</p>
-                                                    </div>
-                                                    <div className="text-xs">
-                                                        <p className="text-secondary/40 font-bold mb-0.5 flex items-center gap-1"><CalendarX size={10} /> ينتهي الضمان</p>
-                                                        <p className="font-bold text-foreground/80">{alert.warranty_end_date ? new Date(alert.warranty_end_date).toLocaleDateString('ar-EG') : '-'}</p>
-                                                    </div>
-                                                    {alert.client_phone && (
-                                                        <div className="col-span-2 text-xs border-t border-dashed border-black/10 pt-2 mt-1">
-                                                            <p className="font-bold flex items-center gap-2 text-primary hover:underline cursor-pointer">
-                                                                <Phone size={12} /> <span dir="ltr">{alert.client_phone}</span>
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    {alert.report_id && (
-                                                        <div className="col-span-2 mt-1">
-                                                            <button
-                                                                onClick={() => router.push(`/dashboard/admin/reports/${alert.report_id}`)}
-                                                                className="w-full py-2 px-3 rounded-xl bg-white border border-black/5 hover:border-primary/20 hover:bg-primary/5 text-primary text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
-                                                            >
-                                                                <Eye size={14} /> عرض التقرير
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </Card>
                 </div>
 
                 {/* Recent Reports - Row Style */}
@@ -353,7 +241,217 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                         </div>
                     )}
                 </div>
+
+                <div className="mb-8">
+                    {/* Warranty Alerts Section */}
+                    <Card variant="glass" className="h-full border-black/5 bg-white/60 backdrop-blur-sm">
+                        <div
+                            className={`flex justify-between items-center cursor-pointer select-none ${isWarrantyAlertsOpen ? 'mb-6' : 'mb-0'}`}
+                            onClick={() => setIsWarrantyAlertsOpen(!isWarrantyAlertsOpen)}
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 shadow-sm border border-amber-500/10">
+                                    <TriangleAlert size={24} />
+                                </div>
+                                <div>
+                                    <h5 className="font-bold text-lg m-0 text-amber-950">تنبيهات الضمان</h5>
+                                    <p className="text-secondary/60 text-sm m-0 font-medium">العملاء الذين تنتهي ضماناتهم قريباً</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Badge variant="warning" circular className="text-sm px-4 py-1.5 shadow-sm">
+                                    {warrantyAlerts.length}
+                                </Badge>
+                                {isWarrantyAlertsOpen ? (
+                                    <ChevronUp size={20} className="text-secondary/60" />
+                                ) : (
+                                    <ChevronDown size={20} className="text-secondary/60" />
+                                )}
+                            </div>
+                        </div>
+
+                        {isWarrantyAlertsOpen && (stats.isLoading ? (
+                            <div className="flex flex-col gap-3">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-24 bg-surface-variant/50 animate-pulse rounded-2xl" />
+                                ))}
+                            </div>
+                        ) : warrantyAlerts.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 mb-4 animate-in zoom-in duration-500">
+                                    <ShieldCheck size={32} />
+                                </div>
+                                <p className="text-lg font-bold text-green-900">لا توجد تنبيهات ضمان</p>
+                                <p className="text-secondary/60 text-sm font-medium">جميع الضمانات سارية المفعول لفترة كافية</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-4">
+                                {/* Summary Rows */}
+                                {/* Alerts List */}
+                                <div className="space-y-4">
+                                    {/* Sort by days remaining ascending */}
+                                    {[...warrantyAlerts].sort((a, b) => a.days_remaining - b.days_remaining).map((alert, idx) => {
+                                        const isCritical = alert.days_remaining <= 3;
+                                        const isWarning = alert.days_remaining > 3 && alert.days_remaining <= 5;
+
+                                        let colorClass = isCritical ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/30' :
+                                            isWarning ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/30' :
+                                                'bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/30';
+
+                                        let badgeVariant: 'destructive' | 'warning' | 'secondary' = isCritical ? 'destructive' : isWarning ? 'warning' : 'secondary';
+                                        let badgeLabel = isCritical ? 'عاجل' : isWarning ? 'تحذير' : 'تنبيه';
+
+                                        let iconColor = isCritical ? 'text-red-500' :
+                                            isWarning ? 'text-amber-500' :
+                                                'text-cyan-500';
+
+                                        return (
+                                            <div key={idx} className={`rounded-[1.5rem] p-4 border ${colorClass} transition-all duration-300 hover:shadow-md group`}>
+                                                <div className="flex items-center justify-between gap-4">
+                                                    {/* Left Side: Checkbox, Icon & Info */}
+                                                    <div className="flex items-center gap-4">
+                                                        {/* Checkbox Indicator */}
+                                                        <div className="shrink-0">
+                                                            {alert.is_sent ? (
+                                                                <CheckCircle2
+                                                                    size={24}
+                                                                    className="text-green-600 cursor-pointer hover:text-green-700 transition-colors"
+                                                                    strokeWidth={2.5}
+                                                                />
+                                                            ) : (
+                                                                <Circle
+                                                                    size={24}
+                                                                    className="text-gray-300 cursor-pointer hover:text-gray-400 transition-colors"
+                                                                    strokeWidth={2}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isCritical ? 'bg-red-500/10' : isWarning ? 'bg-amber-500/10' : 'bg-cyan-500/10'}`}>
+                                                            <div className={iconColor}>
+                                                                {isCritical ? <AlertCircle size={24} /> : <TriangleAlert size={24} />}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-3 mb-1">
+                                                                <h6 className="font-black text-base text-foreground">{alert.client_name || 'عميل غير معروف'}</h6>
+                                                                <Badge variant={badgeVariant} className="text-[10px] h-5 px-2">
+                                                                    {badgeLabel}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="flex items-center gap-4 text-sm font-medium text-secondary/60">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <ScanBarcode size={14} />
+                                                                    {alert.device_model || 'جهاز غير معروف'}
+                                                                </div>
+                                                                {alert.warranty_end_date && (
+                                                                    <div className="flex items-center gap-1.5 text-foreground/80 font-bold">
+                                                                        <CalendarX size={14} className="text-destructive/60" />
+                                                                        ينتهي: {new Date(alert.warranty_end_date).toLocaleDateString('ar-EG')}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Right Side: Days Remaining & Actions */}
+                                                    <div className="flex items-center gap-4">
+                                                        <span className={`text-sm font-black px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${isCritical ? 'bg-red-50 border-red-100 text-red-700' : 'bg-white border-black/5 text-secondary'}`}>
+                                                            <Clock size={14} strokeWidth={2.5} />
+                                                            {alert.days_remaining} أيام
+                                                        </span>
+
+                                                        {/* Send Reminder Button - only show if not sent */}
+                                                        {!alert.is_sent && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setConfirmDialog({ open: true, alert });
+                                                                }}
+                                                                disabled={sendingReminder === alert.report_id}
+                                                                className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/20 hover:border-green-500/40 hover:bg-green-500 hover:text-white text-green-600 transition-all flex items-center justify-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                title="إرسال تذكير"
+                                                            >
+                                                                {sendingReminder === alert.report_id ? (
+                                                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                                                ) : (
+                                                                    <Send size={16} />
+                                                                )}
+                                                            </button>
+                                                        )}
+
+                                                        {alert.report_id && (
+                                                            <button
+                                                                onClick={() => router.push(`/dashboard/admin/reports/${alert.report_id}`)}
+                                                                className="w-10 h-10 rounded-full bg-white border border-black/5 hover:border-primary/20 hover:bg-primary hover:text-white text-secondary/40 transition-all flex items-center justify-center shadow-sm"
+                                                                title="عرض التقرير"
+                                                            >
+                                                                <ArrowRight size={20} className="rotate-180" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </Card>
+                </div>
             </div>
+
+            {/* Confirmation Dialog */}
+            {confirmDialog.open && confirmDialog.alert && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <Card variant="glass" className="max-w-md w-full bg-white/95 backdrop-blur-md border-black/10">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-600">
+                                    <Send size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-foreground">تأكيد إرسال التذكير</h3>
+                                    <p className="text-sm text-secondary/60">هل تريد إرسال رسالة تذكير للعميل؟</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-surface-variant/30 rounded-xl p-4 space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <User size={16} className="text-secondary/60" />
+                                    <span className="font-bold text-foreground">{confirmDialog.alert.client_name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Phone size={16} className="text-secondary/60" />
+                                    <span className="text-sm text-secondary">{confirmDialog.alert.client_phone}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <ScanBarcode size={16} className="text-secondary/60" />
+                                    <span className="text-sm text-secondary">{confirmDialog.alert.device_model}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setConfirmDialog({ open: false, alert: null })}
+                                    className="flex-1"
+                                    disabled={sendingReminder !== null}
+                                >
+                                    إلغاء
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    onClick={() => handleSendReminder(confirmDialog.alert)}
+                                    className="flex-1 bg-green-600 hover:bg-green-700"
+                                    disabled={sendingReminder !== null}
+                                >
+                                    {sendingReminder ? 'جاري الإرسال...' : 'إرسال التذكير'}
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            )}
         </DashboardLayout>
     );
 }

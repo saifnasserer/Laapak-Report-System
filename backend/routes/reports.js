@@ -12,8 +12,10 @@ const REPORT_BASE_ATTRIBUTES = [
   'order_number', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
   'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
   'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id',
-  'created_at', 'updated_at'
+  'created_at', 'updated_at', 'warranty_alerts_log'
 ];
+
+
 
 /**
  * Check if device spec columns exist in the database
@@ -1309,6 +1311,10 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
         if (warranty.endDate >= currentDate && warranty.endDate <= sevenDaysFromNow) {
           const daysRemaining = Math.ceil((warranty.endDate - currentDate) / (1000 * 60 * 60 * 24));
 
+          // Check if alert was sent
+          const alertKey = warranty.type === 'maintenance_12months' ? 'annual' : 'six_month';
+          const sentDate = report.warranty_alerts_log ? report.warranty_alerts_log[alertKey] : null;
+
           warrantyAlerts.push({
             client_id: report.client_id,
             client_name: report.client_name,
@@ -1319,7 +1325,9 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
             warranty_type: warranty.type,
             warranty_end_date: warranty.endDate,
             days_remaining: daysRemaining,
-            report_id: report.id
+            report_id: report.id,
+            sent_at: sentDate,
+            is_sent: !!sentDate
           });
         }
       });
@@ -1332,6 +1340,78 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
   } catch (error) {
     console.error('Error getting warranty alerts:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// POST /reports/:id/send-warranty-reminder - manually send warranty reminder
+router.post('/:id/send-warranty-reminder', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { warranty_type } = req.body; // 'maintenance_6months' or 'maintenance_12months'
+
+    if (!warranty_type || !['maintenance_6months', 'maintenance_12months'].includes(warranty_type)) {
+      return res.status(400).json({ message: 'Invalid warranty_type. Must be maintenance_6months or maintenance_12months' });
+    }
+
+    const report = await Report.findByPk(id, {
+      include: [{
+        model: Client,
+        as: 'client',
+        attributes: ['id', 'name', 'phone']
+      }]
+    });
+
+    if (!report) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+
+    const phone = report.client_phone || report.client?.phone;
+    if (!phone) {
+      return res.status(400).json({ message: 'No phone number found for this client' });
+    }
+
+    // Calculate warranty end date
+    const inspectionDate = new Date(report.inspection_date);
+    let warrantyEndDate;
+    let wTypeArabic;
+
+    if (warranty_type === 'maintenance_6months') {
+      warrantyEndDate = new Date(inspectionDate);
+      warrantyEndDate.setMonth(warrantyEndDate.getMonth() + 6);
+      wTypeArabic = 'صيانة كل 6 أشهر';
+    } else {
+      warrantyEndDate = new Date(inspectionDate);
+      warrantyEndDate.setFullYear(warrantyEndDate.getFullYear() + 1);
+      wTypeArabic = 'صيانة سنوية';
+    }
+
+    // Prepare message
+    const message = `🛠️ *تذكير بالصيانة الدورية*\n\n` +
+      `أهلاً ${report.client_name || 'عميلنا العزيز'}،\n\n` +
+      `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${report.device_model}*) في تاريخ *${warrantyEndDate.toISOString().split('T')[0]}*.\n\n` +
+      `الصيانة الدورية تضمن بقاء جهازك في حالة ممتازة وتطيل عمره الافتراضي. يرجى التواصل معنا لترتيب الموعد.\n\n` +
+      `_مع تحيات فريق عمل لابك_`;
+
+    // Send message
+    const notifier = require('../utils/notifier');
+    await notifier.sendText(phone, message);
+
+    // Update warranty_alerts_log
+    const alertKey = warranty_type === 'maintenance_12months' ? 'annual' : 'six_month';
+    const alertsLog = report.warranty_alerts_log || {};
+    alertsLog[alertKey] = new Date().toISOString();
+
+    await report.update({ warranty_alerts_log: alertsLog });
+
+    res.json({
+      message: 'Warranty reminder sent successfully',
+      sent_to: phone,
+      sent_at: alertsLog[alertKey]
+    });
+
+  } catch (error) {
+    console.error('Error sending warranty reminder:', error);
+    res.status(500).json({ message: 'Failed to send reminder', error: error.message });
   }
 });
 

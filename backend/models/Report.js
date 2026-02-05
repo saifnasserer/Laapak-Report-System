@@ -127,6 +127,12 @@ const Report = sequelize.define('Report', {
         allowNull: true,
         field: 'admin_id',
         comment: 'Admin who created or last modified this report'
+    },
+    warranty_alerts_log: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        field: 'warranty_alerts_log',
+        comment: 'Log of sent warranty alerts (6-month, annual)'
     }
 }, {
     tableName: 'reports',

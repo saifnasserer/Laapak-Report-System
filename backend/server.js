@@ -46,6 +46,7 @@ app.use((req, res, next) => {
         'https://reports.laapak.com',
         'https://www.reports.laapak.com',
         'http://82.112.253.29',
+        'http://82.112.253.29:3000',
         'http://localhost:3001',
         'http://localhost:3000',
         'http://localhost:5173' // Vite dev server
@@ -76,6 +77,7 @@ app.use(cors({
         'https://reports.laapak.com',
         'https://www.reports.laapak.com',
         'http://82.112.253.29',
+        'http://82.112.253.29:3000',
         'http://localhost:3001',
         'http://localhost:3000',
         'http://localhost:5173' // Vite dev server
