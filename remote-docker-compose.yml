@@ -219,7 +219,7 @@ services:
     restart: always
   report-system:
     build:
-      context: ../laapak-projects/reports
+      context: .
       dockerfile: Dockerfile
     container_name: report-system
     depends_on:
@@ -240,6 +240,21 @@ services:
           memory: 512M
     ports:
       - 3001:3001
+    restart: always
+  laapak-frontend-react:
+    build:
+      context: ./frontend-react
+      dockerfile: Dockerfile
+    container_name: laapak-frontend-react
+    networks:
+      - laapak-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    ports:
+      - 3000:3000
     restart: always
 volumes:
   mysql_data: null
