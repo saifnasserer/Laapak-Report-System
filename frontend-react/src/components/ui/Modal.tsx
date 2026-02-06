@@ -36,12 +36,12 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div
                 className={cn(
-                    "bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200",
+                    "bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200",
                     className
                 )}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex items-center justify-between p-6 border-b border-black/5">
+                <div className="flex items-center justify-between p-6 border-b border-primary/10">
                     {title && <h3 className="text-xl font-bold">{title}</h3>}
                     <button
                         onClick={onClose}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { Link } from '@/i18n/routing';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -8,14 +9,15 @@ function cn(...inputs: ClassValue[]) {
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'sm' | 'md' | 'lg' | 'icon';
     isLoading?: boolean;
     icon?: React.ReactNode;
     iconPosition?: 'left' | 'right';
+    href?: string;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant = 'primary', size = 'md', isLoading, icon, iconPosition = 'left', children, ...props }, ref) => {
+    ({ className, variant = 'primary', size = 'md', isLoading, icon, iconPosition = 'left', children, href, ...props }, ref) => {
         const variants = {
             primary: 'bg-primary text-primary-foreground hover:opacity-90',
             secondary: 'bg-secondary text-secondary-foreground hover:opacity-90',
@@ -28,17 +30,39 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             sm: 'px-4 py-2 text-sm',
             md: 'px-6 py-3 text-base',
             lg: 'px-8 py-4 text-lg',
+            icon: 'h-10 w-10 p-2',
         };
+
+        const classes = cn(
+            'no-ripple inline-flex items-center justify-center gap-2 font-semibold rounded-button disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all',
+            variants[variant],
+            sizes[size],
+            className
+        );
+
+        if (href) {
+            return (
+                <Link
+                    href={href}
+                    className={classes}
+                >
+                    {isLoading ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                        <>
+                            {icon && iconPosition === 'left' && icon}
+                            {children}
+                            {icon && iconPosition === 'right' && icon}
+                        </>
+                    )}
+                </Link>
+            );
+        }
 
         return (
             <button
                 ref={ref}
-                className={cn(
-                    'no-ripple inline-flex items-center justify-center gap-2 font-semibold rounded-button disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all',
-                    variants[variant],
-                    sizes[size],
-                    className
-                )}
+                className={classes}
                 disabled={isLoading || props.disabled}
                 {...props}
             >

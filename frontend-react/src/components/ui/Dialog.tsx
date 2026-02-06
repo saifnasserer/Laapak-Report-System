@@ -20,7 +20,7 @@ export const Dialog = ({ children, open, onOpenChange }: { children: React.React
     );
 };
 
-export const DialogContent = ({ children, className }: { children: React.ReactNode, className?: string }) => {
+export const DialogContent = ({ children, className, variant = 'default' }: { children: React.ReactNode, className?: string, variant?: 'default' | 'glass' }) => {
     const context = React.useContext(DialogContext);
     if (!context) throw new Error('DialogContent must be used within Dialog');
 
@@ -46,10 +46,13 @@ export const DialogContent = ({ children, className }: { children: React.ReactNo
     if (!open) return null;
 
     const content = (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-300">
             <div
                 className={cn(
-                    "bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 relative",
+                    "relative w-full max-w-lg overflow-hidden transition-all animate-in zoom-in-95 duration-300",
+                    variant === 'glass'
+                        ? "bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-[2.5rem]"
+                        : "bg-white rounded-xl shadow-2xl",
                     className
                 )}
                 onClick={(e) => e.stopPropagation()}
@@ -59,7 +62,12 @@ export const DialogContent = ({ children, className }: { children: React.ReactNo
                 </div>
                 <button
                     onClick={() => onOpenChange(false)}
-                    className="absolute right-4 top-4 p-2 hover:bg-black/5 rounded-full transition-colors opacity-70 hover:opacity-100"
+                    className={cn(
+                        "absolute right-6 top-6 p-2 rounded-full transition-all duration-300 z-50",
+                        variant === 'glass'
+                            ? "bg-black/5 hover:bg-black/10 text-foreground/60"
+                            : "hover:bg-black/5 text-foreground/70"
+                    )}
                 >
                     <X size={18} />
                     <span className="sr-only">Close</span>

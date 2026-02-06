@@ -41,8 +41,11 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
         { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
         { href: '/dashboard/admin/financial', label: t('financial'), icon: TrendingUp },
-        // { href: '/dashboard/admin/financial/money-management', label: t('money'), icon: Wallet },
+        { href: '/dashboard/admin/financial/money-management', label: 'إدارة الأموال', icon: Wallet },
+        { href: '/dashboard/admin/financial/profit-management', label: 'إدارة الأرباح', icon: FileText },
+        { href: '/dashboard/admin/financial/expenses', label: 'المصروفات', icon: Receipt },
     ];
+
 
     const clientLinks = [
         { href: '/dashboard/client', label: t('overview'), icon: LayoutDashboard },

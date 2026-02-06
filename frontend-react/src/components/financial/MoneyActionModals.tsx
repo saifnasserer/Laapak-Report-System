@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { Modal } from '@/components/ui/Modal';
 import { ArrowRightLeft, Download, Upload } from 'lucide-react';
 import api from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface Location {
     id: number;
     name_ar: string;
-    type: string;
-    balance: number;
+    balance: number | string;
 }
 
 interface MoneyActionModalProps {
@@ -23,23 +22,40 @@ interface MoneyActionModalProps {
 }
 
 export default function MoneyActionModals({ isOpen, onClose, onSuccess, type, locations }: MoneyActionModalProps) {
-    const [isLoading, setIsLoading] = useState(false);
+    const [amount, setAmount] = useState('');
     const [fromLocationId, setFromLocationId] = useState('');
     const [toLocationId, setToLocationId] = useState('');
-    const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Reset form when modal opens/closes or type changes
     useEffect(() => {
         if (isOpen) {
+            setAmount('');
             setFromLocationId('');
             setToLocationId('');
-            setAmount('');
             setDescription('');
             setError(null);
         }
-    }, [isOpen, type]);
+    }, [isOpen]);
+
+    const getTitle = () => {
+        switch (type) {
+            case 'transfer': return 'تحويل بين الحسابات';
+            case 'deposit': return 'إيداع نقدي';
+            case 'withdrawal': return 'سحب نقدي';
+            default: return '';
+        }
+    };
+
+    const getIcon = () => {
+        switch (type) {
+            case 'transfer': return <ArrowRightLeft size={24} />;
+            case 'deposit': return <Download size={24} />;
+            case 'withdrawal': return <Upload size={24} />;
+            default: return null;
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,86 +63,77 @@ export default function MoneyActionModals({ isOpen, onClose, onSuccess, type, lo
         setError(null);
 
         try {
-            let endpoint = '';
-            const payload: any = {
+            const data: any = {
                 amount: parseFloat(amount),
-                description
+                description,
+                type: type === 'transfer' ? 'transfer' :
+                    type === 'deposit' ? 'deposit' : 'withdrawal'
             };
 
             if (type === 'transfer') {
-                endpoint = '/money/transfer';
-                payload.fromLocationId = fromLocationId;
-                payload.toLocationId = toLocationId;
+                data.from_location_id = parseInt(fromLocationId);
+                data.to_location_id = parseInt(toLocationId);
             } else if (type === 'deposit') {
-                endpoint = '/money/deposit';
-                payload.toLocationId = toLocationId;
+                data.to_location_id = parseInt(toLocationId);
             } else if (type === 'withdrawal') {
-                endpoint = '/money/withdrawal';
-                payload.fromLocationId = fromLocationId;
+                data.from_location_id = parseInt(fromLocationId);
             }
 
-            const response = await api.post(endpoint, payload);
-
-            if (response.data.success) {
-                onSuccess();
-                onClose();
-            } else {
-                setError(response.data.message || 'فشلت العملية');
-            }
+            await api.post('/money/movement', data);
+            onSuccess();
+            onClose();
         } catch (err: any) {
-            console.error('Money action error:', err);
-            setError(err.response?.data?.message || err.message || 'حدث خطأ غير متوقع');
+            console.error('Movement failed:', err);
+            setError(err.response?.data?.message || 'فشلت العملية، يرجى المحاولة مرة أخرى');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const getTitle = () => {
-        switch (type) {
-            case 'transfer': return 'تحويل أموال';
-            case 'deposit': return 'إيداع أموال';
-            case 'withdrawal': return 'سحب أموال';
-            default: return '';
-        }
-    };
-
-    const getIcon = () => {
-        switch (type) {
-            case 'transfer': return <ArrowRightLeft className="h-5 w-5 text-primary" />;
-            case 'deposit': return <Download className="h-5 w-5 text-green-600" />;
-            case 'withdrawal': return <Upload className="h-5 w-5 text-red-600" />;
-            default: return null;
-        }
+    const getSelectedLabel = (id: string) => {
+        return locations.find(l => l.id.toString() === id)?.name_ar || '';
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <div className="flex items-center gap-2">
+        <Modal isOpen={isOpen} onClose={onClose} title={getTitle()}>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="flex items-center gap-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 mb-2">
+                    <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center shadow-sm",
+                        type === 'deposit' ? "bg-green-100 text-green-600" :
+                            type === 'withdrawal' ? "bg-red-100 text-red-600" :
+                                "bg-blue-100 text-blue-600"
+                    )}>
                         {getIcon()}
-                        <DialogTitle>{getTitle()}</DialogTitle>
                     </div>
-                </DialogHeader>
+                    <div>
+                        <h4 className="font-bold text-secondary">{getTitle()}</h4>
+                        <p className="text-[10px] text-secondary/40 font-bold uppercase tracking-widest">أدخل تفاصيل العملية المالية أدناه</p>
+                    </div>
+                </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                    {error && (
-                        <div className="p-3 bg-red-50 text-red-600 text-sm rounded-md mb-4">
-                            {error}
-                        </div>
-                    )}
+                {error && (
+                    <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 font-bold flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                        {error}
+                    </div>
+                )}
 
+                <div className="space-y-4">
                     {(type === 'transfer' || type === 'withdrawal') && (
                         <div className="space-y-2">
-                            <Label>من الحساب / الخزينة</Label>
-                            <Select value={fromLocationId} onValueChange={setFromLocationId} required>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="اختر الحساب" />
+                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">من الحساب / الخزينة</label>
+                            <Select value={fromLocationId} onValueChange={setFromLocationId}>
+                                <SelectTrigger className="h-14 rounded-2xl bg-black/[0.02] border-transparent focus:ring-primary/20">
+                                    <SelectValue placeholder="اختر الحساب" label={getSelectedLabel(fromLocationId)} />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="rounded-2xl border-black/5 shadow-2xl bg-white/95 backdrop-blur-md">
                                     {locations.map(loc => (
-                                        <SelectItem key={loc.id} value={loc.id.toString()}>
-                                            {loc.name_ar} ({Number(loc.balance).toLocaleString()} ج.م)
+                                        <SelectItem key={loc.id} value={loc.id.toString()} className="h-12 rounded-xl mx-1 my-0.5 font-medium">
+                                            <div className="flex justify-between items-center w-full gap-8">
+                                                <span>{loc.name_ar}</span>
+                                                <span className="font-mono text-xs opacity-50">{Number(loc.balance || 0).toLocaleString()} ج.م</span>
+                                            </div>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -136,14 +143,14 @@ export default function MoneyActionModals({ isOpen, onClose, onSuccess, type, lo
 
                     {(type === 'transfer' || type === 'deposit') && (
                         <div className="space-y-2">
-                            <Label>إلى الحساب / الخزينة</Label>
-                            <Select value={toLocationId} onValueChange={setToLocationId} required>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="اختر الحساب" />
+                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">إلى الحساب / الخزينة</label>
+                            <Select value={toLocationId} onValueChange={setToLocationId}>
+                                <SelectTrigger className="h-14 rounded-2xl bg-black/[0.02] border-transparent focus:ring-primary/20">
+                                    <SelectValue placeholder="اختر الحساب" label={getSelectedLabel(toLocationId)} />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="rounded-2xl border-black/5 shadow-2xl bg-white/95 backdrop-blur-md">
                                     {locations.map(loc => (
-                                        <SelectItem key={loc.id} value={loc.id.toString()}>
+                                        <SelectItem key={loc.id} value={loc.id.toString()} className="h-12 rounded-xl mx-1 my-0.5 font-medium">
                                             {loc.name_ar}
                                         </SelectItem>
                                     ))}
@@ -153,7 +160,7 @@ export default function MoneyActionModals({ isOpen, onClose, onSuccess, type, lo
                     )}
 
                     <div className="space-y-2">
-                        <Label>المبلغ</Label>
+                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">المبلغ</label>
                         <Input
                             type="number"
                             step="0.01"
@@ -161,36 +168,47 @@ export default function MoneyActionModals({ isOpen, onClose, onSuccess, type, lo
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             placeholder="0.00"
+                            prefix="ج.م"
                             required
+                            className="h-14 rounded-2xl bg-black/[0.02] border-transparent focus:ring-primary/20 font-mono text-lg font-black"
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label>ملاحظات (اختياري)</Label>
+                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">ملاحظات (اختياري)</label>
                         <Input
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="وصف العملية..."
+                            className="h-14 rounded-2xl bg-black/[0.02] border-transparent focus:ring-primary/20"
                         />
                     </div>
+                </div>
 
-                    <DialogFooter className="pt-4">
-                        <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
-                            إلغاء
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={isLoading}
-                            className={
-                                type === 'deposit' ? 'bg-green-600 hover:bg-green-700' :
-                                    type === 'withdrawal' ? 'bg-red-600 hover:bg-red-700' : ''
-                            }
-                        >
-                            {isLoading ? 'جاري التنفيذ...' : 'تأكيد العملية'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                <div className="pt-6 border-t border-black/5 flex gap-3">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className="flex-1 h-12 rounded-xl font-bold"
+                    >
+                        إلغاء
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className={cn(
+                            "flex-[2] h-12 rounded-xl font-bold shadow-lg shadow-primary/10 transition-all active:scale-[0.98]",
+                            type === 'deposit' ? 'bg-green-600 hover:bg-green-700' :
+                                type === 'withdrawal' ? 'bg-red-600 hover:bg-red-700' :
+                                    'bg-primary hover:bg-primary-dark'
+                        )}
+                    >
+                        {isLoading ? 'جاري التنفيذ...' : 'تأكيد العملية'}
+                    </Button>
+                </div>
+            </form>
+        </Modal>
     );
 }

@@ -361,75 +361,153 @@ router.post('/deposit', adminAuth, async (req, res) => {
 });
 
 /**
- * POST /api/money/withdrawal
- * Create a withdrawal from a money location
+ * POST /api/money/movement
+ * Unified endpoint for transfers, deposits, and withdrawals
  */
-router.post('/withdrawal', adminAuth, async (req, res) => {
-    const transaction = await require('../models').sequelize.transaction();
+router.post('/movement', adminAuth, async (req, res) => {
+    const { type, amount, from_location_id, to_location_id, description } = req.body;
 
+    // Convert keys to match internal requirements if necessary
+    const internalBody = {
+        amount,
+        description,
+        fromLocationId: from_location_id,
+        toLocationId: to_location_id
+    };
+
+    // Dispatch to the correct handler based on type
     try {
-        const { fromLocationId, amount, description } = req.body;
+        if (type === 'transfer') {
+            // Manually re-trigger the transfer logic or just handle it here
+            // Re-using the logic manually for now to ensure proper transaction handling
+            return await handleTransfer(req, res, internalBody);
+        } else if (type === 'deposit') {
+            return await handleDeposit(req, res, internalBody);
+        } else if (type === 'withdrawal') {
+            return await handleWithdrawal(req, res, internalBody);
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid movement type'
+            });
+        }
+    } catch (error) {
+        console.error('Unified movement error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error processing movement',
+            error: error.message
+        });
+    }
+});
 
-        // Validate required fields
+// Helper functions for unified route
+async function handleTransfer(req, res, body) {
+    const transaction = await require('../models').sequelize.transaction();
+    try {
+        const { fromLocationId, toLocationId, amount, description } = body;
+        if (!fromLocationId || !toLocationId || !amount || amount <= 0) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: 'Valid locations and amount are required' });
+        }
+        const fromLoc = await MoneyLocation.findByPk(fromLocationId);
+        const toLoc = await MoneyLocation.findByPk(toLocationId);
+        if (!fromLoc || !toLoc) {
+            await transaction.rollback();
+            return res.status(404).json({ success: false, message: 'Source or destination location not found' });
+        }
+        if (parseFloat(fromLoc.balance) < parseFloat(amount)) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: 'Insufficient balance' });
+        }
+        const movement = await MoneyMovement.create({
+            movement_type: 'transfer',
+            amount: parseFloat(amount),
+            from_location_id: fromLocationId,
+            to_location_id: toLocationId,
+            reference_type: 'manual',
+            description: description || 'تحويل بين الحسابات',
+            movement_date: new Date(),
+            created_by: req.user.id
+        }, { transaction });
+        await fromLoc.update({ balance: parseFloat(fromLoc.balance) - parseFloat(amount) }, { transaction });
+        await toLoc.update({ balance: parseFloat(toLoc.balance) + parseFloat(amount) }, { transaction });
+        await transaction.commit();
+        res.status(201).json({ success: true, data: movement });
+    } catch (e) {
+        await transaction.rollback();
+        throw e;
+    }
+}
+
+async function handleDeposit(req, res, body) {
+    const transaction = await require('../models').sequelize.transaction();
+    try {
+        const { toLocationId, amount, description } = body;
+        if (!toLocationId || !amount || amount <= 0) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: 'Valid destination and amount are required' });
+        }
+        const toLoc = await MoneyLocation.findByPk(toLocationId);
+        if (!toLoc) {
+            await transaction.rollback();
+            return res.status(404).json({ success: false, message: 'Destination location not found' });
+        }
+        const movement = await MoneyMovement.create({
+            movement_type: 'deposit',
+            amount: parseFloat(amount),
+            from_location_id: null,
+            to_location_id: toLocationId,
+            reference_type: 'manual',
+            description: description || 'إيداع نقدي',
+            movement_date: new Date(),
+            created_by: req.user.id
+        }, { transaction });
+        await toLoc.update({ balance: parseFloat(toLoc.balance) + parseFloat(amount) }, { transaction });
+        await transaction.commit();
+        res.status(201).json({ success: true, data: movement });
+    } catch (e) {
+        await transaction.rollback();
+        throw e;
+    }
+}
+
+async function handleWithdrawal(req, res, body) {
+    const transaction = await require('../models').sequelize.transaction();
+    try {
+        const { fromLocationId, amount, description } = body;
         if (!fromLocationId || !amount || amount <= 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Valid source location and amount are required'
-            });
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: 'Valid source and amount are required' });
         }
-
-        // Validate location exists
-        const fromLocation = await MoneyLocation.findByPk(fromLocationId);
-        if (!fromLocation) {
-            return res.status(404).json({
-                success: false,
-                message: 'Source location not found'
-            });
+        const fromLoc = await MoneyLocation.findByPk(fromLocationId);
+        if (!fromLoc) {
+            await transaction.rollback();
+            return res.status(404).json({ success: false, message: 'Source location not found' });
         }
-
-        // Check if location has sufficient balance
-        if (parseFloat(fromLocation.balance) < parseFloat(amount)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Insufficient balance in source location'
-            });
+        if (parseFloat(fromLoc.balance) < parseFloat(amount)) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: 'Insufficient balance' });
         }
-
-        // Create movement record
         const movement = await MoneyMovement.create({
             movement_type: 'withdrawal',
             amount: parseFloat(amount),
             from_location_id: fromLocationId,
             to_location_id: null,
             reference_type: 'manual',
-            description: description || 'سحب',
+            description: description || 'سحب نقدي',
             movement_date: new Date(),
             created_by: req.user.id
         }, { transaction });
-
-        // Update location balance
-        await fromLocation.update({
-            balance: parseFloat(fromLocation.balance) - parseFloat(amount)
-        }, { transaction });
-
+        await fromLoc.update({ balance: parseFloat(fromLoc.balance) - parseFloat(amount) }, { transaction });
         await transaction.commit();
-
-        res.status(201).json({
-            success: true,
-            data: {
-                movement: movement
-            }
-        });
-    } catch (error) {
+        res.status(201).json({ success: true, data: movement });
+    } catch (e) {
         await transaction.rollback();
-        console.error('Error creating withdrawal:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error creating withdrawal',
-            error: error.message
-        });
+        throw e;
     }
-});
+}
+
 
 // =============================================================================
 // DASHBOARD ROUTES

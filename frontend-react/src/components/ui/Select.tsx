@@ -56,18 +56,14 @@ SelectTrigger.displayName = "SelectTrigger";
 
 interface SelectValueProps extends React.HTMLAttributes<HTMLSpanElement> {
     placeholder?: string;
+    label?: string;
 }
 
-const SelectValue = React.forwardRef<HTMLSpanElement, SelectValueProps>(({ className, placeholder, ...props }, ref) => {
+const SelectValue = React.forwardRef<HTMLSpanElement, SelectValueProps>(({ className, placeholder, label, ...props }, ref) => {
     const { value } = React.useContext(SelectContext)!;
     return (
-        <span ref={ref} className={cn("block truncate", className)} {...props}>
-            {value ?
-                // We should ideally map value to label, but for now display value or handle via children mapping if possible
-                // In the current simple implementation, value is displayed. 
-                // For better UX with "value" vs "label", one would need to traverse children of Select to find the matching Item.
-                value
-                : placeholder}
+        <span ref={ref} className={cn("block truncate px-1", className)} {...props}>
+            {label || value || placeholder}
         </span>
     );
 });

@@ -8,13 +8,15 @@ const { Op } = require('sequelize');
 
 // Payment method to location type mapping
 const PAYMENT_METHOD_MAPPING = {
-    'cash': { locationTypes: ['cash'], apiName: 'cash' },
+    'cash': { locationTypes: ['cash'], apiName: 'cash', locationName: 'الصندوق النقدي' },
+    'نقدي': { locationTypes: ['cash'], apiName: 'cash', locationName: 'الصندوق النقدي' },
     'instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
-    'Instapay': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
-    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
-    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'محفظة', locationName: 'محفظة' },
-    'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' },
-    'بنك': { locationTypes: ['bank_account'], apiName: 'بنك' }
+    'انستاباي': { locationTypes: ['digital_wallet'], apiName: 'instapay', locationName: 'محفظة انستاباي' },
+    'wallet': { locationTypes: ['digital_wallet'], apiName: 'wallet', locationName: 'محفظة رقمية' },
+    'محفظة': { locationTypes: ['digital_wallet'], apiName: 'wallet', locationName: 'محفظة رقمية' },
+    'bank': { locationTypes: ['bank_account'], apiName: 'bank' },
+    'بنك': { locationTypes: ['bank_account'], apiName: 'bank' },
+    'bank_transfer': { locationTypes: ['bank_account'], apiName: 'bank' }
 };
 
 /**

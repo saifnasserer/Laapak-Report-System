@@ -18,6 +18,7 @@ const {
     MoneyLocation,
     MoneyMovement
 } = require('../models');
+const { findLocationForPaymentMethod } = require('./invoice-hooks');
 const { Op } = require('sequelize');
 
 // =============================================================================
@@ -945,30 +946,49 @@ router.put('/cost-prices/bulk', adminRoleAuth(['superadmin']), async (req, res) 
             try {
                 console.log('Processing update:', update);
 
-                // Update the invoice item
-                console.log(`Updating InvoiceItem with id: ${update.item_id} (type: ${typeof update.item_id})`);
-
                 // First check if the item exists
                 const existingItem = await InvoiceItem.findByPk(parseInt(update.item_id));
-                console.log(`Existing item found:`, existingItem ? 'Yes' : 'No');
 
                 if (existingItem) {
+                    const oldCostPrice = parseFloat(existingItem.cost_price || 0);
+                    const newCostPrice = parseFloat(update.cost_price);
+                    const quantity = parseInt(existingItem.quantity || 1);
+                    const costDiff = (newCostPrice - oldCostPrice) * quantity;
+
                     const updateResult = await InvoiceItem.update(
                         { cost_price: update.cost_price },
                         { where: { id: parseInt(update.item_id) } }
                     );
-                    console.log(`InvoiceItem update result:`, updateResult);
 
-                    if (updateResult[0] > 0) {
-                        console.log(`Successfully updated item ${update.item_id} with cost price ${update.cost_price}`);
-                    } else {
-                        console.log(`No rows were updated for item ${update.item_id}`);
+                    if (updateResult[0] > 0 && costDiff !== 0) {
+                        try {
+                            const invoice = await Invoice.findByPk(existingItem.invoiceId);
+                            if (invoice) {
+                                const location = await findLocationForPaymentMethod(invoice.paymentMethod);
+                                if (location) {
+                                    const movementType = costDiff > 0 ? 'expense_paid' : 'payment_received';
+                                    const absDiff = Math.abs(costDiff);
+
+                                    await MoneyMovement.create({
+                                        movement_type: movementType,
+                                        amount: absDiff,
+                                        from_location_id: costDiff > 0 ? location.id : null,
+                                        to_location_id: costDiff > 0 ? null : location.id,
+                                        reference_type: 'invoice',
+                                        reference_id: invoice.id,
+                                        description: `تحديث تكلفة (بالجملة): ${existingItem.description} (فاتورة ${invoice.id})`,
+                                        created_by: req.user.id
+                                    });
+
+                                    await location.updateBalance(absDiff, movementType);
+                                }
+                            }
+                        } catch (finError) {
+                            console.error('Financial tracking error in bulk update:', finError);
+                        }
                     }
-                } else {
-                    console.log(`Item with id ${update.item_id} not found in database`);
                 }
-
-                // Create/update product cost record
+                // ... (existing ProductCost upsert)
                 if (update.product_name && update.product_model) {
                     await ProductCost.upsert({
                         product_name: update.product_name,
@@ -1030,6 +1050,11 @@ router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res
         } : 'Not found');
 
         if (existingItem) {
+            const oldCostPrice = parseFloat(existingItem.cost_price || 0);
+            const newCostPrice = parseFloat(cost_price);
+            const quantity = parseInt(existingItem.quantity || 1);
+            const costDiff = (newCostPrice - oldCostPrice) * quantity;
+
             // Use Sequelize ORM approach like the working routes
             const updateResult = await InvoiceItem.update(
                 { cost_price: parseFloat(cost_price) },
@@ -1039,6 +1064,37 @@ router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res
 
             if (updateResult[0] > 0) {
                 console.log(`Successfully updated item ${itemId} with cost price ${cost_price}`);
+
+                // Track financial movement if cost changed
+                if (costDiff !== 0) {
+                    try {
+                        const invoice = await Invoice.findByPk(existingItem.invoiceId);
+                        if (invoice) {
+                            const location = await findLocationForPaymentMethod(invoice.paymentMethod);
+                            if (location) {
+                                const movementType = costDiff > 0 ? 'expense_paid' : 'payment_received';
+                                const absDiff = Math.abs(costDiff);
+
+                                await MoneyMovement.create({
+                                    movement_type: movementType,
+                                    amount: absDiff,
+                                    from_location_id: costDiff > 0 ? location.id : null,
+                                    to_location_id: costDiff > 0 ? null : location.id,
+                                    reference_type: 'invoice',
+                                    reference_id: invoice.id,
+                                    description: `تحديث تكلفة: ${existingItem.description} (فاتورة ${invoice.id})`,
+                                    created_by: req.user.id
+                                });
+
+                                await location.updateBalance(absDiff, movementType);
+                                console.log(`Financial movement recorded: ${movementType} of ${absDiff} for location ${location.id}`);
+                            }
+                        }
+                    } catch (finError) {
+                        console.error('Financial tracking error:', finError);
+                        // Don't fail the whole request
+                    }
+                }
 
                 // Verify the update by fetching the item again
                 const updatedItem = await InvoiceItem.findByPk(parseInt(itemId));
@@ -1214,7 +1270,7 @@ router.post('/calculate-profits', adminRoleAuth(['superadmin']), async (req, res
  */
 router.get('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
-        const { page = 1, limit = 20, category, type, status, search } = req.query;
+        const { page = 1, limit = 20, category, type, status, search, startDate, endDate } = req.query;
         const offset = (page - 1) * limit;
 
         let whereClause = {};
@@ -1222,6 +1278,21 @@ router.get('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
         if (category) whereClause.category_id = category;
         if (type) whereClause.type = type;
         if (status) whereClause.status = status;
+
+        if (startDate && endDate) {
+            whereClause.date = {
+                [Op.between]: [startDate, endDate]
+            };
+        } else if (startDate) {
+            whereClause.date = {
+                [Op.gte]: startDate
+            };
+        } else if (endDate) {
+            whereClause.date = {
+                [Op.lte]: endDate
+            };
+        }
+
         if (search) {
             whereClause[Op.or] = [
                 { name: { [Op.like]: `%${search}%` } },
