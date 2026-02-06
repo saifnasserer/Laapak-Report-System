@@ -14,13 +14,22 @@ import {
     Plus,
     Save,
     Layout,
-    RefreshCcw
+    RefreshCcw,
+    Trash2,
+    Wallet
 } from 'lucide-react';
 
 interface ExpenseCategory {
     id: number;
     name_ar: string;
     color: string;
+}
+
+interface MoneyLocation {
+    id: number;
+    name_ar: string;
+    name: string;
+    balance: number;
 }
 
 interface ExpenseModalProps {
@@ -32,23 +41,28 @@ interface ExpenseModalProps {
 
 export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: ExpenseModalProps) {
     const [isLoading, setIsLoading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+    const [locations, setLocations] = useState<MoneyLocation[]>([]);
 
     // Form state
     const [name, setName] = useState('');
     const [amount, setAmount] = useState('');
     const [categoryId, setCategoryId] = useState('');
+    const [locationId, setLocationId] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState('');
 
     useEffect(() => {
         if (isOpen) {
             fetchCategories();
+            fetchLocations();
 
             if (expense) {
                 setName(expense.name_ar || expense.name || '');
                 setAmount(expense.amount?.toString() || '');
                 setCategoryId(expense.category_id?.toString() || '');
+                setLocationId(expense.money_location_id?.toString() || '');
                 setDate(new Date(expense.date).toISOString().split('T')[0]);
                 setDescription(expense.description || '');
             } else {
@@ -56,6 +70,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                 setName('');
                 setAmount('');
                 setCategoryId('');
+                setLocationId('');
                 setDate(new Date().toISOString().split('T')[0]);
                 setDescription('');
             }
@@ -73,6 +88,17 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
         }
     };
 
+    const fetchLocations = async () => {
+        try {
+            const response = await api.get('/money/locations');
+            if (response.data.success) {
+                setLocations(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching locations:', error);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -82,6 +108,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
             name: name,
             amount: parseFloat(amount),
             category_id: parseInt(categoryId),
+            money_location_id: locationId ? parseInt(locationId) : null,
             date,
             description
         };
@@ -99,6 +126,23 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
             console.error('Error saving expense:', error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!expense || !window.confirm('هل أنت متأكد من حذف هذا المصروف؟ سيتم استرداد المبلغ إلى الحساب.')) return;
+
+        setIsDeleting(true);
+        try {
+            const response = await api.delete(`/financial/expenses/${expense.id}`);
+            if (response.data.success) {
+                onSuccess();
+                onClose();
+            }
+        } catch (error) {
+            console.error('Error deleting expense:', error);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -144,6 +188,30 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                                                 className="w-3 h-3 rounded-full shadow-sm"
                                                 style={{ backgroundColor: cat.color || '#ccc' }}
                                             />
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2 text-right">
+                        <Label className="flex items-center gap-2 text-[10px] font-black text-secondary/40 uppercase px-2 justify-start">
+                            <Wallet size={12} className="text-primary" />
+                            حساب الدفع
+                        </Label>
+                        <Select value={locationId} onValueChange={setLocationId}>
+                            <SelectTrigger className="h-12 rounded-full bg-white border-primary/10 flex-row-reverse text-sm font-bold text-secondary">
+                                <SelectValue placeholder="اختر الحساب (نقد، بنك...)" className="text-right w-full" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-[2rem] border-primary/20 shadow-2xl bg-white">
+                                {locations.map(loc => (
+                                    <SelectItem key={loc.id} value={loc.id.toString()} className="rounded-xl">
+                                        <div className="flex items-center gap-2 justify-end w-full">
+                                            <span className="font-bold">{loc.name_ar}</span>
+                                            <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                                {parseFloat(loc.balance.toString()).toLocaleString()} ج.م
+                                            </span>
                                         </div>
                                     </SelectItem>
                                 ))}
@@ -202,19 +270,33 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                     />
                 </div>
 
-                <div className="flex gap-4 pt-4 border-t border-black/5">
+                <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-black/5">
                     <Button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isLoading || isDeleting}
                         className="flex-[2] h-14 rounded-full gap-3 font-black text-lg transition-all active:scale-[0.98] bg-primary text-white shadow-xl shadow-primary/20 hover:shadow-primary/30"
                     >
                         {isLoading ? <RefreshCcw className="animate-spin" size={20} /> : <Save size={20} />}
                         {isLoading ? (expense ? 'جاري التعديل...' : 'جاري الحفظ...') : (expense ? 'تعديل المصروف' : 'حفظ المصروف')}
                     </Button>
+
+                    {expense && (
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={isLoading || isDeleting}
+                            onClick={handleDelete}
+                            className="flex-1 h-14 rounded-full font-black bg-red-500 hover:bg-red-600 text-white shadow-xl shadow-red-200 transition-all border-none"
+                        >
+                            {isDeleting ? <RefreshCcw className="animate-spin" size={20} /> : <Trash2 size={20} />}
+                        </Button>
+                    )}
+
                     <Button
                         type="button"
                         variant="outline"
                         onClick={onClose}
+                        disabled={isLoading || isDeleting}
                         className="flex-1 h-14 rounded-full font-black border-primary/20 text-secondary/60 hover:bg-black/5 hover:text-secondary transition-all"
                     >
                         إلغاء

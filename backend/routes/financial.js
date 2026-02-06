@@ -1357,7 +1357,8 @@ router.post('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
             date,
             repeat_monthly,
             description,
-            receipt_url
+            receipt_url,
+            money_location_id
         } = req.body;
 
         const expense = await Expense.create({
@@ -1370,9 +1371,25 @@ router.post('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
             repeat_monthly: repeat_monthly || false,
             description,
             receipt_url,
+            money_location_id,
             created_by: req.user.id,
             status: 'approved' // Auto-approve for now
         });
+
+        // Record money movement if location is selected
+        if (money_location_id) {
+            try {
+                await MoneyMovement.recordExpensePaid(
+                    money_location_id,
+                    amount,
+                    expense.id,
+                    req.user.id
+                );
+            } catch (finError) {
+                console.error('Financial tracking error during expense creation:', finError);
+                // We don't fail the whole request but we should handle it
+            }
+        }
 
         const expenseWithCategory = await Expense.findByPk(expense.id, {
             include: [
@@ -1395,6 +1412,192 @@ router.post('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error creating expense',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * PUT /api/financial/expenses/:id
+ * Update an existing expense
+ */
+router.put('/expenses/:id', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            name,
+            name_ar,
+            amount,
+            category_id,
+            type,
+            date,
+            repeat_monthly,
+            description,
+            receipt_url,
+            money_location_id
+        } = req.body;
+
+        const expense = await Expense.findByPk(id);
+        if (!expense) {
+            return res.status(404).json({
+                success: false,
+                message: 'Expense not found'
+            });
+        }
+
+        const oldAmount = parseFloat(expense.amount);
+        const oldLocationId = expense.money_location_id;
+        const newAmount = parseFloat(amount);
+        const newLocationId = money_location_id;
+
+        // Handle balance correction if amount or location changed
+        if (oldLocationId || newLocationId) {
+            try {
+                // If location changed
+                if (oldLocationId !== newLocationId) {
+                    // Refund old location
+                    if (oldLocationId) {
+                        const oldLoc = await MoneyLocation.findByPk(oldLocationId);
+                        if (oldLoc) {
+                            await oldLoc.updateBalance(oldAmount, 'deposit'); // Refund
+                            await MoneyMovement.create({
+                                movement_type: 'payment_received',
+                                amount: oldAmount,
+                                to_location_id: oldLocationId,
+                                reference_type: 'expense',
+                                reference_id: expense.id,
+                                description: `استرداد مصروف (تعديل الحساب): ${expense.name_ar}`,
+                                created_by: req.user.id
+                            });
+                        }
+                    }
+                    // Deduct from new location
+                    if (newLocationId) {
+                        await MoneyMovement.recordExpensePaid(
+                            newLocationId,
+                            newAmount,
+                            expense.id,
+                            req.user.id
+                        );
+                    }
+                }
+                // Same location but amount changed
+                else if (oldLocationId && oldAmount !== newAmount) {
+                    const diff = newAmount - oldAmount;
+                    const location = await MoneyLocation.findByPk(oldLocationId);
+                    if (location) {
+                        if (diff > 0) {
+                            // Extra deduction
+                            await MoneyMovement.recordExpensePaid(
+                                oldLocationId,
+                                diff,
+                                expense.id,
+                                req.user.id
+                            );
+                        } else {
+                            // Partial refund
+                            const refundAmount = Math.abs(diff);
+                            await location.updateBalance(refundAmount, 'deposit');
+                            await MoneyMovement.create({
+                                movement_type: 'payment_received',
+                                amount: refundAmount,
+                                to_location_id: oldLocationId,
+                                reference_type: 'expense',
+                                reference_id: expense.id,
+                                description: `استرداد فرق مبلغ مصروف: ${expense.name_ar}`,
+                                created_by: req.user.id
+                            });
+                        }
+                    }
+                }
+            } catch (finError) {
+                console.error('Financial tracking error during expense update:', finError);
+            }
+        }
+
+        await expense.update({
+            name,
+            name_ar,
+            amount,
+            category_id,
+            type,
+            date,
+            repeat_monthly: repeat_monthly || false,
+            description,
+            receipt_url,
+            money_location_id
+        });
+
+        const updatedExpense = await Expense.findByPk(expense.id, {
+            include: [{ model: ExpenseCategory, as: 'category' }]
+        });
+
+        res.json({
+            success: true,
+            message: 'تم تحديث المصروف بنجاح',
+            data: { expense: updatedExpense }
+        });
+
+    } catch (error) {
+        console.error('Update expense error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating expense',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * DELETE /api/financial/expenses/:id
+ * Delete an expense
+ */
+router.delete('/expenses/:id', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const expense = await Expense.findByPk(id);
+
+        if (!expense) {
+            return res.status(404).json({
+                success: false,
+                message: 'Expense not found'
+            });
+        }
+
+        // Refund the balance if a location was used
+        if (expense.money_location_id) {
+            try {
+                const location = await MoneyLocation.findByPk(expense.money_location_id);
+                if (location) {
+                    const amount = parseFloat(expense.amount);
+                    await location.updateBalance(amount, 'deposit');
+                    await MoneyMovement.create({
+                        movement_type: 'payment_received',
+                        amount: amount,
+                        to_location_id: expense.money_location_id,
+                        reference_type: 'expense',
+                        reference_id: expense.id,
+                        description: `استرداد مصروف (حذف): ${expense.name_ar}`,
+                        created_by: req.user.id
+                    });
+                }
+            } catch (finError) {
+                console.error('Financial tracking error during expense deletion:', finError);
+            }
+        }
+
+        await expense.destroy();
+
+        res.json({
+            success: true,
+            message: 'تم حذف المصروف بنجاح'
+        });
+
+    } catch (error) {
+        console.error('Delete expense error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting expense',
             error: error.message
         });
     }
