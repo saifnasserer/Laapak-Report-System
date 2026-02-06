@@ -22,8 +22,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '1.0'
+          memory: 1G
     ports:
       - 3001:3001
     restart: always
@@ -37,8 +37,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '1.5'
+          memory: 3G
     ports:
       - 3000:3000
     restart: always
