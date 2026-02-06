@@ -136,7 +136,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         };
 
         fetchProducts();
-    }, [products.length]);
+    }, [activeStep, products.length]);
 
     const handleConfirmOrder = async () => {
         try {
