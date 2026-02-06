@@ -5,7 +5,7 @@ networks:
 services:
   # Services using existing infrastructure
   report-system:
-    image: saifnasserer/laapak-reports:backend-latest
+    image: saifnasser/laapak-reports:backend-latest
     container_name: report-system
     env_file:
       - .env
@@ -26,7 +26,7 @@ services:
       - 3001:3001
     restart: always
   laapak-frontend-react:
-    image: saifnasserer/laapak-reports:frontend-latest
+    image: saifnasser/laapak-reports:frontend-latest
     container_name: laapak-frontend-react
     networks:
       - laapak-network
