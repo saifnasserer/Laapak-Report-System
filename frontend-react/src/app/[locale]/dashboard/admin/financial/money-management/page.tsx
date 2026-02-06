@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import {
     Wallet,
@@ -160,8 +160,8 @@ export default function MoneyManagementPage() {
                                             <div key={loc.id} className="p-4 hover:bg-surface-variant/30 transition-colors flex justify-between items-center group">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`p-2 rounded-lg ${loc.type === 'bank' ? 'bg-blue-100 text-blue-600' :
-                                                            loc.type === 'wallet' ? 'bg-purple-100 text-purple-600' :
-                                                                'bg-emerald-100 text-emerald-600'
+                                                        loc.type === 'wallet' ? 'bg-purple-100 text-purple-600' :
+                                                            'bg-emerald-100 text-emerald-600'
                                                         }`}>
                                                         {loc.type === 'bank' ? <Landmark className="h-4 w-4" /> :
                                                             loc.type === 'wallet' ? <Wallet className="h-4 w-4" /> :

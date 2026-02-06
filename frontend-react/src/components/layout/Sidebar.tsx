@@ -41,7 +41,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
         { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
         { href: '/dashboard/admin/financial', label: t('financial'), icon: TrendingUp },
-        { href: '/dashboard/admin/money', label: t('money'), icon: Wallet },
+        // { href: '/dashboard/admin/financial/money-management', label: t('money'), icon: Wallet },
     ];
 
     const clientLinks = [
