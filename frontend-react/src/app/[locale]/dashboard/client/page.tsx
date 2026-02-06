@@ -88,23 +88,24 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
         <DashboardLayout>
             <div className="space-y-8 pb-12">
                 {/* Client Custom Header */}
-                <div className="flex items-center justify-between bg-white/50 backdrop-blur-md p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-black/5 shadow-sm mb-8">
-                    <div className="flex items-center gap-4 md:gap-6">
-                        <Image src="/logo.png" alt="Laapak" width={140} height={40} className="h-8 w-auto object-contain" priority />
-                        <div className="h-8 w-[1px] bg-black/10 hidden md:block" />
-                        <div className="hidden md:block">
-                            <h1 className="text-xl font-bold tracking-tight">مرحباً بك، {user?.username}</h1>
-                            <p className="text-xs text-secondary font-medium">سعداء برؤيتك مرة أخرى</p>
+                <div className="flex items-center justify-center bg-white/50 backdrop-blur-md p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-black/5 mb-8 relative">
+                    <div className="absolute right-4 md:right-6 hidden md:flex items-center gap-4 md:gap-6">
+                        <div className="hidden lg:block">
+                            <h1 className="text-xl font-bold tracking-tight text-right">اهلاً بيك، {user?.username}</h1>
+                            <p className="text-[10px] text-secondary font-black uppercase tracking-widest opacity-30 text-right">لوحة التحكم</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+
+                    <Image src="/logo.png" alt="Laapak" width={140} height={40} className="h-8 md:h-10 w-auto object-contain" priority />
+
+                    <div className="absolute left-4 md:left-6">
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={logout}
-                            className="text-destructive hover:bg-destructive/5 rounded-xl font-bold px-4 h-11 flex items-center gap-2"
+                            className="text-destructive hover:bg-destructive/5 rounded-xl font-bold px-3 md:px-4 h-10 md:h-11 flex items-center gap-2 group transition-all active:scale-95"
                         >
-                            <LogOut size={18} />
+                            <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
                             <span className="hidden sm:inline">تسجيل الخروج</span>
                         </Button>
                     </div>
@@ -187,7 +188,7 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
                                                     <Button
                                                         variant="ghost"
                                                         disabled
-                                                        className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black opacity-30 gap-3"
+                                                        className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black opacity-30 gap-3 border border-black/5"
                                                     >
                                                         <Receipt size={20} />
                                                         لا توجد فاتورة
@@ -217,7 +218,7 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
                     <div className="flex items-center justify-between px-2 md:px-4">
                         <h2 className="text-xl md:text-2xl font-black flex items-center gap-3">
                             <Sparkles className="w-6 h-6 md:w-7 md:h-7 text-primary animate-pulse" />
-                            مركز العناية بالجهاز
+                            حافظ علي جهازك !
                         </h2>
                     </div>
 
@@ -280,10 +281,10 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
 
                                         {/* Tip Content */}
                                         <div className="space-y-4 flex-1">
-                                            <div className="flex items-center gap-2 text-primary/30 font-black text-[9px] uppercase tracking-[0.2em]">
+                                            {/* <div className="flex items-center gap-2 text-primary/30 font-black text-[9px] uppercase tracking-[0.2em]">
                                                 <Zap size={12} strokeWidth={3} className="text-primary/40" />
                                                 نصيحة ذكية
-                                            </div>
+                                            </div> */}
                                             <p className="text-sm md:text-base font-bold text-secondary/70 leading-relaxed italic">
                                                 "{item.tip}"
                                             </p>

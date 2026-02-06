@@ -85,7 +85,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         { id: 2, title: 'المعاينة الخارجية' },
         { id: 3, title: 'الفحص التقني' },
         { id: 4, title: 'الفحص الداخلي' },
-        { id: 5, title: 'اكسسوارات العناية' },
+        { id: 5, title: 'اضافات مهمة !' },
         { id: 6, title: 'المالية والفوترة' },
         { id: 7, title: 'تأكيد ومشاركة' },
     ];
@@ -112,7 +112,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
     useEffect(() => {
         const fetchProducts = async () => {
-            if (activeStep === 5 && products.length === 0) {
+            if (products.length === 0) {
                 try {
                     setIsLoadingProducts(true);
                     const auth = Buffer.from(`${WOO_CONSUMER_KEY}:${WOO_CONSUMER_SECRET}`).toString('base64');
@@ -136,7 +136,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         };
 
         fetchProducts();
-    }, [activeStep, products.length]);
+    }, [products.length]);
 
     const handleConfirmOrder = async () => {
         try {
@@ -444,7 +444,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 <ShoppingCart size={24} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black text-secondary">إكسسوارات العناية بالجهاز</h3>
+                                <h3 className="text-2xl font-black text-secondary">اضافات مهمة !</h3>
                                 <p className="text-sm text-secondary/60">اكتشف أفضل الخيارات لحماية جهازك وزيادة كفاءته</p>
                             </div>
                         </div>
@@ -577,32 +577,29 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             <p className="text-secondary/60 font-medium">يمكنك الآن تأكيد الطلب أو مشاركته مع العميل.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {viewMode === 'client' && (
-                                <div
-                                    onClick={!isConfirmed ? handleConfirmOrder : undefined}
-                                    className={cn(
-                                        "p-8 rounded-[2.5rem] bg-white border transition-all cursor-pointer group flex items-center gap-6",
-                                        isConfirmed ? "border-green-500/30 bg-green-50/10" : "border-black/5 hover:border-primary/20 hover:-translate-y-1 shadow-sm"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group-hover:scale-110",
-                                        isConfirmed ? "bg-green-500 text-white" : "bg-primary text-white shadow-lg shadow-primary/20"
-                                    )}>
-                                        {isConfirmed ? <Check size={32} /> : <Send size={32} />}
-                                    </div>
-                                    <div className="text-right">
-                                        <h4 className="text-xl font-black text-secondary">{isConfirmed ? 'تم تأكيد الطلب' : 'تأكيد الـ Order'}</h4>
-                                        <p className="text-sm text-secondary/40 mt-1">{isConfirmed ? 'شكراً لثقتكم بنا' : 'اضغط للتأكيد عبر واتساب'}</p>
-                                    </div>
+                        <div className="flex flex-wrap items-center justify-center gap-6">
+                            <div
+                                onClick={!isConfirmed ? handleConfirmOrder : undefined}
+                                className={cn(
+                                    "px-10 md:px-12 py-8 rounded-[2.5rem] bg-white border transition-all cursor-pointer group flex items-center gap-6 w-full md:w-auto md:min-w-[380px] justify-center",
+                                    isConfirmed ? "border-green-500/30 bg-green-50/10" : "border-black/5 hover:border-primary/20 hover:-translate-y-1 shadow-sm"
+                                )}
+                            >
+                                <div className={cn(
+                                    "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group-hover:scale-110 shrink-0",
+                                    isConfirmed ? "bg-green-500 text-white" : "bg-primary text-white shadow-lg shadow-primary/20"
+                                )}>
+                                    {isConfirmed ? <Check size={32} /> : <Send size={32} />}
                                 </div>
-                            )}
+                                <div className="text-right">
+                                    <h4 className="text-xl font-black text-secondary leading-tight">{isConfirmed ? 'تم تأكيد الطلب' : 'تأكيد الـ Order'}</h4>
+                                </div>
+                            </div>
 
                             {[
                                 {
                                     title: 'مشاركة واتساب',
-                                    desc: 'إرسال رابط التقرير للعميل مباشرة',
+                                    // desc: 'إرسال رابط التقرير للعميل مباشرة',
                                     icon: <Share2 />,
                                     color: 'primary',
                                     action: () => {
@@ -619,17 +616,17 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 <div
                                     key={i}
                                     onClick={item.action}
-                                    className="p-8 rounded-[2.5rem] bg-white border border-black/5 hover:border-primary/20 hover:-translate-y-1 transition-all cursor-pointer group flex items-center gap-6"
+                                    className="px-10 md:px-12 py-8 rounded-[2.5rem] bg-white border border-black/5 hover:border-primary/20 hover:-translate-y-1 transition-all cursor-pointer group flex items-center gap-6 w-full md:w-auto md:min-w-[380px] justify-center"
                                 >
                                     <div className={cn(
-                                        "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group-hover:scale-110",
+                                        "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group-hover:scale-110 shrink-0",
                                         item.color === 'primary' ? "bg-primary/10 text-primary" : "bg-black/5 text-secondary/40"
                                     )}>
                                         {React.cloneElement(item.icon as React.ReactElement<any>, { size: 32 })}
                                     </div>
                                     <div className="text-right">
-                                        <h4 className="text-xl font-black text-secondary">{item.title}</h4>
-                                        <p className="text-sm text-secondary/40 mt-1">{item.desc}</p>
+                                        <h4 className="text-xl font-black text-secondary leading-tight">{item.title}</h4>
+                                        {item.desc && <p className="text-sm text-secondary/40 mt-1">{item.desc}</p>}
                                     </div>
                                 </div>
                             ))}

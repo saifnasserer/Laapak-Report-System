@@ -67,7 +67,7 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
 
     const openWhatsAppModal = (id: string, clientName: string) => {
         setSelectedInvoiceId(id);
-        setShareMessage(`مرحباً ${clientName}،\n\nإليك رابط فاتورتك رقم ${id} من مركز لابق للصيانة.\n\nالرجاء الضغط على الرابط أدناه لعرض الفاتورة:\nhttps://laapak.com/invoices/${id}\n\nشكراً لتعاملك معنا.`);
+        setShareMessage(`تقدر تشوف فاتورتك من هنا !:\nhttps://laapak.com/invoices/${id}\n\nشكراً لتعاملك معنا.`);
         setWhatsAppModalOpen(true);
     };
 
