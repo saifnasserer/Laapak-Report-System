@@ -360,6 +360,30 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Prevent submission if not on the last step (Safeguard)
+        if (step !== 5) {
+            return;
+        }
+
+        // Validate Mandatory Fields
+        const requiredFields = {
+            client_name: 'اسم العميل',
+            client_phone: 'رقم الهاتف',
+            device_model: 'موديل الجهاز',
+            client_address: 'العنوان',
+            order_number: 'رقم الطلب'
+        };
+
+        const missing = Object.entries(requiredFields)
+            .filter(([key, _]) => !formData[key as keyof typeof formData]) // Check if field is empty
+            .map(([_, label]) => label);
+
+        if (missing.length > 0) {
+            alert(`يرجى ملء الحقول الإلزامية التالية: ${missing.join('، ')}`);
+            return;
+        }
+
         setIsLoading(true);
         try {
             // Client Handling
@@ -393,6 +417,7 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                 client_id: clientId,
                 order_number: formData.order_number,
                 inspection_date: new Date(formData.inspection_date),
+                status: 'pending', // FORCE DEFAULT STATUS
 
                 // Stringify arrays and merge screenshots into external_images for compatibility
                 hardware_status: JSON.stringify(formData.hardware_status),
@@ -406,8 +431,73 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                 amount: formData.amount
             };
 
-            await api.post('/reports', reportData);
-            alert('تم حفظ التقرير بنجاح');
+            const reportResponse = await api.post('/reports', reportData);
+            const newReport = reportResponse.data;
+
+            // Invoice Creation Logic
+            if (formData.billing_enabled) {
+                try {
+                    const serviceFee = parseFloat(formData.amount || '0');
+                    const itemsSubtotal = formData.invoice_items.reduce((sum, item) => sum + parseFloat(item.price || '0'), 0);
+                    const subtotal = serviceFee + itemsSubtotal;
+
+                    if (subtotal > 0) {
+                        const discount = parseFloat(formData.discount || '0');
+                        const taxRate = parseFloat(formData.tax_rate || '0');
+                        const taxable = Math.max(0, subtotal - discount);
+                        const tax = taxable * (taxRate / 100);
+                        const total = taxable + tax;
+
+                        const invoiceItemsPayload = [];
+                        // 1. Service Fee item
+                        if (serviceFee > 0) {
+                            invoiceItemsPayload.push({
+                                description: `فحص وصيانة ${formData.device_model || 'جهاز'}`,
+                                quantity: 1,
+                                amount: serviceFee,
+                                type: 'service'
+                            });
+                        }
+                        // 2. Extra items
+                        formData.invoice_items.forEach(item => {
+                            invoiceItemsPayload.push({
+                                description: item.name,
+                                quantity: 1,
+                                amount: parseFloat(item.price || '0'),
+                                type: 'item'
+                            });
+                        });
+
+                        const invoiceId = 'INV-' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000);
+
+                        await api.post('/invoices', {
+                            id: invoiceId, // Optional, but good for tracking
+                            client_id: clientId,
+                            report_ids: [newReport.id],
+                            date: new Date().toISOString(),
+                            subtotal: subtotal,
+                            discount: discount,
+                            taxRate: taxRate,
+                            tax: tax,
+                            total: total,
+                            paymentStatus: 'unpaid',
+                            paymentMethod: 'cash',
+                            items: invoiceItemsPayload,
+                            notes: `فاتورة تلقائية للتقرير #${formData.order_number}`
+                        });
+
+                        alert('تم حفظ التقرير وإنشاء الفاتورة بنجاح');
+                    } else {
+                        alert('تم حفظ التقرير بنجاح (لم يتم إنشاء فاتورة لأن المبلغ 0)');
+                    }
+                } catch (invError) {
+                    console.error('Invoice creation failed:', invError);
+                    alert('تم حفظ التقرير ولكن فشل إنشاء الفاتورة تلقائياً');
+                }
+            } else {
+                alert('تم حفظ التقرير بنجاح');
+            }
+
             router.push('/dashboard/admin/reports');
         } catch (error: any) {
             console.error('Failed to create report:', error);
@@ -467,7 +557,7 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
                     {/* Step 1: Client, Device Info & Technical Specs (Unified Overhaul) */}
                     {step === 1 && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -652,7 +742,14 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                                                 placeholder="أدخل السعر..."
                                                 icon={<CreditCard size={18} />}
                                                 value={formData.device_price}
-                                                onChange={handleChange}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        device_price: val,
+                                                        amount: val // Sync with step 5 amount
+                                                    }));
+                                                }}
                                                 className="rounded-full bg-black/[0.02] border-transparent h-12 text-center font-black text-primary"
                                             />
                                         </div>
@@ -1069,41 +1166,29 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                                             </div>
 
                                             {/* Summary & Alert */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div className="p-6 rounded-[2rem] bg-amber-500/5 border border-amber-500/10 flex items-start gap-4 h-full flex flex-col justify-center">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <AlertCircle size={18} className="text-amber-500" />
-                                                        <h6 className="font-bold text-amber-700 text-xs uppercase tracking-widest">تنبيه الفوترة</h6>
-                                                    </div>
-                                                    <p className="text-[10px] text-amber-600/70 font-black leading-relaxed uppercase">
-                                                        يرجى التأكد من المبالغ المدخلة. سيتم تثبيتها في السجل المالي فور حفظ التقرير.
-                                                    </p>
+                                            <div className="bg-primary/5 rounded-[2.5rem] p-8 border border-primary/10 space-y-4">
+                                                <div className="flex justify-between items-center text-lg font-black text-secondary/40 uppercase tracking-widest px-2">
+                                                    <span>المجموع الفرعي:</span>
+                                                    <span>{(Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0)).toLocaleString()} EGP</span>
                                                 </div>
-
-                                                <div className="bg-primary/5 rounded-[2.5rem] p-8 border border-primary/10 space-y-4">
-                                                    <div className="flex justify-between items-center text-[10px] font-black text-secondary/40 uppercase tracking-widest px-2">
-                                                        <span>المجموع الفرعي:</span>
-                                                        <span>{(Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0)).toLocaleString()} EGP</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-[10px] font-black text-red-500/40 uppercase tracking-widest px-2">
-                                                        <span>الخصم:</span>
-                                                        <span>- {Number(formData.discount).toLocaleString()} EGP</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-[10px] font-black text-primary/40 uppercase tracking-widest px-2">
-                                                        <span>الضريبة:</span>
-                                                        <span>+ {((Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0) - Number(formData.discount)) * (Number(formData.tax_rate) / 100)).toLocaleString()} EGP</span>
-                                                    </div>
-                                                    <div className="h-px bg-primary/10 mx-2" />
-                                                    <div className="flex justify-between items-center text-center">
-                                                        <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest px-2">الإجمالي النهائي:</span>
-                                                        <div className="text-3xl font-black text-primary">
-                                                            {(() => {
-                                                                const subtotal = Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0);
-                                                                const afterDiscount = subtotal - Number(formData.discount);
-                                                                const tax = afterDiscount * (Number(formData.tax_rate) / 100);
-                                                                return (afterDiscount + tax).toLocaleString();
-                                                            })()} <span className="text-sm">EGP</span>
-                                                        </div>
+                                                <div className="flex justify-between items-center text-lg font-black text-red-500/40 uppercase tracking-widest px-2">
+                                                    <span>الخصم:</span>
+                                                    <span>- {Number(formData.discount).toLocaleString()} EGP</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-lg font-black text-primary/40 uppercase tracking-widest px-2">
+                                                    <span>الضريبة:</span>
+                                                    <span>+ {((Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0) - Number(formData.discount)) * (Number(formData.tax_rate) / 100)).toLocaleString()} EGP</span>
+                                                </div>
+                                                <div className="h-px bg-primary/10 mx-2" />
+                                                <div className="flex justify-between items-center text-center">
+                                                    <span className="text-xl font-black text-primary/60 uppercase tracking-widest px-2">الإجمالي النهائي:</span>
+                                                    <div className="text-6xl font-black text-primary">
+                                                        {(() => {
+                                                            const subtotal = Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0);
+                                                            const afterDiscount = subtotal - Number(formData.discount);
+                                                            const tax = afterDiscount * (Number(formData.tax_rate) / 100);
+                                                            return (afterDiscount + tax).toLocaleString();
+                                                        })()} <span className="text-2xl">EGP</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1120,6 +1205,7 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                                         </div>
                                     )}
 
+                                    {/* Status Selection (Commented Out as per request - Default to Pending) */}
                                     {/* <div className="pt-8 border-t border-black/5">
                                         <div className="space-y-4">
                                             <label className="text-xs font-black text-secondary px-2 flex items-center gap-2">
@@ -1180,7 +1266,9 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                                 </Button>
                             ) : (
                                 <Button
-                                    type="submit"
+                                    id="report-submit-btn" // Added ID for check in handleSubmit
+                                    type="button"
+                                    onClick={(e) => handleSubmit(e as unknown as React.FormEvent)}
                                     disabled={isLoading}
                                     className="rounded-full h-12 px-12 bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                                     icon={isLoading ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}

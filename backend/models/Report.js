@@ -139,6 +139,12 @@ const Report = sequelize.define('Report', {
         defaultValue: false,
         field: 'is_confirmed',
         comment: 'Indicates if the user has confirmed the order via WhatsApp'
+    },
+    selected_accessories: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        field: 'selected_accessories',
+        comment: 'List of accessories selected by the client'
     }
 }, {
     tableName: 'reports',

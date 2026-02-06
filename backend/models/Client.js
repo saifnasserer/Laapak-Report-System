@@ -19,13 +19,14 @@ const Client = sequelize.define('Client', {
     orderCode: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: { notEmpty: true }
+        validate: { notEmpty: true },
+        field: 'orderCode'
     },
     email: {
         type: DataTypes.STRING,
         allowNull: true,
         validate: {
-            isEmail: function(value) {
+            isEmail: function (value) {
                 if (value && value.trim() !== '') {
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                     if (!emailRegex.test(value)) {
@@ -33,16 +34,19 @@ const Client = sequelize.define('Client', {
                     }
                 }
             }
-        }
+        },
+        field: 'email'
     },
     address: {
         type: DataTypes.TEXT,
-        allowNull: true
+        allowNull: true,
+        field: 'address'
     },
     status: {
         type: DataTypes.ENUM('active', 'inactive'),
         defaultValue: 'active',
-        allowNull: false
+        allowNull: false,
+        field: 'status'
     },
     lastLogin: {
         type: DataTypes.DATE,

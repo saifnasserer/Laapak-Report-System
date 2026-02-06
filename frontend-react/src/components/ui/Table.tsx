@@ -20,7 +20,7 @@ export const Table = React.forwardRef<
         >
             {headers && (
                 <thead className="bg-surface-variant/30">
-                    <tr className="border-b">
+                    <tr>
                         {headers.map((header, index) => (
                             <th key={index} className="px-8 py-4 text-sm font-bold text-secondary/60 text-right">
                                 {header}
@@ -43,7 +43,7 @@ export const TableHeader = React.forwardRef<
     HTMLTableSectionElement,
     React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-    <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+    <thead ref={ref} className={cn(className)} {...props} />
 ));
 TableHeader.displayName = "TableHeader";
 
@@ -53,7 +53,7 @@ export const TableBody = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <tbody
         ref={ref}
-        className={cn("[&_tr:last-child]:border-0", className)}
+        className={cn("divide-y divide-black/5", className)}
         {...props}
     />
 ));
@@ -81,7 +81,7 @@ export const TableRow = React.forwardRef<
     <tr
         ref={ref}
         className={cn(
-            "border-b transition-colors hover:bg-primary/5 data-[state=selected]:bg-muted group",
+            "transition-colors hover:bg-primary/5 data-[state=selected]:bg-muted group",
             className
         )}
         {...props}

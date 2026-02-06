@@ -1,6 +1,6 @@
 const express = require('express');
 const { Sequelize, Op } = require('sequelize');
-const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport } = require('../models'); // Added InvoiceReport
+const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport, InvoiceItem } = require('../models'); // Added InvoiceItem
 const { auth, clientAuth, adminAuth } = require('../middleware/auth'); // Import all auth middlewares
 const { sequelize } = require('../config/db');
 

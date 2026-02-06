@@ -18,16 +18,16 @@ const { Op } = require('sequelize');
 router.get('/count', auth, async (req, res) => {
     try {
         const { status } = req.query;
-        
+
         let whereClause = {};
-        
+
         // If status filter is provided
         if (status) {
             whereClause.status = status;
         }
-        
+
         const count = await Client.count({ where: whereClause });
-        
+
         res.json({ count });
     } catch (error) {
         console.error('Error counting clients:', error);
@@ -44,13 +44,13 @@ router.get('/', adminAuth, (req, res) => {
         Client.findAll({
             order: [['createdAt', 'DESC']]
         })
-        .then(clients => {
-            res.json({ clients });
-        })
-        .catch(err => {
-            console.error('Error fetching clients:', err);
-            res.status(500).json({ message: 'خطأ في الخادم' });
-        });
+            .then(clients => {
+                res.json({ clients });
+            })
+            .catch(err => {
+                console.error('Error fetching clients:', err);
+                res.status(500).json({ message: 'خطأ في الخادم' });
+            });
     } catch (err) {
         console.error('Error in GET /clients route:', err);
         res.status(500).json({ message: 'خطأ في الخادم' });
@@ -77,15 +77,12 @@ router.get('/:id', adminAuth, (req, res) => {
 // @route   POST api/clients
 // @desc    Create a new client
 // @access  Private (Admin only)
-router.post('/', [
-    adminAuth,
-    [
-        check('name', 'اسم العميل مطلوب').not().isEmpty(),
-        check('phone', 'رقم الهاتف مطلوب').not().isEmpty(),
-        check('orderCode', 'كود الطلب مطلوب').not().isEmpty(),
-        check('email', 'البريد الإلكتروني غير صالح').optional().isEmail()
-    ]
-], (req, res) => {
+router.post('/', adminAuth, [
+    check('name', 'اسم العميل مطلوب').not().isEmpty(),
+    check('phone', 'رقم الهاتف مطلوب').not().isEmpty(),
+    check('orderCode', 'كود الطلب مطلوب').not().isEmpty(),
+    check('email', 'البريد الإلكتروني غير صالح').optional().isEmail()
+], async (req, res) => {
     // Check validation
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -93,31 +90,33 @@ router.post('/', [
     }
 
     const { name, phone, email, address, orderCode, status } = req.body;
+    console.log('Backend: Creating client with data:', { name, phone, email, address, orderCode, status });
 
-    // Check if client with phone already exists
-    Client.findOne({ where: { phone } })
-        .then(existingClient => {
-            if (existingClient) {
-                return res.status(400).json({ message: 'يوجد عميل مسجل بهذا الرقم بالفعل' });
-            }
+    try {
+        // Check if client with phone already exists
+        const existingClient = await Client.findOne({ where: { phone } });
+        if (existingClient) {
+            console.log('Backend: Client already exists with phone:', phone);
+            return res.status(400).json({ message: 'يوجد عميل مسجل بهذا الرقم بالفعل' });
+        }
 
-            // Create new client
-            return Client.create({
-                name,
-                phone,
-                email: email || null,
-                address: address || null,
-                orderCode,
-                status: status || 'active'
-            });
-        })
-        .then(client => {
-            res.status(201).json({ client });
-        })
-        .catch(err => {
-            console.error('Error creating client:', err);
-            res.status(500).json({ message: 'خطأ في الخادم' });
+        console.log('Backend: Creating new client record...');
+        // Create new client
+        const client = await Client.create({
+            name,
+            phone,
+            email: email || null,
+            address: address || null,
+            orderCode,
+            status: status || 'active'
         });
+
+        console.log('Backend: Client created successfully:', client.id);
+        res.status(201).json({ client });
+    } catch (err) {
+        console.error('Backend: Error creating client:', err);
+        res.status(500).json({ message: 'خطأ في الخادم', error: err.message });
+    }
 });
 
 // @route   PUT api/clients/:id
@@ -125,7 +124,7 @@ router.post('/', [
 // @access  Private (Admin only)
 router.put('/:id', adminAuth, (req, res) => {
     const { name, phone, email, address, status, orderCode } = req.body;
-    
+
     // Find client
     Client.findByPk(req.params.id)
         .then(client => {
@@ -248,7 +247,7 @@ router.post('/auth', [
                                 console.error('Token signing error:', err);
                                 throw err;
                             }
-                            
+
                             const response = {
                                 token,
                                 client: {
@@ -258,7 +257,7 @@ router.post('/auth', [
                                     email: client.email
                                 }
                             };
-                            
+
                             console.log('Sending successful login response');
                             res.json(response);
                         }
