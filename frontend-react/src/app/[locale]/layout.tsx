@@ -5,6 +5,15 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { Montserrat, Noto_Sans_Arabic } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Laapak Reports',
+    description: 'System for managing Laapak reports',
+    icons: {
+        icon: '/logo.png',
+    },
+};
 
 const montserrat = Montserrat({
     subsets: ['latin'],
