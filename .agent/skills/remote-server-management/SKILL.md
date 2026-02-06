@@ -160,15 +160,57 @@ The server has previously been infected with the `systemp` malware chain. If it 
 - Service files `systemp.service` and `observed.service` appearing in `/etc/systemd/system/`.
 
 ### Complete Removal Procedure:
-1.  **Identify Components**: Checks for `/usr/local/bin/systemp`, `/usr/local/bin/free_proc.sh`, and `.config.json`.
+### Complete Removal Procedure:
+1.  **Identify Components**:
+    - Check processes: `ps aux | grep -E 'systemp|logpolicy|observed'`
+    - Check files: `/usr/local/bin/systemp`, `/usr/local/bin/free_proc.sh`, `/home/deploy/.cache/logpolicyagent`
+    - Check persistence: `crontab -l`, `ls /etc/systemd/system/`, `cat ~/.ssh/authorized_keys`
 2.  **Stop & Eradicate**:
     ```bash
+    # 1. Clean Crontab (Remove malicious @reboot lines)
+    crontab -l | grep -v 'logpolicyagent' | crontab -
+    
+    # 2. Stop Services
     sudo systemctl stop systemp observed
     sudo systemctl disable systemp observed
+    
+    # 3. Remove Files
     sudo rm -f /etc/systemd/system/systemp.service /etc/systemd/system/observed.service
     sudo rm -f /usr/local/bin/systemp /usr/local/bin/free_proc.sh /usr/local/bin/.config.json
+    rm -rf /home/deploy/.cache/logpolicyagent
+    
+    # 4. Kill Resurrection
     sudo systemctl daemon-reload
-    sudo killall -9 systemp free_proc.sh
+    sudo killall -9 systemp free_proc.sh logpolicyagent
     ```
-3.  **Watchdog Alert**: `observed.service` is a watchdog that recreates `systemp`. You MUST stop/delete both simultaneously.
+3.  **Watchdog Alert**: `observed.service` and cron jobs will recreate the malware. You must clean ALL persistence mechanisms simultaneously.
+
+## Server Security Hardening Checklists
+
+### 1. SSH Hardening (Prevention)
+To thwart brute-force attacks:
+1.  **Add SSH Key**: Copy local key (`~/.ssh/id_ed25519.pub`) to remote `~/.ssh/authorized_keys`.
+2.  **Disable Passwords**: Edit `/etc/ssh/sshd_config`:
+    ```ssh
+    PasswordAuthentication no
+    PermitRootLogin no
+    ChallengeResponseAuthentication no
+    ```
+3.  **Check Authorized Keys**: Inspect `~/.ssh/authorized_keys` and remove any unknown keys (e.g., `ssh-rsa ...` from attackers).
+4.  **Check Includes**: Verify `/etc/ssh/sshd_config.d/*.conf` (e.g., `50-cloud-init.conf`) don't override these settings.
+4.  **Restart**: `sudo systemctl restart ssh`.
+
+### 2. Firewall (UFW)
+Only open essential ports. Close direct access to backend ports (3001, 4005, 8080) and rely on Nginx proxying on 80/443.
+```bash
+# Allow essential
+sudo ufw allow 22/tcp  # SSH
+sudo ufw allow 80/tcp  # HTTP
+sudo ufw allow 443/tcp # HTTPS
+
+# Deny everything else
+sudo ufw default deny incoming
+sudo ufw enable
+```
+
 

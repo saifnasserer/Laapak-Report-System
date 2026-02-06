@@ -8,14 +8,13 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-interface BadgeProps {
+interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
     children: React.ReactNode;
     variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'destructive' | 'outline';
-    className?: string;
     circular?: boolean;
 }
 
-export const Badge = ({ children, variant = 'primary', className, circular }: BadgeProps) => {
+export const Badge = ({ children, variant = 'primary', className, circular, ...props }: BadgeProps) => {
     const variants = {
         primary: 'bg-primary/10 text-primary border-primary/20',
         secondary: 'bg-secondary/10 text-secondary border-secondary/20',
@@ -31,7 +30,7 @@ export const Badge = ({ children, variant = 'primary', className, circular }: Ba
             circular && "rounded-full px-4 py-1",
             variants[variant],
             className
-        )}>
+        )} {...props}>
             {children}
         </span>
     );

@@ -176,39 +176,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
 
     return (
         <DashboardLayout>
-            <div className="space-y-8 pb-12">
-                {/* Admin Custom Header */}
-                <div className="flex flex-col md:flex-row items-center justify-between bg-white/50 backdrop-blur-md p-6 rounded-[2rem] border border-black/5 shadow-sm gap-6">
-                    <div className="flex items-center gap-6 w-full md:w-auto">
-                        <Image src="/logo.png" alt="Laapak" width={140} height={40} className="h-8 w-auto object-contain" priority />
-                        <div className="h-8 w-[1px] bg-black/10 hidden md:block" />
-                        <div className="hidden md:block">
-                            <h1 className="text-xl font-bold tracking-tight">مرحباً، {user?.username}</h1>
-                            <p className="text-xs text-secondary font-medium">لوحة تحكم النظام</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                        <div className="flex items-center gap-3">
-                            <Button
-                                size="md"
-                                icon={<Plus size={20} />}
-                                onClick={() => router.push('/dashboard/admin/reports/new')}
-                                className="bg-primary text-white hover:scale-105 active:scale-95 transition-all font-black h-12 px-8 rounded-xl shadow-lg shadow-primary/20"
-                            >
-                                إضافة تقرير
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={logout}
-                                className="text-destructive hover:bg-destructive/5 rounded-xl font-bold px-4 h-12 flex items-center gap-2"
-                            >
-                                <LogOut size={18} />
-                                <span className="hidden sm:inline">خروج</span>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+            <div className="space-y-8 pb-12 pt-4">
+                {/* Content starts below global header */}
+
 
                 {/* Recent Reports - Row Style */}
                 <div className="space-y-6">
@@ -225,40 +195,44 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                                 <Card
                                     key={report.id}
                                     variant="glass"
-                                    className="border-black/5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group cursor-pointer rounded-[2rem] bg-white/60 backdrop-blur-sm"
+                                    className="border-black/5 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group cursor-pointer rounded-3xl bg-white/60 backdrop-blur-sm p-4 md:p-6"
                                     onClick={() => router.push(`/dashboard/admin/reports/${report.id}`)}
                                 >
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                        <div className="flex items-center gap-6">
-                                            <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300 shrink-0">
-                                                <FileText size={24} />
+                                    <div className="flex items-center gap-3 md:gap-6">
+                                        {/* Icon - Smaller on mobile */}
+                                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300 shrink-0">
+                                            <FileText size={20} className="md:w-6 md:h-6" />
+                                        </div>
+
+                                        {/* Main Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap mb-0.5 md:mb-1">
+                                                <span className="font-black text-base md:text-lg text-foreground truncate">{report.client_name}</span>
+                                                <span className="text-[10px] md:text-sm font-bold text-secondary/40 shrink-0">#{report.order_number}</span>
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="font-black text-lg text-foreground">{report.client_name}</span>
-                                                    <span className="text-sm font-bold text-secondary/40">#{report.order_number}</span>
+                                            <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-sm font-medium text-secondary/60">
+                                                <div className="flex items-center gap-1 md:gap-1.5 truncate">
+                                                    <Users size={12} className="md:w-3.5 md:h-3.5" />
+                                                    <span className="truncate">{report.device_model}</span>
                                                 </div>
-                                                <div className="flex items-center gap-4 text-sm font-medium text-secondary/60">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Users size={14} />
-                                                        {report.device_model}
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Calendar size={14} />
-                                                        {new Date(report.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' })}
-                                                    </div>
+                                                <div className="flex items-center gap-1 md:gap-1.5 shrink-0">
+                                                    <Calendar size={12} className="md:w-3.5 md:h-3.5" />
+                                                    {new Date(report.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto pl-2">
-                                            {getStatusBadge(report.status)}
-                                            <Button
-                                                variant="ghost"
-                                                className="rounded-full w-12 h-12 p-0 hover:bg-primary hover:text-white transition-colors text-secondary/40"
-                                            >
-                                                <ArrowRight size={20} className="rotate-180" />
-                                            </Button>
+                                        {/* Actions & Status - Integrated */}
+                                        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+                                            <div className="hidden sm:block">
+                                                {getStatusBadge(report.status)}
+                                            </div>
+                                            <div className="sm:hidden scale-75 origin-left">
+                                                {getStatusBadge(report.status)}
+                                            </div>
+                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/80 border border-black/5 flex items-center justify-center text-secondary/40 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-300">
+                                                <ArrowRight size={16} className="md:w-5 md:h-5 rotate-180" />
+                                            </div>
                                         </div>
                                     </div>
                                 </Card>

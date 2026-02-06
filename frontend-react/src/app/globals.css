@@ -66,4 +66,16 @@
     -webkit-tap-highlight-color: transparent;
     @apply outline-none ring-0 focus:ring-0 active:scale-[0.98] transition-transform;
   }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-black/5 rounded-full hover:bg-black/10 transition-colors;
+  }
 }

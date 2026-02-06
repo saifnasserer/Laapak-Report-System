@@ -38,8 +38,8 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     const adminLinks = [
         { href: '/dashboard/admin', label: t('overview'), icon: LayoutDashboard },
         { href: '/dashboard/admin/reports', label: t('reports'), icon: FileText },
-        { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
         { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
+        { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
         { href: '/dashboard/admin/financial', label: t('financial'), icon: TrendingUp },
         { href: '/dashboard/admin/money', label: t('money'), icon: Wallet },
     ];
@@ -55,8 +55,8 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     return (
         <aside
             className={cn(
-                "fixed inset-y-0 w-[280px] md:w-72 h-screen bg-white flex flex-col z-[100] transition-transform duration-500 ease-in-out",
-                isRtl ? "right-0 border-l border-black/10" : "left-0 border-r border-black/10",
+                "fixed inset-y-0 w-[280px] md:w-72 h-screen bg-white/80 backdrop-blur-xl flex flex-col z-[100] transition-transform duration-500 ease-in-out",
+                isRtl ? "right-0 border-l border-black/5" : "left-0 border-r border-black/5",
                 isOpen
                     ? "translate-x-0"
                     : (isRtl ? "translate-x-full" : "-translate-x-full")
@@ -73,15 +73,15 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                 />
                 <button
                     onClick={() => setIsOpen(false)}
-                    className="p-2.5 md:p-2 hover:bg-surface-variant rounded-xl transition-all active:scale-95 text-secondary border border-transparent active:border-black/5"
+                    className="p-2.5 md:p-2 hover:bg-black/5 rounded-2xl transition-all active:scale-95 text-secondary"
                 >
                     <X size={20} className="md:w-5 md:h-5" />
                 </button>
             </div>
 
-            <div className="px-6 py-4">
-                <p className="text-[10px] font-black text-secondary/40 uppercase tracking-[0.2em] px-4 mb-4">القائمة الرئيسية</p>
-                <nav className="space-y-2">
+            <div className="px-6 py-4 flex-1 overflow-y-auto custom-scrollbar">
+                <p className="text-[10px] font-black text-secondary/30 uppercase tracking-[0.2em] px-4 mb-4">القائمة الرئيسية</p>
+                <nav className="space-y-1.5">
                     {links.map((link) => {
                         const isActive = pathname === link.href;
                         const Icon = link.icon;
@@ -92,23 +92,22 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                                 href={link.href}
                                 onClick={() => setIsOpen(false)}
                                 className={cn(
-                                    'group flex items-center justify-between px-4 py-3 md:py-3.5 rounded-2xl transition-all no-ripple active:scale-[0.98]',
+                                    'group flex items-center justify-between px-4 py-3 md:py-3 rounded-2xl transition-all no-ripple active:scale-[0.98]',
                                     isActive
                                         ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                        : 'text-secondary/70 hover:bg-primary/5 hover:text-primary'
+                                        : 'text-secondary/60 hover:bg-primary/5 hover:text-primary'
                                 )}
                             >
                                 <div className="flex items-center">
-                                    <Icon size={20} className={cn('transition-colors md:w-[22px] md:h-[22px]', isActive ? 'text-white' : 'group-hover:text-primary')} />
-                                    {/* Sizedbox equivalent */}
+                                    <Icon size={20} className={cn('transition-colors md:w-[20px] md:h-[20px]', isActive ? 'text-white' : 'group-hover:text-primary')} />
                                     <div className="w-3 md:w-4" />
-                                    <span className="font-bold text-sm md:text-[15px]">{link.label}</span>
+                                    <span className="font-bold text-sm md:text-[14px]">{link.label}</span>
                                 </div>
-                                <ChevronRight size={16} className={cn(
+                                <ChevronRight size={14} className={cn(
                                     'transition-all',
                                     isActive
                                         ? 'opacity-100 translate-x-0'
-                                        : cn('opacity-0', isRtl ? '-translate-x-2' : 'translate-x-2 flip-h')
+                                        : 'opacity-0 translate-x-2 flip-h'
                                 )} />
                             </Link>
                         );
@@ -116,26 +115,26 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                 </nav>
             </div>
 
-            <div className="mt-auto p-4 md:p-6 space-y-4">
-                <div className="bg-surface-variant/50 p-4 rounded-3xl border border-black/5">
-                    <div className="flex items-center space-x-3 space-x-reverse mb-4">
-                        <div className="w-10 h-10 rounded-2xl bg-white border border-black/5 flex items-center justify-center font-black text-primary shadow-sm">
+            <div className="p-6 mt-auto">
+                <div className="bg-white/50 backdrop-blur-md p-4 rounded-[2rem] border border-black/5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary shadow-inner">
                             {user?.username?.[0]?.toUpperCase() || 'U'}
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-wider">مرحباً</p>
-                            <p className="text-sm font-black text-secondary">{user?.username}</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-black text-secondary/30 uppercase tracking-wider truncate">المستخدم الحالي</p>
+                            <p className="text-sm font-black text-secondary truncate">{user?.username}</p>
                         </div>
                     </div>
                     <button
                         onClick={logout}
-                        className="w-full flex items-center justify-center space-x-2 space-x-reverse px-4 py-3 text-destructive font-black text-[13px] bg-destructive/5 hover:bg-destructive/10 rounded-2xl transition-all active:scale-95 no-ripple"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-destructive font-black text-[13px] bg-destructive/5 hover:bg-destructive/10 rounded-xl transition-all active:scale-95 no-ripple"
                     >
                         <LogOut size={16} />
                         <span>{t('logout')}</span>
                     </button>
                 </div>
-                <p className="text-[10px] text-center text-secondary/20 font-black tracking-[0.2em]">LAAPAK v1.0.0</p>
+                <p className="text-[9px] text-center text-secondary/20 font-black tracking-[0.3em] mt-6">LAAPAK v1.0.0</p>
             </div>
         </aside>
     );

@@ -3,6 +3,7 @@ const { Sequelize, Op } = require('sequelize');
 const { Report, Client, ReportTechnicalTest, Invoice, InvoiceReport, InvoiceItem } = require('../models'); // Added InvoiceItem
 const { auth, clientAuth, adminAuth } = require('../middleware/auth'); // Import all auth middlewares
 const { sequelize } = require('../config/db');
+const Notifier = require('../utils/notifier');
 
 const router = express.Router();
 
@@ -160,6 +161,7 @@ router.get('/', async (req, res) => {
         include: [
           {
             model: Client,
+            as: 'client',
             attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode'], // Ensure all needed client fields are here
           },
           {
@@ -194,9 +196,8 @@ router.get('/', async (req, res) => {
           external_images: reportInstance.external_images, // Will be parsed by frontend
           hardware_status: reportInstance.hardware_status, // Will be parsed by frontend
           notes: reportInstance.notes,
+          client: reportInstance.client ? reportInstance.client.toJSON() : null,
           // You can add other fields from reportInstance as needed
-          // If client details are preferred from the association:
-          // client_info_associated: reportInstance.Client ? reportInstance.Client.toJSON() : null
         },
         technical_tests: reportInstance.technical_tests ? reportInstance.technical_tests.map(tt => tt.toJSON()) : []
       };
@@ -390,7 +391,7 @@ router.get('/', async (req, res) => {
           {
             model: Client,
             as: 'client',
-            attributes: ['id', 'name', 'phone', 'email'],
+            attributes: ['id', 'name', 'phone', 'email', 'orderCode'],
           },
           {
             model: Invoice,
@@ -1484,7 +1485,7 @@ router.post('/:id/send-warranty-reminder', auth, async (req, res) => {
 });
 
 // PUT /reports/:id/confirm - mark a report as confirmed by the client
-router.put('/:id/confirm', clientAuth, async (req, res) => {
+router.put('/:id/confirm', auth, async (req, res) => {
   try {
     const report = await Report.findByPk(req.params.id);
 
@@ -1507,6 +1508,39 @@ router.put('/:id/confirm', clientAuth, async (req, res) => {
   } catch (error) {
     console.error('Error confirming report:', error);
     res.status(500).json({ message: 'حدث خطأ أثناء تأكيد الطلب', error: error.message });
+  }
+});
+
+// POST /reports/:id/share/whatsapp - Share report via WhatsApp (using Evolution API)
+router.post('/:id/share/whatsapp', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message } = req.body; // Allow custom message from frontend
+
+    const report = await Report.findByPk(id, {
+      include: [{ model: Client, as: 'client', attributes: ['id', 'name', 'phone', 'email'] }]
+    });
+
+    if (!report) {
+      return res.status(404).json({ message: 'التقرير غير موجود' });
+    }
+
+    const phone = report.client_phone || report.client?.phone;
+    if (!phone) {
+      return res.status(400).json({ message: 'رقم الهاتف غير متوفر للعميل' });
+    }
+
+    // Use the message provided by frontend
+    if (!message) {
+      return res.status(400).json({ message: 'الرسالة مطلوبة' });
+    }
+
+    await Notifier.sendText(phone, message);
+    res.json({ success: true, message: 'Message sent successfully' });
+
+  } catch (error) {
+    console.error('Error sharing report via WhatsApp:', error);
+    res.status(500).json({ message: 'Sharing failed', error: error.message });
   }
 });
 

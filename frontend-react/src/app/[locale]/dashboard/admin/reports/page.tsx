@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal } from 'lucide-react';
 
 import api from '@/lib/api';
 import { use } from 'react';
 import { cn } from '@/lib/utils';
+import { WhatsAppShareModal } from '@/components/reports/WhatsAppShareModal';
 
 export default function ReportsAdminPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -22,6 +23,32 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showAll, setShowAll] = useState(false);
+
+    // WhatsApp Share State
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [reportToShare, setReportToShare] = useState<any>(null);
+
+    // Action Menu State
+    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+    const toggleMenu = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setActiveMenuId(activeMenuId === id ? null : id);
+    };
+
+    // Close menu when clicking outside
+    React.useEffect(() => {
+        const handleClickOutside = () => setActiveMenuId(null);
+        window.addEventListener('click', handleClickOutside);
+        return () => window.removeEventListener('click', handleClickOutside);
+    }, []);
+
+    const handleShareClick = (report: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setReportToShare(report);
+        setShareModalOpen(true);
+        setActiveMenuId(null);
+    };
 
     React.useEffect(() => {
         const fetchReports = async () => {
@@ -143,25 +170,17 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                             size="md"
                             className={cn(
                                 "w-11 h-11 p-0 rounded-full transition-all",
-                                showAll ? "bg-primary text-white" : "bg-white border-black/10 text-foreground"
+                                "bg-white border-black/10 text-foreground"
                             )}
                             onClick={() => setShowAll(!showAll)}
                             title={showAll ? "عرض التقارير الهامة فقط" : "عرض جميع التقارير"}
                         >
                             <Filter size={18} />
                         </Button>
-                        <Button
-                            size="md"
-                            icon={<Plus size={20} />}
-                            onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/new`}
-                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-12 px-8 rounded-full shadow-lg shadow-primary/20"
-                        >
-                            تقرير جديد
-                        </Button>
                     </div>
                 </div>
 
-                <Card>
+                <Card className="overflow-visible">
                     <CardContent className="p-0">
                         {isLoading ? (
                             <div className="p-12 text-center text-secondary">جاري التحميل...</div>
@@ -170,12 +189,11 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         ) : filteredReports.length === 0 ? (
                             <div className="p-12 text-center text-secondary">لا توجد تقارير حالياً</div>
                         ) : (
-                            <Table headers={['رقم الطلب', 'التاريخ', 'العميل', 'الجهاز', 'الحالة', 'الإضافات', 'التأكيد', '']}>
+                            <Table headers={['التاريخ', 'العميل', 'الجهاز', 'الحالة', 'الإضافات', 'التأكيد', '']} wrapperClassName="overflow-visible">
                                 {filteredReports.map((report) => {
                                     const statusInfo = getStatusInfo(report.status);
                                     return (
                                         <TableRow key={report.id} onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}`} className="cursor-pointer">
-                                            <TableCell className="font-bold text-primary">{report.order_number || report.id}</TableCell>
                                             <TableCell className="text-secondary text-xs">
                                                 {new Date(report.inspection_date || report.created_at || report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                                             </TableCell>
@@ -225,24 +243,43 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                <div className="flex items-center justify-end gap-2">
+                                            <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()} className="overflow-visible">
+                                                <div className="relative flex justify-end">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="w-8 h-8 p-0 rounded-full hover:bg-primary/10 hover:text-primary"
-                                                        onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}/edit`}
+                                                        className="w-10 h-10 p-0 rounded-full"
+                                                        onClick={(e) => toggleMenu(report.id, e)}
                                                     >
-                                                        <Edit size={16} />
+                                                        <MoreHorizontal size={20} />
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="w-8 h-8 p-0 rounded-full hover:bg-red-50 hover:text-red-500"
-                                                        onClick={() => handleDeleteReport(report.id)}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </Button>
+
+                                                    {activeMenuId === report.id && (
+                                                        <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border border-black/5 rounded-2xl shadow-xl z-[100] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                                            <button
+                                                                className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between"
+                                                                onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}/edit`}
+                                                            >
+                                                                <span>تعديل التقرير</span>
+                                                                <Edit size={16} className="text-primary" />
+                                                            </button>
+                                                            <button
+                                                                className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between"
+                                                                onClick={(e) => handleShareClick(report, e)}
+                                                            >
+                                                                <span className="text-[#25D366]">مشاركة واتساب</span>
+                                                                <Share2 size={16} className="text-[#25D366]" />
+                                                            </button>
+                                                            <div className="h-[1px] bg-black/5 mx-2" />
+                                                            <button
+                                                                className="w-full text-right px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/5 transition-colors flex items-center justify-between"
+                                                                onClick={() => handleDeleteReport(report.id)}
+                                                            >
+                                                                <span>حذف التقرير</span>
+                                                                <Trash2 size={16} className="text-destructive" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -252,7 +289,16 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         )}
                     </CardContent>
                 </Card>
+
+                {/* WhatsApp Share Modal */}
+                <WhatsAppShareModal
+                    isOpen={shareModalOpen}
+                    onClose={() => setShareModalOpen(false)}
+                    report={reportToShare}
+                    locale={locale}
+                />
             </div>
         </DashboardLayout>
     );
 }
+

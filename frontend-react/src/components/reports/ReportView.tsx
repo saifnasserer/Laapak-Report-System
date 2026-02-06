@@ -57,6 +57,7 @@ import api, { confirmReport } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { WhatsAppShareModal } from '@/components/reports/WhatsAppShareModal';
 
 // WooCommerce Configuration
 const WOO_BASE_URL = 'https://laapak.com';
@@ -82,6 +83,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
     const [isLoadingProducts, setIsLoadingProducts] = useState(false);
     const [cartItems, setCartItems] = useState<any[]>([]);
 
+    const [shareModalOpen, setShareModalOpen] = useState(false);
     const toggleCartItem = (product: any) => {
         setCartItems(prev => {
             const isSelected = prev.find(item => item.id === product.id);
@@ -170,7 +172,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
     const handlePrint = (invoiceId: string) => {
         const token = localStorage.getItem('token');
-        const printUrl = `/api/invoices/${invoiceId}/print?token=${token}`;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const printUrl = `${baseUrl}/invoices/${invoiceId}/print?token=${token}`;
         window.open(printUrl, '_blank');
     };
 
@@ -385,7 +388,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                                         {status === 'pass' ? (
                                                                             <div className="bg-green-500 text-white px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] font-black uppercase tracking-tight shadow-md flex items-center gap-2 cursor-default">
                                                                                 <div className="w-1.5 md:w-2 h-1.5 md:h-2 rounded-full bg-white animate-pulse" />
-                                                                                تم الفحص بنجاح
+                                                                                تم الفحص
                                                                             </div>
                                                                         ) : (
                                                                             <div className="bg-green-50/50 text-green-600/40 border border-green-100/50 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] font-black uppercase tracking-tight flex items-center gap-2 cursor-default">
@@ -635,12 +638,25 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         exit={{ opacity: 0, scale: 1.05 }}
                         className="space-y-12"
                     >
-                        <div className="text-center space-y-4 max-w-2xl mx-auto">
-                            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-8">
+                        <div className="text-center space-y-6 max-w-2xl mx-auto">
+                            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-4">
                                 <CheckCircle2 size={48} />
                             </div>
-                            <h3 className="text-3xl font-black text-secondary">إتمام مراجعة التقرير</h3>
-                            <p className="text-secondary/60 font-medium">يمكنك الآن تأكيد الطلب أو مشاركته مع العميل.</p>
+                            <div className="space-y-2">
+                                <h3 className="text-3xl font-black text-secondary">إتمام مراجعة التقرير</h3>
+                                <p className="text-secondary/60 font-medium">يمكنك الآن تأكيد الطلب أو مشاركته مع العميل.</p>
+                            </div>
+
+                            {cartItems.length > 0 && !isConfirmed && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center gap-3 justify-center text-primary"
+                                >
+                                    <AlertCircle size={20} className="shrink-0" />
+                                    <p className="text-sm font-bold">يرجى تأكيد الطلب لإضافة الأصناف المختارة (Accessories)</p>
+                                </motion.div>
+                            )}
                         </div>
 
                         <div className="flex flex-wrap items-center justify-center gap-6">
@@ -668,11 +684,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     // desc: 'إرسال رابط التقرير للعميل مباشرة',
                                     icon: <Share2 />,
                                     color: 'primary',
-                                    action: () => {
-                                        const phone = report.client_phone?.replace(/\D/g, '');
-                                        const message = encodeURIComponent(`مرحباً ${report.client_name}، إليك تقرير فحص جهازك ${report.device_model}:\n${window.location.origin}/${locale}/reports/${id}`);
-                                        if (phone) window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-                                    }
+                                    action: () => setShareModalOpen(true)
                                 },
                                 ...(viewMode === 'admin' ? [
                                     { title: 'تعديل البيانات', desc: 'تحديث المواصفات أو نتائج الفحص', icon: <Edit />, color: 'secondary', action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
@@ -902,6 +914,14 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         </TransformWrapper>
                     </motion.div>
                 )}
+
+                {/* WhatsApp Share Modal */}
+                <WhatsAppShareModal
+                    isOpen={shareModalOpen}
+                    onClose={() => setShareModalOpen(false)}
+                    report={report}
+                    locale={locale}
+                />
             </AnimatePresence>
         </div>
     );

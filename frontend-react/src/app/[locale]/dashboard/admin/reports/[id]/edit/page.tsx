@@ -5,12 +5,12 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import ReportForm from '@/components/reports/ReportForm';
 import { use } from 'react';
 
-export default function NewReportPage({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = use(params);
+export default function EditReportPage({ params }: { params: Promise<{ locale: string, id: string }> }) {
+    const { locale, id } = use(params);
 
     return (
         <DashboardLayout>
-            <ReportForm locale={locale} />
+            <ReportForm locale={locale} reportId={id} />
         </DashboardLayout>
     );
 }

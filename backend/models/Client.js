@@ -42,6 +42,21 @@ const Client = sequelize.define('Client', {
         allowNull: true,
         field: 'address'
     },
+    companyName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'company_name'
+    },
+    taxNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'tax_number'
+    },
+    notes: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        field: 'notes'
+    },
     status: {
         type: DataTypes.ENUM('active', 'inactive'),
         defaultValue: 'active',

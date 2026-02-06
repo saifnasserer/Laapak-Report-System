@@ -89,8 +89,8 @@ router.post('/', adminAuth, [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, phone, email, address, orderCode, status } = req.body;
-    console.log('Backend: Creating client with data:', { name, phone, email, address, orderCode, status });
+    const { name, phone, email, address, orderCode, status, companyName, taxNumber, notes } = req.body;
+    console.log('Backend: Creating client with data:', { name, phone, email, address, orderCode, status, companyName, taxNumber });
 
     try {
         // Check if client with phone already exists
@@ -107,6 +107,9 @@ router.post('/', adminAuth, [
             phone,
             email: email || null,
             address: address || null,
+            companyName: companyName || null,
+            taxNumber: taxNumber || null,
+            notes: notes || null,
             orderCode,
             status: status || 'active'
         });
@@ -123,7 +126,7 @@ router.post('/', adminAuth, [
 // @desc    Update a client
 // @access  Private (Admin only)
 router.put('/:id', adminAuth, (req, res) => {
-    const { name, phone, email, address, status, orderCode } = req.body;
+    const { name, phone, email, address, status, orderCode, companyName, taxNumber, notes } = req.body;
 
     // Find client
     Client.findByPk(req.params.id)
@@ -151,6 +154,9 @@ router.put('/:id', adminAuth, (req, res) => {
                 phone: phone || client.phone,
                 email: email !== undefined ? email : client.email,
                 address: address !== undefined ? address : client.address,
+                companyName: companyName !== undefined ? companyName : client.companyName,
+                taxNumber: taxNumber !== undefined ? taxNumber : client.taxNumber,
+                notes: notes !== undefined ? notes : client.notes,
                 status: status || client.status,
                 orderCode: orderCode !== undefined ? orderCode : client.orderCode
             });
@@ -168,7 +174,7 @@ router.put('/:id', adminAuth, (req, res) => {
 });
 
 // @route   DELETE api/clients/:id
-// @desc    Delete a client
+// @desc    Soft delete a client (set status to inactive)
 // @access  Private (Admin only)
 router.delete('/:id', adminAuth, (req, res) => {
     // Find client
@@ -177,11 +183,11 @@ router.delete('/:id', adminAuth, (req, res) => {
             if (!client) {
                 return res.status(404).json({ message: 'العميل غير موجود' });
             }
-            // Delete client
-            return client.destroy();
+            // Soft delete client (set status to inactive)
+            return client.update({ status: 'inactive' });
         })
         .then(() => {
-            res.json({ message: 'تم حذف العميل بنجاح' });
+            res.json({ message: 'تم حذف العميل بنجاح (نقل للأرشيف)' });
         })
         .catch(err => {
             console.error('Error deleting client:', err);

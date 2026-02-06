@@ -122,7 +122,8 @@ router.get('/:id', auth, async (req, res) => {
     }
 
     // Check permission
-    if (!req.user.isAdmin && invoice.client_id !== req.user.id) {
+    const isAdmin = req.user.isAdmin || req.user.role === 'admin' || req.user.type === 'admin';
+    if (!isAdmin && invoice.client_id !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to view this invoice' });
     }
 
@@ -215,6 +216,79 @@ router.post('/', adminAuth, async (req, res) => {
     if (transaction) await transaction.rollback();
     console.error('Error creating invoice:', error);
     res.status(500).json({ message: 'Failed to create invoice', error: error.message });
+  }
+});
+
+// Update invoice
+router.put('/:id', adminAuth, async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const {
+      date,
+      client_id,
+      items,
+      subtotal,
+      taxRate,
+      tax,
+      discount,
+      total,
+      paymentMethod,
+      paymentStatus,
+      notes
+    } = req.body;
+
+    const invoice = await Invoice.findByPk(req.params.id);
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+    // Update invoice details
+    await invoice.update({
+      client_id,
+      date: date ? new Date(date) : invoice.date,
+      subtotal,
+      taxRate: taxRate || 0,
+      tax,
+      discount: discount || 0,
+      total,
+      paymentStatus,
+      paymentMethod,
+      notes,
+      updated_at: new Date()
+    }, { transaction });
+
+    // Update items: Delete existing and recreate (simplest approach for full sync)
+    // In a production app with history tracking, we might want to be more granular,
+    // but for this report system, full replacement of items on save is acceptable.
+    await InvoiceItem.destroy({ where: { invoiceId: invoice.id }, transaction });
+
+    if (items && items.length > 0) {
+      await Promise.all(items.map(item =>
+        InvoiceItem.create({
+          invoiceId: invoice.id,
+          description: item.description,
+          type: item.type || 'standard',
+          amount: item.amount,
+          quantity: item.quantity || 1,
+          totalAmount: item.totalAmount || (item.amount * (item.quantity || 1)),
+          created_at: new Date()
+        }, { transaction })
+      ));
+    }
+
+    await transaction.commit();
+
+    const result = await Invoice.findByPk(invoice.id, {
+      include: [
+        { model: Client, as: 'client' },
+        { model: Report, as: 'relatedReports' },
+        { model: InvoiceItem, as: 'InvoiceItems' }
+      ]
+    });
+
+    res.json(result);
+  } catch (error) {
+    if (transaction && !transaction.finished) await transaction.rollback();
+    console.error('Error updating invoice:', error);
+    res.status(500).json({ message: 'Failed to update invoice', error: error.message });
   }
 });
 
@@ -398,7 +472,7 @@ router.get('/:id/print', async (req, res, next) => {
     let repairRequestNumber = null;
     if (invoice.relatedReports && invoice.relatedReports.length > 0) {
       const firstReport = invoice.relatedReports[0];
-      const reportCreatedAt = firstReport.created_at || firstReport.createdAt;
+      const reportCreatedAt = firstReport.createdAt || firstReport.created_at;
       if (reportCreatedAt) {
         const repairDate = new Date(reportCreatedAt);
         repairRequestNumber = `REP-${repairDate.getFullYear()}${String(repairDate.getMonth() + 1).padStart(2, '0')}${String(repairDate.getDate()).padStart(2, '0')}-${String(firstReport.id).padStart(3, '0')}`;
@@ -804,7 +878,11 @@ router.get('/:id/print', async (req, res, next) => {
         let logoSrc = '/assets/images/logo.png'; // Default fallback
         try {
           const fs = require('fs');
-          const logoPath = '/media/saif/brain/Projects/Laapak-Softwares/Laapak-Report-System/frontend-react/public/logo-full.png';
+          const path = require('path');
+          // Resolve path relative to this file (backend/routes/invoices.js)
+          // Go up to root: ../.. -> then frontend-react/public/logo-full.png
+          const logoPath = path.join(__dirname, '../../frontend-react/public/logo-full.png');
+
           if (fs.existsSync(logoPath)) {
             const logoData = fs.readFileSync(logoPath);
             logoSrc = `data:image/png;base64,${logoData.toString('base64')}`;
@@ -1100,7 +1178,7 @@ router.get('/:id/print', async (req, res, next) => {
     res.send(html);
   } catch (error) {
     console.error('Print error:', error);
-    res.status(500).send('Error generating print view');
+    res.status(500).send(`Error generating print view: ${error.message}\n${error.stack}`);
   }
 });
 
