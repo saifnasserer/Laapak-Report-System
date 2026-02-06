@@ -62,6 +62,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /home/deploy/laapak-projects/reports
+            git pull origin main
             docker compose -f remote-docker-compose.yml pull
             docker compose -f remote-docker-compose.yml up -d
             docker image prune -f
