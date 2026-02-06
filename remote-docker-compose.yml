@@ -30,15 +30,20 @@ services:
   laapak-frontend-react:
     build:
       context: ./frontend-react
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.production
     container_name: laapak-frontend-react
+    volumes:
+      # Mount the entire frontend-react directory
+      - ./frontend-react:/app
+      # Prevent node_modules from being overwritten
+      - /app/node_modules
     networks:
       - laapak-network
     deploy:
       resources:
         limits:
           cpus: '1.5'
-          memory: 3G
+          memory: 1G
     ports:
       - 3000:3000
     restart: always

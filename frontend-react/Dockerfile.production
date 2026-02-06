@@ -1,0 +1,19 @@
+# Production runtime - expects .next folder to already be built
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --omit=dev
+
+# The .next folder and other files will be mounted from the host
+# No need to COPY them here
+
+# Expose port
+EXPOSE 3000
+
+# Start the application
+CMD ["npm", "start"]
