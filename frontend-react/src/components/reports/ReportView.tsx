@@ -77,6 +77,17 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
     const [isConfirmed, setIsConfirmed] = useState(false);
     const [products, setProducts] = useState<any[]>([]);
     const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+    const [cartItems, setCartItems] = useState<any[]>([]);
+
+    const toggleCartItem = (product: any) => {
+        setCartItems(prev => {
+            const isSelected = prev.find(item => item.id === product.id);
+            if (isSelected) {
+                return prev.filter(item => item.id !== product.id);
+            }
+            return [...prev, product];
+        });
+    };
 
     const isRtl = locale === 'ar';
 
@@ -457,28 +468,39 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {products.map((product: any) => (
-                                    <div key={product.id} className="group bg-white rounded-[2rem] border border-black/5 p-4 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col">
-                                        <div className="aspect-square w-full rounded-2xl overflow-hidden bg-surface-variant/5 mb-4 relative">
-                                            {product.images && product.images[0] ? (
-                                                <img src={product.images[0].src} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-secondary/20">
-                                                    <Package size={48} />
+                                {products.map((product: any) => {
+                                    const isInCart = cartItems.find(item => item.id === product.id);
+                                    return (
+                                        <div key={product.id} className="group bg-white rounded-[2rem] border border-black/5 p-4 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col">
+                                            <div className="aspect-square w-full rounded-2xl overflow-hidden bg-surface-variant/5 mb-4 relative">
+                                                {product.images && product.images[0] ? (
+                                                    <img src={product.images[0].src} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-secondary/20">
+                                                        <Package size={48} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="space-y-3 flex-1">
+                                                <h4 className="font-bold text-secondary group-hover:text-primary transition-colors line-clamp-2 min-h-[3rem]">{product.name}</h4>
+                                                <div className="flex items-center justify-between mt-auto">
+                                                    <p className="text-xl font-black text-primary">{product.price} <span className="text-[10px] font-bold">ج.م</span></p>
+                                                    <Button
+                                                        onClick={() => toggleCartItem(product)}
+                                                        className={cn(
+                                                            "rounded-xl px-4 py-2 text-xs font-black transition-all",
+                                                            isInCart
+                                                                ? "bg-red-50 text-red-500 hover:bg-red-100 border-red-100"
+                                                                : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                                                        )}
+                                                    >
+                                                        {isInCart ? 'حذف من الطلب' : 'إضافة للطلب'}
+                                                    </Button>
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="space-y-2 flex-1">
-                                            <h4 className="font-bold text-secondary group-hover:text-primary transition-colors line-clamp-2">{product.name}</h4>
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-xl font-black text-primary">{product.price} <span className="text-[10px] font-bold">ج.م</span></p>
-                                                <a href={product.permalink} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all">
-                                                    <ExternalLink size={18} />
-                                                </a>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </motion.div>
@@ -491,24 +513,56 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         exit={{ opacity: 0, y: -20 }}
                         className="space-y-12"
                     >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pb-12 border-b border-black/5">
+                        <div className="flex flex-col items-center justify-center gap-8 pb-12 border-b border-black/5 text-center">
                             <div className="space-y-2">
-                                <h3 className="text-xl md:text-2xl font-black text-secondary flex items-center gap-3">
+                                <h3 className="text-xl md:text-3xl font-black text-secondary flex items-center justify-center gap-3">
                                     <CreditCard className="text-primary" size={28} />
                                     المبالغ والفوترة
                                 </h3>
-                                <p className="text-sm text-secondary/40 font-medium px-0 md:px-11">ملخص الحسابات والفواتير المرتبطة بهذا الطلب</p>
+                                <p className="text-sm text-secondary/40 font-medium max-w-lg mx-auto">ملخص الحسابات والفواتير المرتبطة بهذا الطلب</p>
                             </div>
-                            <div className="bg-primary/[0.03] p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-primary/10 w-full md:w-auto md:min-w-[300px] text-center">
-                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">إجمالي مبلغ الفحص</p>
+                            <div className="bg-primary/[0.03] p-8 md:p-10 rounded-[3rem] border border-primary/10 w-full max-w-md text-center shadow-xl shadow-primary/[0.02]">
+                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">إجمالي مبلغ الفحص</p>
                                 <div className="flex items-baseline justify-center gap-2">
-                                    <h2 className="text-3xl md:text-5xl font-black text-primary">{parseFloat(report.amount || 0).toLocaleString()}</h2>
-                                    <span className="text-lg font-bold text-primary/60">ج.م</span>
+                                    <h2 className="text-4xl md:text-6xl font-black text-primary">{parseFloat(report.amount || 0).toLocaleString()}</h2>
+                                    <span className="text-xl font-bold text-primary/60">ج.م</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-8">
+                        {cartItems.length > 0 && (
+                            <div className="space-y-6 max-w-3xl mx-auto w-full px-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                        <ShoppingCart size={20} />
+                                    </div>
+                                    <h4 className="text-lg font-bold text-secondary">إضافات للطلب (Accessories)</h4>
+                                </div>
+                                <div className="space-y-3">
+                                    {cartItems.map((item) => (
+                                        <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-black/5 shadow-sm">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-variant/5">
+                                                    {item.images?.[0] && <img src={item.images[0].src} className="w-full h-full object-cover" />}
+                                                </div>
+                                                <span className="font-bold text-secondary text-sm">{item.name}</span>
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="font-black text-primary">{item.price} <span className="text-[10px] font-bold">ج.م</span></p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="pt-4 border-t border-black/5 flex justify-between items-center px-2">
+                                        <span className="text-secondary/40 font-bold uppercase tracking-widest text-[10px]">إجمالي الإضافات</span>
+                                        <span className="text-lg font-black text-primary">
+                                            {cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0).toLocaleString()} ج.م
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="space-y-8 max-w-3xl mx-auto w-full">
                             <div className="flex items-center justify-between px-6">
                                 <h4 className="text-lg font-bold text-secondary">الفواتير المرتبطة</h4>
                                 <Badge variant={report.invoice_created ? 'success' : 'warning'} className="rounded-full px-4 py-1">
@@ -787,7 +841,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     activeStep === 1 && "flex-1 md:w-full max-w-none"
                                 )}
                                 onClick={() => {
-                                    if (activeStep < 6) setActiveStep(prev => prev + 1);
+                                    if (activeStep < 7) setActiveStep(prev => prev + 1);
                                     else {
                                         if (viewMode === 'admin') router.push(`/dashboard/admin/reports`);
                                         else if (viewMode === 'client') router.push(`/dashboard/client`);
@@ -795,8 +849,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     }
                                 }}
                             >
-                                {activeStep === 6 ? 'إغلاق' : 'التالي'}
-                                {activeStep < 6 && <ChevronLeft size={16} className="mr-1 md:mr-2" />}
+                                {activeStep === 7 ? 'إغلاق' : 'التالي'}
+                                {activeStep < 7 && <ChevronLeft size={16} className="mr-1 md:mr-2" />}
                             </Button>
                         </div>
                     </main>
