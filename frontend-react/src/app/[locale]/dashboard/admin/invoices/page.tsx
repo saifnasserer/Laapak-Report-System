@@ -115,7 +115,7 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
                             size="md"
                             icon={<Plus size={20} />}
                             onClick={() => router.push('/dashboard/admin/reports')}
-                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-12 px-8 rounded-xl shadow-lg shadow-primary/20"
+                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-12 px-8 rounded-full shadow-lg shadow-primary/20"
                         >
                             فاتورة جديدة
                         </Button>

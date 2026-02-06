@@ -12,7 +12,7 @@ const REPORT_BASE_ATTRIBUTES = [
   'order_number', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
   'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
   'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id',
-  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed'
+  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories'
 ];
 
 
@@ -36,6 +36,52 @@ async function checkDeviceSpecColumnsExist() {
     return false;
   }
 }
+
+/**
+ * Helper to get most frequent values for a report column
+ */
+async function getFrequentValues(column, limit = 10) {
+  try {
+    const results = await Report.findAll({
+      attributes: [
+        [column, 'value'],
+        [sequelize.fn('COUNT', sequelize.col(column)), 'count']
+      ],
+      where: {
+        [column]: { [Op.ne]: null, [Op.ne]: '' }
+      },
+      group: [column],
+      order: [[sequelize.literal('count'), 'DESC']],
+      limit: limit
+    });
+    return results.map(r => r.get('value'));
+  } catch (error) {
+    console.error(`Error fetching frequent values for ${column}:`, error);
+    return [];
+  }
+}
+
+// GET /reports/stats/frequent-specs - Get the most frequent device specifications
+router.get('/stats/frequent-specs', auth, async (req, res) => {
+  try {
+    const [cpu, gpu, ram, storage] = await Promise.all([
+      getFrequentValues('cpu'),
+      getFrequentValues('gpu'),
+      getFrequentValues('ram'),
+      getFrequentValues('storage')
+    ]);
+
+    res.json({
+      cpu,
+      gpu,
+      ram,
+      storage
+    });
+  } catch (error) {
+    console.error('Error fetching frequent spec stats:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
 
 // GET /reports/count - get count of reports
 router.get('/count', auth, async (req, res) => {
@@ -114,7 +160,7 @@ router.get('/', async (req, res) => {
         include: [
           {
             model: Client,
-            attributes: ['id', 'name', 'phone', 'email', 'address'], // Ensure all needed client fields are here
+            attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode'], // Ensure all needed client fields are here
           },
           {
             model: ReportTechnicalTest, // Assuming 'ReportTechnicalTest' is the correct model name
@@ -562,7 +608,7 @@ router.get('/me', auth, async (req, res) => {
         {
           model: Client,
           as: 'client',
-          attributes: ['id', 'name', 'phone', 'email', 'address'],
+          attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode'],
         },
         {
           model: Invoice,
@@ -636,7 +682,7 @@ router.get('/:id', async (req, res) => {
         {
           model: Client,
           as: 'client',
-          attributes: ['id', 'name', 'phone', 'email', 'address'],
+          attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode'],
         },
         {
           model: Invoice,
@@ -683,7 +729,7 @@ router.get('/client/me', clientAuth, async (req, res) => {
         {
           model: Client,
           as: 'client',
-          attributes: ['id', 'name', 'phone', 'email', 'address'],
+          attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode'],
         },
         // Optional: Include ReportTechnicalTest if needed for client dashboard preview
         // {
@@ -742,6 +788,11 @@ router.post('/', async (req, res) => {
         // Log the data being used to create the report
         console.log('Creating report with direct schema:', reportData);
 
+        // Generate a report ID if not provided
+        if (!reportData.id) {
+          reportData.id = 'RPT' + Date.now() + Math.floor(Math.random() * 1000);
+        }
+
         const newReport = await Report.create(reportData);
         console.log('Report created successfully:', newReport.id);
         res.status(201).json(newReport);
@@ -783,7 +834,9 @@ router.post('/', async (req, res) => {
       console.log('Creating report with:', { clientId, title, description, data });
 
       try {
+        const reportId = 'RPT' + Date.now() + Math.floor(Math.random() * 1000);
         const newReport = await Report.create({
+          id: reportId,
           clientId,
           title,
           description,
@@ -1091,8 +1144,7 @@ router.get('/search', async (req, res) => {
       where: whereClause,
       attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
       include: {
-        model: Client,
-        attributes: ['id', 'name', 'phone', 'email'],
+        attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode'],
         where: {
           [Op.or]: [
             { phone: { [Op.like]: `%${q}%` } },
@@ -1283,7 +1335,7 @@ router.get('/insights/warranty-alerts', auth, async (req, res) => {
         {
           model: Client,
           as: 'client',
-          attributes: ['id', 'name', 'phone', 'email']
+          attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode']
         }
       ],
       order: [['inspection_date', 'DESC']]
@@ -1359,7 +1411,7 @@ router.post('/:id/send-warranty-reminder', auth, async (req, res) => {
       include: [{
         model: Client,
         as: 'client',
-        attributes: ['id', 'name', 'phone']
+        attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode']
       }]
     });
 
@@ -1440,12 +1492,17 @@ router.put('/:id/confirm', clientAuth, async (req, res) => {
       return res.status(404).json({ message: 'التقرير غير موجود' });
     }
 
-    // Update is_confirmed flag
-    await report.update({ is_confirmed: true });
+    // Update is_confirmed flag and selected accessories
+    const { selectedAccessories } = req.body;
+    await report.update({
+      is_confirmed: true,
+      selected_accessories: selectedAccessories || []
+    });
 
     res.json({
       message: 'تم تأكيد الطلب بنجاح',
-      is_confirmed: true
+      is_confirmed: true,
+      selected_accessories: selectedAccessories || []
     });
   } catch (error) {
     console.error('Error confirming report:', error);

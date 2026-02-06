@@ -10,10 +10,11 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
     error?: string;
     label?: string;
     icon?: React.ReactNode;
+    prefix?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, error, label, icon, type, ...props }, ref) => {
+    ({ className, error, label, icon, prefix, type, ...props }, ref) => {
         return (
             <div className="w-full space-y-1.5">
                 {label && (
@@ -27,6 +28,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                             {icon}
                         </div>
                     )}
+                    {prefix && (
+                        <div className={cn(
+                            "absolute top-1/2 -translate-y-1/2 text-primary font-black font-mono select-none",
+                            icon ? "left-11" : "left-4"
+                        )}>
+                            {prefix}
+                        </div>
+                    )}
                     <input
                         type={type}
                         className={cn(
@@ -35,6 +44,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                             'focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/30',
                             'disabled:cursor-not-allowed disabled:opacity-50',
                             icon && 'pl-12',
+                            prefix && (icon ? 'pl-[4.5rem]' : 'pl-16'),
                             error && 'ring-2 ring-destructive/20 border-destructive/30',
                             className
                         )}

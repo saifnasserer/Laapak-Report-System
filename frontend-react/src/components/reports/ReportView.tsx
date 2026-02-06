@@ -46,13 +46,16 @@ import {
     Thermometer,
     Zap,
     Info,
+    ShoppingCart,
+    Send,
+    ExternalLink,
+    Package
 } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { useRouter } from '@/i18n/routing';
 import api, { confirmReport } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Send, ExternalLink, Package } from 'lucide-react';
 import axios from 'axios';
 
 // WooCommerce Configuration
@@ -96,7 +99,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         { id: 2, title: 'المعاينة الخارجية' },
         { id: 3, title: 'الفحص التقني' },
         { id: 4, title: 'الفحص الداخلي' },
-        { id: 5, title: 'اضافات مهمة !' },
+        { id: 5, title: 'إضافات مهمة!' },
         { id: 6, title: 'المالية والفوترة' },
         { id: 7, title: 'تأكيد ومشاركة' },
     ];
@@ -109,6 +112,9 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 const reportData = response.data.report;
                 setReport(reportData);
                 setIsConfirmed(!!reportData.is_confirmed);
+                if (reportData.selected_accessories) {
+                    setCartItems(reportData.selected_accessories);
+                }
                 setError(null);
             } catch (err: any) {
                 console.error('Failed to fetch report:', err);
@@ -151,10 +157,10 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
     const handleConfirmOrder = async () => {
         try {
-            await confirmReport(id);
+            await confirmReport(id, cartItems);
             setIsConfirmed(true);
 
-            const message = encodeURIComponent('مساء الخير انا راحعت الريبوت وجاهز ااكد الاوردر');
+            const message = encodeURIComponent('مساء الخير انا راجعت التقرير وجاهز آكد الأوردر');
             const phone = '201013148007';
             window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
         } catch (err) {
@@ -170,10 +176,14 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
     const statusMap: any = {
         'completed': { label: 'مكتمل', variant: 'success' },
-        'pending': { label: 'انتظار', variant: 'warning' },
-        'active': { label: 'نشط', variant: 'primary' },
-        'in-progress': { label: 'قيد المعالجة', variant: 'primary' },
+        'مكتمل': { label: 'مكتمل', variant: 'success' },
+        'pending': { label: 'قيد الانتظار', variant: 'warning' },
+        'قيد الانتظار': { label: 'قيد الانتظار', variant: 'warning' },
+        'active': { label: 'قيد الانتظار', variant: 'warning' },
+        'نشط': { label: 'قيد الانتظار', variant: 'warning' },
         'cancelled': { label: 'ملغي', variant: 'destructive' },
+        'ملغي': { label: 'ملغي', variant: 'destructive' },
+        'ملغى': { label: 'ملغي', variant: 'destructive' },
     };
 
     const getStatusInfo = (status: string) => {
@@ -513,104 +523,106 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         exit={{ opacity: 0, y: -20 }}
                         className="space-y-12"
                     >
-                        <div className="flex flex-col items-center justify-center gap-8 pb-12 border-b border-black/5 text-center">
-                            <div className="space-y-2">
-                                <h3 className="text-xl md:text-3xl font-black text-secondary flex items-center justify-center gap-3">
-                                    <CreditCard className="text-primary" size={28} />
-                                    المبالغ والفوترة
-                                </h3>
-                                <p className="text-sm text-secondary/40 font-medium max-w-lg mx-auto">ملخص الحسابات والفواتير المرتبطة بهذا الطلب</p>
-                            </div>
-                            <div className="bg-primary/[0.03] p-8 md:p-10 rounded-[3rem] border border-primary/10 w-full max-w-md text-center shadow-xl shadow-primary/[0.02]">
-                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">إجمالي مبلغ الفحص</p>
-                                <div className="flex items-baseline justify-center gap-2">
-                                    <h2 className="text-4xl md:text-6xl font-black text-primary">{parseFloat(report.amount || 0).toLocaleString()}</h2>
-                                    <span className="text-xl font-bold text-primary/60">ج.م</span>
+                        <div className="space-y-12 max-w-4xl mx-auto w-full">
+                            <div className="flex flex-col items-center justify-center gap-8 pb-12 border-b border-black/5 text-center">
+                                <div className="space-y-2">
+                                    <h3 className="text-xl md:text-3xl font-black text-secondary flex items-center justify-center gap-3">
+                                        <CreditCard className="text-primary" size={28} />
+                                        المبالغ والفوترة
+                                    </h3>
+                                    <p className="text-sm text-secondary/40 font-medium max-w-lg mx-auto">ملخص الحسابات والفواتير المرتبطة بهذا الطلب</p>
                                 </div>
-                            </div>
-                        </div>
-
-                        {cartItems.length > 0 && (
-                            <div className="space-y-6 max-w-3xl mx-auto w-full px-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                        <ShoppingCart size={20} />
+                                <div className="bg-primary/[0.03] p-8 md:p-10 rounded-[3rem] border border-primary/10 w-full max-w-md text-center shadow-xl shadow-primary/[0.02]">
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">إجمالي مبلغ الفحص</p>
+                                    <div className="flex items-baseline justify-center gap-2">
+                                        <h2 className="text-4xl md:text-6xl font-black text-primary">{parseFloat(report.amount || 0).toLocaleString()}</h2>
+                                        <span className="text-xl font-bold text-primary/60">ج.م</span>
                                     </div>
-                                    <h4 className="text-lg font-bold text-secondary">إضافات للطلب (Accessories)</h4>
                                 </div>
-                                <div className="space-y-3">
-                                    {cartItems.map((item) => (
-                                        <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-black/5 shadow-sm">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-variant/5">
-                                                    {item.images?.[0] && <img src={item.images[0].src} className="w-full h-full object-cover" />}
-                                                </div>
-                                                <span className="font-bold text-secondary text-sm">{item.name}</span>
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="font-black text-primary">{item.price} <span className="text-[10px] font-bold">ج.م</span></p>
-                                            </div>
+                            </div>
+
+                            {cartItems.length > 0 && (
+                                <div className="space-y-6 w-full px-6">
+                                    <div className="flex items-center gap-3 justify-center">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                            <ShoppingCart size={20} />
                                         </div>
-                                    ))}
-                                    <div className="pt-4 border-t border-black/5 flex justify-between items-center px-2">
-                                        <span className="text-secondary/40 font-bold uppercase tracking-widest text-[10px]">إجمالي الإضافات</span>
-                                        <span className="text-lg font-black text-primary">
-                                            {cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0).toLocaleString()} ج.م
-                                        </span>
+                                        <h4 className="text-lg font-bold text-secondary">إضافات للطلب (Accessories)</h4>
                                     </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="space-y-8 max-w-3xl mx-auto w-full">
-                            <div className="flex items-center justify-between px-6">
-                                <h4 className="text-lg font-bold text-secondary">الفواتير المرتبطة</h4>
-                                <Badge variant={report.invoice_created ? 'success' : 'warning'} className="rounded-full px-4 py-1">
-                                    {report.invoice_created ? 'تم إنشاء الفواتير' : 'في انتظار الفوترة'}
-                                </Badge>
-                            </div>
-
-                            <div className="px-6">
-                                {report.relatedInvoices && report.relatedInvoices.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {report.relatedInvoices.map((inv: any) => (
-                                            <div
-                                                key={inv.id}
-                                                onClick={() => handlePrint(inv.id)}
-                                                className="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 rounded-3xl bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer group gap-4 md:gap-0"
-                                            >
-                                                <div className="flex items-center gap-4 md:gap-6">
-                                                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex items-center justify-center text-primary shadow-sm group-hover:bg-primary group-hover:text-white transition-all">
-                                                        <FileText size={18} />
+                                    <div className="space-y-3 max-w-2xl mx-auto">
+                                        {cartItems.map((item) => (
+                                            <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-black/5 shadow-sm hover:border-primary/20 transition-all">
+                                                <div className="flex items-center gap-4 text-right">
+                                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-variant/5">
+                                                        {item.images?.[0] && <img src={item.images[0].src} className="w-full h-full object-cover" />}
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold text-secondary text-sm md:text-base">فاتورة #{inv.id}</p>
-                                                        <p className="text-[10px] text-secondary/40 font-medium">{inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '-'}</p>
-                                                    </div>
+                                                    <span className="font-bold text-secondary text-sm">{item.name}</span>
                                                 </div>
-                                                <div className="flex items-center justify-between md:justify-end gap-3 md:gap-8 border-t md:border-t-0 pt-4 md:pt-0 border-black/5">
-                                                    <p className="text-sm md:text-lg font-black text-secondary">{parseFloat(inv.total).toLocaleString()} ج.م</p>
-                                                    <div className="flex items-center gap-3">
-                                                        <Badge variant={inv.paymentStatus === 'paid' ? 'success' : 'warning'} className="text-[10px] px-3 py-0.5 rounded-full">
-                                                            {inv.paymentStatus === 'paid' ? 'مدفوعة' : 'معلقة'}
-                                                        </Badge>
-                                                        <ChevronLeft size={18} className="text-secondary/20 group-hover:text-primary transition-colors" />
-                                                    </div>
+                                                <div className="text-left">
+                                                    <p className="font-black text-primary">{item.price} <span className="text-[10px] font-bold">ج.م</span></p>
                                                 </div>
                                             </div>
                                         ))}
-                                    </div>
-                                ) : (
-                                    <div className="py-20 bg-surface-variant/5 rounded-[3rem] border-2 border-dashed border-black/5 flex flex-col items-center justify-center text-secondary/40 gap-4">
-                                        <div className="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center">
-                                            <FileText size={32} />
+                                        <div className="pt-4 border-t border-black/5 flex justify-between items-center px-2">
+                                            <span className="text-secondary/40 font-bold uppercase tracking-widest text-[10px]">إجمالي الإضافات</span>
+                                            <span className="text-lg font-black text-primary">
+                                                {cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0).toLocaleString()} ج.م
+                                            </span>
                                         </div>
-                                        <p className="font-bold">لا توجد فواتير مرتبطة حالياً</p>
-                                        {viewMode === 'admin' && (
-                                            <Button variant="outline" size="sm" className="mt-2 rounded-2xl" icon={<Plus size={18} />}>إنشاء فاتورة الآن</Button>
-                                        )}
                                     </div>
-                                )}
+                                </div>
+                            )}
+
+                            <div className="space-y-8 w-full">
+                                <div className="flex items-center justify-between px-6 max-w-3xl mx-auto">
+                                    <h4 className="text-lg font-bold text-secondary">الفواتير المرتبطة</h4>
+                                    <Badge variant={report.invoice_created ? 'success' : 'warning'} className="rounded-full px-4 py-1">
+                                        {report.invoice_created ? 'تم إنشاء الفواتير' : 'في انتظار الفوترة'}
+                                    </Badge>
+                                </div>
+
+                                <div className="px-6 max-w-3xl mx-auto w-full">
+                                    {report.relatedInvoices && report.relatedInvoices.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {report.relatedInvoices.map((inv: any) => (
+                                                <div
+                                                    key={inv.id}
+                                                    onClick={() => handlePrint(inv.id)}
+                                                    className="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 rounded-3xl bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer group gap-4 md:gap-0"
+                                                >
+                                                    <div className="flex items-center gap-4 md:gap-6">
+                                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex items-center justify-center text-primary shadow-sm group-hover:bg-primary group-hover:text-white transition-all">
+                                                            <FileText size={18} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-secondary text-sm md:text-base">فاتورة #{inv.id}</p>
+                                                            <p className="text-[10px] text-secondary/40 font-medium">{inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '-'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center justify-between md:justify-end gap-3 md:gap-8 border-t md:border-t-0 pt-4 md:pt-0 border-black/5">
+                                                        <p className="text-sm md:text-lg font-black text-secondary">{parseFloat(inv.total).toLocaleString()} ج.م</p>
+                                                        <div className="flex items-center gap-3">
+                                                            <Badge variant={inv.paymentStatus === 'paid' ? 'success' : 'warning'} className="text-[10px] px-3 py-0.5 rounded-full">
+                                                                {inv.paymentStatus === 'paid' ? 'مدفوعة' : 'معلقة'}
+                                                            </Badge>
+                                                            <ChevronLeft size={18} className="text-secondary/20 group-hover:text-primary transition-colors" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="py-20 bg-surface-variant/5 rounded-[3rem] border-2 border-dashed border-black/5 flex flex-col items-center justify-center text-secondary/40 gap-4">
+                                            <div className="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center">
+                                                <FileText size={32} />
+                                            </div>
+                                            <p className="font-bold">لا توجد فواتير مرتبطة حالياً</p>
+                                            {viewMode === 'admin' && (
+                                                <Button variant="outline" size="sm" className="mt-2 rounded-2xl" icon={<Plus size={18} />}>إنشاء فاتورة الآن</Button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </motion.div>
@@ -946,6 +958,46 @@ function ExternalExaminationSection({ report, onImageClick }: { report: any, onI
                 ))}
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                    { id: 'case', name: 'جسم الجهاز (Case)', condition: report.case_condition, notes: report.case_notes, icon: <Package size={18} /> },
+                    { id: 'screen', name: 'الشاشة (Screen)', condition: report.screen_condition, notes: report.screen_notes, icon: <Monitor size={18} /> },
+                    { id: 'keyboard', name: 'الكيبورد (Keyboard)', condition: report.keyboard_condition, notes: report.keyboard_notes, icon: <Keyboard size={18} /> },
+                    { id: 'battery', name: 'البطارية (Battery)', condition: report.battery_condition, notes: report.battery_notes, icon: <Zap size={18} /> }
+                ].map((part) => (
+                    <div key={part.id} className="p-4 rounded-3xl bg-white border border-black/5 flex flex-col gap-3 group hover:border-primary/20 transition-all">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-primary/5 text-primary/40 flex items-center justify-center group-hover:text-primary transition-colors">
+                                    {part.icon}
+                                </div>
+                                <span className="font-bold text-secondary text-sm">{part.name}</span>
+                            </div>
+                            {part.condition && (
+                                <Badge
+                                    className={cn(
+                                        "rounded-full px-3 py-1 text-[10px] font-black",
+                                        part.condition === 'excellent' ? "bg-green-500 text-white" :
+                                            part.condition === 'good' ? "bg-blue-500 text-white" :
+                                                part.condition === 'fair' ? "bg-orange-500 text-white" :
+                                                    "bg-red-500 text-white"
+                                    )}
+                                >
+                                    {part.condition === 'excellent' ? 'ممتاز' :
+                                        part.condition === 'good' ? 'جيد' :
+                                            part.condition === 'fair' ? 'مقبول' : 'ضعيف'}
+                                </Badge>
+                            )}
+                        </div>
+                        {part.notes && (
+                            <p className="text-xs text-secondary/60 bg-black/[0.02] p-3 rounded-xl font-medium leading-relaxed">
+                                {part.notes}
+                            </p>
+                        )}
+                    </div>
+                ))}
+            </div>
+
             {report.notes && (
                 <div className="p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] bg-primary/[0.03] border border-primary/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-colors" />
@@ -983,11 +1035,11 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="font-bold text-secondary text-base">{getComponentTitle(componentName)}</span>
-                                            <span className="text-[10px] text-secondary/40 font-bold uppercase tracking-wider">Advanced Technical Test | فحص فني متقدم</span>
+                                            {/* <span className="text-[10px] text-secondary/40 font-bold uppercase tracking-wider">Advanced Technical Test | فحص فني متقدم</span> */}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 text-[10px] font-black h-6 px-3 rounded-full">تم بنجاح (PASSED)</Badge>
+                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 text-[10px] font-black h-6 px-3 rounded-full">(PASSED)</Badge>
                                         <div className={cn("transition-transform duration-300", isOpen ? "rotate-90 text-primary" : "text-secondary/20")}><ChevronLeft size={20} /></div>
                                     </div>
                                 </button>
@@ -1043,19 +1095,25 @@ const getComponentIcon = (name: string) => {
 
 const getComponentTitle = (name: string) => {
     const lowerName = (name || '').toLowerCase();
-    if (lowerName === 'cpu' || lowerName.includes('processor')) return 'اختبار المعالج (CPU)';
-    if (lowerName === 'gpu' || lowerName.includes('graphics')) return 'كارت الشاشة (GPU)';
-    if (lowerName.includes('battery')) return 'صحة وفحص البطارية';
-    if (lowerName.includes('ssd') || lowerName.includes('hdd')) return 'فحص سرعة وحالة الهارد';
-    if (lowerName.includes('keyboard')) return 'اختبار جميع أزرار الكيبورد';
+    if (lowerName === 'info') return 'تفاصيل اللابتوب';
+    if (lowerName === 'cpu' || lowerName.includes('processor')) return 'اختبار البروسيسور';
+    if (lowerName === 'gpu' || lowerName.includes('graphics')) return 'اختبار كارت الشاشة';
+    if (lowerName.includes('battery')) return 'اختبار البطارية';
+    if (lowerName.includes('ssd') || lowerName.includes('hdd') || lowerName.includes('storage')) return 'اختبار الهارد';
+    if (lowerName.includes('keyboard')) return 'اختبار الكيبورد';
+    if (lowerName === 'dxdiag') return 'اختبار DxDiag';
     if (lowerName.includes('screen') || lowerName.includes('display')) return 'فحص جودة الشاشة والبكسلات';
-    return name || 'فحص فني';
+    return name ? `اختبار ${name}` : 'فحص فني';
 };
 
 const getTestDescription = (name: string) => {
     const comp = (name || '').toLowerCase();
-    if (comp.includes('cpu')) return 'Stress Test للبروسيسور بيختبر قوة المعالج تحت ضغط تقيل...';
-    if (comp.includes('gpu')) return 'برنامج FurMark بيعمل stress test لكارت الشاشة...';
-    if (comp.includes('battery')) return 'الصورة دي لقطة من شاشة بتبين تفاصيل حالة بطارية اللابتوب...';
+    if (comp.includes('cpu')) return 'Stress Test للبروسيسور بيختبر قوة المعالج تحت ضغط تقيل، علشان يشوف لو هيقدر يشتغل بكفاءة في أقصى ظروف، وبيكشف لو في مشاكل زي السخونية أو الأداء الضعيف.';
+    if (comp.includes('gpu')) return 'برنامج FurMark بيعمل stress test لكارت الشاشة، يعني بيشغله بأقصى طاقته علشان يشوف هيسخن قد إيه ويقدر يستحمل الضغط ولا لأ.';
+    if (comp.includes('battery')) return 'الصورة دي لقطة من شاشة بتبين تفاصيل حالة بطارية اللابتوب، من خلال الـ BIOS . الهدف إنك تتأكد إن البطارية شغالة كويس وسليمة.';
+    if (comp.includes('hdd') || comp.includes('ssd') || comp.includes('storage')) return 'برنامج Hard Disk Sentinel بيكشف حالة الهارد، سواء HDD أو SSD، وبيقولك لو في مشاكل زي الباد سيكتور أو أداء ضعيف.';
+    if (comp.includes('keyboard')) return 'اختبار زرار الكيبورد بيشوف إذا كانت كل الزراير شغالة صح ولا لأ. بتضغط على كل زر وبتشوف لو الجهاز بيستجيب.';
+    if (comp.includes('info')) return 'الشاشة اللي بتعرض معلومات الجهاز بتوريك حاجات زي ال (Serial Number) ، نوع المعالج (CPU)، الرامات (Memory)، كارت الشاشة (GPU)، ونسخة الـ BIOS.';
+    if (comp.includes('dxdiag')) return 'أداة dxdiag بتجمعلك معلومات عن الجهاز، زي كارت الشاشة، المعالج، الرامات، ونظام التشغيل، وكمان بتكشف لو في مشاكل في الـ DirectX.';
     return "الصورة دي بتوضح نتايج الاختبارات اللي اتعملت على الجهاز عشان نقيس الأداء ونتأكد إن كل حاجة حالتها ممتازة.";
 };

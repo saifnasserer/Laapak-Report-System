@@ -32,12 +32,36 @@ import {
     Check,
     Image as ImageIcon,
     Clock,
-    CreditCard
+    CreditCard,
+    ShoppingCart,
+    Filter,
+    PlusCircle,
+    Package,
+    ArrowRight,
+    Search,
+    Zap,
+    Keyboard as KeyboardIcon,
+    MousePointer2,
+    Wifi,
+    Usb,
+    Bluetooth,
+    Link2,
+    Trash2,
+    SquareCheck
 } from 'lucide-react';
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableHead,
+    TableRow,
+    TableCell
+} from '@/components/ui/Table';
 import { useRouter } from '@/i18n/routing';
 import api from '@/lib/api';
 import { use } from 'react';
 import { cn } from '@/lib/utils';
+import { Modal } from '@/components/ui/Modal';
 
 export default function NewReportPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -46,7 +70,17 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
     const [isLoading, setIsLoading] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
     const [showClientResults, setShowClientResults] = useState(false);
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [newClient, setNewClient] = useState({ name: '', phone: '', address: '', orderCode: '' });
     const [step, setStep] = useState(1);
+    const [isSubmittingNewClient, setIsSubmittingNewClient] = useState(false);
+
+    const [quickSpecs, setQuickSpecs] = useState({
+        cpu: ['Core i9', 'Core i7', 'Core i5', 'Ryzen 9', 'Ryzen 7', 'Apple M3 Pro', 'Apple M2 Pro'],
+        gpu: ['RTX 4090', 'RTX 4070', 'RTX 3060', '8-Core GPU', '10-Core GPU', 'Iris Xe'],
+        ram: ['64GB', '32GB', '16GB', '8GB', '4GB'],
+        storage: ['2TB SSD', '1TB SSD', '512GB SSD', '256GB SSD', '1TB HDD']
+    });
     const [formData, setFormData] = useState({
         // Step 1: Basic Info (Client + Device + Specs)
         client_name: '',
@@ -66,29 +100,28 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
 
         // Step 2: Hardware Technical Tests
         hardware_status: [
-            { componentName: 'Camera', status: 'neutral' },
-            { componentName: 'Speakers', status: 'neutral' },
-            { componentName: 'Microphone', status: 'neutral' },
-            { componentName: 'Wi-Fi', status: 'neutral' },
-            { componentName: 'LAN', status: 'neutral' },
-            { componentName: 'USB Ports', status: 'neutral' },
-            { componentName: 'Keyboard', status: 'neutral' },
-            { componentName: 'Touchpad', status: 'neutral' },
-            { componentName: 'Card Reader', status: 'neutral' },
-            { componentName: 'Audio Jack', status: 'neutral' },
-            { componentName: 'Display/HDMI', status: 'neutral' },
-            { componentName: 'Bluetooth', status: 'neutral' },
-            { componentName: 'Touchscreen', status: 'neutral' },
-            { componentName: 'Battery Health', status: 'neutral' }
+            { id: 1, componentName: 'CPU', nameAr: 'المعالج (CPU)', status: 'pass', comment: '' },
+            { id: 2, componentName: 'GPU', nameAr: 'معالج الرسوميات (GPU)', status: 'pass', comment: '' },
+            { id: 3, componentName: 'Battery', nameAr: 'البطارية (Battery)', status: 'pass', comment: '' },
+            { id: 4, componentName: 'Storage', nameAr: 'وحدات التخزين (Disk)', status: 'pass', comment: '' },
+            { id: 5, componentName: 'Keyboard', nameAr: 'لوحة المفاتيح (Keyboard)', status: 'pass', comment: '' },
+            { id: 6, componentName: 'Display', nameAr: 'الشاشة (Screen)', status: 'pass', comment: '' },
+            { id: 7, componentName: 'Touchpad', nameAr: 'لوحة اللمس (Touchpad)', status: 'pass', comment: '' },
+            { id: 8, componentName: 'Wifi', nameAr: 'الواي فاي (WiFi)', status: 'pass', comment: '' },
+            { id: 9, componentName: 'Bluetooth', nameAr: 'البلوتوث (Bluetooth)', status: 'pass', comment: '' },
+            { id: 10, componentName: 'Ports', nameAr: 'المنافذ (Ports)', status: 'pass', comment: '' },
+        ] as any[],
+        test_screenshots: [
+            { component: 'Info', url: '', comment: '', type: 'test_screenshot' },
+            { component: 'CPU', url: '', comment: '', type: 'test_screenshot' },
+            { component: 'GPU', url: '', comment: '', type: 'test_screenshot' },
+            { component: 'Storage', url: '', comment: '', type: 'test_screenshot' },
+            { component: 'Keyboard', url: '', comment: '', type: 'test_screenshot' },
+            { component: 'Battery', url: '', comment: '', type: 'test_screenshot' },
+            { component: 'DxDiag', url: '', comment: '', type: 'test_screenshot' }
         ] as any[],
 
-        // Step 3: External Inspection
-        case_condition: '',
-        screen_condition: '',
-        keyboard_condition: '',
-        touchpad_condition: '',
-        ports_condition: '',
-        hinges_condition: '',
+        // Step 3: External Inspection (Only media now)
         external_images: [] as any[], // Stores device images, test screenshots, and video URLs
         youtube_url: '', // Helper for Step 3 input
 
@@ -100,50 +133,92 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
         amount: '0', // Service/Inspection cost
         tax_rate: '0',
         discount: '0',
+        invoice_items: [] as { name: string, price: string }[],
         status: 'pending' // Initial report status
     });
 
-    // Default hardware components to test
-    const defaultComponents = [
-        'Screen', 'Battery', 'Face ID / Touch ID', 'True Tone', 'Camera (Wide)', 'Camera (Ultrawide)',
-        'Camera (Telephoto)', 'Camera (Front)', 'Microphone', 'Speakers', 'Wi-Fi', 'Bluetooth',
-        'Cellular', 'Charging Port', 'Physical Buttons', 'Flashlight'
-    ];
-
     useEffect(() => {
-        // Initialize hardware status with default components if empty
-        if (formData.hardware_status.length === 0) {
-            setFormData(prev => ({
-                ...prev,
-                hardware_status: defaultComponents.map(name => ({
-                    componentName: name,
-                    status: 'neutral',
-                    notes: ''
-                }))
-            }));
-        }
-    }, []);
-
-    useEffect(() => {
-        const fetchClients = async () => {
+        const fetchClientsAndSpecs = async () => {
             try {
-                const response = await api.get('/clients');
-                setClients(response.data.clients || []);
+                // Fetch Clients
+                const clientsRes = await api.get('/clients');
+                setClients(clientsRes.data.clients || []);
+
+                // Fetch Frequent Specs
+                const specsRes = await api.get('/reports/stats/frequent-specs');
+                if (specsRes.data) {
+                    setQuickSpecs(prev => ({
+                        ...prev,
+                        ...specsRes.data
+                    }));
+                }
             } catch (err) {
-                console.error('Failed to fetch clients:', err);
+                console.error('Failed to fetch initialization data:', err);
             }
         };
-        fetchClients();
+        fetchClientsAndSpecs();
     }, []);
 
     const handleClientSelect = (client: any) => {
         setFormData(prev => ({
             ...prev,
+            client_id: client.id,
             client_name: client.name,
             client_phone: client.phone,
             client_address: client.address || ''
         }));
         setShowClientResults(false);
+    };
+
+    const handleCreateClient = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmittingNewClient(true);
+        console.log('Frontend: Starting client creation...', newClient);
+        try {
+            const finalOrderCode = newClient.orderCode.startsWith('LPK')
+                ? newClient.orderCode
+                : `LPK${newClient.orderCode}`;
+
+            console.log('Frontend: Sending request to /api/clients with:', {
+                ...newClient,
+                orderCode: finalOrderCode,
+                status: 'active'
+            });
+
+            const res = await api.post('/clients', {
+                ...newClient,
+                orderCode: finalOrderCode,
+                status: 'active'
+            });
+
+            console.log('Frontend: Client creation response:', res.data);
+            const client = res.data.client;
+            handleClientSelect(client);
+            setIsClientModalOpen(false);
+            setNewClient({ name: '', phone: '', address: '', orderCode: '' });
+            alert('تم إنشاء العميل بنجاح');
+        } catch (err: any) {
+            console.error('Frontend: Failed to create client:', err);
+            let errorMessage = 'فشل في إنشاء العميل';
+
+            if (err.response?.status === 400) {
+                const backendErrors = err.response.data.errors;
+                const backendMessage = err.response.data.message;
+
+                if (Array.isArray(backendErrors)) {
+                    const fields = backendErrors.map((e: any) => e.msg).join(', ');
+                    errorMessage += `: ${fields}`;
+                } else if (backendMessage) {
+                    errorMessage += `: ${backendMessage}`;
+                }
+            } else {
+                errorMessage += `: ${err.response?.data?.message || err.message}`;
+            }
+
+            alert(errorMessage);
+        } finally {
+            setIsSubmittingNewClient(false);
+        }
     };
 
     // Handler for adding Device Images (Step 3)
@@ -173,16 +248,91 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
         }
     };
 
-    // Handler for adding Test Screenshots (Step 2)
-    const handleTestScreenshotAdd = (componentName: string) => {
-        const input = document.getElementById(`screenshot-${componentName}`) as HTMLInputElement;
-        if (input && input.value) {
-            setFormData(prev => ({
-                ...prev,
-                external_images: [...prev.external_images, { url: input.value, type: 'test_screenshot', component: componentName }]
-            }));
-            input.value = '';
+    const handleInvoiceItemAdd = () => {
+        setFormData(prev => ({
+            ...prev,
+            invoice_items: [...prev.invoice_items, { name: '', price: '0' }]
+        }));
+    };
+
+    const handleInvoiceItemRemove = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            invoice_items: prev.invoice_items.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleInvoiceItemChange = (index: number, field: string, value: string) => {
+        setFormData(prev => {
+            const newItems = [...prev.invoice_items];
+            newItems[index] = { ...newItems[index], [field]: value };
+            return { ...prev, invoice_items: newItems };
+        });
+    };
+
+    const getComponentIcon = (name: string) => {
+        switch (name?.toLowerCase()) {
+            case 'cpu': return <Cpu size={18} />;
+            case 'gpu': return <Monitor size={18} />;
+            case 'battery': return <Zap size={18} />;
+            case 'storage': return <HardDrive size={18} />;
+            case 'keyboard': return <KeyboardIcon size={18} />;
+            case 'screen': case 'display': return <Monitor size={18} />;
+            case 'touchpad': return <MousePointer2 size={18} />;
+            case 'wifi': return <Wifi size={18} />;
+            case 'bluetooth': return <Bluetooth size={18} />;
+            case 'ports': return <Usb size={18} />;
+            default: return <ShieldCheck size={18} />;
         }
+    };
+
+    const getComponentTitle = (name: string) => {
+        switch (name?.toLowerCase()) {
+            case 'cpu': return 'المعالج (CPU)';
+            case 'gpu': return 'معالج الرسوميات (GPU)';
+            case 'battery': return 'البطارية (Battery)';
+            case 'storage': return 'وحدات التخزين (Disk)';
+            case 'display': return 'الشاشة (Display)';
+            case 'dxdiag': return 'مواصفات النظام (DxDiag)';
+            case 'info': return 'بيانات الجهاز (Info)';
+            default: return name;
+        }
+    };
+
+    const handleHardwareStatusChange = (id: number, status: string, comment?: string) => {
+        setFormData(prev => ({
+            ...prev,
+            hardware_status: prev.hardware_status.map(item =>
+                item.id === id ? { ...item, status, ...(comment !== undefined ? { comment } : {}) } : item
+            )
+        }));
+    };
+
+    const handleTestScreenshotAdd = (component: string, url: string) => {
+        setFormData(prev => ({
+            ...prev,
+            test_screenshots: prev.test_screenshots.map(s =>
+                s.component === component ? { ...s, url } : s
+            )
+        }));
+    };
+
+    const handleTestScreenshotComment = (component: string, comment: string) => {
+        setFormData(prev => ({
+            ...prev,
+            test_screenshots: prev.test_screenshots.map(s =>
+                s.component === component ? { ...s, comment } : s
+            )
+        }));
+    };
+
+    const isDirectImageLink = (url: string) => {
+        if (!url) return true;
+        // Check if URL ends with common image extensions
+        const isImageExt = /\.(jpg|jpeg|png|gif|webp|avif|bmp|svg)(\?.*)?$/i.test(url);
+        // Check for common viewer sites that are NOT direct links
+        const isViewerSite = /ibb\.co|prnt\.sc|imgur\.com\/[a-zA-Z0-9]+$/i.test(url) && !isImageExt;
+        return !isViewerSite;
     };
 
     // Handler for removing images/videos
@@ -244,16 +394,43 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                 order_number: formData.order_number,
                 inspection_date: new Date(formData.inspection_date),
 
-                // Stringify arrays for legacy backend compatibility
+                // Stringify arrays and merge screenshots into external_images for compatibility
                 hardware_status: JSON.stringify(formData.hardware_status),
-                external_images: JSON.stringify(formData.external_images)
+                external_images: JSON.stringify([
+                    ...formData.external_images,
+                    ...formData.test_screenshots.filter(s => s.url) // Only include screenshots with URLs
+                ]),
+                invoice_items: JSON.stringify(formData.invoice_items),
+                tax_rate: formData.tax_rate,
+                discount: formData.discount,
+                amount: formData.amount
             };
 
             await api.post('/reports', reportData);
+            alert('تم حفظ التقرير بنجاح');
             router.push('/dashboard/admin/reports');
         } catch (error: any) {
             console.error('Failed to create report:', error);
-            alert('فشل في حفظ التقرير: ' + (error.response?.data?.message || error.message));
+
+            let errorMessage = 'فشل في حفظ التقرير';
+
+            if (error.response?.status === 400) {
+                const backendErrors = error.response.data.errors;
+                const backendMessage = error.response.data.message;
+
+                if (backendErrors && typeof backendErrors === 'object') {
+                    const missingFields = Object.keys(backendErrors).join(', ');
+                    errorMessage += `: الحقول التالية مطلوبة أو غير صالحة (${missingFields})`;
+                } else if (backendMessage) {
+                    errorMessage += `: ${backendMessage}`;
+                } else {
+                    errorMessage += ': بيانات غير صالحة، يرجى مراجعة كافة الحقول.';
+                }
+            } else {
+                errorMessage += `: ${error.response?.data?.message || error.message}`;
+            }
+
+            alert(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -271,10 +448,10 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                         <div className="space-y-1">
                             <h1 className="text-3xl font-bold tracking-tight">إنشاء تقرير فحص</h1>
                             <p className="text-secondary font-medium">خطوة {step} من 5: {
-                                step === 1 ? 'البيانات الأساسية' :
-                                    step === 2 ? 'الفحص التقني' :
-                                        step === 3 ? 'المعاينة الخارجية' :
-                                            step === 4 ? 'الملاحظات' : 'الفاتورة والحفظ'
+                                step === 1 ? 'البيانات والمواصفات' :
+                                    step === 2 ? 'الاختبارات التقنية' :
+                                        step === 3 ? 'لقطات شاشة الاختبار' :
+                                            step === 4 ? 'المعاينة الخارجية' : 'الفاتورة والحفظ'
                             }</p>
                         </div>
                     </div>
@@ -291,438 +468,488 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Step 1: Client, Device Info & Technical Specs (MERGED) */}
+                    {/* Step 1: Client, Device Info & Technical Specs (Unified Overhaul) */}
                     {step === 1 && (
-                        <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            {/* Client Information */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <Card variant="glass">
-                                    <CardHeader className="p-8 pb-4">
-                                        <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                            <User size={22} className="text-primary" />
-                                            معلومات العميل
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-8 pt-0 space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <Card variant="glass" className="overflow-hidden border-primary/10">
+                                <CardHeader className="p-8 pb-4 border-b border-black/[0.03] bg-primary/[0.01]">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="space-y-1">
+                                            <CardTitle className="text-2xl font-black text-secondary flex items-center gap-2">
+                                                <User size={26} className="text-primary" />
+                                                التفاصيل الاساسية
+                                            </CardTitle>
+                                            <p className="text-xs text-secondary/40 font-bold uppercase tracking-widest px-1">أدخل بيانات العميل وهوية الجهاز والمواصفات الأساسية</p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsClientModalOpen(true)}
+                                            className="rounded-full h-10 px-6 border-primary/20 text-primary hover:bg-primary/5"
+                                            icon={<Plus size={16} />}
+                                        >
+                                            إضافة عميل جديد
+                                        </Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-8 space-y-10">
+                                    {/* Row 1: Client Info */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                        <div className="lg:col-span-1 space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">البحث عن عميل</label>
                                             <div className="relative">
                                                 <Input
                                                     name="client_name"
-                                                    label="اسم العميل"
-                                                    placeholder="أدخل اسم العميل..."
-                                                    icon={<User size={20} />}
+                                                    placeholder="اسم العميل أو الهاتف..."
+                                                    icon={<Search size={20} />}
                                                     value={formData.client_name}
                                                     onChange={(e) => {
-                                                        handleChange(e);
+                                                        const val = e.target.value;
+                                                        setFormData(prev => ({ ...prev, client_name: val }));
                                                         setShowClientResults(true);
                                                     }}
                                                     onFocus={() => setShowClientResults(true)}
+                                                    className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
                                                 />
-                                                {showClientResults && formData.client_name && (
-                                                    <div className="absolute z-50 w-full mt-1 bg-white border border-black/5 rounded-2xl shadow-xl max-h-48 overflow-y-auto">
-                                                        {clients
-                                                            .filter(c => c.name.toLowerCase().includes(formData.client_name.toLowerCase()) || c.phone.includes(formData.client_name))
-                                                            .map(client => (
-                                                                <div
-                                                                    key={client.id}
-                                                                    className="p-3 hover:bg-primary/5 cursor-pointer border-b border-black/5 last:border-0 flex justify-between items-center"
-                                                                    onClick={() => handleClientSelect(client)}
-                                                                >
-                                                                    <span className="font-bold text-sm">{client.name}</span>
-                                                                    <span className="text-xs text-secondary/40 font-mono">{client.phone}</span>
-                                                                </div>
-                                                            ))}
+                                                {showClientResults && (formData.client_name || clients.length > 0) && (
+                                                    <div className="absolute z-50 w-full mt-2 bg-white border border-black/5 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                                        <div className="max-h-64 overflow-y-auto no-scrollbar">
+                                                            {clients
+                                                                .filter(c =>
+                                                                    c.name.toLowerCase().includes(formData.client_name.toLowerCase()) ||
+                                                                    c.phone.includes(formData.client_name)
+                                                                )
+                                                                .slice(0, 5)
+                                                                .map(client => (
+                                                                    <div
+                                                                        key={client.id}
+                                                                        className="px-6 py-4 hover:bg-primary/5 cursor-pointer border-b border-black/5 last:border-0 flex justify-between items-center transition-colors"
+                                                                        onClick={() => handleClientSelect(client)}
+                                                                    >
+                                                                        <div className="flex flex-col">
+                                                                            <span className="font-bold text-sm">{client.name}</span>
+                                                                            <span className="text-[10px] text-secondary/40 font-mono tracking-tighter">{client.phone}</span>
+                                                                        </div>
+                                                                        <ArrowRight size={14} className="text-primary/20" />
+                                                                    </div>
+                                                                ))}
+                                                            {clients.length === 0 && <div className="p-8 text-center text-xs text-secondary/40 font-medium italic">لا توجد نتائج</div>}
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">رقم الموبايل</label>
                                             <Input
                                                 name="client_phone"
-                                                label="رقم الهاتف"
-                                                placeholder="أدخل رقم الهاتف..."
-                                                icon={<Smartphone size={20} />}
+                                                placeholder="رقم الموبايل"
+                                                icon={<Smartphone size={18} />}
                                                 value={formData.client_phone}
                                                 onChange={handleChange}
+                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
                                             />
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <Input
-                                                name="client_address"
-                                                label="العنوان"
-                                                placeholder="أدخل عنوان العميل..."
-                                                icon={<CreditCard size={20} />}
-                                                value={formData.client_address}
-                                                onChange={handleChange}
-                                            />
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">رقم التقرير</label>
                                             <Input
                                                 name="order_number"
-                                                label="رقم الطلب (Order Number)"
-                                                placeholder="RP-2024-XXXX"
-                                                icon={<Hash size={20} />}
+                                                icon={<Hash size={18} />}
                                                 value={formData.order_number}
                                                 onChange={handleChange}
+                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-mono text-primary font-black text-lg"
                                             />
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                    </div>
 
-                                <Card variant="glass">
-                                    <CardHeader className="p-8 pb-4">
-                                        <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                            <Smartphone size={22} className="text-primary" />
-                                            معلومات الجهاز
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-8 pt-0 space-y-6">
-                                        <Input
-                                            name="device_model"
-                                            label="موديل الجهاز"
-                                            placeholder="مثلاً: iPhone 15 Pro Max / MacBook Air M2"
-                                            icon={<Smartphone size={20} />}
-                                            value={formData.device_model}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Row 2: Device Identity */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6 border-t border-black/[0.03]">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">موديل الجهاز</label>
                                             <Input
-                                                name="serial_number"
-                                                label="الرقم التسلسلي (IMEI/SN)"
-                                                placeholder="أدخل السيريال نمبر"
-                                                icon={<Hash size={20} />}
-                                                value={formData.serial_number}
+                                                name="device_model"
+                                                placeholder="HP xxxxx X7"
+                                                icon={<Monitor size={18} />}
+                                                value={formData.device_model}
                                                 onChange={handleChange}
-                                            />
-                                            <Input
-                                                name="inspection_date"
-                                                label="تاريخ الفحص"
-                                                type="date"
-                                                icon={<Calendar size={20} />}
-                                                value={formData.inspection_date}
-                                                onChange={handleChange}
+                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-bold"
                                                 required
                                             />
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">الرقم التسلسلي (S/N)</label>
+                                            <Input
+                                                name="serial_number"
+                                                placeholder="S/N Number"
+                                                icon={<Hash size={18} />}
+                                                value={formData.serial_number}
+                                                onChange={handleChange}
+                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">تاريخ الفحص</label>
+                                            <Input
+                                                name="inspection_date"
+                                                type="date"
+                                                icon={<Calendar size={18} />}
+                                                value={formData.inspection_date}
+                                                onChange={handleChange}
+                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
 
-                            {/* Technical Specifications */}
-                            <Card variant="glass">
-                                <CardHeader className="p-8 pb-4">
-                                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                        <ShieldCheck size={22} className="text-primary" />
-                                        المواصفات ة للنظام
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-8 pt-0">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <Input
-                                            name="cpu"
-                                            label="المعالج (CPU)"
-                                            placeholder="مثلاً: A17 Pro / M2 / Ryzen 9"
-                                            icon={<Cpu size={20} />}
-                                            value={formData.cpu}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            name="gpu"
-                                            label="معالج الرسوميات (GPU)"
-                                            placeholder="مثلاً: 6-Core GPU / RTX 4090"
-                                            icon={<Monitor size={20} />}
-                                            value={formData.gpu}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            name="ram"
-                                            label="الذاكرة العشوائية (RAM)"
-                                            placeholder="مثلاً: 8GB / 16GB"
-                                            icon={<Database size={20} />}
-                                            value={formData.ram}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            name="storage"
-                                            label="مساحة التخزين (Storage)"
-                                            placeholder="مثلاً: 256GB NVMe / 1TB"
-                                            icon={<HardDrive size={20} />}
-                                            value={formData.storage}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            name="display_size"
-                                            label="حجم الشاشة (Display)"
-                                            placeholder={'مثلاً: 15.6" FHD / 14" 4K UHD'}
-                                            icon={<Monitor size={20} />}
-                                            value={formData.display_size}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            name="battery_capacity"
-                                            label="سعة البطارية (Battery)"
-                                            placeholder="مثلاً: 68Wh / 97Wh"
-                                            icon={<Database size={20} />}
-                                            value={formData.battery_capacity}
-                                            onChange={handleChange}
-                                        />
-                                        <Input
-                                            name="device_price"
-                                            label="سعر الجهاز المقدر (Est. Price)"
-                                            placeholder="أدخل قيمة الجهاز..."
-                                            icon={<CreditCard size={20} />}
-                                            value={formData.device_price}
-                                            onChange={handleChange}
-                                        />
+                                    {/* Row 3: Technical Specs */}
+                                    <div className="pt-8 border-t border-black/[0.03] space-y-8">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <h6 className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] opacity-30">Technical Specifications</h6>
+                                            {/* <p className="text-[10px] text-secondary/40 font-bold italic">مقترحات بناءً على المكونات الأكثر تكراراً</p> */}
+                                        </div>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">
+                                            {(['cpu', 'gpu', 'ram', 'storage'] as const).map((field) => (
+                                                <div key={field} className="space-y-4 group">
+                                                    <Input
+                                                        name={field}
+                                                        label={field.toUpperCase()}
+                                                        placeholder={field.toUpperCase() + "..."}
+                                                        icon={field === 'cpu' ? <Cpu size={18} /> : field === 'gpu' ? <Monitor size={18} /> : field === 'ram' ? <Database size={18} /> : <HardDrive size={18} />}
+                                                        value={(formData as any)[field]}
+                                                        onChange={handleChange}
+                                                        className="rounded-2xl bg-black/[0.02] border-transparent group-hover:bg-white group-hover:border-primary/20 h-12 transition-all"
+                                                    />
+                                                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mask-fade-edges">
+                                                        {(quickSpecs as any)[field].map((val: string) => (
+                                                            <button
+                                                                key={val}
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, [field]: val }))}
+                                                                className={cn(
+                                                                    "text-[9px] font-black px-4 py-2 rounded-full border transition-all uppercase tracking-tighter shrink-0",
+                                                                    (formData as any)[field] === val
+                                                                        ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105"
+                                                                        : "bg-black/[0.03] text-secondary/40 border-transparent hover:border-primary/20 hover:text-primary whitespace-nowrap"
+                                                                )}
+                                                            >
+                                                                {val}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6 pt-6 border-t border-black/[0.03] flex justify-center">
+                                        <div className="w-full max-w-md space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 text-center block">السعر التقريبي للجهاز (Est. Value)</label>
+                                            <Input
+                                                name="device_price"
+                                                placeholder="أدخل السعر..."
+                                                icon={<CreditCard size={18} />}
+                                                value={formData.device_price}
+                                                onChange={handleChange}
+                                                className="rounded-full bg-black/[0.02] border-transparent h-12 text-center font-black text-primary"
+                                            />
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
                         </div>
                     )}
 
-                    {/* Step 2: Technical Tests (Hardware Status & Test Screenshots) */}
+                    {/* Step 2: Hardware Status Table (Simplified Dots) */}
                     {step === 2 && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <Card variant="flat">
-                                <CardHeader className="p-8 pb-4">
-                                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                        <ShieldCheck size={22} className="text-primary" />
-                                        اختبارات الهاردوير (Hardware Tests)
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-8 pt-0">
-                                    {/* Hardware Component Status Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {formData.hardware_status.map((test, index) => (
-                                            <div key={index} className="p-4 rounded-2xl border border-black/5 bg-white space-y-3">
-                                                <p className="font-bold text-sm">{test.componentName}</p>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateHardwareTest(index, 'pass')}
-                                                        className={cn(
-                                                            "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
-                                                            test.status === 'pass' ? "bg-green-500 text-white" : "bg-green-50 text-green-600 hover:bg-green-100"
-                                                        )}
-                                                    >Pass</button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateHardwareTest(index, 'fail')}
-                                                        className={cn(
-                                                            "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
-                                                            test.status === 'fail' ? "bg-red-500 text-white" : "bg-red-50 text-red-600 hover:bg-red-100"
-                                                        )}
-                                                    >Fail</button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateHardwareTest(index, 'warning')}
-                                                        className={cn(
-                                                            "flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all",
-                                                            test.status === 'warning' ? "bg-yellow-500 text-white" : "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
-                                                        )}
-                                                    >Warning</button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Test Screenshots Section */}
-                                    <div className="mt-12 pt-8 border-t border-black/5">
-                                        <h4 className="text-sm font-black text-secondary/40 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                            <ImageIcon size={18} />
-                                            لقطات الشاشة للاختبارات (Test Screenshots)
-                                        </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            {/* Specific Component Screenshot Inputs */}
-                                            <div className="space-y-4">
-                                                {['CPU', 'GPU', 'HDD', 'Battery'].map(comp => (
-                                                    <div key={comp} className="flex gap-2 items-end">
-                                                        <Input
-                                                            id={`screenshot-${comp}`}
-                                                            label={`${comp} Screenshot URL`}
-                                                            placeholder="أدخل رابط الصورة..."
-                                                            className="flex-1"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            onClick={() => handleTestScreenshotAdd(comp)}
-                                                            className="mb-[1px]"
-                                                            icon={<Plus size={18} />}
-                                                        >
-                                                            إضافة
-                                                        </Button>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {/* Preview Area for Test Screenshots */}
-                                            <div className="grid grid-cols-3 gap-4 content-start">
-                                                {formData.external_images.filter(img => img.type === 'test_screenshot').map((img, i) => (
-                                                    <div key={i} className="aspect-square rounded-xl overflow-hidden bg-black/5 border border-black/5 relative group">
-                                                        <img src={img.url} className="w-full h-full object-cover" />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setFormData(prev => ({
-                                                                ...prev,
-                                                                external_images: prev.external_images.filter(item => item !== img)
-                                                            }))}
-                                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        >
-                                                            <XCircle size={12} />
-                                                        </button>
-                                                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] p-1 text-center truncate font-bold">
-                                                            {img.component || 'Test'}
+                        <Card variant="glass" className="overflow-hidden border-black/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <CardHeader className="p-8 pb-4 border-b border-black/[0.03]">
+                                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                    <ShieldCheck size={22} className="text-primary" />
+                                    حالة الهاردوير التقنية
+                                </CardTitle>
+                                <p className="text-[10px] text-secondary/40 font-black uppercase tracking-widest px-1">حدد حالة كل قطعة (أخضر للجيد، أحمر لغير موجود)</p>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <Table>
+                                    <TableHeader className="bg-black/[0.01]">
+                                        <TableRow className="border-black/5 hover:bg-transparent">
+                                            <TableHead className="text-right font-black uppercase tracking-widest text-[10px] py-4 pr-10">القطعة</TableHead>
+                                            <TableHead className="text-center font-black uppercase tracking-widest text-[10px] py-4 px-10">الحالة</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {formData.hardware_status.map((item) => (
+                                            <TableRow key={item.id} className="border-black/[0.03] transition-colors group">
+                                                <TableCell className="pr-10 font-bold text-secondary py-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-black/[0.03] flex items-center justify-center text-secondary/40 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+                                                            {getComponentIcon(item.name || item.componentName)}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-base group-hover:translate-x-1 transition-transform">{item.nameAr || item.componentName}</span>
+                                                            <span className="text-[9px] text-secondary/20 uppercase font-black">{item.name || item.componentName} Testing</span>
                                                         </div>
                                                     </div>
-                                                ))}
-                                                {formData.external_images.filter(img => img.type === 'test_screenshot').length === 0 && (
-                                                    <div className="col-span-3 h-32 flex items-center justify-center text-secondary/40 border border-dashed border-black/10 rounded-xl text-sm">
-                                                        لا توجد لقطات شاشة مضافة
+                                                </TableCell>
+                                                <TableCell className="px-10">
+                                                    <div className="flex items-center justify-center gap-6">
+                                                        {[
+                                                            { id: 'pass', label: 'سليم', color: 'bg-green-500', shadow: 'shadow-green-500/40' },
+                                                            { id: 'none', label: 'غير موجود', color: 'bg-red-500', shadow: 'shadow-red-500/40' },
+                                                        ].map((opt) => (
+                                                            <button
+                                                                key={opt.id}
+                                                                type="button"
+                                                                onClick={() => handleHardwareStatusChange(item.id, opt.id)}
+                                                                className="group/btn flex flex-col items-center gap-2 outline-none p-1"
+                                                            >
+                                                                <div className={cn(
+                                                                    "w-6 h-6 rounded-full border-2 transition-all duration-300 relative",
+                                                                    item.status === opt.id
+                                                                        ? `${opt.color} border-transparent ${opt.shadow} shadow-lg scale-110`
+                                                                        : "border-black/5 bg-transparent hover:border-black/20"
+                                                                )}>
+                                                                    {item.status === opt.id && (
+                                                                        <div className="absolute inset-0 rounded-full animate-ping bg-current opacity-20" />
+                                                                    )}
+                                                                </div>
+                                                                <span className={cn(
+                                                                    "text-[8px] font-black uppercase tracking-tighter transition-all",
+                                                                    item.status === opt.id ? opt.color.replace('bg-', 'text-') : "text-secondary/20"
+                                                                )}>{opt.label}</span>
+                                                            </button>
+                                                        ))}
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    )}
-
-                    {/* Step 3: External Inspection */}
-                    {step === 3 && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <Card variant="flat">
-                                <CardHeader className="p-8 pb-4">
-                                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                        <Camera size={22} className="text-primary" />
-                                        المعاينة الخارجية (External Inspection)
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-8 pt-0 space-y-8">
-                                    {/* Conditions Dropdowns */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {['case', 'screen', 'keyboard', 'touchpad', 'ports', 'hinges'].map(part => (
-                                            <div key={part} className="space-y-1.5">
-                                                <label className="text-sm font-bold opacity-60 capitalize">{part} Condition</label>
-                                                <select
-                                                    name={`${part}_condition`}
-                                                    className="w-full h-12 rounded-input bg-surface-variant/40 px-4 border-0 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                                                    value={(formData as any)[`${part}_condition`]}
-                                                    onChange={handleChange}
-                                                >
-                                                    <option value="">اختر الحالة...</option>
-                                                    <option value="excellent">Excellent (ممتاز)</option>
-                                                    <option value="good">Good (جيد)</option>
-                                                    <option value="fair">Fair (مقبول)</option>
-                                                    <option value="poor">Poor (سيء)</option>
-                                                </select>
-                                            </div>
+                                                </TableCell>
+                                            </TableRow>
                                         ))}
-                                    </div>
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                                    <div className="border-t border-black/5 pt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {/* External Images Input */}
-                                        <div className="space-y-4">
-                                            <label className="text-sm font-bold opacity-60">صور الجهاز الخارجية</label>
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    id="device-image-url-input"
-                                                    placeholder="HTTPS URL..."
-                                                    className="flex-1"
-                                                />
-                                                <Button type="button" onClick={handleDeviceImageAdd} icon={<Plus size={18} />}>إضافة</Button>
+                    {/* Step 3: Test Screenshots (Legacy Card Style) */}
+                    {step === 3 && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="flex flex-col items-center text-center mb-8">
+                                <h2 className="text-2xl font-black text-secondary flex items-center gap-2">
+                                    <Camera size={24} className="text-primary" />
+                                    فحوصات المكونات (Screenshots)
+                                </h2>
+                                <p className="text-sm text-secondary/40 font-bold mt-1 uppercase tracking-widest">تأكد من إرفاق صور واضحة لنتائج الاختبارات</p>
+                            </div>
+
+                            <div className="space-y-4 max-w-3xl mx-auto pb-10">
+                                {formData.test_screenshots.map((s, idx) => (
+                                    <div key={idx} className="bg-white border border-black/5 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                                        <div className="bg-primary/5 p-4 border-b border-black/5 flex items-center justify-between">
+                                            <div className="flex items-center gap-3 text-primary">
+                                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                                    {getComponentIcon(s.component)}
+                                                </div>
+                                                <h5 className="font-black text-sm">{getComponentTitle(s.component)}</h5>
                                             </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {formData.external_images.filter(img => img.type === 'image').map((img, i) => (
-                                                    <div key={i} className="relative group w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-black/10">
-                                                        <img src={img.url} className="w-full h-full object-cover" />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setFormData(prev => ({
-                                                                ...prev,
-                                                                external_images: prev.external_images.filter(item => item !== img)
-                                                            }))}
-                                                            className="absolute top-0 right-0 bg-red-500 text-white rounded-bl-lg p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        >
-                                                            <XCircle size={10} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            {s.url && (
+                                                <Badge variant="secondary" className="bg-green-500 text-white border-transparent py-1 animate-in zoom-in">تم إرفاق النتيجة</Badge>
+                                            )}
                                         </div>
-
-                                        {/* Video URL Input */}
-                                        <div className="space-y-4">
-                                            <label className="text-sm font-bold opacity-60">فيديو (يوتيوب/رابط)</label>
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    id="video-url-input"
-                                                    placeholder="Video/YouTube URL..."
-                                                    className="flex-1"
-                                                />
-                                                <Button type="button" onClick={handleVideoAdd} icon={<Plus size={18} />}>إضافة</Button>
-                                            </div>
+                                        <div className="p-6 space-y-4">
                                             <div className="space-y-2">
-                                                {formData.external_images.filter(img => img.type === 'youtube' || img.type === 'video').map((vid, i) => (
-                                                    <div key={i} className="flex justify-between items-center bg-surface-variant/20 p-2 rounded-lg text-xs">
-                                                        <span className="truncate max-w-[200px]">{vid.url}</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setFormData(prev => ({
-                                                                ...prev,
-                                                                external_images: prev.external_images.filter(item => item !== vid)
-                                                            }))}
-                                                            className="text-red-500 hover:text-red-700"
-                                                        >
-                                                            <XCircle size={14} />
-                                                        </button>
+                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-1">رابط صورة نتيجة الاختبار</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <Input
+                                                            placeholder="https://example.com/image.jpg"
+                                                            value={s.url}
+                                                            onChange={(e) => handleTestScreenshotAdd(s.component, e.target.value)}
+                                                            className={cn(
+                                                                "rounded-full bg-black/[0.02] border-transparent h-11 text-xs",
+                                                                s.url && !isDirectImageLink(s.url) && "border-amber-400/50 bg-amber-50/50"
+                                                            )}
+                                                            icon={<Link2 size={16} />}
+                                                        />
                                                     </div>
-                                                ))}
+                                                </div>
+                                                <div className="flex flex-col gap-1 mt-1">
+                                                    <p className="text-[9px] text-secondary/30 font-bold px-2 uppercase tracking-tighter">أدخل رابط صورة مباشر ينتهي بـ .jpg أو .png</p>
+                                                    {s.url && !isDirectImageLink(s.url) && (
+                                                        <div className="flex items-center gap-1.5 text-[9px] text-amber-600 font-black bg-amber-50 p-2 rounded-xl border border-amber-100/50 animate-in slide-in-from-top-1">
+                                                            <AlertCircle size={12} className="shrink-0" />
+                                                            <span>تنبيه: هذا الرابط قد لا يتم تحميله. استخدم "Direct Link" من ImgBB.</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {s.url && (
+                                                <div className="relative aspect-video rounded-2xl overflow-hidden group/img animate-in fade-in zoom-in duration-300 bg-black/5">
+                                                    <img
+                                                        src={s.url || undefined}
+                                                        className="w-full h-full object-contain"
+                                                        alt={s.component}
+                                                        onError={(e) => {
+                                                            (e.target as any).src = 'https://placehold.co/600x400/f8fafc/64748b?text=Image+Load+Error+-+Check+Direct+Link';
+                                                        }}
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <Button variant="destructive" size="sm" className="rounded-full h-9 text-[10px]" onClick={() => handleTestScreenshotAdd(s.component, '')}>
+                                                            <Trash2 size={14} className="ml-1" /> حذف الصورة
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="pt-2 border-t border-black/5">
+                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-1">ملاحظات فنية على الاختبار</label>
+                                                <Input
+                                                    placeholder="اكتب أي ملاحظة فنية هنا..."
+                                                    value={s.comment}
+                                                    onChange={(e) => handleTestScreenshotComment(s.component, e.target.value)}
+                                                    className="rounded-full h-11 text-xs bg-black/[0.02] border-transparent mt-1"
+                                                />
                                             </div>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                ))}
+                            </div>
                         </div>
                     )}
 
-                    {/* Step 4: Notes */}
+                    {/* Step 4: External Inspection (Merged Card) */}
                     {step === 4 && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <Card variant="flat">
-                                <CardHeader className="p-8 pb-4">
-                                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                        <FileText size={22} className="text-primary" />
-                                        ملاحظات إضافية (Notes)
-                                    </CardTitle>
+                            <Card variant="glass" className="overflow-hidden">
+                                <CardHeader className="p-8 pb-4 border-b border-black/[0.03]">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                            <ImageIcon size={22} className="text-primary" />
+                                            المعاينة الخارجية
+
+                                        </CardTitle>
+                                        {/* <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">Inspection Live</span>
+                                        </div> */}
+                                    </div>
                                 </CardHeader>
-                                <CardContent className="p-8 pt-0">
-                                    <textarea
-                                        name="notes"
-                                        className="w-full min-h-[300px] rounded-3xl bg-surface-variant/50 p-6 border-0 focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none font-medium leading-relaxed"
-                                        placeholder="اكتب أي ملاحظات إضافية هنا حول الجهاز أو التقرير..."
-                                        value={formData.notes}
-                                        onChange={handleChange}
-                                    ></textarea>
+                                <CardContent className="p-8 space-y-10">
+                                    {/* Images Section */}
+                                    <div className="space-y-6">
+                                        <div className="flex flex-col md:flex-row items-center gap-4 bg-black/[0.01] p-2 pr-6 rounded-full border border-black/5">
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest flex items-center gap-2">
+                                                    <ImageIcon size={14} />
+                                                    صور الجهاز
+                                                </h4>
+                                            </div>
+
+                                            <div className="flex flex-1 gap-2 w-full">
+                                                <Input
+                                                    id="device-image-url-input"
+                                                    placeholder="رابط الصورة (ImgBB Direct Link)..."
+                                                    className="rounded-full border-transparent bg-white h-11 text-xs flex-1 focus:border-primary/20 transition-all font-medium"
+                                                    icon={<Link2 size={14} />}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    onClick={handleDeviceImageAdd}
+                                                    className="rounded-full h-11 px-6 shadow-md shadow-primary/10 text-xs font-bold"
+                                                    icon={<Plus size={16} />}
+                                                >
+                                                    إضافة
+                                                </Button>
+                                            </div>
+                                            <span className="hidden lg:block text-[9px] text-secondary/20 font-bold whitespace-nowrap bg-black/[0.02] px-3 py-1 rounded-full uppercase">JPG, PNG, WEBP</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                            {formData.external_images.filter(img => img.type === 'image' && img.url).map((img, i) => (
+                                                <div key={i} className="relative aspect-square rounded-2xl overflow-hidden group/img border border-black/5 bg-black/5 animate-in zoom-in duration-300">
+                                                    <img
+                                                        src={img.url}
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
+                                                        onError={(e) => {
+                                                            (e.target as any).src = 'https://placehold.co/400x400/fee2e2/991b1b?text=Broken+Link';
+                                                        }}
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setFormData(p => ({ ...p, external_images: p.external_images.filter(item => item !== img) }))}
+                                                            className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:scale-110 transition-transform"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Video Section */}
+                                    <div className="pt-10 border-t border-black/[0.03] space-y-6">
+                                        <div className="flex flex-col md:flex-row items-center gap-4 bg-black/[0.01] p-2 pr-6 rounded-full border border-black/5">
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest flex items-center gap-2">
+                                                    <Video size={14} />
+                                                    فيديو الفحص
+                                                </h4>
+                                            </div>
+
+                                            <div className="flex flex-1 gap-2 w-full">
+                                                <Input
+                                                    id="video-url-input"
+                                                    placeholder="رابط يوتيوب أو فيديو..."
+                                                    className="rounded-full border-transparent bg-white h-11 text-xs flex-1 focus:border-primary/20 transition-all font-medium"
+                                                    icon={<Link2 size={14} />}
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    onClick={handleVideoAdd}
+                                                    variant="outline"
+                                                    className="rounded-full h-11 px-6 border-primary/20 text-primary hover:bg-primary/5 text-xs font-bold"
+                                                    icon={<Plus size={16} />}
+                                                >
+                                                    إضافة
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                            {formData.external_images.filter(img => img.type === 'video').map((v, i) => (
+                                                <div key={i} className="relative aspect-video rounded-3xl overflow-hidden group/vid border border-black/5 bg-black/[0.02] flex flex-col items-center justify-center transition-all hover:bg-white hover:shadow-xl hover:shadow-primary/5">
+                                                    <Video size={28} className="text-primary/20 group-hover/vid:text-primary transition-colors mb-2" />
+                                                    <span className="text-[9px] font-black text-secondary/40 truncate w-full px-6 text-center uppercase tracking-tighter">{new URL(v.url).hostname}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(p => ({ ...p, external_images: p.external_images.filter(item => item !== v) }))}
+                                                        className="absolute top-3 left-3 w-8 h-8 rounded-full bg-red-50 text-red-500 opacity-0 group-hover/vid:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-500 hover:text-white"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>
                     )}
 
-                    {/* Step 5: Invoice & Submit */}
+                    {/* Step 5: Invoice & Submit (Legacy Refined) */}
                     {step === 5 && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-8">
-                            <Card variant="flat">
-                                <CardHeader className="p-8 pb-4">
-                                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                        <Receipt size={22} className="text-primary" />
-                                        الفاتورة والاعتماد (Invoice & Submit)
+                            <Card variant="glass" className="overflow-hidden border-primary/10">
+                                <CardHeader className="p-8 border-b border-black/5 bg-primary/[0.02] flex flex-row items-center justify-between">
+                                    <CardTitle className="text-xl font-black flex items-center gap-2 text-primary">
+                                        <Receipt size={24} />
+                                        بيانات الفاتورة والاعتماد
                                     </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-8 pt-0 space-y-8">
-                                    {/* Billing Toggle */}
-                                    <div className="flex items-center justify-between p-4 bg-surface-variant/30 rounded-2xl border border-black/5">
-                                        <div className="space-y-1">
-                                            <h4 className="font-bold text-sm">إصدار فاتورة لهذا التقرير</h4>
-                                            <p className="text-xs text-secondary/60">تفعيل هذا الخيار سينشئ فاتورة جديدة مرتبطة بهذا التقرير</p>
-                                        </div>
+                                    <div className="flex items-center gap-3 bg-white/50 p-2 px-4 rounded-full border border-black/5">
+                                        <span className="text-[10px] font-black text-secondary/60 uppercase tracking-widest">إصدار فاتورة؟</span>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input
                                                 type="checkbox"
@@ -730,97 +957,320 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
                                                 checked={formData.billing_enabled}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, billing_enabled: e.target.checked }))}
                                             />
-                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            <div className="w-12 h-6 bg-black/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:start-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                                         </label>
                                     </div>
+                                </CardHeader>
+                                <CardContent className="p-8 space-y-8">
+                                    {formData.billing_enabled ? (
+                                        <div className="space-y-8 animate-in slide-in-from-top-2">
+                                            {/* Legacy Laptop Row */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8 rounded-[2.5rem] bg-black/[0.02] border border-black/5">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-secondary/40 uppercase px-2">اسم الجهاز</label>
+                                                    <Input
+                                                        readOnly
+                                                        value={formData.device_model}
+                                                        icon={<Monitor size={16} />}
+                                                        className="rounded-full bg-white border-black/5 h-12 text-secondary/60 cursor-not-allowed"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-secondary/40 uppercase px-2">الرقم التسلسلي</label>
+                                                    <Input
+                                                        readOnly
+                                                        value={formData.serial_number}
+                                                        icon={<Hash size={16} />}
+                                                        className="rounded-full bg-white border-black/5 h-12 text-secondary/60 cursor-not-allowed"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-secondary/40 uppercase px-2">سعر الفحص</label>
+                                                    <Input
+                                                        name="amount"
+                                                        type="number"
+                                                        value={formData.amount}
+                                                        onChange={handleChange}
+                                                        icon={<CreditCard size={18} />}
+                                                        className="rounded-full bg-white border-primary/20 h-12 font-black text-primary"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    {formData.billing_enabled && (
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-2 duration-200">
-                                            <Input
-                                                name="amount"
-                                                label="المبلغ (IQD)"
-                                                type="number"
-                                                placeholder="0"
-                                                value={formData.amount}
-                                                onChange={handleChange}
-                                            />
-                                            <Input
-                                                name="tax_rate"
-                                                label="الضريبة (%)"
-                                                type="number"
-                                                placeholder="0"
-                                                value={formData.tax_rate}
-                                                onChange={handleChange}
-                                            />
-                                            <Input
-                                                name="discount"
-                                                label="الخصم (IQD)"
-                                                type="number"
-                                                placeholder="0"
-                                                value={formData.discount}
-                                                onChange={handleChange}
-                                            />
+                                            {/* Additional Items Section */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between px-4">
+                                                    <h6 className="text-[10px] font-black text-secondary uppercase tracking-widest">عناصر إضافية (Accessories/Items)</h6>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleInvoiceItemAdd}
+                                                        className="rounded-full h-8 px-4 border-primary/20 text-primary hover:bg-primary/5"
+                                                    >
+                                                        <PlusCircle size={14} className="ml-2" />
+                                                        إضافة عنصر
+                                                    </Button>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    {formData.invoice_items.map((item, idx) => (
+                                                        <div key={idx} className="flex gap-3 animate-in slide-in-from-right-2 duration-300">
+                                                            <Input
+                                                                placeholder="اسم القطعة / الخدمة"
+                                                                value={item.name}
+                                                                onChange={(e) => handleInvoiceItemChange(idx, 'name', e.target.value)}
+                                                                className="rounded-2xl bg-black/[0.02] border-black/5 h-12 flex-[2]"
+                                                            />
+                                                            <Input
+                                                                type="number"
+                                                                placeholder="السعر"
+                                                                value={item.price}
+                                                                onChange={(e) => handleInvoiceItemChange(idx, 'price', e.target.value)}
+                                                                className="rounded-2xl bg-black/[0.02] border-black/5 h-12 flex-1"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleInvoiceItemRemove(idx)}
+                                                                className="shrink-0 w-12 h-12 rounded-2xl border-red-100 text-red-500 hover:bg-red-50"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Tax and Discount */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-secondary/40 uppercase px-4">نسبة الضريبة (%)</label>
+                                                    <Input
+                                                        name="tax_rate"
+                                                        type="number"
+                                                        value={formData.tax_rate}
+                                                        onChange={handleChange}
+                                                        icon={<PlusCircle size={18} />}
+                                                        className="rounded-full bg-black/[0.02] border-black/5 h-12"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-secondary/40 uppercase px-4">قيمة الخصم (EGP)</label>
+                                                    <Input
+                                                        name="discount"
+                                                        type="number"
+                                                        value={formData.discount}
+                                                        onChange={handleChange}
+                                                        icon={<Minus size={18} />}
+                                                        className="rounded-full bg-black/[0.02] border-black/5 h-12 font-bold text-red-500"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Summary & Alert */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="p-6 rounded-[2rem] bg-amber-500/5 border border-amber-500/10 flex items-start gap-4 h-full flex flex-col justify-center">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <AlertCircle size={18} className="text-amber-500" />
+                                                        <h6 className="font-bold text-amber-700 text-xs uppercase tracking-widest">تنبيه الفوترة</h6>
+                                                    </div>
+                                                    <p className="text-[10px] text-amber-600/70 font-black leading-relaxed uppercase">
+                                                        يرجى التأكد من المبالغ المدخلة. سيتم تثبيتها في السجل المالي فور حفظ التقرير.
+                                                    </p>
+                                                </div>
+
+                                                <div className="bg-primary/5 rounded-[2.5rem] p-8 border border-primary/10 space-y-4">
+                                                    <div className="flex justify-between items-center text-[10px] font-black text-secondary/40 uppercase tracking-widest px-2">
+                                                        <span>المجموع الفرعي:</span>
+                                                        <span>{(Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0)).toLocaleString()} EGP</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px] font-black text-red-500/40 uppercase tracking-widest px-2">
+                                                        <span>الخصم:</span>
+                                                        <span>- {Number(formData.discount).toLocaleString()} EGP</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px] font-black text-primary/40 uppercase tracking-widest px-2">
+                                                        <span>الضريبة:</span>
+                                                        <span>+ {((Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0) - Number(formData.discount)) * (Number(formData.tax_rate) / 100)).toLocaleString()} EGP</span>
+                                                    </div>
+                                                    <div className="h-px bg-primary/10 mx-2" />
+                                                    <div className="flex justify-between items-center text-center">
+                                                        <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest px-2">الإجمالي النهائي:</span>
+                                                        <div className="text-3xl font-black text-primary">
+                                                            {(() => {
+                                                                const subtotal = Number(formData.amount) + formData.invoice_items.reduce((sum, item) => sum + Number(item.price), 0);
+                                                                const afterDiscount = subtotal - Number(formData.discount);
+                                                                const tax = afterDiscount * (Number(formData.tax_rate) / 100);
+                                                                return (afterDiscount + tax).toLocaleString();
+                                                            })()} <span className="text-sm">EGP</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="py-20 flex flex-col items-center justify-center text-center space-y-4 bg-black/[0.01] rounded-[2.5rem] border border-dashed border-black/5 animate-in fade-in duration-500">
+                                            <div className="w-20 h-20 rounded-full bg-black/5 flex items-center justify-center text-secondary/10">
+                                                <Receipt size={40} />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h5 className="font-bold text-secondary/40">لم يتم تفعيل الفوترة</h5>
+                                                <p className="text-[10px] text-secondary/20 font-black uppercase tracking-widest">فعل الخيار من الأعلى لإدخال البيانات المالية</p>
+                                            </div>
                                         </div>
                                     )}
 
-                                    <div className="pt-6 border-t border-black/5">
-                                        <div className="space-y-1.5">
-                                            <label className="text-sm font-bold opacity-60 px-1">حالة التقرير الأولية</label>
-                                            <select
-                                                name="status"
-                                                className="w-full h-12 rounded-input bg-surface-variant/40 px-4 border-0 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                                                value={formData.status}
-                                                onChange={handleChange}
-                                            >
-                                                <option value="pending">انتظار (Pending)</option>
-                                                <option value="in-progress">قيد المعالجة (In Progress)</option>
-                                                <option value="completed">مكتمل (Completed)</option>
-                                            </select>
+                                    {/* <div className="pt-8 border-t border-black/5">
+                                        <div className="space-y-4">
+                                            <label className="text-xs font-black text-secondary px-2 flex items-center gap-2">
+                                                <ShieldCheck size={18} className="text-primary" />
+                                                تأكيد اعتماد التقرير والحالة
+                                            </label>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {[
+                                                    { id: 'pending', label: 'قيد الانتظار', color: 'bg-amber-500', icon: <Clock size={16} /> },
+                                                    { id: 'in-progress', label: 'يتم الفحص', color: 'bg-blue-500', icon: <Package size={16} /> },
+                                                    { id: 'completed', label: 'جاهز للتسليم', color: 'bg-green-500', icon: <CheckCircle2 size={16} /> },
+                                                ].map((status) => (
+                                                    <button
+                                                        key={status.id}
+                                                        type="button"
+                                                        onClick={() => setFormData(p => ({ ...p, status: status.id }))}
+                                                        className={cn(
+                                                            "flex flex-col items-center justify-center gap-2 py-6 rounded-[2rem] border transition-all duration-300",
+                                                            formData.status === status.id
+                                                                ? `${status.color} text-white border-transparent shadow-xl shadow-${status.color.split('-')[1]}-500/20 scale-105`
+                                                                : "bg-white text-secondary/40 border-black/5 hover:border-black/10"
+                                                        )}
+                                                    >
+                                                        {status.icon}
+                                                        <span className="font-black text-[10px] uppercase tracking-wider">{status.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
+                                    </div> */}
                                 </CardContent>
                             </Card>
                         </div>
                     )}
 
-                    {/* Navigation Buttons - Updated for 5 Steps */}
+
+                    {/* Navigation Buttons - Updated for 6 Steps */}
                     <div className="flex items-center justify-between pt-8 border-t border-black/5 mt-8">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => step > 1 ? setStep(step - 1) : router.back()}
-                            className="px-8"
+                            className="rounded-full h-12 px-8"
+                            icon={<ChevronRight size={18} />}
                         >
                             {step === 1 ? 'إلغاء' : 'السابق'}
                         </Button>
 
-                        <div className="flex items-center gap-2 text-sm font-bold opacity-40">
-                            Step {step} of 5
+                        <div className="flex gap-4">
+                            {step < 5 ? (
+                                <Button
+                                    type="button"
+                                    onClick={() => setStep(step + 1)}
+                                    className="rounded-full h-12 px-8"
+                                    icon={<ChevronLeft size={18} />}
+                                >
+                                    المتابعة
+                                </Button>
+                            ) : (
+                                <Button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="rounded-full h-12 px-12 bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                                    icon={isLoading ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}
+                                >
+                                    {isLoading ? 'جاري الحفظ...' : 'حفظ التقرير نهائياً'}
+                                </Button>
+                            )}
                         </div>
-
-                        {step < 5 ? (
-                            <Button
-                                type="button"
-                                onClick={() => setStep(step + 1)}
-                                className="px-12"
-                                icon={<ChevronLeft size={20} className={cn(locale === 'ar' ? "" : "rotate-180")} />}
-                            >
-                                التالي
-                            </Button>
-                        ) : (
-                            <Button
-                                type="submit"
-                                size="lg"
-                                className="px-12 shadow-xl shadow-primary/20"
-                                isLoading={isLoading}
-                                icon={<Save size={20} />}
-                            >
-                                اعتماد وحفظ التقرير
-                            </Button>
-                        )}
                     </div>
 
                 </form>
+
+                {/* Client Creation Modal */}
+                <Modal
+                    isOpen={isClientModalOpen}
+                    onClose={() => setIsClientModalOpen(false)}
+                    title="إضافة عميل جديد"
+                    className="max-w-md"
+                >
+                    <form onSubmit={handleCreateClient} className="space-y-6">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2 tracking-tighter">اسم العميل بالكامل</label>
+                                <Input
+                                    placeholder="أدخل اسم العميل..."
+                                    icon={<User size={18} />}
+                                    value={newClient.name}
+                                    onChange={(e) => setNewClient(prev => ({ ...prev, name: e.target.value }))}
+                                    className="rounded-2xl bg-black/[0.02] border-transparent h-12"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2 tracking-tighter">رقم الموبايل</label>
+                                <Input
+                                    placeholder="أدخل رقم الموبايل..."
+                                    icon={<Smartphone size={18} />}
+                                    value={newClient.phone}
+                                    onChange={(e) => setNewClient(prev => ({ ...prev, phone: e.target.value }))}
+                                    className="rounded-2xl bg-black/[0.02] border-transparent h-12"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2 tracking-tighter">كود العميل (كلمة المرور)</label>
+                                <Input
+                                    placeholder="123456"
+                                    prefix="LPK"
+                                    icon={<Hash size={18} />}
+                                    value={newClient.orderCode.replace(/^LPK/, '')}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                                        setNewClient(prev => ({ ...prev, orderCode: val }));
+                                    }}
+                                    className="rounded-2xl bg-black/[0.02] border-transparent h-12 font-mono text-primary font-bold"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2 tracking-tighter">العنوان (اختياري)</label>
+                                <Input
+                                    placeholder="أدخل العنوان..."
+                                    icon={<FileText size={18} />}
+                                    value={newClient.address}
+                                    onChange={(e) => setNewClient(prev => ({ ...prev, address: e.target.value }))}
+                                    className="rounded-2xl bg-black/[0.02] border-transparent h-12"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsClientModalOpen(false)}
+                                className="flex-1 rounded-full h-12"
+                            >
+                                إلغاء
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isSubmittingNewClient}
+                                className="flex-2 rounded-full h-12 px-8"
+                                icon={isSubmittingNewClient ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}
+                            >
+                                {isSubmittingNewClient ? 'جاري الحفظ...' : 'حفظ العميل'}
+                            </Button>
+                        </div>
+                    </form>
+                </Modal>
             </div>
         </DashboardLayout>
     );

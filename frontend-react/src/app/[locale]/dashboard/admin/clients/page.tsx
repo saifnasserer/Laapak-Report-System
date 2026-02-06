@@ -63,7 +63,7 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
                         <Button
                             size="md"
                             icon={<Plus size={20} />}
-                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-12 px-8 rounded-xl shadow-lg shadow-primary/20"
+                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-12 px-8 rounded-full shadow-lg shadow-primary/20"
                         >
                             إضافة عميل
                         </Button>

@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Search, Plus, Filter, Download, MoreVertical } from 'lucide-react';
+import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 
 import api from '@/lib/api';
 import { use } from 'react';
+import { cn } from '@/lib/utils';
 
 export default function ReportsAdminPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -20,6 +21,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const [reports, setReports] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showAll, setShowAll] = useState(false);
 
     React.useEffect(() => {
         const fetchReports = async () => {
@@ -42,11 +44,10 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const statusMap: any = {
         'completed': { label: 'مكتمل', variant: 'success' },
         'مكتمل': { label: 'مكتمل', variant: 'success' },
-        'pending': { label: 'انتظار', variant: 'warning' },
-        'انتظار': { label: 'انتظار', variant: 'warning' },
-        'active': { label: 'نشط', variant: 'primary' },
-        'in-progress': { label: 'قيد المعالجة', variant: 'primary' },
-        'قيد المعالجة': { label: 'قيد المعالجة', variant: 'primary' },
+        'pending': { label: 'قيد الانتظار', variant: 'warning' },
+        'قيد الانتظار': { label: 'قيد الانتظار', variant: 'warning' },
+        'active': { label: 'قيد الانتظار', variant: 'warning' },
+        'نشط': { label: 'قيد الانتظار', variant: 'warning' },
         'cancelled': { label: 'ملغي', variant: 'destructive' },
         'ملغي': { label: 'ملغي', variant: 'destructive' },
         'ملغى': { label: 'ملغي', variant: 'destructive' },
@@ -56,14 +57,67 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         return statusMap[status] || { label: status || 'غير معروف', variant: 'outline' };
     };
 
+    const handleStatusChange = async (reportId: string, newStatus: string) => {
+        try {
+            await api.put(`/reports/${reportId}`, { status: newStatus });
+            setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
+        } catch (err) {
+            console.error('Failed to update status:', err);
+            alert('فشل في تحديث حالة التقرير');
+        }
+    };
+
+    const handleDeleteReport = async (reportId: string) => {
+        if (!confirm('هل أنت متأكد من حذف هذا التقرير؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+        try {
+            await api.delete(`/reports/${reportId}`);
+            setReports(prev => prev.filter(r => r.id !== reportId));
+        } catch (err) {
+            console.error('Failed to delete report:', err);
+            alert('فشل في حذف التقرير');
+        }
+    };
+
+    const isPendingReport = (report: any) => {
+        const status = (report.status || '').toLowerCase();
+        return status === 'pending' || status === 'waiting' || status === 'قيد الانتظار' || status === 'انتظار' || status === 'active' || status === 'نشط';
+    };
+
+    const isReportInCurrentMonth = (report: any) => {
+        const reportDate = report.inspection_date || report.inspectionDate || report.created_at || report.createdAt;
+        if (!reportDate) return false;
+
+        const date = new Date(reportDate);
+        const now = new Date();
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    };
+
     const filteredReports = reports.filter(report => {
         const term = searchTerm.toLowerCase();
-        return (
+
+        // Search logic (matching reports.js)
+        const matchesSearch = term === '' || (
             report.order_number?.toLowerCase().includes(term) ||
             report.client_name?.toLowerCase().includes(term) ||
             report.device_model?.toLowerCase().includes(term) ||
-            report.id?.toString().includes(term)
+            report.serial_number?.toLowerCase().includes(term) ||
+            report.id?.toString().includes(term) ||
+            report.client_phone?.toLowerCase().includes(term) ||
+            report.client_email?.toLowerCase().includes(term) ||
+            report.status?.toLowerCase().includes(term)
         );
+
+        if (!matchesSearch) return false;
+
+        // If "Show All" is active, don't apply the default date/status filters
+        if (showAll) return true;
+
+        // Default Filter Logic: If no search term, show (Pending) OR (Current Month)
+        if (term === '') {
+            return isPendingReport(report) || isReportInCurrentMonth(report);
+        }
+
+        return true;
     });
 
     return (
@@ -84,14 +138,23 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                 className="bg-white h-11 rounded-full"
                             />
                         </div>
-                        <Button variant="outline" size="md" className="w-11 h-11 p-0 rounded-xl bg-white border-black/10">
+                        <Button
+                            variant={showAll ? "primary" : "outline"}
+                            size="md"
+                            className={cn(
+                                "w-11 h-11 p-0 rounded-full transition-all",
+                                showAll ? "bg-primary text-white" : "bg-white border-black/10 text-foreground"
+                            )}
+                            onClick={() => setShowAll(!showAll)}
+                            title={showAll ? "عرض التقارير الهامة فقط" : "عرض جميع التقارير"}
+                        >
                             <Filter size={18} />
                         </Button>
                         <Button
                             size="md"
                             icon={<Plus size={20} />}
                             onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/new`}
-                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-12 px-8 rounded-xl shadow-lg shadow-primary/20"
+                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-12 px-8 rounded-full shadow-lg shadow-primary/20"
                         >
                             تقرير جديد
                         </Button>
@@ -107,28 +170,80 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         ) : filteredReports.length === 0 ? (
                             <div className="p-12 text-center text-secondary">لا توجد تقارير حالياً</div>
                         ) : (
-                            <Table headers={['رقم الطلب', 'العميل', 'الجهاز', 'الحالة', 'التاريخ', '']}>
+                            <Table headers={['رقم الطلب', 'التاريخ', 'العميل', 'الجهاز', 'الحالة', 'الإضافات', 'التأكيد', '']}>
                                 {filteredReports.map((report) => {
                                     const statusInfo = getStatusInfo(report.status);
                                     return (
                                         <TableRow key={report.id} onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}`} className="cursor-pointer">
                                             <TableCell className="font-bold text-primary">{report.order_number || report.id}</TableCell>
-                                            <TableCell className="font-semibold">{report.client_name}</TableCell>
-                                            <TableCell className="text-secondary">{report.device_model}</TableCell>
-                                            <TableCell className="text-center">
+                                            <TableCell className="text-secondary text-xs">
+                                                {new Date(report.inspection_date || report.created_at || report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                            </TableCell>
+                                            <TableCell className="font-semibold text-sm">{report.client_name}</TableCell>
+                                            <TableCell className="text-secondary font-medium min-w-[180px] max-w-[250px] truncate">{report.device_model}</TableCell>
+                                            <TableCell className="text-center align-middle" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                                 <div className="flex justify-center">
-                                                    <Badge variant={statusInfo.variant} circular>
-                                                        {statusInfo.label}
-                                                    </Badge>
+                                                    <select
+                                                        value={report.status === 'pending' || report.status === 'انتظار' || report.status === 'نشط' || report.status === 'active' ? 'قيد الانتظار' :
+                                                            report.status === 'completed' ? 'مكتمل' :
+                                                                report.status === 'cancelled' || report.status === 'ملغى' ? 'ملغي' : report.status}
+                                                        onChange={(e) => handleStatusChange(report.id, e.target.value)}
+                                                        className={cn(
+                                                            "px-3 py-1.5 rounded-full text-[11px] font-black border outline-none transition-all cursor-pointer appearance-none text-center min-w-[100px]",
+                                                            report.status === 'completed' || report.status === 'مكتمل' ? "bg-green-100 text-green-600 border-green-200" :
+                                                                report.status === 'pending' || report.status === 'قيد الانتظار' || report.status === 'انتظار' || report.status === 'active' || report.status === 'نشط' ? "bg-yellow-100 text-yellow-600 border-yellow-200" :
+                                                                    report.status === 'cancelled' || report.status === 'ملغي' || report.status === 'ملغى' ? "bg-red-100 text-red-600 border-red-200" :
+                                                                        "bg-primary/10 text-primary border-primary/20"
+                                                        )}
+                                                    >
+                                                        <option value="قيد الانتظار">⏳ قيد الانتظار</option>
+                                                        <option value="مكتمل">✅ مكتمل</option>
+                                                        <option value="ملغي">❌ ملغي</option>
+                                                    </select>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-sm text-secondary/60">
-                                                {report.inspection_date ? new Date(report.inspection_date).toLocaleDateString('ar-EG') : '-'}
+                                            <TableCell className="text-center align-middle p-0 w-12">
+                                                <div className="flex justify-center">
+                                                    {report.selected_accessories && Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0 ? (
+                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20">
+                                                            <ShoppingCart size={14} className="animate-bounce" />
+                                                        </div>
+                                                    ) : (
+                                                        <ShoppingCart size={14} className="text-secondary/20" />
+                                                    )}
+                                                </div>
                                             </TableCell>
-                                            <TableCell>
-                                                <Button variant="ghost" size="sm" className="w-10 h-10 p-0 rounded-full">
-                                                    <MoreVertical size={20} />
-                                                </Button>
+                                            <TableCell className="text-center align-middle p-0 w-20">
+                                                <div className="flex justify-center">
+                                                    {(report.is_confirmed || report.status === 'completed' || report.status === 'مكتمل') ? (
+                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 border border-green-100 animate-in fade-in zoom-in duration-500">
+                                                            <CheckCircle2 size={12} className="text-green-500" />
+                                                            <span className="text-[10px] font-black text-green-700 uppercase tracking-tighter">مؤكد</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-secondary/20 text-xs">-</span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="w-8 h-8 p-0 rounded-full hover:bg-primary/10 hover:text-primary"
+                                                        onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}/edit`}
+                                                    >
+                                                        <Edit size={16} />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="w-8 h-8 p-0 rounded-full hover:bg-red-50 hover:text-red-500"
+                                                        onClick={() => handleDeleteReport(report.id)}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     );

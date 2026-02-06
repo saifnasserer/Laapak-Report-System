@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://82.112.253.29:3001/api',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -41,9 +41,9 @@ api.interceptors.response.use(
     }
 );
 
-export const confirmReport = async (reportId: string) => {
+export const confirmReport = async (reportId: string, selectedAccessories: any[] = []) => {
     try {
-        const response = await api.put(`/reports/${reportId}/confirm`);
+        const response = await api.put(`/reports/${reportId}/confirm`, { selectedAccessories });
         return response.data;
     } catch (error) {
         console.error('Error confirming report:', error);
