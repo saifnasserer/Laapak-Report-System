@@ -172,7 +172,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
     const handlePrint = (invoiceId: string) => {
         const token = localStorage.getItem('token');
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
         const printUrl = `${baseUrl}/invoices/${invoiceId}/print?token=${token}`;
         window.open(printUrl, '_blank');
     };

@@ -75,7 +75,7 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
 
     const handlePrint = (id: string) => {
         const token = localStorage.getItem('token');
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
         const printUrl = `${baseUrl}/invoices/${id}/print?token=${token}`;
         window.open(printUrl, '_blank');
     };
