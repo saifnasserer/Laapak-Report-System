@@ -117,12 +117,12 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
 
                 {/* Reports List - Row Based */}
                 <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2 md:px-4">
+                    {/* <div className="flex items-center justify-between px-2 md:px-4">
                         <h2 className="text-xl md:text-2xl font-black flex items-center gap-3">
                             <Package size={28} className="text-primary" />
                             سجل التقارير والأجهزة
                         </h2>
-                    </div>
+                    </div> */}
 
                     {reports.length > 0 ? (
                         <div className="space-y-4">

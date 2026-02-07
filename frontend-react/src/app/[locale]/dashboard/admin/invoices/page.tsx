@@ -7,13 +7,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Receipt, Search, Plus, Download, Eye, Filter, Edit, Trash2 } from 'lucide-react';
+import { Receipt, Search, Plus, Download, Eye, Filter, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import api from '@/lib/api';
 import { use } from 'react';
 import { useRouter } from '@/i18n/routing';
 import { Modal } from '@/components/ui/Modal'; // Assuming Modal is created
-import { MessageCircle, Send, X } from 'lucide-react';
+import { MessageCircle, Send, X, Smartphone, CreditCard, Banknote } from 'lucide-react';
+import { PaymentMethodModal } from '@/components/invoices/PaymentMethodModal';
 
 export default function InvoicesAdminPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -27,6 +28,21 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
     const [shareMessage, setShareMessage] = useState('');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
+    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+    const toggleMenu = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setActiveMenuId(activeMenuId === id ? null : id);
+    };
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setActiveMenuId(null);
+        window.addEventListener('click', handleClickOutside);
+        return () => window.removeEventListener('click', handleClickOutside);
+    }, []);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string, status: string } | null>(null);
 
     const fetchInvoices = async () => {
         setIsLoading(true);
@@ -63,10 +79,25 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
         return matchesSearch && matchesStatus;
     });
 
-    const handleStatusChange = async (id: string, newStatus: string) => {
+    const handleStatusChange = async (id: string, newStatus: string, paymentMethod?: string) => {
         try {
-            await api.put(`/invoices/${id}`, { paymentStatus: newStatus });
+            if (newStatus === 'completed' && !paymentMethod) {
+                setPendingStatusUpdate({ id, status: newStatus });
+                setShowPaymentModal(true);
+                return;
+            }
+
+            await api.put(`/invoices/${id}`, {
+                paymentStatus: newStatus,
+                paymentMethod: paymentMethod || 'cash'
+            });
+
             setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, paymentStatus: newStatus } : inv));
+
+            if (newStatus === 'completed') {
+                setShowPaymentModal(false);
+                setPendingStatusUpdate(null);
+            }
         } catch (error) {
             console.error('Failed to update status:', error);
             alert('فشل تحديث الحالة');
@@ -218,44 +249,50 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
                                             <TableCell className="text-sm text-secondary/60">
                                                 {new Date(inv.created_at || inv.date).toLocaleDateString('ar-EG')}
                                             </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
+                                            <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()} className="overflow-visible">
+                                                <div className="relative flex justify-end">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
                                                         className="w-10 h-10 p-0 rounded-full"
-                                                        title="عرض"
-                                                        onClick={() => handlePrint(inv.id)}
+                                                        onClick={(e) => toggleMenu(inv.id, e)}
                                                     >
-                                                        <Eye size={18} />
+                                                        <MoreHorizontal size={20} />
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="w-10 h-10 p-0 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                        title="تعديل"
-                                                        onClick={() => router.push(`/dashboard/admin/invoices/${inv.id}/edit`)}
-                                                    >
-                                                        <Edit size={18} />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="w-10 h-10 p-0 rounded-full text-green-600 hover:text-green-700 hover:bg-green-50"
-                                                        title="مشاركة واتساب"
-                                                        onClick={() => openWhatsAppModal(inv.id, inv.client?.name || 'الكريم')}
-                                                    >
-                                                        <MessageCircle size={18} />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="w-10 h-10 p-0 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                        title="حذف"
-                                                        onClick={() => handleDeleteInvoice(inv.id)}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </Button>
+
+                                                    {activeMenuId === inv.id && (
+                                                        <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border border-black/5 rounded-2xl shadow-xl z-[100] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                                            <button
+                                                                className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between"
+                                                                onClick={() => handlePrint(inv.id)}
+                                                            >
+                                                                <span>عرض الفاتورة</span>
+                                                                <Eye size={16} className="text-primary" />
+                                                            </button>
+                                                            <button
+                                                                className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between"
+                                                                onClick={() => router.push(`/dashboard/admin/invoices/${inv.id}/edit`)}
+                                                            >
+                                                                <span>تعديل الفاتورة</span>
+                                                                <Edit size={16} className="text-blue-600" />
+                                                            </button>
+                                                            <button
+                                                                className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between"
+                                                                onClick={() => openWhatsAppModal(inv.id, inv.client?.name || 'الكريم')}
+                                                            >
+                                                                <span className="text-[#25D366]">مشاركة واتساب</span>
+                                                                <MessageCircle size={16} className="text-[#25D366]" />
+                                                            </button>
+                                                            <div className="h-[1px] bg-black/5 mx-2" />
+                                                            <button
+                                                                className="w-full text-right px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/5 transition-colors flex items-center justify-between"
+                                                                onClick={() => handleDeleteInvoice(inv.id)}
+                                                            >
+                                                                <span>حذف الفاتورة</span>
+                                                                <Trash2 size={16} className="text-destructive" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -302,6 +339,21 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
                         </div>
                     </div>
                 </Modal>
+
+                <PaymentMethodModal
+                    isOpen={showPaymentModal}
+                    onClose={() => {
+                        setShowPaymentModal(false);
+                        setPendingStatusUpdate(null);
+                        // Refresh invoices to reset select value if cancelled
+                        fetchInvoices();
+                    }}
+                    onConfirm={(method) => {
+                        if (pendingStatusUpdate) {
+                            handleStatusChange(pendingStatusUpdate.id, pendingStatusUpdate.status, method);
+                        }
+                    }}
+                />
             </div>
         </DashboardLayout>
     );

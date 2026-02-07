@@ -17,9 +17,12 @@ import {
     DollarSign,
     Smartphone,
     Hash,
-    AlertTriangle
+    AlertTriangle,
+    CreditCard,
+    Banknote
 } from 'lucide-react';
 import { useRouter } from '@/i18n/routing';
+import { PaymentMethodModal } from './PaymentMethodModal';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
@@ -40,6 +43,7 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [newClient, setNewClient] = useState({ name: '', phone: '', address: '', orderCode: '' });
     const [isSubmittingNewClient, setIsSubmittingNewClient] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     const [formData, setFormData] = useState({
         client_id: '',
@@ -118,7 +122,7 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                     }
 
                     const newItems = reports.map(r => ({
-                        description: `تقرير فحص - ${r.device_model} (${r.order_number || r.id})`,
+                        description: `${r.device_model}})`,
                         amount: r.amount ? String(r.amount) : '0',
                         quantity: 1
                     }));
@@ -335,6 +339,15 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                                     placeholder="-"
                                 />
                             </div>
+                            <div className="space-y-2 relative z-10">
+                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2">تاريخ الفاتورة</label>
+                                <Input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                                    className="rounded-full h-12 bg-white border-black/5 font-bold"
+                                />
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -426,15 +439,6 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2">تاريخ الفاتورة</label>
-                                <Input
-                                    type="date"
-                                    value={formData.date}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                                    className="rounded-full h-12 bg-white border-black/5 font-bold"
-                                />
-                            </div>
                             <div className="p-6 rounded-[2rem] bg-black/[0.02] border border-black/5 space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-secondary/40 uppercase px-2">طريقة الدفع</label>
@@ -454,11 +458,18 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                                     <select
                                         className="w-full h-12 rounded-full border-black/5 bg-white px-4 text-sm font-bold focus:border-primary/30 outline-none appearance-none"
                                         value={formData.paymentStatus}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                                        onChange={(e) => {
+                                            const newStatus = e.target.value;
+                                            setFormData(prev => ({ ...prev, paymentStatus: newStatus }));
+                                            if (newStatus === 'completed') {
+                                                setShowPaymentModal(true);
+                                            }
+                                        }}
                                     >
-                                        <option value="paid">مدفوع بالكامل</option>
-                                        <option value="unpaid">غير مدفوع</option>
-                                        <option value="partially_paid">مدفوع جزئياً</option>
+                                        <option value="unpaid">غير مدفوع (Pending)</option>
+                                        <option value="completed">مكتمل / مدفوع (Completed)</option>
+                                        <option value="partial">مدفوع جزئياً (Partial)</option>
+                                        <option value="cancelled">ملغي (Cancelled)</option>
                                     </select>
                                 </div>
                             </div>
@@ -551,6 +562,17 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                     </div>
                 </form>
             </Modal>
+
+            {/* Payment Method Modal */}
+            <PaymentMethodModal
+                isOpen={showPaymentModal}
+                onClose={() => setShowPaymentModal(false)}
+                onConfirm={(method) => {
+                    setFormData(prev => ({ ...prev, paymentMethod: method }));
+                    setShowPaymentModal(false);
+                }}
+                selectedMethod={formData.paymentMethod}
+            />
         </div>
     );
 }

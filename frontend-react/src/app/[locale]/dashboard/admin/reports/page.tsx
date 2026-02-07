@@ -14,6 +14,7 @@ import api from '@/lib/api';
 import { use } from 'react';
 import { cn } from '@/lib/utils';
 import { WhatsAppShareModal } from '@/components/reports/WhatsAppShareModal';
+import { PaymentMethodModal } from '@/components/invoices/PaymentMethodModal';
 
 export default function ReportsAdminPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -28,6 +29,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     // WhatsApp Share State
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [reportToShare, setReportToShare] = useState<any>(null);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string, status: string, needsInvoice?: boolean } | null>(null);
 
     // Action Menu State
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -85,10 +88,61 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         return statusMap[status] || { label: status || 'غير معروف', variant: 'outline' };
     };
 
-    const handleStatusChange = async (reportId: string, newStatus: string) => {
+    const handleStatusChange = async (reportId: string, newStatus: string, paymentMethod?: string) => {
         try {
-            await api.put(`/reports/${reportId}`, { status: newStatus });
-            setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
+            // Map Arabic status from select back to English for API
+            const statusMapToEng: any = {
+                'قيد الانتظار': 'pending',
+                'مكتمل': 'completed',
+                'ملغي': 'cancelled'
+            };
+            const engStatus = statusMapToEng[newStatus] || newStatus;
+
+            if (engStatus === 'completed' && !paymentMethod) {
+                const report = reports.find(r => r.id === reportId);
+                const needsInvoice = !report?.invoice_created;
+                setPendingStatusUpdate({ id: reportId, status: newStatus, needsInvoice });
+                setShowPaymentModal(true);
+                return;
+            }
+
+            if (engStatus === 'completed' && pendingStatusUpdate?.needsInvoice) {
+                // Auto-create invoice first
+                const report = reports.find(r => r.id === reportId);
+                if (report) {
+                    const invoiceData = {
+                        client_id: report.client_id,
+                        date: new Date(),
+                        report_ids: [report.id],
+                        subtotal: report.amount,
+                        taxRate: 0,
+                        tax: 0,
+                        discount: 0,
+                        total: report.amount,
+                        paymentStatus: 'completed',
+                        paymentMethod: paymentMethod || 'cash',
+                        items: [{
+                            description: report.device_model,
+                            amount: report.amount,
+                            quantity: 1,
+                            totalAmount: report.amount
+                        }]
+                    };
+                    await api.post('/invoices', invoiceData);
+                }
+            }
+
+            await api.put(`/reports/${reportId}`, {
+                status: engStatus,
+                paymentMethod: paymentMethod || 'cash'
+            });
+
+            setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: engStatus } : r));
+
+            if (engStatus === 'completed') {
+                setShowPaymentModal(false);
+                setPendingStatusUpdate(null);
+            }
         } catch (err) {
             console.error('Failed to update status:', err);
             alert('فشل في تحديث حالة التقرير');
@@ -392,14 +446,14 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         <Button
                             size="sm"
                             onClick={async () => {
-                                if (!confirm('هل أنت متأكد من نقل التقارير المحددة إلى المخزون (Laapak)؟')) return;
+                                if (!confirm('هل أنت متأكد من نقل التقارير المحددة إلى المخزن (Laapak)؟')) return;
 
                                 try {
                                     // 1. Find or Create Laapak Client
                                     let laapakClient;
                                     const clientsResponse = await api.get('/clients?search=Laapak');
                                     const clients = clientsResponse.data.clients || [];
-                                    laapakClient = clients.find((c: any) => c.name.toLowerCase() === 'laapak' || c.name === 'لاباك');
+                                    laapakClient = clients.find((c: any) => c.name.toLowerCase() === 'laapak' || c.name === 'لابك');
 
                                     if (!laapakClient) {
                                         const createResponse = await api.post('/clients', {
@@ -468,6 +522,22 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                     onClose={() => setShareModalOpen(false)}
                     report={reportToShare}
                     locale={locale}
+                />
+
+                <PaymentMethodModal
+                    isOpen={showPaymentModal}
+                    onClose={() => {
+                        setShowPaymentModal(false);
+                        setPendingStatusUpdate(null);
+                        // Refresh reports to reset select value if cancelled
+                        window.location.reload();
+                    }}
+                    onConfirm={(method) => {
+                        if (pendingStatusUpdate) {
+                            handleStatusChange(pendingStatusUpdate.id, pendingStatusUpdate.status, method);
+                        }
+                    }}
+                    showInvoiceWarning={pendingStatusUpdate?.needsInvoice}
                 />
             </div>
         </DashboardLayout>

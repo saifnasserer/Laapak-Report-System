@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { Invoice, InvoiceItem, Report, Client, InvoiceReport, sequelize } = require('../models');
+const { Invoice, InvoiceItem, Report, Client, InvoiceReport, MoneyLocation, MoneyMovement, sequelize } = require('../models');
 const { auth, adminAuth, clientAuth } = require('../middleware/auth');
 const { Op } = require('sequelize');
 const Notifier = require('../utils/notifier');
@@ -15,6 +15,7 @@ const fs = require('fs');
 
 // JWT Secret for print token verification
 const JWT_SECRET = process.env.JWT_SECRET;
+
 
 // Load print settings helper
 function loadPrintSettings() {
@@ -201,6 +202,11 @@ router.post('/', adminAuth, async (req, res) => {
       );
     }
 
+    // Record payment if completed
+    if (paymentStatus === 'completed') {
+      await Invoice.recordPayment(invoice.id, paymentMethod, req.user.id, transaction);
+    }
+
     await transaction.commit();
 
     const result = await Invoice.findByPk(invoice.id, {
@@ -240,6 +246,8 @@ router.put('/:id', adminAuth, async (req, res) => {
     const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
+    const oldStatus = invoice.paymentStatus;
+
     // Update invoice details
     await invoice.update({
       client_id,
@@ -254,6 +262,62 @@ router.put('/:id', adminAuth, async (req, res) => {
       notes,
       updated_at: new Date()
     }, { transaction });
+
+    // Record payment if switched to completed
+    if (paymentStatus === 'completed' && oldStatus !== 'completed') {
+      await Invoice.recordPayment(invoice.id, paymentMethod, req.user.id, transaction);
+    }
+
+    // Revert payment if moved AWAY from completed
+    if (oldStatus === 'completed' && paymentStatus !== 'completed') {
+      await Invoice.revertPayment(invoice.id, req.user.id, transaction);
+    }
+
+    // Sync status to linked reports
+    if (paymentStatus && paymentStatus !== oldStatus) {
+      // Map invoice status to report status (Arabic)
+      const reportStatusMap = {
+        'completed': 'مكتمل',
+        'pending': 'قيد الانتظار',
+        'cancelled': 'ملغي',
+        'paid': 'مكتمل',
+        'unpaid': 'قيد الانتظار'
+      };
+
+      const newReportStatus = reportStatusMap[paymentStatus];
+
+      if (newReportStatus) {
+        // Find all report IDs linked to this invoice
+        const reportIds = new Set();
+
+        // Find reports directly linked
+        const directlyLinked = await Report.findAll({
+          where: { invoice_id: invoice.id },
+          attributes: ['id'],
+          transaction
+        });
+        directlyLinked.forEach(r => reportIds.add(r.id));
+
+        // Find reports linked via items
+        const itemLinked = await InvoiceItem.findAll({
+          where: { invoiceId: invoice.id },
+          attributes: ['report_id'],
+          transaction
+        });
+        itemLinked.forEach(rt => { if (rt.report_id) reportIds.add(rt.report_id); });
+
+        if (reportIds.size > 0) {
+          console.log(`Syncing status '${newReportStatus}' to ${reportIds.size} linked report(s) for invoice ${invoice.id}`);
+          await Report.update(
+            { status: newReportStatus },
+            {
+              where: { id: { [Op.in]: Array.from(reportIds) } },
+              transaction
+            }
+          );
+        }
+      }
+    }
 
     // Update items: Delete existing and recreate (simplest approach for full sync)
     // In a production app with history tracking, we might want to be more granular,

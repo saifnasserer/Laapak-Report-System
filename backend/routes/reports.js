@@ -1040,11 +1040,24 @@ router.put('/:id', auth, async (req, res) => {
     console.log(`Report ${req.params.id} updated successfully`);
 
     // Sync invoice status if report status changed to completed or cancelled
-    // Note: req.body.status is already converted to English at this point
-    if (req.body.status && req.body.status !== oldStatus) {
+    // Note: req.body.status might be English or Arabic depending on where it's called from
+    const normalizeStatus = (s) => {
+      if (!s) return '';
+      const map = {
+        'مكتمل': 'completed',
+        'قيد الانتظار': 'pending', 'انتظار': 'pending', 'نشط': 'pending', 'active': 'pending',
+        'ملغي': 'cancelled', 'ملغى': 'cancelled', 'cancelled': 'cancelled'
+      };
+      return map[s] || s.toLowerCase();
+    };
+
+    const normalizedNew = normalizeStatus(req.body.status);
+    const normalizedOld = normalizeStatus(oldStatus);
+
+    if (normalizedNew && normalizedNew !== normalizedOld) {
       try {
-        const newStatus = req.body.status; // This is already in English format
-        console.log(`Report status changed from '${oldStatus}' to '${newStatus}', syncing invoices...`);
+        const newStatus = normalizedNew;
+        console.log(`Report status changed from '${oldStatus}' to '${req.body.status}' (Normalized: ${newStatus}), syncing invoices...`);
 
         // Map English report status to invoice payment status
         let invoicePaymentStatus = null;
@@ -1052,7 +1065,7 @@ router.put('/:id', auth, async (req, res) => {
           invoicePaymentStatus = 'completed';
         } else if (newStatus === 'cancelled') {
           invoicePaymentStatus = 'cancelled';
-        } else if (newStatus === 'pending' || newStatus === 'shipped') {
+        } else if (newStatus === 'pending') {
           invoicePaymentStatus = 'pending';
         }
 
@@ -1083,10 +1096,27 @@ router.put('/:id', auth, async (req, res) => {
 
             // Update each linked invoice
             let updatedCount = 0;
+            const paymentMethod = req.body.paymentMethod || 'cash';
+
             for (const invoice of invoices) {
-              if (invoice.paymentStatus !== invoicePaymentStatus) {
-                console.log(`Updating invoice ${invoice.id} paymentStatus from '${invoice.paymentStatus}' to '${invoicePaymentStatus}'`);
-                await invoice.update({ paymentStatus: invoicePaymentStatus });
+              const previousStatus = invoice.paymentStatus;
+              if (previousStatus !== invoicePaymentStatus) {
+                console.log(`Updating invoice ${invoice.id} paymentStatus from '${previousStatus}' to '${invoicePaymentStatus}'`);
+                await invoice.update({
+                  paymentStatus: invoicePaymentStatus,
+                  paymentMethod: invoicePaymentStatus === 'completed' ? paymentMethod : invoice.paymentMethod
+                });
+
+                // Record revenue if it just became completed
+                if (invoicePaymentStatus === 'completed' && previousStatus !== 'completed') {
+                  await Invoice.recordPayment(invoice.id, paymentMethod, req.user.id);
+                }
+
+                // Revert revenue if it was completed but is no longer completed
+                if (previousStatus === 'completed' && invoicePaymentStatus !== 'completed') {
+                  await Invoice.revertPayment(invoice.id, req.user.id);
+                }
+
                 updatedCount++;
               } else {
                 console.log(`Invoice ${invoice.id} already has status '${invoice.paymentStatus}', skipping`);

@@ -197,7 +197,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             let laapakClient;
             const clientsResponse = await api.get('/clients?search=Laapak');
             const clients = clientsResponse.data.clients || [];
-            laapakClient = clients.find((c: any) => c.name.toLowerCase() === 'laapak' || c.name === 'لاباك');
+            laapakClient = clients.find((c: any) => c.name.toLowerCase() === 'laapak' || c.name === 'لابك');
 
             if (!laapakClient) {
                 // Create Laapak client if not exists

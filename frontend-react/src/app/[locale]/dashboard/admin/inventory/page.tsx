@@ -46,13 +46,13 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                 const allReports = response.data;
                 const laapakReports = allReports.filter((r: any) =>
                     r.client_name?.toLowerCase().includes('laapak') ||
-                    r.client_name?.toLowerCase().includes('لاباك')
+                    r.client_name?.toLowerCase().includes('لابك')
                 );
                 setReports(laapakReports);
                 setError(null);
             } catch (err: any) {
                 console.error('Failed to fetch inventory:', err);
-                setError('فشل في تحميل المخزون. يرجى المحاولة لاحقاً.');
+                setError('فشل في تحميل المخزن. يرجى المحاولة لاحقاً.');
             } finally {
                 setIsLoading(false);
             }
@@ -132,7 +132,7 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                 total: parseFloat(salePrice),
                 paymentMethod: 'cash',
                 paymentStatus: 'unpaid',
-                notes: `بيع جهاز من المخزون. المصدر: ${getSourceFromNotes(selectedReportForSale.notes)}`,
+                notes: `بيع جهاز من المخزن. المصدر: ${getSourceFromNotes(selectedReportForSale.notes)}`,
                 report_ids: [selectedReportForSale.id]
             };
 
@@ -197,7 +197,7 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
         <DashboardLayout>
             <div className="space-y-6 max-w-5xl mx-auto">
                 {/* Sell Modal */}
-                <Modal isOpen={isSellModalOpen} onClose={() => setIsSellModalOpen(false)} title="بيع جهاز من المخزون">
+                <Modal isOpen={isSellModalOpen} onClose={() => setIsSellModalOpen(false)} title="بيع جهاز من المخزن">
                     <div className="space-y-6">
                         <div className="bg-surface-variant/20 p-4 rounded-xl">
                             <p className="text-secondary/60 text-sm">الجهاز المحدد:</p>
@@ -292,7 +292,7 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                                 <span className="p-3 bg-primary/10 rounded-[1.5rem] text-primary">
                                     <Package size={28} />
                                 </span>
-                                إدارة المخزون (لاباك)
+                                إدارة المخزن
                             </h1>
                             <p className="text-secondary/70 font-medium mt-2 mr-16">
                                 متابعة الأجهزة المتوفرة في المخزن
