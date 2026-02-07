@@ -44,7 +44,7 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
     const [invoices, setInvoices] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [openTipIndex, setOpenTipIndex] = useState<number | null>(0);
+    const [openTipIndex, setOpenTipIndex] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -158,46 +158,48 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
                                             </div>
 
                                             {/* Actions */}
-                                            <div className="flex flex-wrap items-center gap-3 shrink-0">
-                                                <Link href={`/dashboard/client/warranty?id=${report.id}`} className="flex-1 sm:flex-initial">
+                                            <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 shrink-0 w-full sm:w-auto">
+                                                <Link href={`/dashboard/client/reports/${report.id}`} className="col-span-2 sm:flex-initial order-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary border border-primary/10 gap-3"
+                                                    >
+                                                        <FileText size={20} />
+                                                        تقرير الفحص
+                                                    </Button>
+                                                </Link>
+
+                                                <Link href={`/dashboard/client/warranty?id=${report.id}`} className="col-span-1 sm:flex-initial order-2">
                                                     <Button
                                                         variant="outline"
-                                                        className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black border-primary/20 hover:bg-primary/5 gap-3"
+                                                        className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-2 md:px-6 font-bold text-sm md:text-base border-primary/20 hover:bg-primary/5 gap-2"
                                                     >
-                                                        <ShieldCheck size={20} className="text-primary" />
+                                                        <ShieldCheck size={18} className="text-primary" />
                                                         الضمان
                                                     </Button>
                                                 </Link>
 
-                                                <Link href={`/dashboard/client/reports/${report.id}`} className="flex-1 sm:flex-initial">
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black bg-surface-variant/50 hover:bg-surface-variant gap-3"
-                                                    >
-                                                        <FileText size={20} />
-                                                        تقرير
-                                                    </Button>
-                                                </Link>
-
-                                                {invoice ? (
-                                                    <Button
-                                                        variant="primary"
-                                                        onClick={() => handlePrint(invoice.id)}
-                                                        className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black shadow-lg shadow-primary/20 gap-3"
-                                                    >
-                                                        <Receipt size={20} />
-                                                        عرض الفاتورة
-                                                    </Button>
-                                                ) : (
-                                                    <Button
-                                                        variant="ghost"
-                                                        disabled
-                                                        className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black opacity-30 gap-3 border border-black/5"
-                                                    >
-                                                        <Receipt size={20} />
-                                                        لا توجد فاتورة
-                                                    </Button>
-                                                )}
+                                                <div className="col-span-1 sm:flex-initial order-3">
+                                                    {invoice ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => handlePrint(invoice.id)}
+                                                            className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-2 md:px-6 font-bold text-sm md:text-base border border-black/5 hover:bg-black/5 gap-2 opacity-70 hover:opacity-100"
+                                                        >
+                                                            <Receipt size={18} />
+                                                            الفاتورة
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            disabled
+                                                            className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-2 md:px-6 font-bold text-sm md:text-base opacity-30 gap-2 border border-black/5"
+                                                        >
+                                                            <Receipt size={18} />
+                                                            لا توجد
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
