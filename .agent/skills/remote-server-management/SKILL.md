@@ -24,22 +24,41 @@ Tools and workflows for managing the **FixZone VPS**.
 
 ## When to Use
 - User wants to check server status (Docker containers)
-- User needs to deploy new code (Git + Docker Build)
+- User needs to deploy new code (GitHub Actions / CI/CD)
 - User wants to run database migrations on production (Inside Docker)
 - User needs to check remote logs (Docker logs)
 
-## Workflow: Standard Deployment (Git-Driven)
+## Workflow: Automated Deployment (GitHub Actions)
 
-Always prefer using Git to move code to the server. This ensures version control and consistency.
+This is the **preferred** and **default** method to deploy. It bypasses VPS memory limits by building images on GitHub's runners and pushing them to Docker Hub.
 
-### 1. Laapak Report System (Backend & React Frontend)
+### 1. Prerequisite: GitHub Secrets
+Ensure these are set in the GitHub Repository (Settings -> Secrets and variables -> Actions):
+- `DOCKERHUB_USERNAME`: Your Docker Hub profile name.
+- `DOCKERHUB_TOKEN`: Personal Access Token from Docker Hub.
+- `VPS_SSH_HOST`: `82.112.253.29`
+- `VPS_SSH_USER`: `deploy`
+- `VPS_SSH_PASSWORD`: `0000`
+
+### 2. Triggering Deployment
+Simply push to the `main` branch. The `.github/workflows/deploy.yml` will handle:
+1. Building & Pushing the `backend-latest` and `frontend-latest` images.
+2. SSH-ing into the VPS to pull the new images and restart the containers.
+3. Reloading the Nginx proxy.
+
+## Workflow: Manual Deployment (Fallback/Emergency)
+
+Only use this if GitHub Actions is unavailable or failing. 
+
+### 1. Laapak Report System (VPS Build)
+> [!CAUTION]
+> VPS builds for the React frontend often fail with OOM errors. Always ensure Swap is enabled if building manually on the server.
+
 ```bash
-# SSH command for full update
+# Full manual update
 sshpass -p "0000" ssh deploy@82.112.253.29 "cd /home/deploy/laapak-projects/reports && git pull origin main && docker compose -f remote-docker-compose.yml up -d --build"
 ```
-*   **Infrastructure:** Connects to `mysql-db` on the external `laapak-network`.
-*   **Env:** Sensitive keys (JWT, API keys) are managed in `/home/deploy/laapak-projects/reports/.env` on the VPS.
-*   **Memory Warning:** Frontend builds consume high memory. Use the **OOM Prevention** workflow below.
+- **Note:** The `remote-docker-compose.yml` still contains `build` blocks to allow this manual fallback.
 
 ### 2. Central Infrastructure (Nginx / Shared DBs)
 ```bash

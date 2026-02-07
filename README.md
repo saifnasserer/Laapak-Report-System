@@ -23,13 +23,16 @@ The system consists of the following services accessible via Nginx Proxy:
 
 ## 🛠️ Deployment
 
-For detailed deployment instructions, see the [Deployment Workflow](.agent/workflows/deploy.md).
+The system uses **GitHub Actions** for automated deployment. Pushing to `main` triggers a build and deploy.
 
-### Quick Deployment (Report System)
+### Quick Deployment
 ```bash
+git add .
+git commit -m "feat: your changes"
 git push origin main
-sshpass -p "0000" ssh deploy@82.112.253.29 "cd /home/deploy/laapak-projects/reports && git pull origin main && docker compose -f remote-docker-compose.yml up -d --build"
 ```
+
+For manual fallback or troubleshooting, see the [Deployment Workflow](.agent/workflows/deploy.md).
 
 ## 🛠️ Tech Stack
 

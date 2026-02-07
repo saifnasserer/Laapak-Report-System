@@ -4,10 +4,10 @@ description: Deploying Laapak Reports System to remote VPS
 
 # Deployment Workflow
 
-Follow these steps to deploy changes to the production server.
+The preferred method for deployment is **GitHub Actions**. This automatically builds and deploys your code when you push to the `main` branch.
 
-## 1. Local Preparation
-Before deploying, ensure your changes are committed and pushed to the main repository.
+## 1. Automated Deployment (Preferred)
+Just push your changes to GitHub:
 
 ```bash
 git add .
@@ -15,8 +15,14 @@ git commit -m "feat: your descriptive message"
 git push origin main
 ```
 
-## 2. Remote Deployment
-Connect to the VPS and execute the deployment commands.
+**What happens:**
+1. GitHub builds the Docker images (solving memory issues).
+2. GitHub pushes images to Docker Hub.
+3. GitHub SSHes into the VPS, pulls the images, and restarts containers.
+4. Nginx proxy is reloaded automatically.
+
+## 2. Remote Manual Deployment (Fallback)
+If GitHub Actions is failing, you can still manually trigger a build on the VPS.
 
 // turbo
 ```bash
