@@ -5,9 +5,6 @@ networks:
 services:
   # Services using existing infrastructure
   report-system:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
     image: saifnasser/laapak-reports:backend-latest
     container_name: report-system
     env_file:
@@ -29,9 +26,6 @@ services:
       - 3001:3001
     restart: always
   laapak-frontend-react:
-    build:
-      context: ./frontend-react
-      dockerfile: Dockerfile
     image: saifnasser/laapak-reports:frontend-latest
     container_name: laapak-frontend-react
     networks:
