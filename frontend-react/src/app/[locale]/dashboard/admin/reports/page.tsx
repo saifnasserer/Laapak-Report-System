@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check } from 'lucide-react';
 
 import api from '@/lib/api';
 import { use } from 'react';
@@ -23,6 +23,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showAll, setShowAll] = useState(false);
+    const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
 
     // WhatsApp Share State
     const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -147,6 +148,67 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         return true;
     });
 
+    // Toggle selection of a single report
+    const toggleSelectReport = (reportId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        // Find the report to be toggled
+        const report = filteredReports.find(r => r.id === reportId);
+        if (!report) return;
+
+        setSelectedReportIds(prev => {
+            // Unselecting
+            if (prev.includes(reportId)) {
+                return prev.filter(id => id !== reportId);
+            }
+
+            // Selecting - Check if compatible with existing selection
+            if (prev.length > 0) {
+                const firstSelectedId = prev[0];
+                const firstSelectedReport = reports.find(r => r.id === firstSelectedId);
+
+                if (firstSelectedReport && firstSelectedReport.client_id !== report.client_id) {
+                    alert('لا يمكن تحديد تقارير لعملاء مختلفين في نفس الفاتورة.');
+                    return prev;
+                }
+            }
+
+            return [...prev, reportId];
+        });
+    };
+
+    // Toggle select all eligible reports (restricted to single client)
+    const toggleSelectAll = () => {
+        // If items are selected, clear selection
+        if (selectedReportIds.length > 0) {
+            setSelectedReportIds([]);
+            return;
+        }
+
+        // If no items selected, select all for the FIRST eligible client found
+        const eligibleReports = filteredReports.filter(r => !r.invoice_created && !r.invoice_id);
+
+        if (eligibleReports.length === 0) return;
+
+        const firstReport = eligibleReports[0];
+        const clientId = firstReport.client_id;
+
+        const sameClientReports = eligibleReports.filter(r => r.client_id === clientId);
+
+        if (sameClientReports.length < eligibleReports.length) {
+            // Optional: Inform user that only one client's reports were selected
+            // alert(`تم تحديد تقارير العميل: ${firstReport.client_name}`);
+        }
+
+        setSelectedReportIds(sameClientReports.map(r => r.id));
+    };
+
+    const handleCreateInvoice = () => {
+        if (selectedReportIds.length === 0) return;
+        const urlArgs = selectedReportIds.join(',');
+        window.location.href = `/${locale}/dashboard/admin/invoices/new?reportIds=${urlArgs}`;
+    };
+
     return (
         <DashboardLayout>
             <div className="space-y-10">
@@ -189,11 +251,40 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         ) : filteredReports.length === 0 ? (
                             <div className="p-12 text-center text-secondary">لا توجد تقارير حالياً</div>
                         ) : (
-                            <Table headers={['التاريخ', 'العميل', 'الجهاز', 'الحالة', 'الإضافات', 'التأكيد', '']} wrapperClassName="overflow-visible">
+                            <Table headers={[
+                                <div key="checkbox" className="flex justify-center items-center relative h-5 w-5">
+                                    <input
+                                        type="checkbox"
+                                        className="peer w-5 h-5 rounded-full border-2 border-gray-300 checked:bg-primary checked:border-primary cursor-pointer appearance-none transition-all duration-200"
+                                        checked={filteredReports.some(r => !r.invoice_created && !r.invoice_id) && selectedReportIds.length === filteredReports.filter(r => !r.invoice_created && !r.invoice_id).length}
+                                        onChange={toggleSelectAll}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <Check size={12} strokeWidth={3} className="text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                                </div>,
+                                'التاريخ', 'العميل', 'الجهاز', 'الحالة', 'الإضافات', 'التأكيد', ''
+                            ]} wrapperClassName="overflow-visible">
                                 {filteredReports.map((report) => {
                                     const statusInfo = getStatusInfo(report.status);
+                                    const isSelectable = !report.invoice_created && !report.invoice_id;
+                                    const isSelected = selectedReportIds.includes(report.id);
+
                                     return (
-                                        <TableRow key={report.id} onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}`} className="cursor-pointer">
+                                        <TableRow key={report.id} onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}`} className={`cursor-pointer ${isSelected ? 'bg-primary/5' : ''}`}>
+                                            <TableCell className="w-10 text-center" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                {isSelectable && (
+                                                    <div className="flex justify-center relative h-5 w-5 mx-auto">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="peer w-5 h-5 rounded-full border-2 border-gray-300 checked:bg-primary checked:border-primary cursor-pointer appearance-none transition-all duration-200"
+                                                            checked={isSelected}
+                                                            onChange={(e) => { e.stopPropagation(); }}
+                                                            onClick={(e) => toggleSelectReport(report.id, e)}
+                                                        />
+                                                        <Check size={12} strokeWidth={3} className="text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                                                    </div>
+                                                )}
+                                            </TableCell>
                                             <TableCell className="text-secondary text-xs">
                                                 {new Date(report.inspection_date || report.created_at || report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                                             </TableCell>
@@ -289,6 +380,30 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Floating Action Bar for Selected Reports */}
+                {selectedReportIds.length > 0 && (
+                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-black/5 shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
+                        <span className="font-bold text-sm">
+                            تم تحديد <span className="text-primary">{selectedReportIds.length}</span> تقرير
+                        </span>
+                        <div className="h-6 w-[1px] bg-black/10" />
+                        <Button
+                            size="sm"
+                            onClick={handleCreateInvoice}
+                            className="rounded-full bg-primary text-white hover:bg-primary/90 font-bold px-6 shadow-lg shadow-primary/20"
+                            icon={<Plus size={16} />}
+                        >
+                            إنشاء فاتورة مجمعة
+                        </Button>
+                        <button
+                            onClick={() => setSelectedReportIds([])}
+                            className="p-2 hover:bg-black/5 rounded-full text-secondary transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
 
                 {/* WhatsApp Share Modal */}
                 <WhatsAppShareModal

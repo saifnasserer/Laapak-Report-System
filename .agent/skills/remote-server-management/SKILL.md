@@ -39,6 +39,7 @@ sshpass -p "0000" ssh deploy@82.112.253.29 "cd /home/deploy/laapak-projects/repo
 ```
 *   **Infrastructure:** Connects to `mysql-db` on the external `laapak-network`.
 *   **Env:** Sensitive keys (JWT, API keys) are managed in `/home/deploy/laapak-projects/reports/.env` on the VPS.
+*   **Memory Warning:** Frontend builds consume high memory. Use the **OOM Prevention** workflow below.
 
 ### 2. Central Infrastructure (Nginx / Shared DBs)
 ```bash
@@ -101,12 +102,14 @@ If you deploy but changes don't appear:
   docker exec fz-system grep "new_string" /app/path/to/file.js
   ```
 - **Cause:** Docker build might have failed silently, or you are looking at the wrong directory.
-- **Fix:** Rebuild explicitly: `docker compose up -d --build fz-system`.
+- **Fix:** Rebuild explicitly: `docker compose -f remote-docker-compose.yml up -d --build --no-cache`.
+- **Note:** Ensure build contexts are correctly defined in the compose file.
 
 ### 2. Nginx Proxy Issues (Docker-managed)
 - **Context:** Nginx is now a Docker container (`nginx-proxy`).
 - **Configs:** Found in `/home/deploy/fz-projects/system/docker-infra/nginx/conf.d/`.
 - **Restart:** `docker compose restart nginx-proxy`.
+- **Refresh DNS/Upstreams:** `docker exec nginx-proxy nginx -s reload`.
 - **Important:** Host-level Nginx must remain **DISABLED** to avoid port 80/443 conflicts.
 
 ### 3. PM2 / Host Services
@@ -214,3 +217,31 @@ sudo ufw enable
 ```
 
 
+
+## Special Workflows
+
+### 1. OOM (Out of Memory) Prevention during Build
+If the build is killed by the kernel (SIGKILL/OOM):
+1.  **Add Temporary Swap**:
+    ```bash
+    sudo fallocate -l 2G /swapfile_temp && sudo chmod 600 /swapfile_temp && sudo mkswap /swapfile_temp && sudo swapon /swapfile_temp
+    ```
+2.  **Set Node Memory Limits**:
+    Ensure `package.json` build scripts use `--max-old-space-size=2048`.
+3.  **Cleanup**:
+    ```bash
+    sudo swapoff /swapfile_temp && sudo rm /swapfile_temp
+    ```
+
+### 2. Forced UI Update
+If changes are pushed but not visible:
+```bash
+# 1. Pull latest code
+cd /home/deploy/laapak-projects/reports && git pull origin main
+# 2. Force rebuild without cache
+docker compose -f remote-docker-compose.yml build --no-cache laapak-frontend-react
+# 3. Up
+docker compose -f remote-docker-compose.yml up -d
+# 4. Refresh Proxy
+docker exec nginx-proxy nginx -s reload
+```

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: 'Laapak Reports',
     description: 'System for managing Laapak reports',
     icons: {
-        icon: '/logo.png',
+        icon: '/favicon.png',
     },
 };
 

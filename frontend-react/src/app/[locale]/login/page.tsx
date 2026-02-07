@@ -48,14 +48,19 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
 
             <main className="w-full max-w-[420px] relative z-10 space-y-8 animate-in fade-in duration-700">
                 <div className="text-center space-y-4">
-                    <div className="relative w-24 h-24 mx-auto mb-6">
-                        <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center p-4 border border-primary/10">
-                            <Image src="/logo.png" alt="Laapak" width={64} height={64} className="object-contain" />
-                        </div>
+                    <div className="relative w-40 h-40 mx-auto mb-6 flex items-center justify-center">
+                        {/* Dramatic Glow Effect */}
+                        <div className="absolute inset-4 bg-primary/20 rounded-full blur-[40px] animate-pulse" />
+                        <div className="absolute inset-8 bg-primary/10 rounded-full blur-[20px]" />
+
+                        <Image
+                            src="/logo.png"
+                            alt="Laapak"
+                            width={160}
+                            height={160}
+                            className="object-contain relative z-10 filter drop-shadow-[0_0_30px_rgba(var(--primary),0.2)]"
+                        />
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                        {t('title')}
-                    </h1>
                     <p className="text-secondary font-medium">
                         {t('subtitle')}
                     </p>
@@ -71,8 +76,14 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
                             onChange={(e) => setIdentifier(e.target.value)}
                             disabled={isLoading}
                         />
-
                         <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-primary transition-colors z-10"
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
                             <Input
                                 type={showPassword ? 'text' : 'password'}
                                 // label={t('credential_label')}
@@ -80,27 +91,9 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
                                 value={credential}
                                 onChange={(e) => setCredential(e.target.value)}
                                 disabled={isLoading}
-                                className="pr-12"
+                                className="pl-12"
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-primary transition-colors z-10"
-                            >
-                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                            </button>
                         </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                        <input
-                            type="checkbox"
-                            id="remember"
-                            className="w-4 h-4 rounded border-foreground/20 text-primary focus:ring-primary/20 cursor-pointer"
-                        />
-                        <label htmlFor="remember" className="text-sm font-medium text-secondary cursor-pointer">
-                            {t('remember_me')}
-                        </label>
                     </div>
 
                     {error && (
@@ -120,7 +113,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
 
                 <footer className="text-center pt-8">
                     <p className="text-sm text-secondary/60">
-                        {ct('copyright')}
+                        © {new Date().getFullYear()} Laapak
                     </p>
                 </footer>
             </main>

@@ -134,7 +134,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             if (products.length === 0) {
                 try {
                     setIsLoadingProducts(true);
-                    const auth = Buffer.from(`${WOO_CONSUMER_KEY}:${WOO_CONSUMER_SECRET}`).toString('base64');
+                    const auth = btoa(`${WOO_CONSUMER_KEY}:${WOO_CONSUMER_SECRET}`);
                     const response = await axios.get(`${WOO_BASE_URL}/wp-json/wc/v3/products`, {
                         params: {
                             category: ACCESSORIES_CATEGORY_ID,
@@ -536,9 +536,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     <p className="text-sm text-secondary/40 font-medium max-w-lg mx-auto">ملخص الحسابات والفواتير المرتبطة بهذا الطلب</p>
                                 </div>
                                 <div className="bg-primary/[0.03] p-8 md:p-10 rounded-[3rem] border border-primary/10 w-full max-w-md text-center shadow-xl shadow-primary/[0.02]">
-                                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">إجمالي مبلغ الفحص</p>
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">الاجمالي</p>
                                     <div className="flex items-baseline justify-center gap-2">
-                                        <h2 className="text-4xl md:text-6xl font-black text-primary">{parseFloat(report.amount || 0).toLocaleString()}</h2>
+                                        <h2 className="text-4xl md:text-6xl font-black text-primary">
+                                            {(parseFloat(report.amount || 0) + cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0)).toLocaleString()}
+                                        </h2>
                                         <span className="text-xl font-bold text-primary/60">ج.م</span>
                                     </div>
                                 </div>
@@ -684,7 +686,15 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     // desc: 'إرسال رابط التقرير للعميل مباشرة',
                                     icon: <Share2 />,
                                     color: 'primary',
-                                    action: () => setShareModalOpen(true)
+                                    action: () => {
+                                        if (viewMode === 'admin') {
+                                            setShareModalOpen(true);
+                                        } else {
+                                            const shareUrl = `${window.location.origin}/reports/${id}`;
+                                            const shareMessage = `شوف تقرير الفحص من هنا:\n${shareUrl}`;
+                                            window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank');
+                                        }
+                                    }
                                 },
                                 ...(viewMode === 'admin' ? [
                                     { title: 'تعديل البيانات', desc: 'تحديث المواصفات أو نتائج الفحص', icon: <Edit />, color: 'secondary', action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
@@ -978,7 +988,7 @@ function ExternalExaminationSection({ report, onImageClick }: { report: any, onI
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                     { id: 'case', name: 'جسم الجهاز (Case)', condition: report.case_condition, notes: report.case_notes, icon: <Package size={18} /> },
                     { id: 'screen', name: 'الشاشة (Screen)', condition: report.screen_condition, notes: report.screen_notes, icon: <Monitor size={18} /> },
@@ -1016,7 +1026,7 @@ function ExternalExaminationSection({ report, onImageClick }: { report: any, onI
                         )}
                     </div>
                 ))}
-            </div>
+            </div> */}
 
             {report.notes && (
                 <div className="p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] bg-primary/[0.03] border border-primary/10 relative overflow-hidden group">

@@ -41,7 +41,15 @@ Once swap is added, run the deployment command again (Step 2).
 sshpass -p "0000" ssh -t -o StrictHostKeyChecking=no deploy@82.112.253.29 "echo '0000' | sudo -S swapoff /swapfile_temp && echo '0000' | sudo -S rm /swapfile_temp"
 ```
 
-## 4. Verification
+## 4. Forced Refresh (Optional)
+If changes are pushed but not live, force a clean rebuild and reload the proxy.
+
+// turbo
+```bash
+sshpass -p "0000" ssh -o StrictHostKeyChecking=no deploy@82.112.253.29 "cd /home/deploy/laapak-projects/reports && docker compose -f remote-docker-compose.yml build --no-cache laapak-frontend-react && docker compose -f remote-docker-compose.yml up -d && docker exec nginx-proxy nginx -s reload"
+```
+
+## 5. Verification
 Check the status of the containers and logs.
 
 // turbo

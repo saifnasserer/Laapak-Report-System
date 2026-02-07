@@ -22,8 +22,11 @@ import {
     Thermometer,
     Monitor,
     Battery,
-    Cpu
+    Cpu,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Link } from '@/i18n/routing';
 import api from '@/lib/api';
@@ -41,6 +44,7 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
     const [invoices, setInvoices] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [openTipIndex, setOpenTipIndex] = useState<number | null>(0);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -161,7 +165,7 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
                                                         className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black border-primary/20 hover:bg-primary/5 gap-3"
                                                     >
                                                         <ShieldCheck size={20} className="text-primary" />
-                                                        حالة الضمان
+                                                        الضمان
                                                     </Button>
                                                 </Link>
 
@@ -171,7 +175,7 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
                                                         className="w-full sm:w-auto rounded-2xl h-11 md:h-14 px-4 md:px-8 font-black bg-surface-variant/50 hover:bg-surface-variant gap-3"
                                                     >
                                                         <FileText size={20} />
-                                                        تقرير الفحص
+                                                        تقرير
                                                     </Button>
                                                 </Link>
 
@@ -222,77 +226,93 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
                         </h2>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="flex flex-col gap-4">
                         {[
                             {
                                 title: 'مساحة التخزين',
-                                // value: 'مثالية',
                                 icon: <Cpu />,
                                 tip: 'خليك فاكر تسيب مساحة فاضية على الهارد، بلاش تملاه للآخر لأن المساحة الفاضية بتفرق في سرعة الجهاز وأداؤه.',
-                                color: 'blue'
+                                color: '#3B82F6' // blue-500
                             },
                             {
                                 title: 'صحة البطارية',
-                                // value: 'ممتازة',
                                 icon: <Battery />,
                                 tip: 'افتكر إن البطارية ليها عمر، بلاش تسيب اللابتوب على الشاحن 24 ساعة وحاول تشحنه من 20٪ لـ 80٪ على قد ما تقدر.',
-                                color: 'amber'
+                                color: '#F59E0B' // amber-500
                             },
                             {
                                 title: 'تهوية الجهاز',
-                                // value: 'جيدة',
                                 icon: <Thermometer />,
                                 tip: 'خلي بالك من التهوية، ما تحطش اللابتوب على سرير أو مخدة وخليه دايمًا على سطح ناشف علشان ميسخنش.',
-                                color: 'green'
+                                color: '#10B981' // green-500
                             },
                             {
                                 title: 'نظافة الجهاز',
-                                // value: 'مستمرة',
                                 icon: <Sparkles />,
                                 tip: 'خليك فاكر تنظف اللابتوب كل أسبوع بفوطة ناعمة أو منديل، ومترشش أي سوايل مباشرة على الكيبورد أو الشاشة نهائيًا.',
-                                color: 'purple'
+                                color: '#A855F7' // purple-500
                             }
-                        ].map((item, i) => (
-                            <Card key={i} className="overflow-hidden border border-black/[0.03] shadow-none bg-white/30 backdrop-blur-sm rounded-2xl md:rounded-[2rem] transition-all">
-                                <CardContent className="p-5 md:p-8">
-                                    <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-                                        {/* Icon & Status */}
-                                        <div className="flex flex-row md:flex-col justify-between md:justify-start items-center md:items-start gap-4 shrink-0 w-full md:w-40 border-b md:border-b-0 md:border-l border-black/[0.03] pb-6 md:pb-0 md:pl-8">
-                                            <div className={cn(
-                                                "w-12 h-12 rounded-2xl flex items-center justify-center",
-                                                item.color === 'blue' ? "bg-blue-500/10 text-blue-600" :
-                                                    item.color === 'amber' ? "bg-amber-500/10 text-amber-600" :
-                                                        item.color === 'green' ? "bg-green-500/10 text-green-600" : "bg-purple-500/10 text-purple-600"
-                                            )}>
-                                                {item.icon}
+                        ].map((item, i) => {
+                            const isOpen = openTipIndex === i;
+                            return (
+                                <div
+                                    key={i}
+                                    className="relative group rounded-[3.2rem] p-1 transition-all duration-300 bg-white/40 hover:bg-white/60"
+                                >
+                                    <div className={cn(
+                                        "flex flex-col overflow-hidden rounded-[3rem] bg-white/60 backdrop-blur-sm border transition-all duration-500",
+                                        isOpen ? "border-primary/30 shadow-xl shadow-primary/5" : "border-black/5"
+                                    )}>
+                                        {/* Header / Trigger */}
+                                        <button
+                                            onClick={() => setOpenTipIndex(isOpen ? null : i)}
+                                            className="flex items-center justify-between p-6 md:p-8 w-full text-right group/btn"
+                                        >
+                                            <div className="flex items-center gap-6">
+                                                <div
+                                                    className="w-14 h-14 rounded-3xl flex items-center justify-center shrink-0 shadow-inner transition-transform group-hover/btn:scale-110 duration-500"
+                                                    style={{ backgroundColor: `${item.color}15`, color: item.color }}
+                                                >
+                                                    {React.cloneElement(item.icon as React.ReactElement<any>, { size: 24 })}
+                                                </div>
+                                                <div className="space-y-1 text-right">
+                                                    <h3 className="text-lg md:text-xl font-black text-secondary">{item.title}</h3>
+                                                    <p className="text-[10px] text-secondary/30 font-black uppercase tracking-widest">Device Care Advice</p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <h3 className="text-base md:text-lg font-black text-secondary leading-none">{item.title}</h3>
-                                                {/* <Badge variant="outline" className={cn(
-                                                    "rounded-full px-2 py-0 border-none text-[8px] font-black uppercase tracking-tighter",
-                                                    item.color === 'blue' ? "bg-blue-500/10 text-blue-700" :
-                                                        item.color === 'amber' ? "bg-amber-500/10 text-amber-700" :
-                                                            item.color === 'green' ? "bg-green-500/10 text-green-700" : "bg-purple-500/10 text-purple-700"
-                                                )}>
-                                                    {item.value}
-                                                </Badge> */}
-                                            </div>
-                                        </div>
 
-                                        {/* Tip Content */}
-                                        <div className="space-y-4 flex-1">
-                                            {/* <div className="flex items-center gap-2 text-primary/30 font-black text-[9px] uppercase tracking-[0.2em]">
-                                                <Zap size={12} strokeWidth={3} className="text-primary/40" />
-                                                نصيحة ذكية
-                                            </div> */}
-                                            <p className="text-sm md:text-base font-bold text-secondary/70 leading-relaxed italic">
-                                                "{item.tip}"
-                                            </p>
-                                        </div>
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-full bg-black/[0.03] flex items-center justify-center text-secondary/20 transition-all duration-500",
+                                                isOpen ? "rotate-180 bg-primary/10 text-primary" : "group-hover/btn:text-secondary/40"
+                                            )}>
+                                                <ChevronDown size={20} />
+                                            </div>
+                                        </button>
+
+                                        {/* Content */}
+                                        <AnimatePresence>
+                                            {isOpen && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: "auto", opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                                                >
+                                                    <div className="px-8 pb-8 pt-2">
+                                                        <div className="p-6 rounded-[2rem] bg-black/[0.02] border border-black/[0.03] relative overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                                                            <p className="text-secondary/70 text-base md:text-lg font-bold leading-relaxed italic relative z-10">
+                                                                "{item.tip}"
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

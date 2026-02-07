@@ -34,16 +34,46 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     const t = useTranslations('dashboard.navigation');
     const { user, logout } = useAuth();
     const pathname = usePathname();
+    const [showFinancial, setShowFinancial] = React.useState(false);
+    const [clickCount, setClickCount] = React.useState(0);
+    const [lastClickTime, setLastClickTime] = React.useState(0);
+
+    React.useEffect(() => {
+        const saved = localStorage.getItem('showFinancialDashboard');
+        if (saved === 'true') {
+            setShowFinancial(true);
+        }
+    }, []);
+
+    const handleVersionClick = () => {
+        const now = Date.now();
+        if (now - lastClickTime < 1000) {
+            const newCount = clickCount + 1;
+            if (newCount >= 5) {
+                const newState = !showFinancial;
+                setShowFinancial(newState);
+                localStorage.setItem('showFinancialDashboard', newState.toString());
+                setClickCount(0);
+            } else {
+                setClickCount(newCount);
+            }
+        } else {
+            setClickCount(1);
+        }
+        setLastClickTime(now);
+    };
 
     const adminLinks = [
         { href: '/dashboard/admin', label: t('overview'), icon: LayoutDashboard },
         { href: '/dashboard/admin/reports', label: t('reports'), icon: FileText },
         { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
         { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
-        { href: '/dashboard/admin/financial', label: t('financial'), icon: TrendingUp },
-        { href: '/dashboard/admin/financial/money-management', label: 'إدارة الأموال', icon: Wallet },
-        { href: '/dashboard/admin/financial/profit-management', label: 'إدارة الأرباح', icon: FileText },
-        { href: '/dashboard/admin/financial/expenses', label: 'المصروفات', icon: Receipt },
+        ...(showFinancial ? [
+            { href: '/dashboard/admin/financial', label: t('financial'), icon: TrendingUp },
+            { href: '/dashboard/admin/financial/money-management', label: 'إدارة الأموال', icon: Wallet },
+            { href: '/dashboard/admin/financial/profit-management', label: 'إدارة الأرباح', icon: FileText },
+            { href: '/dashboard/admin/financial/expenses', label: 'المصروفات', icon: Receipt },
+        ] : []),
     ];
 
 
@@ -137,7 +167,12 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                         <span>{t('logout')}</span>
                     </button>
                 </div>
-                <p className="text-[9px] text-center text-secondary/20 font-black tracking-[0.3em] mt-6">LAAPAK v1.0.0</p>
+                <p
+                    onClick={handleVersionClick}
+                    className="text-[9px] text-center text-secondary/20 font-black tracking-[0.3em] mt-6 cursor-default select-none transition-all active:scale-95 active:opacity-50"
+                >
+                    LAAPAK v1.0.0
+                </p>
             </div>
         </aside>
     );

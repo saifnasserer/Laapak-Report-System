@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Receipt, Search, Plus, Download, Printer, Filter, Edit } from 'lucide-react';
+import { Receipt, Search, Plus, Download, Eye, Filter, Edit } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import api from '@/lib/api';
 import { use } from 'react';
@@ -211,10 +211,10 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
                                                         variant="ghost"
                                                         size="sm"
                                                         className="w-10 h-10 p-0 rounded-full"
-                                                        title="طباعة"
+                                                        title="عرض"
                                                         onClick={() => handlePrint(inv.id)}
                                                     >
-                                                        <Printer size={18} />
+                                                        <Eye size={18} />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"

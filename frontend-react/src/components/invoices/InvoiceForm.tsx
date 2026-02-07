@@ -16,9 +16,11 @@ import {
     Trash2,
     DollarSign,
     Smartphone,
-    Hash
+    Hash,
+    AlertTriangle
 } from 'lucide-react';
 import { useRouter } from '@/i18n/routing';
+import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 
@@ -29,6 +31,8 @@ interface InvoiceFormProps {
 
 export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const reportIdsParam = searchParams.get('reportIds');
     const [isLoading, setIsLoading] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
     const [showClientResults, setShowClientResults] = useState(false);
@@ -46,7 +50,9 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
         discount: '0',
         paymentMethod: 'cash',
         paymentStatus: 'unpaid',
-        notes: ''
+        paymentStatus: 'unpaid',
+        notes: '',
+        report_ids: [] as string[]
     });
 
     useEffect(() => {
@@ -80,7 +86,8 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                         discount: String(inv.discount || 0),
                         paymentMethod: inv.paymentMethod || 'cash',
                         paymentStatus: inv.paymentStatus || 'unpaid',
-                        notes: inv.notes || ''
+                        notes: inv.notes || '',
+                        report_ids: [] // In edit mode, we generally don't change linked reports this way yet
                     });
                 } catch (err) {
                     console.error('Failed to fetch invoice:', err);
@@ -88,11 +95,55 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                 }
             };
             fetchInvoice();
+        } else if (reportIdsParam) {
+            // Create from Reports Mode
+            const fetchReports = async () => {
+                try {
+                    setIsLoading(true);
+                    const ids = reportIdsParam.split(',');
+                    if (ids.length === 0) return;
+
+                    const reportPromises = ids.map(id => api.get(`/reports/${id}`));
+                    const responses = await Promise.all(reportPromises);
+                    const reports = responses.map(r => r.data.report || r.data);
+
+                    if (reports.length === 0) return;
+
+                    const firstClient = reports[0].client;
+                    const mixedClients = reports.some(r => r.client?.id !== firstClient?.id);
+
+                    if (mixedClients) {
+                        alert('تنبيه: التقارير المحددة تابعة لعملاء مختلفين. سيتم استخدام بيانات عميل التقرير الأول.');
+                    }
+
+                    const newItems = reports.map(r => ({
+                        description: `تقرير فحص - ${r.device_model} (${r.order_number || r.id})`,
+                        amount: r.amount ? String(r.amount) : '0',
+                        quantity: 1
+                    }));
+
+                    setFormData(prev => ({
+                        ...prev,
+                        client_id: firstClient?.id || '',
+                        client_name: firstClient?.name || '',
+                        client_phone: firstClient?.phone || '',
+                        items: newItems,
+                        report_ids: ids
+                    }));
+
+                } catch (err) {
+                    console.error('Failed to fetch reports:', err);
+                    alert('فشل في تحميل بيانات التقارير');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            fetchReports();
         } else {
             // New Mode: Add one empty item by default
             setFormData(prev => ({ ...prev, items: [{ description: '', amount: '0', quantity: 1 }] }));
         }
-    }, [invoiceId]);
+    }, [invoiceId, reportIdsParam]);
 
     const handleClientSelect = (client: any) => {
         setFormData(prev => ({
@@ -174,7 +225,9 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                 total: total,
                 paymentMethod: formData.paymentMethod,
                 paymentStatus: formData.paymentStatus,
-                notes: formData.notes
+                paymentStatus: formData.paymentStatus,
+                notes: formData.notes,
+                report_ids: formData.report_ids
             };
 
             if (invoiceId) {

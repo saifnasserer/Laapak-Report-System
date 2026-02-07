@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/context/AuthContext';
@@ -26,6 +26,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const isRtl = !pathname.startsWith('/en');
 
+    useEffect(() => {
+        if (!isLoading && !user) {
+            router.push('/login');
+        }
+    }, [user, isLoading, router]);
+
     if (isLoading) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
@@ -38,7 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     if (!user) {
-        redirect('/login');
+        return null; // Don't render anything while redirecting
     }
 
     const isClient = user?.type === 'client';
