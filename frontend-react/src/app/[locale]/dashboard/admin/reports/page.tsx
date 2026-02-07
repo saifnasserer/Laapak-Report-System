@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check } from 'lucide-react';
+import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check, Package } from 'lucide-react';
 
 import api from '@/lib/api';
 import { use } from 'react';
@@ -55,7 +55,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         const fetchReports = async () => {
             try {
                 setIsLoading(true);
-                const response = await api.get('/reports?fetch_mode=all_reports');
+                const response = await api.get(`/reports?fetch_mode=all_reports${showAll ? '' : '&exclude_inventory=true'}`);
                 setReports(response.data);
                 setError(null);
             } catch (err: any) {
@@ -67,7 +67,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         };
 
         fetchReports();
-    }, []);
+    }, [showAll]);
 
     const statusMap: any = {
         'completed': { label: 'مكتمل', variant: 'success' },
@@ -388,6 +388,63 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                             تم تحديد <span className="text-primary">{selectedReportIds.length}</span> تقرير
                         </span>
                         <div className="h-6 w-[1px] bg-black/10" />
+
+                        <Button
+                            size="sm"
+                            onClick={async () => {
+                                if (!confirm('هل أنت متأكد من نقل التقارير المحددة إلى المخزون (Laapak)؟')) return;
+
+                                try {
+                                    // 1. Find or Create Laapak Client
+                                    let laapakClient;
+                                    const clientsResponse = await api.get('/clients?search=Laapak');
+                                    const clients = clientsResponse.data.clients || [];
+                                    laapakClient = clients.find((c: any) => c.name.toLowerCase() === 'laapak' || c.name === 'لاباك');
+
+                                    if (!laapakClient) {
+                                        const createResponse = await api.post('/clients', {
+                                            name: 'Laapak',
+                                            phone: '0000000000',
+                                            email: 'warehouse@laapak.com',
+                                            address: 'Laapak Warehouse'
+                                        });
+                                        laapakClient = createResponse.data;
+                                    }
+
+                                    // 2. Ask for Source Details
+                                    const source = prompt('أدخل تفاصيل المصدر (اختياري):', '');
+                                    const sourceNote = source ? `\nSource: ${source}` : '';
+
+                                    // 3. Update Reports
+                                    await Promise.all(selectedReportIds.map(id =>
+                                        api.put(`/reports/${id}`, {
+                                            client_id: laapakClient.id,
+                                            client_name: laapakClient.name, // Update denormalized name
+                                            notes: (reports.find(r => r.id === id)?.notes || '') + sourceNote
+                                        })
+                                    ));
+
+                                    // 4. Update Local State
+                                    setReports(prev => prev.map(r =>
+                                        selectedReportIds.includes(r.id)
+                                            ? { ...r, client_id: laapakClient.id, client_name: laapakClient.name, notes: r.notes + sourceNote }
+                                            : r
+                                    ));
+
+                                    setSelectedReportIds([]);
+                                    alert('تم نقل التقارير للمخزون بنجاح');
+
+                                } catch (err) {
+                                    console.error('Failed to move to inventory:', err);
+                                    alert('فشل في نقل التقارير للمخزون');
+                                }
+                            }}
+                            className="rounded-full bg-secondary text-white hover:bg-secondary/90 font-bold px-4 shadow-lg shadow-black/5 text-xs"
+                            icon={<Package size={16} />}
+                        >
+                            نقل للمنخزون
+                        </Button>
+
                         <Button
                             size="sm"
                             onClick={handleCreateInvoice}

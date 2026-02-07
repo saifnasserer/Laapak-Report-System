@@ -58,6 +58,8 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { WhatsAppShareModal } from '@/components/reports/WhatsAppShareModal';
+import { Modal } from '@/components/ui/Modal';
+import { Input } from '@/components/ui/Input';
 
 // WooCommerce Configuration
 const WOO_BASE_URL = 'https://laapak.com';
@@ -82,6 +84,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
     const [products, setProducts] = useState<any[]>([]);
     const [isLoadingProducts, setIsLoadingProducts] = useState(false);
     const [cartItems, setCartItems] = useState<any[]>([]);
+
+    // Warehouse Assignment State
+    const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
+    const [sourceDetails, setSourceDetails] = useState('');
+    const [isAssigning, setIsAssigning] = useState(false);
 
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const toggleCartItem = (product: any) => {
@@ -175,6 +182,53 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
         const printUrl = `${baseUrl}/invoices/${invoiceId}/print?token=${token}`;
         window.open(printUrl, '_blank');
+    };
+
+    const handleAssignToWarehouse = async () => {
+        if (!sourceDetails.trim()) {
+            alert('يرجى إدخال تفاصيل المصدر');
+            return;
+        }
+
+        try {
+            setIsAssigning(true);
+
+            // 1. Find or Create Laapak Client
+            let laapakClient;
+            const clientsResponse = await api.get('/clients?search=Laapak');
+            const clients = clientsResponse.data.clients || [];
+            laapakClient = clients.find((c: any) => c.name.toLowerCase() === 'laapak' || c.name === 'لاباك');
+
+            if (!laapakClient) {
+                // Create Laapak client if not exists
+                const createResponse = await api.post('/clients', {
+                    name: 'Laapak',
+                    phone: '0000000000', // Placeholder
+                    email: 'warehouse@laapak.com',
+                    address: 'Laapak Warehouse'
+                });
+                laapakClient = createResponse.data;
+            }
+
+            // 2. Update Report
+            const updatedNotes = (report.notes || '') + `\nSource: ${sourceDetails}`;
+            await api.put(`/reports/${id}`, {
+                client_id: laapakClient.id,
+                notes: updatedNotes
+            });
+
+            // 3. Update Local State
+            setReport((prev: any) => ({ ...prev, client_id: laapakClient.id, client_name: laapakClient.name, notes: updatedNotes }));
+            setWarehouseModalOpen(false);
+            setSourceDetails('');
+            alert('تم إضافة الجهاز للمخزن بنجاح');
+
+        } catch (err) {
+            console.error('Failed to assign to warehouse:', err);
+            alert('فشل في إضافة الجهاز للمخزن');
+        } finally {
+            setIsAssigning(false);
+        }
     };
 
     const statusMap: any = {
@@ -698,7 +752,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 },
                                 ...(viewMode === 'admin' ? [
                                     { title: 'تعديل البيانات', desc: 'تحديث المواصفات أو نتائج الفحص', icon: <Edit />, color: 'secondary', action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
-                                    { title: 'إضافة للمخزن', desc: 'تسجيل الجهاز في قاعدة بيانات المخزن', icon: <Smartphone />, color: 'secondary' }
+                                    { title: 'إضافة للمخزن', desc: 'تسجيل الجهاز في قاعدة بيانات المخزن', icon: <Package />, color: 'secondary', action: () => setWarehouseModalOpen(true) }
                                 ] : [])
                             ].map((item, i) => (
                                 <div
@@ -740,6 +794,33 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
     return (
         <div className="min-h-screen bg-[#FDFDFF] text-secondary selection:bg-primary/10 selection:text-primary relative p-4 md:p-8 overflow-x-hidden">
+            {/* Warehouse Assignment Modal */}
+            <Modal
+                isOpen={warehouseModalOpen}
+                onClose={() => setWarehouseModalOpen(false)}
+                title="إضافة الجهاز للمخزن"
+            >
+                <div className="space-y-6">
+                    <p className="text-secondary/60">
+                        سيتم نقل هذا الجهاز إلى ملكية <strong>Laapak</strong> وإضافته للمخزون.
+                        يرجى تحديد مصدر الجهاز.
+                    </p>
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold text-secondary">مصدر الجهاز</label>
+                        <Input
+                            placeholder="مثال: شراء من العميل محمد أحمد، استيراد خارجي..."
+                            value={sourceDetails}
+                            onChange={(e) => setSourceDetails(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button variant="outline" onClick={() => setWarehouseModalOpen(false)}>إلغاء</Button>
+                        <Button onClick={handleAssignToWarehouse} disabled={isAssigning}>
+                            {isAssigning ? 'جاري الإضافة...' : 'تأكيد الإضافة للمخزن'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
             <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
                 <div className="absolute -top-[10%] -left-[10%] w-[60%] md:w-[40%] h-[40%] bg-primary/5 rounded-full blur-[80px] md:blur-[120px] animate-pulse" />
                 <div className="absolute top-[20%] -right-[10%] w-[50%] md:w-[30%] h-[50%] bg-surface-variant/20 rounded-full blur-[60px] md:blur-[100px]" />

@@ -124,6 +124,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         external_images: [] as any[],
         youtube_url: '',
         notes: '',
+        device_source: '',
         billing_enabled: false,
         amount: '0',
         tax_rate: '0',
@@ -177,6 +178,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         order_number: r.order_number || '',
                         hardware_status: hardwareStatus.length ? hardwareStatus : formData.hardware_status,
                         test_screenshots: screenshots.length ? screenshots : formData.test_screenshots,
+                        device_source: '', // Initialize or parse if needed
                         external_images: externalImgs,
                         youtube_url: '',
                         notes: r.notes || '',
@@ -204,7 +206,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
             client_id: client.id,
             client_name: client.name,
             client_phone: client.phone,
-            client_address: client.address || ''
+            client_address: client.address || '',
+            device_source: ''
         }));
         setShowClientResults(false);
     };
@@ -296,11 +299,11 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         }
     };
 
-    const handleHardwareStatusChange = (id: number, status: string, comment?: string) => {
+    const handleHardwareStatusChange = (index: number, status: string, comment?: string) => {
         setFormData(prev => ({
             ...prev,
-            hardware_status: prev.hardware_status.map(item =>
-                item.id === id ? { ...item, status, ...(comment !== undefined ? { comment } : {}) } : item
+            hardware_status: prev.hardware_status.map((item, i) =>
+                i === index ? { ...item, status, ...(comment !== undefined ? { comment } : {}) } : item
             )
         }));
     };
@@ -339,7 +342,6 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
             client_name: 'اسم العميل',
             client_phone: 'رقم الهاتف',
             device_model: 'موديل الجهاز',
-            client_address: 'العنوان',
             order_number: 'رقم الطلب'
         };
 
@@ -357,6 +359,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
             // Report Data Construction
             const reportData = {
                 ...formData,
+                notes: formData.device_source ? `SOURCE: ${formData.device_source}\n${formData.notes}` : formData.notes,
                 inspection_date: new Date(formData.inspection_date),
                 hardware_status: JSON.stringify(formData.hardware_status),
                 external_images: JSON.stringify([
@@ -587,7 +590,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                     </div>
                                 </div>
 
-                                <div className="mt-6 pt-6 border-t border-black/[0.03] flex justify-center">
+                                <div className="mt-6 pt-6 border-t border-black/[0.03] flex flex-col md:flex-row items-center justify-center gap-6">
                                     <div className="w-full max-w-md space-y-2">
                                         <label className="text-[10px] font-black text-secondary/40 uppercase px-4 text-center block">السعر التقريبي للجهاز (Est. Value)</label>
                                         <Input
@@ -606,6 +609,19 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                             className="rounded-full bg-black/[0.02] border-transparent h-12 text-center font-black text-primary"
                                         />
                                     </div>
+                                    {formData.client_name === 'Laapak' && (
+                                        <div className="w-full max-w-md space-y-2 animate-in slide-in-from-right-2">
+                                            <label className="text-[10px] font-black text-primary uppercase px-4 text-center block">مصدر الجهاز (Warehouse Source)</label>
+                                            <Input
+                                                name="device_source"
+                                                placeholder="مثلاً: شراء من عميل، استيراد..."
+                                                icon={<Plus size={18} />}
+                                                value={formData.device_source}
+                                                onChange={handleChange}
+                                                className="rounded-full bg-primary/[0.03] border-primary/20 h-12 text-center font-bold"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -629,8 +645,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {formData.hardware_status.map((item) => (
-                                        <TableRow key={item.id} className="border-black/[0.03] transition-colors group">
+                                    {formData.hardware_status.map((item, index) => (
+                                        <TableRow key={`${item.id}-${index}`} className="border-black/[0.03] transition-colors group">
                                             <TableCell className="pr-10 font-bold text-secondary py-6">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 rounded-xl bg-black/[0.03] flex items-center justify-center text-secondary/40 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
@@ -650,7 +666,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                         <button
                                                             key={opt.id}
                                                             type="button"
-                                                            onClick={() => handleHardwareStatusChange(item.id, opt.id)}
+                                                            onClick={() => handleHardwareStatusChange(index, opt.id)}
                                                             className="group/btn flex flex-col items-center gap-2 outline-none p-1"
                                                         >
                                                             <div className={cn(
@@ -838,7 +854,52 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                 <Input name="amount" type="number" value={formData.amount} onChange={handleChange} icon={<CreditCard size={18} />} className="rounded-full bg-white border-primary/20 h-12 font-black text-primary" />
                                             </div>
                                         </div>
-                                        {/* Simplified items, tax, discount UI can be added here if needed, keeping it lightweight for now */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between px-2">
+                                                <h4 className="text-sm font-black text-secondary/40 uppercase tracking-tighter">بنود إضافية (Extra Items)</h4>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleInvoiceItemAdd}
+                                                    className="h-8 rounded-full border-dashed border-primary/20 text-primary text-[10px]"
+                                                    icon={<Plus size={12} />}
+                                                >
+                                                    إضافة بند
+                                                </Button>
+                                            </div>
+                                            {formData.invoice_items.map((item, index) => (
+                                                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-4 rounded-3xl bg-black/[0.02] border border-black/5 animate-in slide-in-from-top-1">
+                                                    <div className="md:col-span-7">
+                                                        <Input
+                                                            placeholder="وصف البند..."
+                                                            value={item.name}
+                                                            onChange={(e) => handleInvoiceItemChange(index, 'name', e.target.value)}
+                                                            className="rounded-full h-10 bg-white text-xs border-transparent focus:border-primary/20"
+                                                        />
+                                                    </div>
+                                                    <div className="md:col-span-3">
+                                                        <Input
+                                                            type="number"
+                                                            placeholder="السعر"
+                                                            value={item.price}
+                                                            onChange={(e) => handleInvoiceItemChange(index, 'price', e.target.value)}
+                                                            className="rounded-full h-10 bg-white text-xs border-transparent focus:border-primary/20 font-mono text-center text-primary"
+                                                        />
+                                                    </div>
+                                                    <div className="md:col-span-2 flex justify-end">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            onClick={() => handleInvoiceItemRemove(index)}
+                                                            className="h-10 w-10 rounded-full text-red-500 hover:bg-red-50"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="py-20 flex flex-col items-center justify-center text-center bg-black/[0.01] rounded-[2.5rem] border border-dashed border-black/5">

@@ -15,7 +15,8 @@ import {
     TrendingUp,
     Wallet,
     X,
-    ShieldCheck
+    ShieldCheck,
+    Package
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { clsx, type ClassValue } from 'clsx';
@@ -68,6 +69,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         { href: '/dashboard/admin/reports', label: t('reports'), icon: FileText },
         { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
         { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
+        { href: '/dashboard/admin/inventory', label: 'المخزن', icon: Package },
         ...(showFinancial ? [
             { href: '/dashboard/admin/financial', label: t('financial'), icon: TrendingUp },
             { href: '/dashboard/admin/financial/money-management', label: 'إدارة الأموال', icon: Wallet },

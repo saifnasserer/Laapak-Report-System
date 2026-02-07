@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Receipt, Search, Plus, Download, Eye, Filter, Edit } from 'lucide-react';
+import { Receipt, Search, Plus, Download, Eye, Filter, Edit, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import api from '@/lib/api';
 import { use } from 'react';
@@ -99,6 +99,19 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
         } catch (error) {
             console.error('Failed to share invoice:', error);
             alert('فشل إرسال الفاتورة عبر واتساب');
+        }
+    };
+
+    const handleDeleteInvoice = async (id: string) => {
+        if (!confirm('هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إلغاء ربط التقارير المرتبطة بها.')) return;
+
+        try {
+            await api.delete(`/invoices/${id}`);
+            setInvoices(prev => prev.filter(inv => inv.id !== id));
+            alert('تم حذف الفاتورة بنجاح');
+        } catch (error) {
+            console.error('Failed to delete invoice:', error);
+            alert('فشل حذف الفاتورة');
         }
     };
 
@@ -233,6 +246,15 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
                                                         onClick={() => openWhatsAppModal(inv.id, inv.client?.name || 'الكريم')}
                                                     >
                                                         <MessageCircle size={18} />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="w-10 h-10 p-0 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                        title="حذف"
+                                                        onClick={() => handleDeleteInvoice(inv.id)}
+                                                    >
+                                                        <Trash2 size={18} />
                                                     </Button>
                                                 </div>
                                             </TableCell>

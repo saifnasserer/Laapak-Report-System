@@ -79,7 +79,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
             // Fetch Warranty Alerts and Recent Reports
             const [warrantyRes, allPendingRes] = await Promise.all([
                 api.get('/reports/insights/warranty-alerts').catch(() => ({ data: [] })),
-                api.get('/reports?status=pending&limit=50')
+                api.get('/reports?status=pending&limit=50&exclude_inventory=true')
             ]);
 
             // Handle Warranty Data (ensure it's an array)

@@ -1194,6 +1194,26 @@ router.put('/:id/payment', adminAuth, async (req, res) => {
       paymentMethod,
       paymentDate: paymentStatus === 'paid' ? new Date() : null
     });
+
+    // Sycn linked reports status
+    // Map paymentStatus to report status
+    const reportStatusMap = {
+      'paid': 'completed',
+      'completed': 'completed',
+      'pending': 'pending',
+      'cancelled': 'cancelled',
+      'canceled': 'cancelled'
+    };
+
+    const targetReportStatus = reportStatusMap[paymentStatus];
+    if (targetReportStatus) {
+      await Report.update(
+        { status: targetReportStatus },
+        { where: { invoice_id: invoice.id } }
+      );
+      console.log(`Synced ${targetReportStatus} status to reports for invoice ${invoice.id}`);
+    }
+
     res.json(invoice);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

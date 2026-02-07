@@ -23,6 +23,7 @@ import { useRouter } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
+import { cn } from '@/lib/utils';
 
 interface InvoiceFormProps {
     invoiceId?: string;
@@ -50,7 +51,7 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
         discount: '0',
         paymentMethod: 'cash',
         paymentStatus: 'unpaid',
-        paymentStatus: 'unpaid',
+
         notes: '',
         report_ids: [] as string[]
     });
@@ -225,7 +226,7 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                 total: total,
                 paymentMethod: formData.paymentMethod,
                 paymentStatus: formData.paymentStatus,
-                paymentStatus: formData.paymentStatus,
+
                 notes: formData.notes,
                 report_ids: formData.report_ids
             };
@@ -349,7 +350,7 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                     <CardContent className="p-8 space-y-4">
                         {formData.items.map((item, index) => (
                             <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end animate-in fade-in slide-in-from-top-2 duration-300 p-6 rounded-[2rem] bg-black/[0.02] border border-black/5">
-                                <div className="md:col-span-5 space-y-2">
+                                <div className="md:col-span-4 space-y-2">
                                     <label className="text-[10px] font-black text-secondary/40 uppercase px-2">الوصف / المنتج</label>
                                     <Input
                                         value={item.description}
@@ -364,11 +365,11 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                                         type="number"
                                         value={item.amount}
                                         onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
-                                        className="rounded-full h-12 bg-white border-primary/20 font-mono text-primary font-bold"
+                                        className="rounded-full h-12 bg-white border-primary/20 font-mono text-primary font-bold text-center"
                                     />
                                 </div>
                                 <div className="md:col-span-2 space-y-2">
-                                    <label className="text-[10px] font-black text-secondary/40 uppercase px-2">الكمية</label>
+                                    <label className="text-[10px] font-black text-secondary/40 uppercase px-2 text-center block">الكمية</label>
                                     <Input
                                         type="number"
                                         min="1"
@@ -377,21 +378,27 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                                         className="rounded-full h-12 bg-white border-black/5 font-mono text-center font-bold"
                                     />
                                 </div>
-                                <div className="md:col-span-2 flex items-center gap-2">
+                                <div className="md:col-span-3 flex items-center gap-3">
                                     <div className="flex-1 space-y-2">
                                         <label className="text-[10px] font-black text-secondary/40 uppercase px-2 md:hidden">الإجمالي</label>
-                                        <div className="h-12 flex items-center justify-center px-4 bg-white rounded-full border border-black/5 font-black font-mono text-primary">
+                                        <div className="h-12 flex items-center justify-center px-4 bg-primary/[0.03] text-primary rounded-full border border-primary/10 font-black font-mono">
                                             {((Number(item.amount) || 0) * (Number(item.quantity) || 1)).toLocaleString()}
                                         </div>
                                     </div>
                                     <Button
                                         type="button"
                                         variant="ghost"
+                                        size="icon"
                                         onClick={() => handleRemoveItem(index)}
-                                        className="h-12 w-12 rounded-full text-red-500 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100"
+                                        className={cn(
+                                            "h-12 w-12 rounded-full border transition-all",
+                                            formData.items.length === 1
+                                                ? "opacity-0 pointer-events-none"
+                                                : "text-red-500 bg-red-50/50 border-red-100 hover:bg-red-500 hover:text-white hover:border-red-500"
+                                        )}
                                         disabled={formData.items.length === 1}
                                     >
-                                        <Trash2 size={18} />
+                                        <Trash2 size={20} />
                                     </Button>
                                 </div>
                             </div>

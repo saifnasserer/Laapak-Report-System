@@ -325,6 +325,16 @@ router.get('/', async (req, res) => {
         });
       }
 
+      // Handle 'exclude_inventory' filter
+      if (req.query.exclude_inventory === 'true') {
+        whereConditions.push({
+          [Op.and]: [
+            { client_name: { [Op.notLike]: '%Laapak%' } },
+            { client_name: { [Op.notLike]: '%لاباك%' } }
+          ]
+        });
+      }
+
       // Combine all conditions with AND
       if (whereConditions.length > 0) {
         whereClause[Op.and] = whereConditions;
@@ -909,7 +919,8 @@ router.put('/:id', auth, async (req, res) => {
     const baseUpdateFields = [
       'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
       'order_number', 'device_model', 'serial_number',
-      'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'status'
+      'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'status',
+      'created_at', 'updated_at'
     ];
 
     // New device spec fields (may not exist until migration runs)
@@ -1056,9 +1067,12 @@ router.put('/:id', auth, async (req, res) => {
           });
 
           // Get unique invoice IDs
-          const invoiceIds = [...new Set(invoiceItems.map(item => item.invoiceId).filter(id => id))];
+          const invoiceIds = [...new Set([
+            ...invoiceItems.map(item => item.invoiceId),
+            report.invoice_id
+          ].filter(id => id))];
 
-          console.log(`Found ${invoiceIds.length} unique invoice(s) linked to report ${report.id}`);
+          console.log(`Found ${invoiceIds.length} unique invoice(s) linked to report ${report.id} (Direct: ${report.invoice_id})`);
 
           if (invoiceIds.length > 0) {
             // Find all invoices
