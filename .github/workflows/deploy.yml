@@ -54,31 +54,15 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Check Secrets
-        run: |
-          if [ -z "${{ secrets.VPS_SSH_HOST }}" ]; then
-            echo "::error::Secret VPS_SSH_HOST is missing! Please add it to your repo secrets."
-            exit 1
-          fi
-          if [ -z "${{ secrets.VPS_SSH_USER }}" ]; then
-            echo "::error::Secret VPS_SSH_USER is missing!"
-            exit 1
-          fi
-          if [ -z "${{ secrets.VPS_SSH_PASSWORD }}" ]; then
-            echo "::error::Secret VPS_SSH_PASSWORD is missing!"
-            exit 1
-          fi
-
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VPS_SSH_HOST }}
-          username: ${{ secrets.VPS_SSH_USER }}
-          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /home/deploy/laapak-projects/reports
             git pull origin main
             docker compose -f remote-docker-compose.yml pull
             docker compose -f remote-docker-compose.yml up -d
-            docker exec nginx-proxy nginx -s reload
             docker image prune -f
