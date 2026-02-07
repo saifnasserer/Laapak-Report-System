@@ -65,4 +65,5 @@ jobs:
             git pull origin main
             docker compose -f remote-docker-compose.yml pull
             docker compose -f remote-docker-compose.yml up -d
+            docker restart nginx-proxy
             docker image prune -f
