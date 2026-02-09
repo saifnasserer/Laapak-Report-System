@@ -24,35 +24,35 @@ Tools and workflows for managing the **FixZone VPS**.
 
 ## When to Use
 - User wants to check server status (Docker containers)
-- User needs to deploy new code (GitHub Actions / CI/CD)
+- User needs to deploy new code (MUST use GitHub Actions)
 - User wants to run database migrations on production (Inside Docker)
 - User needs to check remote logs (Docker logs)
 
 ## Workflow: Automated Deployment (GitHub Actions)
 
-This is the **preferred** and **default** method to deploy. It bypasses VPS memory limits by building images on GitHub's runners and pushing them to Docker Hub.
+**Protocol:** This is the **ONLY** authorized method for deployment to ensure memory safety and consistency.
 
 ### 1. Prerequisite: GitHub Secrets
-Ensure these are set in the GitHub Repository (Settings -> Secrets and variables -> Actions):
-- `DOCKERHUB_USERNAME`: Your Docker Hub profile name.
-- `DOCKERHUB_TOKEN`: Personal Access Token from Docker Hub.
-- `VPS_SSH_HOST`: `82.112.253.29`
-- `VPS_SSH_USER`: `deploy`
-- `VPS_SSH_PASSWORD`: `0000`
+The current `deploy.yml` requires these specific secrets:
+- `DOCKERHUB_USERNAME`: Docker Hub profile name.
+- `DOCKERHUB_TOKEN`: Personal Access Token.
+- `VPS_HOST`: Server IP (`82.112.253.29`)
+- `VPS_USER`: `deploy`
+- `VPS_SSH_KEY`: **SSH Private Key** (Password auth is NOT enabled in current workflow)
 
 ### 2. Triggering Deployment
-Simply push to the `main` branch. The `.github/workflows/deploy.yml` will handle:
-1. Building & Pushing the `backend-latest` and `frontend-latest` images.
-2. SSH-ing into the VPS to pull the new images and restart the containers.
-3. Reloading the Nginx proxy.
+Push to `main`. The workflow handles:
+1. Building & Pushing images to Docker Hub.
+2. SSH-ing into VPS to pull images and restart containers.
+3. **Restarting Nginx Proxy** to prevent 502 Bad Gateway errors.
 
-## Workflow: Manual Deployment (Fallback/Emergency)
+## Workflow: Manual Deployment (Emergency Only)
 
-Only use this if GitHub Actions is unavailable or failing. 
+**WARNING:** Manual builds on the VPS often cause Out-Of-Memory (OOM) crashes. Only proceed if GitHub Actions is broken.
 
 ### 1. Laapak Report System (VPS Build)
 > [!CAUTION]
-> VPS builds for the React frontend often fail with OOM errors. Always ensure Swap is enabled if building manually on the server.
+> **DO NOT RUN THIS** unless absolutely necessary.
 
 ```bash
 # Full manual update

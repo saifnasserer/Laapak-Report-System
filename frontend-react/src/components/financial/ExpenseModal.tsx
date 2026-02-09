@@ -63,7 +63,8 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                 setAmount(expense.amount?.toString() || '');
                 setCategoryId(expense.category_id?.toString() || '');
                 setLocationId(expense.money_location_id?.toString() || '');
-                setDate(new Date(expense.date).toISOString().split('T')[0]);
+                const expenseDate = expense.date ? new Date(expense.date) : new Date();
+                setDate(expenseDate.toISOString().split('T')[0]);
                 setDescription(expense.description || '');
             } else {
                 // Reset form for addition
@@ -92,7 +93,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
         try {
             const response = await api.get('/money/locations');
             if (response.data.success) {
-                setLocations(response.data.data);
+                setLocations(response.data.data.locations || []);
             }
         } catch (error) {
             console.error('Error fetching locations:', error);
@@ -210,7 +211,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                                         <div className="flex items-center gap-2 justify-end w-full">
                                             <span className="font-bold">{loc.name_ar}</span>
                                             <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                                {parseFloat(loc.balance.toString()).toLocaleString()} ج.م
+                                                {Number(loc.balance || 0).toLocaleString()} ج.م
                                             </span>
                                         </div>
                                     </SelectItem>

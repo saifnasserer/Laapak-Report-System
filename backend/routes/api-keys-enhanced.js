@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { Client, Report, Invoice, InvoiceItem, ApiKey, ApiUsageLog, Expense, ExpenseCategory, Admin } = require('../models');
+const { Client, Report, Invoice, InvoiceItem, ApiKey, ApiUsageLog, Expense, ExpenseCategory, Admin, MoneyLocation, MoneyMovement } = require('../models');
 const { Op } = require('sequelize');
 const { apiKeyAuth, clientApiKeyAuth, systemApiKeyAuth } = require('../middleware/apiKeyAuth');
 
@@ -666,6 +666,175 @@ router.get('/financial/ledger', apiKeyAuth({ financial: { read: true } }), async
             message: 'Server error',
             error: error.message
         });
+    }
+});
+
+/**
+ * Get Expenses with filtering
+ */
+router.get('/financial/expenses', apiKeyAuth({ financial: { read: true } }), async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 20,
+            startDate,
+            endDate,
+            category_id,
+            type,
+            status,
+            search
+        } = req.query;
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        const whereClause = {};
+
+        if (startDate && endDate) {
+            whereClause.date = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+        } else if (startDate) {
+            whereClause.date = { [Op.gte]: new Date(startDate) };
+        } else if (endDate) {
+            whereClause.date = { [Op.lte]: new Date(endDate) };
+        }
+
+        if (category_id) whereClause.category_id = category_id;
+        if (type) whereClause.type = type;
+        if (status) whereClause.status = status;
+        if (search) {
+            whereClause[Op.or] = [
+                { name: { [Op.like]: `%${search}%` } },
+                { name_ar: { [Op.like]: `%${search}%` } },
+                { description: { [Op.like]: `%${search}%` } }
+            ];
+        }
+
+        const { count, rows } = await Expense.findAndCountAll({
+            where: whereClause,
+            include: [{
+                model: ExpenseCategory,
+                as: 'category',
+                attributes: ['id', 'name', 'name_ar', 'color']
+            }, {
+                model: MoneyLocation,
+                as: 'moneyLocation',
+                attributes: ['id', 'name_ar']
+            }],
+            order: [['date', 'DESC'], ['created_at', 'DESC']],
+            limit: parseInt(limit),
+            offset: offset
+        });
+
+        res.json({
+            success: true,
+            data: {
+                expenses: rows,
+                pagination: {
+                    total: count,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    pages: Math.ceil(count / parseInt(limit))
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching expenses via API Key:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+/**
+ * Create a new expense
+ */
+router.post('/financial/expenses', apiKeyAuth({ financial: { write: true } }), async (req, res) => {
+    try {
+        const {
+            name,
+            name_ar,
+            amount,
+            category_id,
+            type,
+            date,
+            repeat_monthly,
+            description,
+            receipt_url,
+            money_location_id
+        } = req.body;
+
+        const expense = await Expense.create({
+            name,
+            name_ar,
+            amount,
+            category_id,
+            type,
+            date,
+            repeat_monthly: repeat_monthly || false,
+            description,
+            receipt_url,
+            money_location_id,
+            created_by: req.apiKey.created_by, // Use key creator
+            status: 'approved'
+        });
+
+        // Record money movement if location is selected
+        if (money_location_id) {
+            try {
+                await MoneyMovement.recordExpensePaid(
+                    money_location_id,
+                    amount,
+                    expense.id,
+                    req.apiKey.created_by
+                );
+            } catch (finError) {
+                console.error('Financial tracking error during API Key expense creation:', finError);
+            }
+        }
+
+        const expenseWithCategory = await Expense.findByPk(expense.id, {
+            include: [{
+                model: ExpenseCategory,
+                as: 'category',
+                attributes: ['id', 'name', 'name_ar', 'color']
+            }]
+        });
+
+        res.status(201).json({
+            success: true,
+            data: { expense: expenseWithCategory }
+        });
+    } catch (error) {
+        console.error('Error creating expense via API Key:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+/**
+ * Get Expense Categories
+ */
+router.get('/financial/expense-categories', apiKeyAuth({ financial: { read: true } }), async (req, res) => {
+    try {
+        const categories = await ExpenseCategory.findAll({
+            where: { is_active: true },
+            order: [['name_ar', 'ASC']]
+        });
+        res.json({ success: true, data: { categories } });
+    } catch (error) {
+        console.error('Error fetching categories via API Key:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+/**
+ * Get Money Locations
+ */
+router.get('/financial/locations', apiKeyAuth({ financial: { read: true } }), async (req, res) => {
+    try {
+        const locations = await MoneyLocation.findAll({
+            where: { is_active: true },
+            order: [['created_at', 'ASC']]
+        });
+        res.json({ success: true, data: { locations } });
+    } catch (error) {
+        console.error('Error fetching locations via API Key:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 

@@ -11,21 +11,21 @@ const { Op } = require('sequelize');
 // API Key middleware
 const apiKeyAuth = (req, res, next) => {
     const apiKey = req.header('x-api-key') || req.header('Authorization')?.replace('Bearer ', '');
-    
+
     // For now, we'll use a simple API key. In production, store this in environment variables
     const validApiKeys = [
         process.env.API_KEY || 'laapak-api-key-2024',
         'laapak-external-access-key',
         'laapak-integration-key'
     ];
-    
+
     if (!apiKey || !validApiKeys.includes(apiKey)) {
-        return res.status(401).json({ 
+        return res.status(401).json({
             message: 'Invalid or missing API key',
             error: 'API_KEY_REQUIRED'
         });
     }
-    
+
     req.apiKey = apiKey;
     next();
 };
@@ -34,45 +34,45 @@ const apiKeyAuth = (req, res, next) => {
 router.get('/clients/lookup', apiKeyAuth, async (req, res) => {
     try {
         const { phone, email } = req.query;
-        
+
         if (!phone && !email) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: 'Phone number or email is required',
                 error: 'MISSING_PARAMETERS'
             });
         }
-        
+
         let whereClause = {};
-        
+
         if (phone) {
             whereClause.phone = phone;
         }
-        
+
         if (email) {
             whereClause.email = email;
         }
-        
+
         const client = await Client.findOne({
             where: whereClause,
             attributes: ['id', 'name', 'phone', 'email', 'status', 'createdAt']
         });
-        
+
         if (!client) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 message: 'Client not found',
                 error: 'CLIENT_NOT_FOUND'
             });
         }
-        
+
         res.json({
             success: true,
             client: client
         });
     } catch (error) {
         console.error('Error looking up client:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -81,29 +81,29 @@ router.get('/clients/lookup', apiKeyAuth, async (req, res) => {
 router.post('/clients/verify', apiKeyAuth, async (req, res) => {
     try {
         const { phone, orderCode } = req.body;
-        
+
         if (!phone || !orderCode) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: 'Phone number and order code are required',
                 error: 'MISSING_PARAMETERS'
             });
         }
-        
+
         const client = await Client.findOne({
-            where: { 
+            where: {
                 phone: phone,
                 orderCode: orderCode
             },
             attributes: ['id', 'name', 'phone', 'email', 'status', 'createdAt']
         });
-        
+
         if (!client) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 message: 'Invalid credentials',
                 error: 'INVALID_CREDENTIALS'
             });
         }
-        
+
         res.json({
             success: true,
             client: client,
@@ -111,9 +111,9 @@ router.post('/clients/verify', apiKeyAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('Error verifying client:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -122,16 +122,16 @@ router.post('/clients/verify', apiKeyAuth, async (req, res) => {
 router.get('/clients/:id/reports', apiKeyAuth, async (req, res) => {
     try {
         const clientId = req.params.id;
-        
+
         // Import Report model
         const { Report } = require('../models');
-        
+
         const reports = await Report.findAll({
             where: { client_id: clientId },
             attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'created_at'],
             order: [['created_at', 'DESC']]
         });
-        
+
         res.json({
             success: true,
             reports: reports,
@@ -139,9 +139,9 @@ router.get('/clients/:id/reports', apiKeyAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching client reports:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -150,16 +150,16 @@ router.get('/clients/:id/reports', apiKeyAuth, async (req, res) => {
 router.get('/clients/:id/invoices', apiKeyAuth, async (req, res) => {
     try {
         const clientId = req.params.id;
-        
+
         // Import Invoice model
         const { Invoice } = require('../models');
-        
+
         const invoices = await Invoice.findAll({
             where: { client_id: clientId },
             attributes: ['id', 'total', 'paymentStatus', 'date', 'created_at'],
             order: [['created_at', 'DESC']]
         });
-        
+
         res.json({
             success: true,
             invoices: invoices,
@@ -167,9 +167,9 @@ router.get('/clients/:id/invoices', apiKeyAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching client invoices:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error',
+            error: error.message
         });
     }
 });
@@ -181,6 +181,48 @@ router.get('/health', apiKeyAuth, (req, res) => {
         message: 'API key authentication successful',
         timestamp: new Date().toISOString()
     });
+});
+
+// Basic financial summary for V1 API
+router.get('/financial/summary', apiKeyAuth, async (req, res) => {
+    try {
+        const { Invoice, Expense } = require('../models');
+
+        // Simple current month summary
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const invoices = await Invoice.findAll({
+            where: {
+                date: { [Op.gte]: startOfMonth },
+                paymentStatus: ['paid', 'completed']
+            },
+            attributes: ['total']
+        });
+
+        const expenses = await Expense.findAll({
+            where: {
+                date: { [Op.gte]: startOfMonth },
+                status: 'approved'
+            },
+            attributes: ['amount']
+        });
+
+        const totalRevenue = invoices.reduce((sum, inv) => sum + (parseFloat(inv.total) || 0), 0);
+        const totalExpenses = expenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+
+        res.json({
+            success: true,
+            summary: {
+                currentMonthRevenue: totalRevenue,
+                currentMonthExpenses: totalExpenses,
+                currentMonthProfit: totalRevenue - totalExpenses
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching V1 financial summary:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
 });
 
 module.exports = router;

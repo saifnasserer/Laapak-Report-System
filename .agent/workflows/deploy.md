@@ -4,24 +4,36 @@ description: Deploying Laapak Reports System to remote VPS
 
 # Deployment Workflow
 
-The preferred method for deployment is **GitHub Actions**. This automatically builds and deploys your code when you push to the `main` branch.
+**Standard Protocol:** ALWAYS use **GitHub Actions** for deployment. Manual deployments are strictly forbidden unless the CI pipeline is verified broken.
 
-## 1. Automated Deployment (Preferred)
-Just push your changes to GitHub:
+## 1. Automated Deployment (Standard)
+Trigger a deployment by pushing to `main`:
 
 ```bash
 git add .
-git commit -m "feat: your descriptive message"
+git commit -m "feat: description of changes"
 git push origin main
 ```
 
 **What happens:**
-1. GitHub builds the Docker images (solving memory issues).
-2. GitHub pushes images to Docker Hub.
-3. GitHub SSHes into the VPS, pulls the images, and restarts containers.
-4. Nginx proxy is reloaded automatically.
+1. GitHub builds and pushes Docker images.
+2. VPS pulls new images and restarts containers.
+3. **Auto-Restart:** Nginx proxy is restarted to refresh upstreams (prevents 502 errors).
 
-## 2. Remote Manual Deployment (Fallback)
+### Required GitHub Secrets
+Ensure these match your `deploy.yml`:
+- `VPS_HOST`: Server IP (`82.112.253.29`)
+- `VPS_USER`: SSH Username (`deploy`)
+- `VPS_SSH_KEY`: **Private SSH Key** content (Pem format)
+
+## 2. Manual Trigger (GitHub UI)
+If you need to redeploy without changes:
+1. Go to **Actions** tab in GitHub.
+2. Select **Build and Deploy**.
+3. Click **Run workflow**.
+
+## 3. Emergency Manual Fallback
+**ONLY** use if GitHub Actions is completely down.
 If GitHub Actions is failing, you can still manually trigger a build on the VPS.
 
 // turbo

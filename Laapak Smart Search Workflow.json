@@ -1,0 +1,483 @@
+{
+  "name": "Laapak Smart Search Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evolution/wa-message",
+        "options": {}
+      },
+      "id": "346be6d3-f7a1-4b35-8999-59a4a4751a5e",
+      "name": "Evolution Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1600,
+        160
+      ],
+      "webhookId": "694c6c90-f061-4e44-8339-c91b10cf6ba5"
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = $json.body.data;\nconst instance = $json.body.instance;\n\nif (data.key.remoteJid.includes('@g.us')) return [];\nif (data.key.fromMe) return [];\n\nconst jidFull = data.key.remoteJid;\nconst jid = jidFull.split('@')[0];\n\nlet message = '';\nif (data.message?.conversation) {\n  message = data.message.conversation;\n} else if (data.message?.extendedTextMessage?.text) {\n  message = data.message.extendedTextMessage.text;\n} else {\n  return [];\n}\n\nreturn [{\n  jid,\n  instance,\n  message,\n  remoteJid: jidFull\n}];"
+      },
+      "id": "f10e4f7d-7c3d-4ae1-8f37-615394645bb5",
+      "name": "Prepare Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1376,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO laapak_automation.whatsapp_messages (jid, message, sender, instance_id)\nVALUES (\n  '{{ $json.remoteJid }}',\n  '{{ $json.message }}',\n  'user',\n  '{{ $json.instance }}'\n);"
+      },
+      "id": "a2dcc934-372a-466a-bee8-84bade5aa908",
+      "name": "Log Incoming Message",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        160
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "Q0NfgscaNlxdoqJl",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT sender, message FROM laapak_automation.whatsapp_messages \nWHERE jid = '{{ $node[\"Prepare Message\"].json.remoteJid }}' \nORDER BY created_at DESC LIMIT 6;"
+      },
+      "id": "01b7e06f-dfe1-4447-985c-31b2e3dd37ca",
+      "name": "Fetch History",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        160
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "Q0NfgscaNlxdoqJl",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-lite"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Analyze the user intent for an e-commerce store.\n\nUser Message: {{$json.message}}\n\nClassify into one of 3 types:\n1. \"search\": Specific product request (e.g. \"Price of Dell 5550\", \"Do you have generic adapter?\")\n2. \"suggest\": Broad category request (e.g. \"I need a laptop for design\", \"Suggest a good workstation\")\n3. \"chat\": Greetings, thanks, or unrelated (e.g. \"Hello\", \"Address?\", \"Thanks\")\n\nReturn JSON ONLY:\n{\n  \"intent\": \"search\" | \"suggest\" | \"chat\",\n  \"keyword\": \"extracted search term\" (if search), \n  \"category\": \"category to list\" (if suggest, e.g. \"laptop\")\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "d3b8c930-5709-4e91-8c87-ed236b3016f9",
+      "name": "Smart Extractor",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -720,
+        160
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Brhk4vjiyOPzYT7q",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let text = $json.content.parts[0].text.trim();\ntext = text.replace(/```json/g, '').replace(/```/g, '');\ntry {\n  return [JSON.parse(text)];\n} catch (e) {\n  return [{ intent: 'chat', keyword: '' }];\n}"
+      },
+      "id": "77c0d35a-8ef0-4e7f-8c4b-0b88d207fc02",
+      "name": "Parse Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.intent }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "search"
+            },
+            {
+              "value2": "suggest",
+              "output": 1
+            },
+            {
+              "value2": "chat",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "c8368b37-0e23-4013-b611-ec3c319fe077",
+      "name": "Intent Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 5,
+        "options": {}
+      },
+      "id": "621b8042-a642-42d7-8d94-aacc89c8fa89",
+      "name": "Woo Search Specific",
+      "type": "n8n-nodes-base.wooCommerce",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "wooCommerceApi": {
+          "id": "FnJ6t9PCdaJxvpAx",
+          "name": "WooCommerce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 10,
+        "options": {}
+      },
+      "id": "56abbf47-21c0-469b-8521-07580e2caa8d",
+      "name": "Woo Suggest Broad",
+      "type": "n8n-nodes-base.wooCommerce",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ],
+      "credentials": {
+        "wooCommerceApi": {
+          "id": "FnJ6t9PCdaJxvpAx",
+          "name": "WooCommerce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are the Laapak Assistant.\nReply in friendly natural Egyptian Arabic.\n\nUSER INTENT: {{ $node[\"Parse Intent\"].json.intent }}\n\nPRODUCT CONTEXT:\n{{\n$node[\"Woo Search Specific\"].isExecuted\n? JSON.stringify($items(\"Woo Search Specific\").map(i => i.json))\n: $node[\"Woo Suggest Broad\"].isExecuted\n  ? JSON.stringify($items(\"Woo Suggest Broad\").map(i => i.json))\n  : \"No product context\"\n}}\n\n\n\nCHAT HISTORY:\n{{ JSON.stringify($node[\"Fetch History\"].json) }}\n\nUSER MESSAGE:\n{{ $node[\"Prepare Message\"].json.message }}\n\nINSTRUCTIONS:\n- If products are listed, use them to answer or suggest.\n- If no products found, ask for more details.\n- If chat is general, just allow friendly conversation.\n- Always return JSON: {\"reply\": \"...\", \"handoff\": false}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "a6159baa-9a76-4756-a439-1ff564ae5181",
+      "name": "Final Agent Response",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        160
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Brhk4vjiyOPzYT7q",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let text = $json.content.parts[0].text.trim();\ntext = text.replace(/```json/g, '').replace(/```/g, '');\nconst parsed = JSON.parse(text);\nreturn [{ json: { reply: parsed.reply, handoff: parsed.handoff, jid: $node[\"Prepare Message\"].json.jid } }];"
+      },
+      "id": "9d378827-08dd-41c4-9f52-598b2b59f399",
+      "name": "Parse Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.handoff}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "bc6f26d6-ca91-45a5-a633-bc33436a2c58",
+      "name": "Handoff?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        848,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://wa.fixzzone.com/message/sendText/Laapak",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "laapak_wa_2026_secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{$json.jid}}\",\n  \"text\": \"{{$json.reply}}\"\n}",
+        "options": {}
+      },
+      "id": "cad23732-5c2e-4047-9601-996ea4f6c96f",
+      "name": "Send WA Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1072,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO laapak_automation.whatsapp_messages (jid, message, sender, instance_id)\nVALUES (\n  '{{ $node[\"Prepare Message\"].json.remoteJid }}',\n  '{{ $node[\"Parse Response\"].json.reply }}',\n  'bot',\n  'Laapak'\n);"
+      },
+      "id": "356f8bed-ea08-4d09-8324-ec9163de42fe",
+      "name": "Log Bot Response",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        160
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "Q0NfgscaNlxdoqJl",
+          "name": "MySQL account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Evolution Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Prepare Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Message": {
+      "main": [
+        [
+          {
+            "node": "Log Incoming Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Incoming Message": {
+      "main": [
+        [
+          {
+            "node": "Fetch History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch History": {
+      "main": [
+        [
+          {
+            "node": "Smart Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Smart Extractor": {
+      "main": [
+        [
+          {
+            "node": "Parse Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Intent": {
+      "main": [
+        [
+          {
+            "node": "Intent Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Switch": {
+      "main": [
+        [
+          {
+            "node": "Woo Search Specific",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Woo Suggest Broad",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Final Agent Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Woo Search Specific": {
+      "main": [
+        [
+          {
+            "node": "Final Agent Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Woo Suggest Broad": {
+      "main": [
+        [
+          {
+            "node": "Final Agent Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Agent Response": {
+      "main": [
+        [
+          {
+            "node": "Parse Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Response": {
+      "main": [
+        [
+          {
+            "node": "Handoff?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff?": {
+      "main": [
+        [
+          {
+            "node": "Send WA Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WA Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WA Reply": {
+      "main": [
+        [
+          {
+            "node": "Log Bot Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "611c3b71-685b-488d-b788-961de039ad7f",
+  "meta": {
+    "instanceId": "f0bb0038125defa0a03c38f3c7b0eb9a11a483f8d875620c5072345a7cd94ae2"
+  },
+  "id": "F47ZNiMPe60DJMjS6KZBR",
+  "tags": []
+}
