@@ -49,8 +49,9 @@ router.post('/woocommerce/order-created', async (req, res) => {
         // 2. Create Report with 'new_order' status
         const reportId = `EXT-${wooOrderId}-${Date.now().toString().slice(-4)}`;
         const deviceModel = line_items && line_items.length > 0 ? line_items[0].name : 'Unknown Device';
+        const totalAmount = orderData.total || 0;
 
-        console.log(`Creating report ${reportId} for WooCommerce Order #${wooOrderId}`);
+        console.log(`Creating report ${reportId} for WooCommerce Order #${wooOrderId} (Amount: ${totalAmount})`);
 
         const report = await Report.create({
             id: reportId,
@@ -63,6 +64,7 @@ router.post('/woocommerce/order-created', async (req, res) => {
             device_model: deviceModel,
             inspection_date: new Date(),
             status: 'new_order',
+            amount: totalAmount,
             notes: `Automatically created from WooCommerce Order #${wooOrderId}. Please update device specifications.`
         });
 

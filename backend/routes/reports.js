@@ -264,6 +264,7 @@ router.get('/', async (req, res) => {
             { status: 'قيد الانتظار' },
             { status: 'pending' },
             { status: 'active' },
+            { status: 'new_order' },
             { status: null }
           ]
         };
@@ -374,6 +375,7 @@ router.get('/', async (req, res) => {
               { status: 'قيد الانتظار' },
               { status: 'pending' },
               { status: 'active' },
+              { status: 'new_order' },
               { status: null }
             ]
           },
