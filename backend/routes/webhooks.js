@@ -10,6 +10,12 @@ const { Op } = require('sequelize');
  */
 router.post('/woocommerce/order-created', async (req, res) => {
     try {
+        const secret = req.headers['x-webhook-secret'];
+        if (secret !== 'laapak_woo_2026_webhook_sec') {
+            console.error('Webhook Error: Unauthorized access attempt');
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+
         const orderData = req.body;
         console.log('Received WooCommerce Webhook:', JSON.stringify(orderData, null, 2));
 
