@@ -247,14 +247,13 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
 
                                         <div className="flex items-center gap-2 md:gap-4 shrink-0">
                                             <Button
-                                                variant="destructive"
-                                                className="hidden md:flex rounded-2xl font-bold text-xs h-10 shadow-lg shadow-destructive/20 px-6"
-                                                onClick={(e) => handleDeleteReport(order.id, e)}
+                                                variant="primary"
+                                                className="hidden md:flex rounded-2xl font-bold text-xs h-10 px-6"
                                             >
-                                                حذف الطلب
+                                                إكمال البيانات
                                             </Button>
                                             <div
-                                                className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive hover:bg-destructive hover:text-white transition-all duration-300 pointer-events-auto"
+                                                className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/80 border border-black/5 flex items-center justify-center text-secondary/40 hover:bg-destructive hover:text-white hover:border-destructive transition-all duration-300 pointer-events-auto"
                                                 onClick={(e) => handleDeleteReport(order.id, e)}
                                             >
                                                 <X size={16} className="md:w-5 md:h-5" />
