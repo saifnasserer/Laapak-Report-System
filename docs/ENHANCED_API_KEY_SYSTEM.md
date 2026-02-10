@@ -254,6 +254,68 @@ x-api-key: ak_live_your_api_key_here
 }
 ```
 
+## 💵 **Financial Access**
+
+### **Get Financial Summary**
+```http
+GET /api/v2/external/financial/summary
+x-api-key: ak_live_your_api_key_here
+```
+
+**Query Parameters:**
+- `startDate`: Start date (YYYY-MM-DD)
+- `endDate`: End date (YYYY-MM-DD)
+
+### **Get Financial Ledger**
+```http
+GET /api/v2/external/financial/ledger
+x-api-key: ak_live_your_api_key_here
+```
+
+**Query Parameters:**
+- `type`: `income`, `expense`, or `all`
+- `limit`: Number of results
+- `offset`: Pagination offset
+
+### **Get Expenses**
+```http
+GET /api/v2/external/financial/expenses
+x-api-key: ak_live_your_api_key_here
+```
+
+**Query Parameters:**
+- `page`: Page number
+- `limit`: Items per page
+- `category_id`: Filter by category ID
+- `search`: Search in name or description
+
+### **Create Expense**
+```http
+POST /api/v2/external/financial/expenses
+Content-Type: application/json
+x-api-key: ak_live_your_api_key_here
+
+{
+  "name": "Office Supplies",
+  "amount": 250.00,
+  "category_id": 1,
+  "date": "2024-02-01",
+  "money_location_id": 1
+}
+```
+
+### **Get Expense Categories**
+```http
+GET /api/v2/external/financial/expense-categories
+x-api-key: ak_live_your_api_key_here
+```
+
+### **Get Money Locations**
+```http
+GET /api/v2/external/financial/locations
+x-api-key: ak_live_your_api_key_here
+```
+
 ## 🛡️ **Security Features**
 
 ### **Rate Limiting**

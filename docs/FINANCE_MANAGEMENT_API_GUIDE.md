@@ -138,21 +138,23 @@ curl -X GET "https://reports.laapak.com/api/v2/external/financial/ledger?type=al
       "category": "Sales",
       "description": "Invoice #INV1001 - Client Name",
       "status": "verified"
-    },
-    {
-      "id": "EXP-55",
-      "date": "2024-01-14T09:00:00.000Z",
-      "amount": 150.00,
-      "type": "expense",
-      "category": "Utilities",
-      "description": "Electricity Bill",
-      "status": "verified"
     }
   ]
 }
 ```
 
-### 3. Create Expense
+### 3. Get Expenses (Paginated)
+
+**Endpoint:** `GET /expenses`
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `limit`: Results per page (default: 20)
+- `category_id`: Filter by category
+- `status`: Filter by status
+- `search`: Search text
+
+### 4. Create Expense
 
 Records a new business expense.
 
@@ -201,23 +203,26 @@ Permanently deletes an expense record.
 
 **Endpoint:** `DELETE /expenses/{id}`
 
-### 6. Record Invoice Payment
-
-Marks an invoice as paid.
-
-**Endpoint:** `POST /invoices/{id}/payment`
-
-**Body:**
+**Response:**
 ```json
 {
-  "paymentDate": "2024-02-15",
-  "paymentMethod": "Bank Transfer" // Optional
+  "success": true,
+  "message": "Payment recorded successfully",
+  "data": { "id": "INV-123", "status": "paid" }
 }
 ```
 
+### 7. Get Expense Categories
+
+**Endpoint:** `GET /expense-categories`
+
+### 8. Get Money Locations
+
+**Endpoint:** `GET /locations`
+
 ---
 
-### 7. Update Invoice Item Cost
+### 9. Update Invoice Item Cost
 
 Use this endpoint to enter the cost price for a specific product sold in an invoice. This is essential for accurate profit calculation.
 

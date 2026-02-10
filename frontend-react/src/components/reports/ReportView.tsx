@@ -205,7 +205,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                     name: 'Laapak',
                     phone: '0000000000', // Placeholder
                     email: 'warehouse@laapak.com',
-                    address: 'Laapak Warehouse'
+                    address: 'Laapak Warehouse',
+                    orderCode: 'LPK0000'
                 });
                 laapakClient = createResponse.data;
             }

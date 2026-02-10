@@ -6,11 +6,12 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { Search, ShoppingCart, Edit, CheckCircle2, Package, DollarSign, Calendar, User, Layers } from 'lucide-react';
+import { Search, ShoppingCart, Edit, Package, DollarSign, Calendar, User, Layers } from 'lucide-react';
 
 import api from '@/lib/api';
 import { use } from 'react';
 import { cn } from '@/lib/utils';
+import { ClientModal } from '@/components/clients/ClientModal';
 import { Modal } from '@/components/ui/Modal';
 import { useRouter } from '@/i18n/routing';
 
@@ -33,15 +34,12 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
     const [showClientResults, setShowClientResults] = useState(false);
 
     // New Client State
-    const [isNewClientMode, setIsNewClientMode] = useState(false);
-    const [newClientData, setNewClientData] = useState({ name: '', phone: '' });
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
     React.useEffect(() => {
         const fetchReports = async () => {
             try {
                 setIsLoading(true);
-                // Fetch all reports, we will filter for Laapak client on frontend for now
-                // In a larger system, we'd want a backend filter
                 const response = await api.get('/reports?fetch_mode=all_reports');
                 const allReports = response.data;
                 const laapakReports = allReports.filter((r: any) =>
@@ -79,20 +77,16 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
     const handleSellClick = (report: any, e: React.MouseEvent) => {
         e.stopPropagation();
         setSelectedReportForSale(report);
-        setSalePrice(report.cost || ''); // Pre-fill if cost exists, otherwise empty
+        setSalePrice(report.cost || '');
         setClientSearch('');
         setSelectedClient(null);
-        setIsNewClientMode(false);
+        setIsClientModalOpen(false);
         setIsSellModalOpen(true);
     };
 
     const handleConfirmSale = async () => {
-        if (!selectedClient && !isNewClientMode) {
+        if (!selectedClient) {
             alert('يرجى اختيار العميل');
-            return;
-        }
-        if (isNewClientMode && (!newClientData.name || !newClientData.phone)) {
-            alert('يرجى إدخال بيانات العميل الجديد');
             return;
         }
         if (!salePrice) {
@@ -104,19 +98,6 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
             setIsSelling(true);
             let finalClient = selectedClient;
 
-            // Create new client if needed
-            if (isNewClientMode) {
-                const createRes = await api.post('/clients', {
-                    name: newClientData.name,
-                    phone: newClientData.phone,
-                    address: '-',
-                    email: `client${Date.now()}@example.com`, // Placeholder email
-                    orderCode: `LPK${Date.now().toString().slice(-4)}`
-                });
-                finalClient = createRes.data.client;
-            }
-
-            // Create Invoice
             const invoicePayload = {
                 client_id: finalClient.id,
                 date: new Date().toISOString().split('T')[0],
@@ -138,27 +119,20 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
 
             const invoiceRes = await api.post('/invoices', invoicePayload);
 
-            // Update Report Status to 'Sold' (we might need a custom status logic or just use notes)
-            // For now, let's assume 'delivered' or 'completed' effectively removes it from "Available" list conceptually
-            // or we add a specific tag. Let's update notes to say SOLD.
             await api.put(`/reports/${selectedReportForSale.id}`, {
-                status: 'completed', // Mark as completed/sold
+                status: 'completed',
                 client_id: finalClient.id,
                 client_name: finalClient.name,
                 client_phone: finalClient.phone,
                 client_address: finalClient.address || '-',
-                created_at: new Date().toISOString(), // Update created_at
-                updated_at: new Date().toISOString(), // Update updated_at
-                inspection_date: new Date().toISOString(), // Update inspection_date to ensure UI reflects today
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                inspection_date: new Date().toISOString(),
                 notes: selectedReportForSale.notes + `\nSOLD TO: ${finalClient.name} on ${new Date().toLocaleDateString()}`
             });
 
             setIsSellModalOpen(false);
-
-            // Redirect to invoice print or view
             router.push(`/dashboard/admin/invoices?highlight=${invoiceRes.data.id}`);
-
-            // Remove from local list
             setReports(prev => prev.filter(r => r.id !== selectedReportForSale.id));
 
         } catch (err) {
@@ -169,15 +143,11 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
         }
     };
 
-    const filteredReports = reports.filter(report => {
-        const term = searchTerm.toLowerCase();
-        return (
-            report.device_model?.toLowerCase().includes(term) ||
-            report.serial_number?.toLowerCase().includes(term) ||
-            report.id?.toString().includes(term) ||
-            (report.notes && report.notes.toLowerCase().includes(term))
-        );
-    });
+    const filteredReports = reports.filter(report =>
+        report.device_model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.serial_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (report.notes && report.notes.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
     const getSourceFromNotes = (notes: string) => {
         if (!notes) return '-';
@@ -185,18 +155,13 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
         return match ? match[1] : '-';
     };
 
-    // KPI Calculations
     const totalStockCount = reports.length;
-    // Assuming 'cost' field exists or we estimate value. If no cost, use 0.
-    // We'll try to find a price/cost field, or parse from notes if needed.
-    // For now, let's mock it or use 'amount' if meaningful, otherwise 0.
     const totalInventoryValue = reports.reduce((sum, r) => sum + (parseFloat(r.cost || r.amount || 0) || 0), 0);
     const uniqueModelsCount = new Set(reports.map(r => r.device_model)).size;
 
     return (
         <DashboardLayout>
             <div className="space-y-6 max-w-5xl mx-auto">
-                {/* Sell Modal */}
                 <Modal isOpen={isSellModalOpen} onClose={() => setIsSellModalOpen(false)} title="بيع جهاز من المخزن">
                     <div className="space-y-6">
                         <div className="bg-surface-variant/20 p-4 rounded-xl">
@@ -208,56 +173,46 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-secondary">العميل</label>
-                                {!isNewClientMode ? (
-                                    <div className="space-y-2 relative">
-                                        <Input
-                                            placeholder="بحث عن عميل..."
-                                            value={clientSearch}
-                                            onChange={(e) => {
-                                                setClientSearch(e.target.value);
-                                                setShowClientResults(true);
-                                                setSelectedClient(null);
-                                            }}
-                                            onFocus={() => setShowClientResults(true)}
-                                            className="rounded-full h-12 bg-white/60 backdrop-blur-sm focus:bg-white transition-all font-bold md:w-full"
-                                        />
-                                        {showClientResults && clientSearch && (
-                                            <div className="absolute top-full left-0 right-0 z-50 bg-white border border-black/5 rounded-2xl shadow-xl max-h-40 overflow-y-auto mt-1">
-                                                {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone.includes(clientSearch)).map(client => (
-                                                    <div
-                                                        key={client.id}
-                                                        className="p-3 hover:bg-black/5 cursor-pointer flex justify-between px-4"
-                                                        onClick={() => {
-                                                            setSelectedClient(client);
-                                                            setClientSearch(client.name);
-                                                            setShowClientResults(false);
-                                                        }}
-                                                    >
-                                                        <span className="font-bold">{client.name}</span>
-                                                        <span className="font-mono text-sm opacity-50">{client.phone}</span>
-                                                    </div>
-                                                ))}
-                                                {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
-                                                    <div className="p-3 text-center opacity-50 text-sm">لا توجد نتائج</div>
-                                                )}
-                                            </div>
-                                        )}
-                                        <div className="flex justify-between items-center px-1">
-                                            <Button variant="ghost" size="sm" onClick={() => setIsNewClientMode(true)} className="text-primary text-xs">
-                                                + عميل جديد
-                                            </Button>
-                                            {selectedClient && <span className="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full">تم اختيار: {selectedClient.name}</span>}
+                                <div className="space-y-2 relative">
+                                    <Input
+                                        placeholder="بحث عن عميل..."
+                                        value={clientSearch}
+                                        onChange={(e) => {
+                                            setClientSearch(e.target.value);
+                                            setShowClientResults(true);
+                                            setSelectedClient(null);
+                                        }}
+                                        onFocus={() => setShowClientResults(true)}
+                                        className="rounded-full h-12 bg-white/60 backdrop-blur-sm focus:bg-white transition-all font-bold"
+                                    />
+                                    {showClientResults && clientSearch && (
+                                        <div className="absolute top-full left-0 right-0 z-50 bg-white border border-black/5 rounded-2xl shadow-xl max-h-40 overflow-y-auto mt-1">
+                                            {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()) || (c.phone && c.phone.includes(clientSearch))).map(client => (
+                                                <div
+                                                    key={client.id}
+                                                    className="p-3 hover:bg-black/5 cursor-pointer flex justify-between px-4"
+                                                    onClick={() => {
+                                                        setSelectedClient(client);
+                                                        setClientSearch(client.name);
+                                                        setShowClientResults(false);
+                                                    }}
+                                                >
+                                                    <span className="font-bold">{client.name}</span>
+                                                    <span className="font-mono text-sm opacity-50">{client.phone}</span>
+                                                </div>
+                                            ))}
+                                            {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
+                                                <div className="p-3 text-center opacity-50 text-sm">لا توجد نتائج</div>
+                                            )}
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3 p-4 bg-primary/5 rounded-[2rem] border border-primary/10">
-                                        <Input placeholder="اسم العميل" value={newClientData.name} onChange={e => setNewClientData({ ...newClientData, name: e.target.value })} className="rounded-full bg-white h-11" />
-                                        <Input placeholder="رقم الهاتف" value={newClientData.phone} onChange={e => setNewClientData({ ...newClientData, phone: e.target.value })} className="rounded-full bg-white h-11" />
-                                        <Button variant="ghost" size="sm" onClick={() => setIsNewClientMode(false)} className="text-secondary/60 text-xs w-full">
-                                            العودة للبحث
+                                    )}
+                                    <div className="flex justify-between items-center px-1">
+                                        <Button variant="ghost" size="sm" onClick={() => setIsClientModalOpen(true)} className="text-primary text-xs">
+                                            + عميل جديد
                                         </Button>
+                                        {selectedClient && <span className="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full">تم اختيار: {selectedClient.name}</span>}
                                     </div>
-                                )}
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -284,7 +239,6 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                     </div>
                 </Modal>
 
-                {/* Header & Controls */}
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
@@ -310,9 +264,7 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                         </div>
                     </div>
 
-                    {/* KPI Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Card 1: Count */}
                         <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                             <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full">
                                 <div>
@@ -325,7 +277,6 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                             </div>
                         </div>
 
-                        {/* Card 2: Value */}
                         <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                             <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full">
                                 <div>
@@ -340,7 +291,6 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                             </div>
                         </div>
 
-                        {/* Card 3: Unique Models */}
                         <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                             <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full">
                                 <div>
@@ -360,7 +310,6 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                     </div>
                 </div>
 
-                {/* Inventory List */}
                 <div className="space-y-4">
                     {isLoading ? (
                         <div className="flex flex-col gap-4">
@@ -387,9 +336,8 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                                 >
                                     <div
                                         onClick={() => router.push(`/${locale}/dashboard/admin/reports/${report.id}`)}
-                                        className="flex flex-col md:flex-row items-center justify-between gap-6 p-6 rounded-[3rem] bg-white/60 backdrop-blur-sm border border-primary/10 cursor-pointer hover:border-primary/20 transition-all"
+                                        className="flex flex-col md:flex-row items-center justify-between gap-6 p-6 rounded-[3rem] bg-white/60 backdrop-blur-sm border border-primary/10 cursor-pointer hover:border-primary/20 transition-all font-bold"
                                     >
-                                        {/* Left: Info */}
                                         <div className="flex items-center gap-5 w-full md:w-auto">
                                             <div className="w-16 h-16 rounded-[1.5rem] bg-black/5 flex items-center justify-center text-secondary/60 shrink-0">
                                                 <Package size={28} />
@@ -415,7 +363,6 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                                             </div>
                                         </div>
 
-                                        {/* Right: Actions */}
                                         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                                             <Button
                                                 onClick={(e) => handleSellClick(report, e)}
@@ -443,6 +390,16 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                     )}
                 </div>
             </div>
+            <ClientModal
+                isOpen={isClientModalOpen}
+                onClose={() => setIsClientModalOpen(false)}
+                onSuccess={(client) => {
+                    setSelectedClient(client);
+                    setClientSearch(client.name);
+                    setIsClientModalOpen(false);
+                    api.get('/clients').then(res => setClients(res.data.clients || []));
+                }}
+            />
         </DashboardLayout>
     );
 }

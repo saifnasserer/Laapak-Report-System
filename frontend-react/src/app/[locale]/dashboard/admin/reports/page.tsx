@@ -460,7 +460,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                             name: 'Laapak',
                                             phone: '0000000000',
                                             email: 'warehouse@laapak.com',
-                                            address: 'Laapak Warehouse'
+                                            address: 'Laapak Warehouse',
+                                            orderCode: 'LPK0000'
                                         });
                                         laapakClient = createResponse.data;
                                     }

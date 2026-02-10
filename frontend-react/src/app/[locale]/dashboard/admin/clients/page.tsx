@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Search, Plus, Filter, MoreHorizontal, Save, Trash, X } from 'lucide-react';
 import api from '@/lib/api';
 import { use } from 'react';
+import { ClientModal } from '@/components/clients/ClientModal';
 
 export default function ClientsAdminPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -23,31 +24,7 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
     const [isEditMode, setIsEditMode] = useState(false);
     const [currentClient, setCurrentClient] = useState<any>(null);
 
-    // Form State
-    const [formData, setFormData] = useState({
-        name: '',
-        phone: '',
-        orderCode: '',
-        email: '',
-        address: '',
-        companyName: '',
-        taxNumber: '',
-        notes: '',
-        status: 'active'
-    });
-
     const resetForm = () => {
-        setFormData({
-            name: '',
-            phone: '',
-            orderCode: '',
-            email: '',
-            address: '',
-            companyName: '',
-            taxNumber: '',
-            notes: '',
-            status: 'active'
-        });
         setIsEditMode(false);
         setCurrentClient(null);
     };
@@ -74,44 +51,12 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
     };
 
     const handleOpenEdit = (client: any) => {
-        setFormData({
-            name: client.name || '',
-            phone: client.phone || '',
-            orderCode: client.orderCode || '',
-            email: client.email || '',
-            address: client.address || '',
-            companyName: client.companyName || '',
-            taxNumber: client.taxNumber || '',
-            notes: client.notes || '',
-            status: client.status || 'active'
-        });
         setCurrentClient(client);
         setIsEditMode(true);
         setIsModalOpen(true);
         setActiveMenuId(null); // Close menu
     };
 
-    const handleSave = async () => {
-        if (!formData.name || !formData.phone || !formData.orderCode) {
-            alert('يرجى تعبئة الحقول الأساسية (الاسم، الهاتف، كود الطلب)');
-            return;
-        }
-
-        try {
-            if (isEditMode && currentClient) {
-                await api.put(`/clients/${currentClient.id}`, formData);
-                setClients(prev => prev.map(c => c.id === currentClient.id ? { ...c, ...formData } : c));
-            } else {
-                const response = await api.post('/clients', formData);
-                setClients(prev => [response.data.client, ...prev]);
-            }
-            setIsModalOpen(false);
-            resetForm();
-        } catch (error: any) {
-            console.error('Failed to save client:', error);
-            alert(error.response?.data?.message || 'فشل حفظ البيانات');
-        }
-    };
 
     const handleDelete = async (id: number) => {
         if (!confirm('هل أنت متأكد من حذف هذا العميل؟ سيتم نقله للأرشيف.')) return;
@@ -248,104 +193,20 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
                     </CardContent>
                 </Card>
 
-                <Modal
+                <ClientModal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
-                    title={isEditMode ? "تعديل بيانات العميل" : "إضافة عميل جديد"}
-                    className="max-w-2xl"
-                >
-                    <div className="space-y-4">
-                        {/* Basic Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-secondary">اسم العميل <span className="text-red-500">*</span></label>
-                                <Input
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="اسم العميل"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-secondary">رقم الهاتف <span className="text-red-500">*</span></label>
-                                <Input
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    placeholder="05xxxxxxxx"
-                                    className="dir-ltr text-right"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-secondary">انشاء كود للعميل (للدخول) <span className="text-red-500">*</span></label>
-                                <Input
-                                    value={formData.orderCode}
-                                    onChange={(e) => setFormData({ ...formData, orderCode: e.target.value })}
-                                    placeholder="مثال: 1234"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-secondary">البريد الإلكتروني</label>
-                                <Input
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="email@example.com"
-                                    className="dir-ltr text-right"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Company & Tax Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-secondary">اسم الشركة / المؤسسة</label>
-                                <Input
-                                    value={formData.companyName}
-                                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                                    placeholder="اسم الشركة"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-secondary">الرقم الضريبي</label>
-                                <Input
-                                    value={formData.taxNumber}
-                                    onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
-                                    placeholder="الرقم الضريبي"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-secondary">العنوان</label>
-                            <Input
-                                value={formData.address}
-                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                placeholder="العنوان بالتفصيل"
-                            />
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-secondary">ملاحظات</label>
-                            <textarea
-                                className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px]"
-                                value={formData.notes}
-                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                placeholder="أي ملاحظات إضافية..."
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-4">
-                            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
-                                إلغاء
-                            </Button>
-                            <Button onClick={handleSave} className="bg-primary text-white px-8">
-                                <Save size={18} className="ml-2" />
-                                حفظ
-                            </Button>
-                        </div>
-                    </div>
-                </Modal>
+                    isEditMode={isEditMode}
+                    initialData={currentClient}
+                    onSuccess={(client: any) => {
+                        if (isEditMode) {
+                            setClients(prev => prev.map(c => c.id === client.id ? client : c));
+                        } else {
+                            setClients(prev => [client, ...prev]);
+                        }
+                        setIsModalOpen(false);
+                    }}
+                />
             </div>
         </DashboardLayout>
     );

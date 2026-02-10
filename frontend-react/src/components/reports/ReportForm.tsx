@@ -60,6 +60,7 @@ import { useRouter } from '@/i18n/routing';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
+import { ClientModal } from '@/components/clients/ClientModal';
 
 interface ReportFormProps {
     locale: string;
@@ -73,9 +74,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     const [clients, setClients] = useState<any[]>([]);
     const [showClientResults, setShowClientResults] = useState(false);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-    const [newClient, setNewClient] = useState({ name: '', phone: '', address: '', orderCode: '' });
     const [step, setStep] = useState(1);
-    const [isSubmittingNewClient, setIsSubmittingNewClient] = useState(false);
 
     const [quickSpecs, setQuickSpecs] = useState({
         cpu: ['Core i9', 'Core i7', 'Core i5', 'Ryzen 9', 'Ryzen 7', 'Apple M3 Pro', 'Apple M2 Pro'],
@@ -212,23 +211,6 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         setShowClientResults(false);
     };
 
-    const handleCreateClient = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmittingNewClient(true);
-        try {
-            const finalOrderCode = newClient.orderCode.startsWith('LPK') ? newClient.orderCode : `LPK${newClient.orderCode}`;
-            const res = await api.post('/clients', { ...newClient, orderCode: finalOrderCode, status: 'active' });
-            handleClientSelect(res.data.client);
-            setIsClientModalOpen(false);
-            setNewClient({ name: '', phone: '', address: '', orderCode: '' });
-            alert('تم إنشاء العميل بنجاح');
-        } catch (err: any) {
-            console.error('Failed to create client:', err);
-            alert('فشل في إنشاء العميل');
-        } finally {
-            setIsSubmittingNewClient(false);
-        }
-    };
 
     const handleDeviceImageAdd = () => {
         const input = document.getElementById('device-image-url-input') as HTMLInputElement;
@@ -928,21 +910,11 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 </div>
             </form>
 
-            <Modal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} title="إضافة عميل جديد" className="max-w-md">
-                <form onSubmit={handleCreateClient} className="space-y-6">
-                    <div className="space-y-4">
-                        <Input placeholder="اسم العميل..." icon={<User size={18} />} value={newClient.name} onChange={(e) => setNewClient(p => ({ ...p, name: e.target.value }))} className="rounded-2xl h-12" required />
-                        <Input placeholder="رقم الموبايل..." icon={<Smartphone size={18} />} value={newClient.phone} onChange={(e) => setNewClient(p => ({ ...p, phone: e.target.value }))} className="rounded-2xl h-12" required />
-                        <Input placeholder="كود العميل..." icon={<Hash size={18} />} value={newClient.orderCode} onChange={(e) => setNewClient(p => ({ ...p, orderCode: e.target.value }))} className="rounded-2xl h-12" required />
-                    </div>
-                    <div className="flex gap-3 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setIsClientModalOpen(false)} className="flex-1 rounded-full h-12">إلغاء</Button>
-                        <Button type="submit" disabled={isSubmittingNewClient} className="flex-2 rounded-full h-12 px-8" icon={isSubmittingNewClient ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}>
-                            {isSubmittingNewClient ? 'جاري الحفظ...' : 'حفظ العميل'}
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
+            <ClientModal
+                isOpen={isClientModalOpen}
+                onClose={() => setIsClientModalOpen(false)}
+                onSuccess={handleClientSelect}
+            />
         </div>
     );
 }
