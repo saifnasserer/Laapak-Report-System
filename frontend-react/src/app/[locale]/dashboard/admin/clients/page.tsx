@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
-import { Search, Plus, Filter, MoreHorizontal, Save, Trash, X } from 'lucide-react';
+import { Search, Plus, Filter, MoreHorizontal, Save, Trash, X, LayoutDashboard } from 'lucide-react';
 import api from '@/lib/api';
 import { use } from 'react';
 import { ClientModal } from '@/components/clients/ClientModal';
@@ -217,6 +217,17 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
+                        <button
+                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(`/${locale}/dashboard/admin/clients/${activeMenuId}/view`, '_blank');
+                                setActiveMenuId(null);
+                            }}
+                        >
+                            <span>عرض لوحة التحكم</span>
+                            <LayoutDashboard size={18} className="text-secondary/40" />
+                        </button>
                         <button
                             className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
                             onClick={(e) => {

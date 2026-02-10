@@ -76,7 +76,14 @@ const printAuth = async (req, res, next) => {
 // Get all invoices (admin only)
 router.get('/', adminAuth, async (req, res) => {
   try {
+    const { client_id } = req.query;
+    let whereClause = {};
+    if (client_id) {
+      whereClause.client_id = client_id;
+    }
+
     const invoices = await Invoice.findAll({
+      where: whereClause,
       include: [
         { model: Client, as: 'client', attributes: ['id', 'name', 'phone'] },
         { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number', 'order_number'] }

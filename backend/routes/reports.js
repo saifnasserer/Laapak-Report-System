@@ -307,6 +307,11 @@ router.get('/', async (req, res) => {
         });
       }
 
+      // Handle client_id filter
+      if (req.query.client_id) {
+        whereConditions.push({ client_id: req.query.client_id });
+      }
+
       // Handle status filter
       if (req.query.status) {
         whereConditions.push({ status: req.query.status });
