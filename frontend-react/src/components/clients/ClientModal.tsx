@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { User, Smartphone, Hash, Save, Clock, Mail, Building, FileText, MapPin } from 'lucide-react';
+import { User, Smartphone, Hash, Save, Clock, MapPin } from 'lucide-react';
 import api from '@/lib/api';
 
 interface ClientModalProps {
@@ -25,12 +25,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         name: '',
         phone: '',
         orderCode: '',
-        email: '',
-        address: '',
-        companyName: '',
-        taxNumber: '',
-        notes: '',
-        status: 'active'
+        address: ''
     });
 
     useEffect(() => {
@@ -44,24 +39,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 name: initialData.name || '',
                 phone: initialData.phone || '',
                 orderCode: displayCode,
-                email: initialData.email || '',
-                address: initialData.address || '',
-                companyName: initialData.companyName || '',
-                taxNumber: initialData.taxNumber || '',
-                notes: initialData.notes || '',
-                status: initialData.status || 'active'
+                address: initialData.address || ''
             });
         } else {
             setFormData({
                 name: '',
                 phone: '',
                 orderCode: '',
-                email: '',
-                address: '',
-                companyName: '',
-                taxNumber: '',
-                notes: '',
-                status: 'active'
+                address: ''
             });
         }
     }, [initialData, isOpen]);
@@ -75,7 +60,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 ? formData.orderCode
                 : `LPK${formData.orderCode}`;
 
-            const payload = { ...formData, orderCode: finalOrderCode };
+            const payload = {
+                ...formData,
+                orderCode: finalOrderCode,
+                // Keep other fields if editing
+                ...(isEditMode ? initialData : {})
+            };
 
             let res;
             if (isEditMode && initialData?.id) {
@@ -100,12 +90,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             isOpen={isOpen}
             onClose={onClose}
             title={isEditMode ? "تعديل بيانات العميل" : "إضافة عميل جديد"}
-            className="max-w-2xl"
+            className="max-w-md"
         >
             <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                     <Input
-                        label="اسم العميل"
                         placeholder="اسم العميل..."
                         icon={<User size={18} />}
                         value={formData.name}
@@ -114,78 +103,37 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                         required
                     />
                     <Input
-                        label="رقم الموبايل"
-                        placeholder="05xxxxxxxx"
+                        placeholder="رقم الموبايل..."
                         icon={<Smartphone size={18} />}
                         value={formData.phone}
                         onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
                         className="rounded-2xl h-12"
                         required
                     />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
-                        label="كود العميل"
-                        placeholder="1234"
-                        prefix="LPK"
+                        placeholder="0000"
                         icon={<Hash size={18} />}
+                        prefix="LPK"
                         value={formData.orderCode}
-                        onChange={(e) => setFormData(p => ({ ...p, orderCode: e.target.value }))}
+                        onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, ''); // Only numbers
+                            setFormData(p => ({ ...p, orderCode: val }));
+                        }}
                         className="rounded-2xl h-12 font-mono"
                         required
                     />
                     <Input
-                        label="البريد الإلكتروني"
-                        placeholder="email@example.com"
-                        icon={<Mail size={18} />}
-                        value={formData.email}
-                        onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                        placeholder="العنوان بالتفصيل..."
+                        icon={<MapPin size={18} />}
+                        value={formData.address}
+                        onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))}
                         className="rounded-2xl h-12"
                     />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="اسم الشركة / المؤسسة"
-                        placeholder="اسم الشركة"
-                        icon={<Building size={18} />}
-                        value={formData.companyName}
-                        onChange={(e) => setFormData(p => ({ ...p, companyName: e.target.value }))}
-                        className="rounded-2xl h-12"
-                    />
-                    <Input
-                        label="الرقم الضريبي"
-                        placeholder="الرقم الضريبي"
-                        icon={<FileText size={18} />}
-                        value={formData.taxNumber}
-                        onChange={(e) => setFormData(p => ({ ...p, taxNumber: e.target.value }))}
-                        className="rounded-2xl h-12"
-                    />
-                </div>
-
-                <Input
-                    label="العنوان"
-                    placeholder="العنوان بالتفصيل..."
-                    icon={<MapPin size={18} />}
-                    value={formData.address}
-                    onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))}
-                    className="rounded-2xl h-12"
-                />
-
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground/80 px-1">ملاحظات</label>
-                    <textarea
-                        className="flex w-full rounded-2xl border-0 bg-surface-variant px-4 py-3 text-base outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all min-h-[100px]"
-                        value={formData.notes}
-                        onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))}
-                        placeholder="أي ملاحظات إضافية..."
-                    />
-                </div>
-
-                <div className="flex gap-3 pt-4 border-t border-black/5">
-                    <Button type="button" variant="ghost" onClick={onClose} className="flex-1 rounded-full h-12">إلغاء</Button>
-                    <Button type="submit" disabled={isSubmitting} className="flex-2 rounded-full h-12 px-10" icon={isSubmitting ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}>
+                <div className="flex gap-3 pt-4">
+                    <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-full h-12">إلغاء</Button>
+                    <Button type="submit" disabled={isSubmitting} className="flex-2 rounded-full h-12 px-8" icon={isSubmitting ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}>
                         {isSubmitting ? 'جاري الحفظ...' : (isEditMode ? 'تحديث البيانات' : 'حفظ العميل')}
                     </Button>
                 </div>

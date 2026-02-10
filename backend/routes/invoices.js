@@ -81,7 +81,7 @@ router.get('/', adminAuth, async (req, res) => {
         { model: Client, as: 'client', attributes: ['id', 'name', 'phone'] },
         { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number', 'order_number'] }
       ],
-      order: [['created_at', 'DESC']]
+      order: [['date', 'DESC']]
     });
     res.json(invoices);
   } catch (error) {
@@ -98,7 +98,7 @@ router.get('/client', clientAuth, async (req, res) => {
       include: [
         { model: Report, as: 'relatedReports', attributes: ['id', 'device_model', 'serial_number', 'order_number'] }
       ],
-      order: [['created_at', 'DESC']]
+      order: [['date', 'DESC']]
     });
     res.json(invoices);
   } catch (error) {

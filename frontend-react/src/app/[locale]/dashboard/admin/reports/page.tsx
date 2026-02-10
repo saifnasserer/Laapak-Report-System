@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -34,15 +35,29 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
 
     // Action Menu State
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+    const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
 
     const toggleMenu = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        setActiveMenuId(activeMenuId === id ? null : id);
+        if (activeMenuId === id) {
+            setActiveMenuId(null);
+            setMenuPosition(null);
+        } else {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setActiveMenuId(id);
+            setMenuPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX
+            });
+        }
     };
 
     // Close menu when clicking outside
     React.useEffect(() => {
-        const handleClickOutside = () => setActiveMenuId(null);
+        const handleClickOutside = () => {
+            setActiveMenuId(null);
+            setMenuPosition(null);
+        };
         window.addEventListener('click', handleClickOutside);
         return () => window.removeEventListener('click', handleClickOutside);
     }, []);
@@ -52,6 +67,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         setReportToShare(report);
         setShareModalOpen(true);
         setActiveMenuId(null);
+        setMenuPosition(null);
     };
 
     React.useEffect(() => {
@@ -82,6 +98,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         'cancelled': { label: 'ملغي', variant: 'destructive' },
         'ملغي': { label: 'ملغي', variant: 'destructive' },
         'ملغى': { label: 'ملغي', variant: 'destructive' },
+        'new_order': { label: 'طلب خارجي', variant: 'primary' },
     };
 
     const getStatusInfo = (status: string) => {
@@ -94,7 +111,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
             const statusMapToEng: any = {
                 'قيد الانتظار': 'pending',
                 'مكتمل': 'completed',
-                'ملغي': 'cancelled'
+                'ملغي': 'cancelled',
+                'طلب خارجي': 'new_order'
             };
             const engStatus = statusMapToEng[newStatus] || newStatus;
 
@@ -162,7 +180,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
 
     const isPendingReport = (report: any) => {
         const status = (report.status || '').toLowerCase();
-        return status === 'pending' || status === 'waiting' || status === 'قيد الانتظار' || status === 'انتظار' || status === 'active' || status === 'نشط';
+        return status === 'pending' || status === 'waiting' || status === 'قيد الانتظار' || status === 'انتظار' || status === 'active' || status === 'نشط' || status === 'new_order';
     };
 
     const isReportInCurrentMonth = (report: any) => {
@@ -349,16 +367,19 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                                     <select
                                                         value={report.status === 'pending' || report.status === 'انتظار' || report.status === 'نشط' || report.status === 'active' ? 'قيد الانتظار' :
                                                             report.status === 'completed' ? 'مكتمل' :
-                                                                report.status === 'cancelled' || report.status === 'ملغى' ? 'ملغي' : report.status}
+                                                                report.status === 'new_order' ? 'طلب خارجي' :
+                                                                    report.status === 'cancelled' || report.status === 'ملغى' ? 'ملغي' : report.status}
                                                         onChange={(e) => handleStatusChange(report.id, e.target.value)}
                                                         className={cn(
                                                             "px-3 py-1.5 rounded-full text-[11px] font-black border outline-none transition-all cursor-pointer appearance-none text-center min-w-[100px]",
                                                             report.status === 'completed' || report.status === 'مكتمل' ? "bg-green-100 text-green-600 border-green-200" :
                                                                 report.status === 'pending' || report.status === 'قيد الانتظار' || report.status === 'انتظار' || report.status === 'active' || report.status === 'نشط' ? "bg-yellow-100 text-yellow-600 border-yellow-200" :
-                                                                    report.status === 'cancelled' || report.status === 'ملغي' || report.status === 'ملغى' ? "bg-red-100 text-red-600 border-red-200" :
-                                                                        "bg-primary/10 text-primary border-primary/20"
+                                                                    report.status === 'new_order' ? "bg-primary/10 text-primary border-primary/20" :
+                                                                        report.status === 'cancelled' || report.status === 'ملغي' || report.status === 'ملغى' ? "bg-red-100 text-red-600 border-red-200" :
+                                                                            "bg-primary/10 text-primary border-primary/20"
                                                         )}
                                                     >
+                                                        <option value="طلب خارجي">🛒 طلب خارجي</option>
                                                         <option value="قيد الانتظار">⏳ قيد الانتظار</option>
                                                         <option value="مكتمل">✅ مكتمل</option>
                                                         <option value="ملغي">❌ ملغي</option>
@@ -388,8 +409,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()} className="overflow-visible">
-                                                <div className="relative flex justify-end">
+                                            <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                <div className="flex justify-end">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
@@ -398,33 +419,6 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                                     >
                                                         <MoreHorizontal size={20} />
                                                     </Button>
-
-                                                    {activeMenuId === report.id && (
-                                                        <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border border-black/5 rounded-2xl shadow-xl z-[100] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
-                                                            <button
-                                                                className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between"
-                                                                onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}/edit`}
-                                                            >
-                                                                <span>تعديل التقرير</span>
-                                                                <Edit size={16} className="text-primary" />
-                                                            </button>
-                                                            <button
-                                                                className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between"
-                                                                onClick={(e) => handleShareClick(report, e)}
-                                                            >
-                                                                <span className="text-[#25D366]">مشاركة واتساب</span>
-                                                                <Share2 size={16} className="text-[#25D366]" />
-                                                            </button>
-                                                            <div className="h-[1px] bg-black/5 mx-2" />
-                                                            <button
-                                                                className="w-full text-right px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/5 transition-colors flex items-center justify-between"
-                                                                onClick={() => handleDeleteReport(report.id)}
-                                                            >
-                                                                <span>حذف التقرير</span>
-                                                                <Trash2 size={16} className="text-destructive" />
-                                                            </button>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -541,6 +535,50 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                     showInvoiceWarning={pendingStatusUpdate?.needsInvoice}
                 />
             </div>
+
+            {/* Portal Action Menu */}
+            {
+                activeMenuId && menuPosition && typeof document !== 'undefined' && createPortal(
+                    <div
+                        className="fixed z-[9999] bg-white border border-black/5 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 min-w-[12rem]"
+                        style={{
+                            top: menuPosition.top + 8,
+                            left: menuPosition.left - 150,
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
+                            onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${activeMenuId}/edit`}
+                        >
+                            <span>تعديل التقرير</span>
+                            <Edit size={16} className="text-primary" />
+                        </button>
+                        <button
+                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
+                            onClick={(e) => {
+                                const report = reports.find(r => r.id === activeMenuId);
+                                if (report) handleShareClick(report, e);
+                            }}
+                        >
+                            <span className="text-[#25D366]">مشاركة واتساب</span>
+                            <Share2 size={16} className="text-[#25D366]" />
+                        </button>
+                        <div className="h-[1px] bg-black/5 mx-2 my-1" />
+                        <button
+                            className="w-full text-right px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/5 transition-colors flex items-center justify-between gap-3"
+                            onClick={() => {
+                                handleDeleteReport(activeMenuId);
+                                setActiveMenuId(null);
+                            }}
+                        >
+                            <span>حذف التقرير</span>
+                            <Trash2 size={16} className="text-destructive" />
+                        </button>
+                    </div>,
+                    document.body
+                )
+            }
         </DashboardLayout>
     );
 }

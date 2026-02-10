@@ -411,7 +411,9 @@ router.get('/', async (req, res) => {
             required: false // Left join to include reports without invoices
           }
         ],
-        order: [['created_at', 'DESC']],
+        order: [
+          [sequelize.literal('COALESCE(`Report`.`inspection_date`, `Report`.`created_at`)'), 'DESC']
+        ],
         logging: (sql) => {
           console.log('=== SQL QUERY ===');
           console.log(sql);

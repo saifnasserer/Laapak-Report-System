@@ -33,6 +33,7 @@ import {
     ArrowRight,
     CheckCircle2,
     Circle,
+    ShoppingCart,
     Send
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -63,6 +64,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
 
     const [warrantyAlerts, setWarrantyAlerts] = useState<any[]>([]);
     const [recentReports, setRecentReports] = useState<any[]>([]);
+    const [newOrders, setNewOrders] = useState<any[]>([]);
     const [isReportsLoading, setIsReportsLoading] = useState(true);
     const [isWarrantyAlertsOpen, setIsWarrantyAlertsOpen] = useState(false);
     const [sendingReminder, setSendingReminder] = useState<string | null>(null);
@@ -77,9 +79,10 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
         setIsReportsLoading(true);
         try {
             // Fetch Warranty Alerts and Recent Reports
-            const [warrantyRes, allPendingRes] = await Promise.all([
+            const [warrantyRes, allPendingRes, newOrdersRes] = await Promise.all([
                 api.get('/reports/insights/warranty-alerts').catch(() => ({ data: [] })),
-                api.get('/reports?status=pending&limit=50&exclude_inventory=true')
+                api.get('/reports?status=pending&limit=50&exclude_inventory=true'),
+                api.get('/reports?status=new_order&limit=20')
             ]);
 
             // Handle Warranty Data (ensure it's an array)
@@ -94,6 +97,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
             const reportsArray = Array.isArray(allPendingRes.data) ? allPendingRes.data : (allPendingRes.data.reports || []);
             // Simple slice for "Recent"
             setRecentReports(reportsArray.slice(0, 5));
+
+            setNewOrders(Array.isArray(newOrdersRes.data) ? newOrdersRes.data : []);
 
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
@@ -162,6 +167,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
         const statusMap: any = {
             'completed': { label: 'مكتمل', variant: 'success' },
             'pending': { label: 'انتظار', variant: 'warning' },
+            'new_order': { label: 'طلب خارجي', variant: 'primary' },
             'cancelled': { label: 'ملغي', variant: 'destructive' },
             'active': { label: 'نشط', variant: 'primary' },
         };
@@ -178,6 +184,66 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
         <DashboardLayout>
             <div className="space-y-8 pb-12 pt-4">
                 {/* Content starts below global header */}
+
+                {/* New External Orders - High Priority Section */}
+                {newOrders.length > 0 && (
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between px-2">
+                            <h2 className="text-2xl font-black flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-xl">
+                                    <ShoppingCart size={28} className="text-primary" />
+                                </div>
+                                طلبات خارجية جديدة
+                            </h2>
+                            <Badge variant="primary" circular className="h-8 px-4 text-sm shadow-sm animate-pulse">
+                                {newOrders.length} طلبات بحاجة للتنسيق
+                            </Badge>
+                        </div>
+
+                        <div className="space-y-4">
+                            {newOrders.map((order) => (
+                                <Card
+                                    key={order.id}
+                                    variant="glass"
+                                    className="border-primary/20 bg-primary/[0.02] hover:bg-primary/[0.05] transition-all duration-300 group cursor-pointer rounded-3xl p-4 md:p-6 border-2"
+                                    onClick={() => router.push(`/dashboard/admin/reports/${order.id}/edit`)}
+                                >
+                                    <div className="flex items-center gap-3 md:gap-6">
+                                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                                            <ShoppingCart size={20} className="md:w-6 md:h-6" />
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap mb-0.5 md:mb-1">
+                                                <span className="font-black text-base md:text-lg text-foreground truncate">{order.client_name}</span>
+                                                <Badge variant="primary" className="text-[10px] h-5 px-2">طلب جديد</Badge>
+                                            </div>
+                                            <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-sm font-medium text-secondary/60">
+                                                <div className="flex items-center gap-1 md:gap-1.5 truncate">
+                                                    <FileText size={12} className="text-primary" />
+                                                    <span className="truncate">{order.device_model}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 md:gap-1.5 shrink-0">
+                                                    <Clock size={12} className="text-primary" />
+                                                    <span>{new Date(order.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+                                            <Button variant="primary" className="hidden md:flex rounded-2xl font-bold text-xs h-10 shadow-lg shadow-primary/20 px-6">
+                                                إكمال البيانات
+                                            </Button>
+                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/80 border border-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                                <Plus size={16} className="md:w-5 md:h-5" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
 
                 {/* Recent Reports - Row Style */}

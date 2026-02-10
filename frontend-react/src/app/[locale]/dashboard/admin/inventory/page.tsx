@@ -335,7 +335,7 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                                     className="relative group rounded-[3.2rem] p-1 transition-all duration-300 bg-white/40 hover:bg-white/60"
                                 >
                                     <div
-                                        onClick={() => router.push(`/${locale}/dashboard/admin/reports/${report.id}`)}
+                                        onClick={() => router.push(`/dashboard/admin/reports/${report.id}`)}
                                         className="flex flex-col md:flex-row items-center justify-between gap-6 p-6 rounded-[3rem] bg-white/60 backdrop-blur-sm border border-primary/10 cursor-pointer hover:border-primary/20 transition-all font-bold"
                                     >
                                         <div className="flex items-center gap-5 w-full md:w-auto">
@@ -376,7 +376,7 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                                                 size="icon"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    router.push(`/${locale}/dashboard/admin/reports/${report.id}/edit`);
+                                                    router.push(`/dashboard/admin/reports/${report.id}/edit`);
                                                 }}
                                                 className="rounded-full w-11 h-11 bg-surface-variant hover:bg-primary hover:text-white transition-all"
                                             >

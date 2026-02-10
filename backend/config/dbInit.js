@@ -6,7 +6,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { sequelize } = require('./db');
-const { Admin, Client, Report, ReportTechnicalTest, ReportExternalInspection, Invoice, InvoiceItem } = require('../models');
+const { Admin, Client, Report, ReportTechnicalTest, ReportExternalInspection, Invoice, InvoiceItem, Setting } = require('../models');
 
 // Run SQL migrations from files
 const runMigrations = async () => {
@@ -193,6 +193,60 @@ const seedInitialData = async () => {
             ]);
 
             console.log('Client data seeded successfully');
+        }
+
+        // Check if settings table is empty
+        const settingCount = await Setting.count();
+
+        if (settingCount === 0) {
+            console.log('Seeding initial settings data...');
+
+            await Setting.bulkCreate([
+                {
+                    key: 'store_name',
+                    value: 'Laapak',
+                    type: 'string',
+                    description: 'The name of the store'
+                },
+                {
+                    key: 'store_name_ar',
+                    value: 'لاباك',
+                    type: 'string',
+                    description: 'The name of the store in Arabic'
+                },
+                {
+                    key: 'store_phone',
+                    value: '01000000000',
+                    type: 'string',
+                    description: 'Store contact phone number'
+                },
+                {
+                    key: 'store_address',
+                    value: 'Alexandria, Egypt',
+                    type: 'string',
+                    description: 'Store physical address'
+                },
+                {
+                    key: 'tax_rate',
+                    value: '14.0',
+                    type: 'number',
+                    description: 'VAT Tax rate (%)'
+                },
+                {
+                    key: 'currency',
+                    value: 'EGP',
+                    type: 'string',
+                    description: 'Base currency'
+                },
+                {
+                    key: 'warranty_reminder_days',
+                    value: '7',
+                    type: 'number',
+                    description: 'Days before warranty expiry to show alert'
+                }
+            ]);
+
+            console.log('Settings data seeded successfully');
         }
 
         return true;

@@ -129,8 +129,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         tax_rate: '0',
         discount: '0',
         invoice_items: [] as { name: string, price: string }[],
-        status: 'pending'
+        status: 'pending',
+        invoice_id: null as string | null
     });
+
+    const [imageInput, setImageInput] = useState('');
+    const [videoInput, setVideoInput] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -186,7 +190,9 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         tax_rate: r.tax_rate || '0',
                         discount: r.discount || '0',
                         invoice_items: invoiceItems,
-                        status: r.status || 'pending'
+                        invoice_items: invoiceItems,
+                        status: r.status || 'pending',
+                        invoice_id: r.invoice_id || null
                     });
                 }
             } catch (err) {
@@ -213,26 +219,24 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
 
     const handleDeviceImageAdd = () => {
-        const input = document.getElementById('device-image-url-input') as HTMLInputElement;
-        if (input && input.value) {
+        if (imageInput) {
             setFormData(prev => ({
                 ...prev,
-                external_images: [...prev.external_images, { url: input.value, type: 'image' }]
+                external_images: [...prev.external_images, { url: imageInput, type: 'image' }]
             }));
-            input.value = '';
+            setImageInput('');
         }
     };
 
     const handleVideoAdd = () => {
-        const input = document.getElementById('video-url-input') as HTMLInputElement;
-        if (input && input.value) {
+        if (videoInput) {
             let type = 'video';
-            if (input.value.includes('youtube') || input.value.includes('youtu.be')) type = 'youtube';
+            if (videoInput.includes('youtube') || videoInput.includes('youtu.be')) type = 'youtube';
             setFormData(prev => ({
                 ...prev,
-                external_images: [...prev.external_images, { url: input.value, type: type }]
+                external_images: [...prev.external_images, { url: videoInput, type: type }]
             }));
-            input.value = '';
+            setVideoInput('');
         }
     };
 
@@ -761,6 +765,14 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                             <Input
                                                 id="device-image-url-input"
                                                 placeholder="رابط الصورة..."
+                                                value={imageInput}
+                                                onChange={(e) => setImageInput(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleDeviceImageAdd();
+                                                    }
+                                                }}
                                                 className="rounded-full border-transparent bg-white h-11 text-xs flex-1 focus:border-primary/20 transition-all font-medium"
                                                 icon={<Link2 size={14} />}
                                             />
@@ -788,7 +800,20 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                             </h4>
                                         </div>
                                         <div className="flex flex-1 gap-2 w-full">
-                                            <Input id="video-url-input" placeholder="رابط يوتيوب أو فيديو..." className="rounded-full border-transparent bg-white h-11 text-xs flex-1 focus:border-primary/20 transition-all font-medium" icon={<Link2 size={14} />} />
+                                            <Input
+                                                id="video-url-input"
+                                                placeholder="رابط يوتيوب أو فيديو..."
+                                                value={videoInput}
+                                                onChange={(e) => setVideoInput(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleVideoAdd();
+                                                    }
+                                                }}
+                                                className="rounded-full border-transparent bg-white h-11 text-xs flex-1 focus:border-primary/20 transition-all font-medium"
+                                                icon={<Link2 size={14} />}
+                                            />
                                             <Button type="button" onClick={handleVideoAdd} variant="outline" className="rounded-full h-11 px-6 border-primary/20 text-primary hover:bg-primary/5 text-xs font-bold" icon={<Plus size={16} />}>إضافة</Button>
                                         </div>
                                     </div>
@@ -815,12 +840,38 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                     <Receipt size={24} />
                                     بيانات الفاتورة والاعتماد
                                 </CardTitle>
-                                <div className="flex items-center gap-3 bg-white/50 p-2 px-4 rounded-full border border-black/5">
-                                    <span className="text-[10px] font-black text-secondary/60 uppercase tracking-widest">إصدار فاتورة؟</span>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" checked={formData.billing_enabled} onChange={(e) => setFormData(prev => ({ ...prev, billing_enabled: e.target.checked }))} />
-                                        <div className="w-12 h-6 bg-black/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:start-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                    </label>
+                                <div className="flex items-center gap-3">
+                                    {formData.billing_enabled && reportId && (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant={formData.invoice_id ? "outline" : "primary"} // Use string literal "default" if "primary" is not a valid variant, checking Button component usage, usually "default" or "primary" is fine but "default" is safer if "primary" is custom. Wait, previous code uses className for color. Let's stick to standard variants or className
+                                            onClick={() => {
+                                                if (formData.invoice_id) {
+                                                    router.push(`/dashboard/admin/invoices/${formData.invoice_id}/edit`);
+                                                } else {
+                                                    // Save first then redirect to ensure data is consistent?
+                                                    // For now direct redirect as per plan.
+                                                    router.push(`/dashboard/admin/invoices/new?reportIds=${reportId}`);
+                                                }
+                                            }}
+                                            className={cn(
+                                                "rounded-full h-9 px-4 text-xs font-bold animate-in zoom-in",
+                                                formData.invoice_id
+                                                    ? "border-primary/20 text-primary hover:bg-primary/5"
+                                                    : "bg-primary text-white shadow-md shadow-primary/20"
+                                            )}
+                                        >
+                                            {formData.invoice_id ? 'عرض الفاتورة' : 'إنشاء فاتورة'}
+                                        </Button>
+                                    )}
+                                    <div className="flex items-center gap-3 bg-white/50 p-2 px-4 rounded-full border border-black/5">
+                                        <span className="text-[10px] font-black text-secondary/60 uppercase tracking-widest">إصدار فاتورة؟</span>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" className="sr-only peer" checked={formData.billing_enabled} onChange={(e) => setFormData(prev => ({ ...prev, billing_enabled: e.target.checked }))} />
+                                            <div className="w-12 h-6 bg-black/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:start-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-8 space-y-8">

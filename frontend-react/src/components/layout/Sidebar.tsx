@@ -76,6 +76,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             { href: '/dashboard/admin/financial/profit-management', label: 'إدارة الأرباح', icon: FileText },
             { href: '/dashboard/admin/financial/expenses', label: 'المصروفات', icon: Receipt },
         ] : []),
+        { href: '/dashboard/admin/management', label: 'إدارة النظام', icon: Settings },
     ];
 
 

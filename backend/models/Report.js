@@ -119,7 +119,7 @@ const Report = sequelize.define('Report', {
         comment: 'Date when invoice was created'
     },
     status: {
-        type: DataTypes.ENUM('قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى', 'pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active'),
+        type: DataTypes.ENUM('قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى', 'pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active', 'new_order'),
         defaultValue: 'قيد الانتظار'
     },
     admin_id: {

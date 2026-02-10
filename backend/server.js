@@ -30,6 +30,8 @@ const recordsRoutes = require('./routes/records');
 const apiKeysRoutes = require('./routes/api-keys');
 const apiKeysEnhancedRoutes = require('./routes/api-keys-enhanced');
 const apiKeyManagementRoutes = require('./routes/api-key-management');
+const settingsRoutes = require('./routes/settings');
+const webhooksRoutes = require('./routes/webhooks');
 const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
@@ -285,6 +287,8 @@ app.use('/api/records', recordsRoutes);
 app.use('/api/external', apiKeysRoutes);
 app.use('/api/v2/external', apiKeysEnhancedRoutes);
 app.use('/api/admin', apiKeyManagementRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/webhooks', webhooksRoutes);
 
 // ETA (Egyptian Tax Authority) callback endpoint
 app.get('/eta/callback', (req, res) => {

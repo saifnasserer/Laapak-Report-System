@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -76,14 +77,29 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
     };
 
     const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+    const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
 
     const toggleMenu = (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
-        setActiveMenuId(activeMenuId === id ? null : id);
+        if (activeMenuId === id) {
+            setActiveMenuId(null);
+            setMenuPosition(null);
+        } else {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setActiveMenuId(id);
+            setMenuPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX
+            });
+        }
     };
 
+    // Close menu when clicking outside
     useEffect(() => {
-        const handleClickOutside = () => setActiveMenuId(null);
+        const handleClickOutside = () => {
+            setActiveMenuId(null);
+            setMenuPosition(null);
+        };
         window.addEventListener('click', handleClickOutside);
         return () => window.removeEventListener('click', handleClickOutside);
     }, []);
@@ -161,25 +177,6 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
                                                 >
                                                     <MoreHorizontal size={20} />
                                                 </Button>
-
-                                                {activeMenuId === client.id && (
-                                                    <div className="absolute left-0 top-full mt-2 w-40 bg-white border border-black/5 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                                        <button
-                                                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between"
-                                                            onClick={(e) => { e.stopPropagation(); handleOpenEdit(client); }}
-                                                        >
-                                                            <span>تعديل</span>
-                                                            <div className="w-2 h-2 rounded-full bg-primary" />
-                                                        </button>
-                                                        <button
-                                                            className="w-full text-right px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/5 transition-colors flex items-center justify-between"
-                                                            onClick={(e) => { e.stopPropagation(); handleDelete(client.id); }}
-                                                        >
-                                                            <span>حذف</span>
-                                                            <div className="w-2 h-2 rounded-full bg-destructive" />
-                                                        </button>
-                                                    </div>
-                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -208,6 +205,43 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
                     }}
                 />
             </div>
+
+            {/* Portal Action Menu */}
+            {
+                activeMenuId !== null && menuPosition && typeof document !== 'undefined' && createPortal(
+                    <div
+                        className="fixed z-[9999] bg-white border border-black/5 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 min-w-[10rem]"
+                        style={{
+                            top: menuPosition.top + 8,
+                            left: menuPosition.left - 120, // Adjust alignment
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const client = clients.find(c => c.id === activeMenuId);
+                                if (client) handleOpenEdit(client);
+                            }}
+                        >
+                            <span>تعديل</span>
+                            <div className="w-2 h-2 rounded-full bg-primary" />
+                        </button>
+                        <button
+                            className="w-full text-right px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/5 transition-colors flex items-center justify-between gap-3"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(activeMenuId);
+                            }}
+                        >
+                            <span>حذف</span>
+                            <div className="w-2 h-2 rounded-full bg-destructive" />
+                        </button>
+                    </div>,
+                    document.body
+                )
+            }
         </DashboardLayout>
     );
 }

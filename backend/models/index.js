@@ -20,6 +20,7 @@ const FinancialSummary = require('./FinancialSummary');
 const MoneyLocation = require('./MoneyLocation');
 const MoneyMovement = require('./MoneyMovement');
 const ExpectedItem = require('./ExpectedItem');
+const Setting = require('./Setting');
 
 // Import the sequelize instance from the config/db.js file
 const { sequelize } = require('../config/db');
@@ -128,5 +129,6 @@ module.exports = {
   MoneyLocation,
   MoneyMovement,
   ExpectedItem,
+  Setting,
   sequelize, // Export the sequelize instance
 };
