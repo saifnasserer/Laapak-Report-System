@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Report, Client } = require('../models');
+const { Report, Client, WebhookLog } = require('../models');
 const { Op } = require('sequelize');
 
 /**
@@ -9,10 +9,21 @@ const { Op } = require('sequelize');
  * @access  Public (Should be secured with Secret verification in production)
  */
 router.post('/woocommerce/order-created', async (req, res) => {
+    let webhookLog;
     try {
+        // Create initial log
+        webhookLog = await WebhookLog.create({
+            source: 'WooCommerce',
+            event: 'order.created',
+            payload: req.body,
+            ipAddress: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+            status: 'success'
+        });
+
         const secret = req.headers['x-webhook-secret'];
         if (secret !== 'laapak_woo_2026_webhook_sec') {
             console.error('Webhook Error: Unauthorized access attempt');
+            await webhookLog.update({ status: 'error', errorMessage: 'Unauthorized: Invalid secret' });
             return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
@@ -82,7 +93,13 @@ router.post('/woocommerce/order-created', async (req, res) => {
         });
     } catch (error) {
         console.error('WooCommerce Webhook Processing Error:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
+        if (webhookLog) {
+            await webhookLog.update({
+                status: 'error',
+                errorMessage: error.message
+            });
+        }
+        res.status(500).json({ success: false, error: error.message, stack: error.stack });
     }
 });
 

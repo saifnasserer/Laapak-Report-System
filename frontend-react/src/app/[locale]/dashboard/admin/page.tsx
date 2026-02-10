@@ -34,7 +34,9 @@ import {
     CheckCircle2,
     Circle,
     ShoppingCart,
-    Send
+    Send,
+    CheckCircle,
+    Trash2,
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useRouter } from '@/i18n/routing';
@@ -66,6 +68,19 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
     const [recentReports, setRecentReports] = useState<any[]>([]);
     const [newOrders, setNewOrders] = useState<any[]>([]);
     const [isReportsLoading, setIsReportsLoading] = useState(true);
+
+    const handleDeleteReport = async (reportId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm('هل أنت متأكد من حذف هذا التقرير؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+        try {
+            await api.delete(`/reports/${reportId}`);
+            setNewOrders(prev => prev.filter(r => r.id !== reportId));
+        } catch (err) {
+            console.error('Failed to delete report:', err);
+            alert('فشل في حذف التقرير');
+        }
+    };
+
     const [isWarrantyAlertsOpen, setIsWarrantyAlertsOpen] = useState(false);
     const [sendingReminder, setSendingReminder] = useState<string | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; alert: any | null; message: string }>({
@@ -231,11 +246,18 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                                         </div>
 
                                         <div className="flex items-center gap-2 md:gap-4 shrink-0">
-                                            <Button variant="primary" className="hidden md:flex rounded-2xl font-bold text-xs h-10 shadow-lg shadow-primary/20 px-6">
-                                                إكمال البيانات
+                                            <Button
+                                                variant="destructive"
+                                                className="hidden md:flex rounded-2xl font-bold text-xs h-10 shadow-lg shadow-destructive/20 px-6"
+                                                onClick={(e) => handleDeleteReport(order.id, e)}
+                                            >
+                                                حذف الطلب
                                             </Button>
-                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/80 border border-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                                                <Plus size={16} className="md:w-5 md:h-5" />
+                                            <div
+                                                className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive hover:bg-destructive hover:text-white transition-all duration-300 pointer-events-auto"
+                                                onClick={(e) => handleDeleteReport(order.id, e)}
+                                            >
+                                                <X size={16} className="md:w-5 md:h-5" />
                                             </div>
                                         </div>
                                     </div>

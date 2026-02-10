@@ -50,4 +50,43 @@ router.put('/', adminRoleAuth(['superadmin']), async (req, res) => {
     }
 });
 
+// GET Webhook Logs (admin only)
+router.get('/webhooks/logs', adminAuth, async (req, res) => {
+    try {
+        const { WebhookLog } = require('../models');
+        const logs = await WebhookLog.findAll({
+            order: [['created_at', 'DESC']],
+            limit: 50
+        });
+        res.json(logs);
+    } catch (error) {
+        console.error('Get webhook logs error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// DELETE Webhook Log (superadmin only)
+router.delete('/webhooks/logs/:id', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const { WebhookLog } = require('../models');
+        await WebhookLog.destroy({ where: { id: req.params.id } });
+        res.json({ message: 'Log deleted successfully' });
+    } catch (error) {
+        console.error('Delete webhook log error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// CLEAR ALL Webhook Logs (superadmin only)
+router.delete('/webhooks/logs', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const { WebhookLog } = require('../models');
+        await WebhookLog.destroy({ where: {}, truncate: true });
+        res.json({ message: 'All logs cleared' });
+    } catch (error) {
+        console.error('Clear webhook logs error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

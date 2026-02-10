@@ -4,12 +4,17 @@ import React from 'react';
 import {
     Users,
     Activity,
-    ChevronLeft
+    ChevronLeft,
+    Globe
 } from 'lucide-react';
 import UserManagement from '@/components/management/UserManagement';
+import WebhookManager from '@/components/management/WebhookManager';
 import { Link } from '@/i18n/routing';
+import { clsx } from 'clsx';
 
 export default function ManagementPage() {
+    const [activeTab, setActiveTab] = React.useState<'users' | 'webhooks'>('users');
+
     return (
         <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto pb-24 h-full relative">
             {/* Header section with glass effect */}
@@ -20,11 +25,11 @@ export default function ManagementPage() {
                         لوحة التحكم الإدارية
                     </div>
                     <h1 className="text-4xl md:text-5xl font-black text-foreground tracking-tight flex items-center gap-3">
-                        إدارة المستخدمين
+                        إدارة النظام
                         <div className="h-2 w-2 rounded-full bg-primary" />
                     </h1>
                     <p className="text-secondary/50 font-medium text-lg max-w-lg leading-relaxed">
-                        إدارة حسابات الموظفين، تعيين الصلاحيات، ومتابعة آخر ظهور
+                        {activeTab === 'users' ? 'إدارة حسابات الموظفين وصلاحياتهم' : 'مراقبة وإدارة الربط مع الأنظمة الخارجية'}
                     </p>
                 </div>
 
@@ -37,8 +42,32 @@ export default function ManagementPage() {
                 </Link>
             </div>
 
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-6">
-                <UserManagement />
+            {/* Tabs Navigation */}
+            <div className="flex items-center gap-2 p-1 bg-white border border-black/5 rounded-2xl w-fit">
+                <button
+                    onClick={() => setActiveTab('users')}
+                    className={clsx(
+                        "flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+                        activeTab === 'users' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-secondary/40 hover:bg-primary/5 hover:text-primary"
+                    )}
+                >
+                    <Users size={18} />
+                    المستخدمين
+                </button>
+                <button
+                    onClick={() => setActiveTab('webhooks')}
+                    className={clsx(
+                        "flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+                        activeTab === 'webhooks' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-secondary/40 hover:bg-primary/5 hover:text-primary"
+                    )}
+                >
+                    <Globe size={18} />
+                    الـ Webhooks
+                </button>
+            </div>
+
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-2">
+                {activeTab === 'users' ? <UserManagement /> : <WebhookManager />}
             </div>
         </div>
     );
