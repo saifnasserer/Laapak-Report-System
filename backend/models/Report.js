@@ -145,6 +145,12 @@ const Report = sequelize.define('Report', {
         allowNull: true,
         field: 'selected_accessories',
         comment: 'List of accessories selected by the client'
+    },
+    payment_method: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        field: 'payment_method',
+        comment: 'The payment method selected by the client (cash, vodafone_cash, instapay)'
     }
 }, {
     tableName: 'reports',

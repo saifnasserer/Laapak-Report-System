@@ -334,7 +334,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                     />
                                     <Check size={12} strokeWidth={3} className="text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                                 </div>,
-                                'التاريخ', 'العميل', 'الجهاز', 'الحالة', 'الإضافات', 'التأكيد', ''
+                                'التاريخ', 'العميل', 'الجهاز', 'الحالة', 'التفاصيل', ''
                             ]} wrapperClassName="overflow-visible">
                                 {filteredReports.map((report) => {
                                     const statusInfo = getStatusInfo(report.status);
@@ -386,25 +386,37 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                                     </select>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-center align-middle p-0 w-12">
-                                                <div className="flex justify-center">
-                                                    {report.selected_accessories && Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0 ? (
-                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20">
-                                                            <ShoppingCart size={14} className="animate-bounce" />
+                                            <TableCell className="text-center align-middle p-0 min-w-[140px]">
+                                                <div className="flex justify-center items-center gap-2">
+                                                    {/* Accessories Icon */}
+                                                    {report.selected_accessories && Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0 && (
+                                                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20 shrink-0" title="يوجد إضافات">
+                                                            <ShoppingCart size={12} />
                                                         </div>
-                                                    ) : (
-                                                        <ShoppingCart size={14} className="text-secondary/20" />
                                                     )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center align-middle p-0 w-20">
-                                                <div className="flex justify-center">
-                                                    {(report.is_confirmed || report.status === 'completed' || report.status === 'مكتمل') ? (
-                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 border border-green-100 animate-in fade-in zoom-in duration-500">
-                                                            <CheckCircle2 size={12} className="text-green-500" />
-                                                            <span className="text-[10px] font-black text-green-700 uppercase tracking-tighter">مؤكد</span>
+
+                                                    {/* Confirmation Badge */}
+                                                    {(report.is_confirmed || report.status === 'completed' || report.status === 'مكتمل') && (
+                                                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 transition-all shadow-sm ring-1 ring-green-200 shrink-0" title="مؤكد">
+                                                            <CheckCircle2 size={12} />
                                                         </div>
-                                                    ) : (
+                                                    )}
+
+                                                    {/* Payment Method Badge */}
+                                                    {report.payment_method && (
+                                                        <div className={cn(
+                                                            "px-2 py-0.5 rounded-md border text-[10px] font-bold flex items-center gap-1 h-6 whitespace-nowrap",
+                                                            report.payment_method === 'instapay' ? "bg-indigo-50 text-indigo-700 border-indigo-100" :
+                                                                report.payment_method === 'vodafone_cash' ? "bg-red-50 text-red-700 border-red-100" :
+                                                                    "bg-orange-50 text-orange-700 border-orange-100"
+                                                        )}>
+                                                            {report.payment_method === 'instapay' ? 'Insta' :
+                                                                report.payment_method === 'vodafone_cash' ? 'V.Cash' : 'Cash'}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Placeholder if empty */}
+                                                    {(!report.selected_accessories?.length && !report.is_confirmed && report.status !== 'completed' && report.status !== 'مكتمل' && !report.payment_method) && (
                                                         <span className="text-secondary/20 text-xs">-</span>
                                                     )}
                                                 </div>

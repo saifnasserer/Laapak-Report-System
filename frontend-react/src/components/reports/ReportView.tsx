@@ -90,6 +90,10 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
     const [sourceDetails, setSourceDetails] = useState('');
     const [isAssigning, setIsAssigning] = useState(false);
 
+    // Payment Modal State
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'vodafone_cash' | 'instapay' | null>(null);
+
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const toggleCartItem = (product: any) => {
         setCartItems(prev => {
@@ -164,12 +168,57 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         fetchProducts();
     }, [activeStep, products.length]);
 
-    const handleConfirmOrder = async () => {
-        try {
-            await confirmReport(id, cartItems);
-            setIsConfirmed(true);
+    const calculateFinalTotal = () => {
+        const baseTotal = parseFloat(report.amount || 0) + cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0);
+        let fee = 0;
+        let feeReason = '';
 
-            const message = encodeURIComponent('مساء الخير انا راجعت التقرير وجاهز آكد الأوردر');
+        if (selectedPaymentMethod === 'cash') {
+            fee = baseTotal * 0.01;
+            feeReason = ' (رسوم شركة الشحن 1%)';
+        } else if (selectedPaymentMethod === 'vodafone_cash') {
+            fee = baseTotal * 0.01;
+            feeReason = ' (رسوم سحب فودافون 1%)';
+        }
+
+        return {
+            baseTotal,
+            fee,
+            finalTotal: baseTotal + fee,
+            feeReason
+        };
+    };
+
+    const handleConfirmOrder = () => {
+        setPaymentModalOpen(true);
+    };
+
+    const handleFinalConfirmation = async () => {
+        if (!selectedPaymentMethod) return;
+
+        try {
+            const { baseTotal, fee, finalTotal, feeReason } = calculateFinalTotal();
+            await confirmReport(id, cartItems, selectedPaymentMethod);
+            setIsConfirmed(true);
+            setReport((prev: any) => ({ ...prev, payment_method: selectedPaymentMethod }));
+            setPaymentModalOpen(false);
+
+            const paymentLabels: any = {
+                'cash': 'كاش عند الاستلام (للمندوب)',
+                'vodafone_cash': 'فودافون كاش - عند الاستلام',
+                'instapay': 'انستاباي - عند الاستلام'
+            };
+
+            let messageText = `مساء الخير انا راجعت التقرير وجاهز آكد الأوردر\n\n`;
+            messageText += `طريقة الدفع: ${paymentLabels[selectedPaymentMethod]}\n`;
+            messageText += `إجمالي الجهاز والإضافات: ${baseTotal.toLocaleString()} ج.م\n`;
+            if (fee > 0) {
+                messageText += `الرسوم الإضافية: ${fee.toLocaleString()} ج.م ${feeReason}\n`;
+            }
+            messageText += `الإجمالي النهائي المطلوب: ${finalTotal.toLocaleString()} ج.م`;
+            messageText += `\n* الدفع عند الاستلام *`;
+
+            const message = encodeURIComponent(messageText);
             const phone = '201013148007';
             window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
         } catch (err) {
@@ -677,9 +726,9 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                 <FileText size={32} />
                                             </div>
                                             <p className="font-bold">لا توجد فواتير مرتبطة حالياً</p>
-                                            {viewMode === 'admin' && (
+                                            {/* {viewMode === 'admin' && (
                                                 <Button variant="outline" size="sm" className="mt-2 rounded-2xl" icon={<Plus size={18} />}>إنشاء فاتورة الآن</Button>
-                                            )}
+                                            )} */}
                                         </div>
                                     )}
                                 </div>
@@ -704,6 +753,27 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 <p className="text-secondary/60 font-medium">يمكنك الآن تأكيد الطلب أو مشاركته مع العميل.</p>
                             </div>
 
+                            {isConfirmed && (report.payment_method || selectedPaymentMethod) && (
+                                <div className="mt-4 p-4 rounded-2xl bg-green-50 border border-green-100 flex flex-col items-center gap-2">
+                                    <span className="text-[10px] font-black text-green-700/40 uppercase tracking-widest">طريقة الدفع المختارة</span>
+                                    <div className="flex items-center gap-2 text-green-700">
+                                        {(() => {
+                                            const method = report.payment_method || selectedPaymentMethod;
+                                            const label = method === 'cash' ? 'كاش عند الاستلام' :
+                                                method === 'vodafone_cash' ? 'فودافون كاش' : 'انستاباي';
+                                            return (
+                                                <>
+                                                    {method === 'cash' ? <CreditCard size={18} /> :
+                                                        method === 'vodafone_cash' ? <Smartphone size={18} /> : <Zap size={18} />}
+                                                    <span className="font-bold">{label}</span>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                    <p className="text-[10px] font-bold text-green-600/60">* الدفع عند الاستلام *</p>
+                                </div>
+                            )}
+
                             {cartItems.length > 0 && !isConfirmed && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
@@ -720,21 +790,37 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             <div
                                 onClick={!isConfirmed ? handleConfirmOrder : undefined}
                                 className={cn(
-                                    "px-10 md:px-12 py-8 rounded-[2.5rem] bg-white border transition-all cursor-pointer group flex items-center gap-6 w-full md:w-auto md:min-w-[380px] justify-center",
-                                    isConfirmed ? "border-green-500/30 bg-green-50/10" : "border-black/5 hover:border-primary/20 hover:-translate-y-1 shadow-sm"
+                                    "px-10 md:px-12 py-8 rounded-[2.5rem] bg-white border-2 transition-all cursor-pointer group flex items-center gap-6 w-full md:w-auto md:min-w-[420px] justify-center relative overflow-hidden",
+                                    isConfirmed
+                                        ? "border-green-500/30 bg-green-50/10"
+                                        : "border-red-500/40 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/10 hover:-translate-y-1 shadow-xl shadow-red-500/5 bg-red-50/5"
                                 )}
                             >
-                                <div className={cn(
-                                    "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group-hover:scale-110 shrink-0",
-                                    isConfirmed ? "bg-green-500 text-white" : "bg-primary text-white shadow-lg shadow-primary/20"
-                                )}>
-                                    {isConfirmed ? <Check size={32} /> : <Send size={32} />}
-                                </div>
-                                <div className="text-right">
-                                    <h4 className="text-xl font-black text-secondary leading-tight">{isConfirmed ? 'تم تأكيد الطلب' : 'تأكيد الـ Order'}</h4>
-                                </div>
+                                {isConfirmed ? (
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0">
+                                            <CheckCircle2 size={32} />
+                                        </div>
+                                        <div className="flex flex-col items-start gap-1">
+                                            <span className="text-xl font-black text-secondary">تم تأكيد الأوردر</span>
+                                            <p className="text-xs font-bold text-green-600/60">شكراً لثقتك في لابق</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform">
+                                            <ShoppingCart size={32} />
+                                        </div>
+                                        <div className="flex flex-col items-start gap-1">
+                                            <span className="text-xl font-black text-secondary group-hover:text-red-600 transition-colors">تأكيد الأوردر (دفع عند الاستلام)</span>
+                                            <p className="text-sm font-bold text-secondary/40">تأكيد وطريقة الدفع ومشاركة واتساب</p>
+                                        </div>
+                                        <div className="absolute top-0 right-0 p-2">
+                                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                        </div>
+                                    </>
+                                )}
                             </div>
-
                             {[
                                 {
                                     title: 'مشاركة واتساب',
@@ -742,10 +828,12 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     icon: <Share2 />,
                                     color: 'primary',
                                     action: () => {
+                                        const shareUrl = `${window.location.origin}/${locale}/reports/${id}`;
                                         if (viewMode === 'admin') {
-                                            setShareModalOpen(true);
+                                            navigator.clipboard.writeText(shareUrl);
+                                            // Simple alert for feedback since no toast is available
+                                            alert('تم نسخ الرابط بنجاح');
                                         } else {
-                                            const shareUrl = `${window.location.origin}/reports/${id}`;
                                             const shareMessage = `شوف تقرير الفحص من هنا:\n${shareUrl}`;
                                             window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank');
                                         }
@@ -795,6 +883,107 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
     return (
         <div className="min-h-screen bg-[#FDFDFF] text-secondary selection:bg-primary/10 selection:text-primary relative p-4 md:p-8 overflow-x-hidden">
+            {/* Payment Selection Modal */}
+            <Modal
+                isOpen={paymentModalOpen}
+                onClose={() => setPaymentModalOpen(false)}
+                title="تأكيد طريقة الدفع"
+                className="max-w-md"
+            >
+                <div className="space-y-6">
+                    <p className="text-secondary/60 text-sm">بالنسبة للدفع ف فية ٣ طرق (الدفع عند الاستلام) ، يرجى اختيار الأنسب لك:</p>
+
+                    <div className="space-y-3">
+                        {[
+                            {
+                                id: 'instapay',
+                                title: 'انستاباي (الأفضل)',
+                                desc: 'دفع عند الاستلام - مش بيخصم اي حاجة زيادة',
+                                icon: <Zap className="text-indigo-500" />,
+                                color: 'indigo'
+                            },
+                            {
+                                id: 'cash',
+                                title: 'كاش عند الاستلام',
+                                desc: 'المندوب بيستلم المبلغ بزيادة ١٪ عشان شركة الشحن بتخصمهم',
+                                icon: <CreditCard className="text-orange-500" />,
+                                color: 'orange'
+                            },
+                            {
+                                id: 'vodafone_cash',
+                                title: 'فودافون كاش',
+                                desc: 'زياده ١٪ ع المبلغ رسوم سحب فودافون - دفع عند الاستلام',
+                                icon: <Smartphone className="text-red-500" />,
+                                color: 'red'
+                            }
+                        ].map((method) => (
+                            <div
+                                key={method.id}
+                                onClick={() => setSelectedPaymentMethod(method.id as any)}
+                                className={cn(
+                                    "p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-4 hover:shadow-md",
+                                    selectedPaymentMethod === method.id
+                                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                        : "border-black/5 bg-white hover:border-primary/20"
+                                )}
+                            >
+                                <div className={cn(
+                                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                                    method.id === 'instapay' ? "bg-indigo-50" :
+                                        method.id === 'cash' ? "bg-orange-50" : "bg-red-50"
+                                )}>
+                                    {method.icon}
+                                </div>
+                                <div className="text-right">
+                                    <h4 className="font-bold text-secondary">{method.title}</h4>
+                                    <p className="text-[11px] text-secondary/50 leading-relaxed mt-0.5">{method.desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {selectedPaymentMethod && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-2xl bg-surface-variant/20 border border-black/5 space-y-2"
+                        >
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-secondary/60">الإجمالي الأساسي:</span>
+                                <span className="font-bold text-secondary">{calculateFinalTotal().baseTotal.toLocaleString()} ج.م</span>
+                            </div>
+                            {calculateFinalTotal().fee > 0 && (
+                                <div className="flex justify-between items-center text-red-500">
+                                    <span className="text-xs">الرسوم الإضافية (1%):</span>
+                                    <span className="font-bold">+{calculateFinalTotal().fee.toLocaleString()} ج.م</span>
+                                </div>
+                            )}
+                            <div className="pt-2 border-t border-black/5 flex justify-between items-center">
+                                <span className="font-black text-secondary">الإجمالي النهائي:</span>
+                                <span className="text-xl font-black text-primary">{calculateFinalTotal().finalTotal.toLocaleString()} ج.م</span>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    <div className="flex gap-3">
+                        <Button
+                            onClick={handleFinalConfirmation}
+                            className="flex-1 rounded-2xl py-6 text-base font-black"
+                            disabled={!selectedPaymentMethod}
+                        >
+                            تأكيد وإرسال
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setPaymentModalOpen(false)}
+                            className="rounded-2xl px-6"
+                        >
+                            إلغاء
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Warehouse Assignment Modal */}
             <Modal
                 isOpen={warehouseModalOpen}

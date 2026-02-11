@@ -196,4 +196,20 @@ router.post('/webhooks/outgoing/:id/test', adminAuth, async (req, res) => {
     }
 });
 
+// GET Outgoing Webhook Logs (admin only)
+router.get('/webhooks/outgoing/:id/logs', adminAuth, async (req, res) => {
+    try {
+        const { OutgoingWebhookLog } = require('../models');
+        const logs = await OutgoingWebhookLog.findAll({
+            where: { webhook_id: req.params.id },
+            order: [['created_at', 'DESC']],
+            limit: 20
+        });
+        res.json(logs);
+    } catch (error) {
+        console.error('Get outgoing webhook logs error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

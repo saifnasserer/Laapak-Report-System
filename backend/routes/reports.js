@@ -13,7 +13,7 @@ const REPORT_BASE_ATTRIBUTES = [
   'order_number', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
   'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
   'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id',
-  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories'
+  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories', 'payment_method'
 ];
 
 
@@ -1573,17 +1573,19 @@ router.put('/:id/confirm', auth, async (req, res) => {
       return res.status(404).json({ message: 'التقرير غير موجود' });
     }
 
-    // Update is_confirmed flag and selected accessories
-    const { selectedAccessories } = req.body;
+    // Update is_confirmed flag, selected accessories and payment method
+    const { selectedAccessories, paymentMethod } = req.body;
     await report.update({
       is_confirmed: true,
-      selected_accessories: selectedAccessories || []
+      selected_accessories: selectedAccessories || [],
+      payment_method: paymentMethod || null
     });
 
     res.json({
       message: 'تم تأكيد الطلب بنجاح',
       is_confirmed: true,
-      selected_accessories: selectedAccessories || []
+      selected_accessories: selectedAccessories || [],
+      payment_method: paymentMethod || null
     });
   } catch (error) {
     console.error('Error confirming report:', error);

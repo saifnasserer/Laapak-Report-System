@@ -12,7 +12,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Card = ({ className, variant = 'flat', ...props }: CardProps) => {
     const variants = {
-        flat: 'bg-white border border-black/[0.03] shadow-sm',
+        flat: 'bg-white border border-black/[0.03]',
         outline: 'bg-white border border-black/10',
         glass: 'laapak-glass',
     };

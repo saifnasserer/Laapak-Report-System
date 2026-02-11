@@ -13,6 +13,7 @@ const Goal = require('./Goal');
 const Achievement = require('./Achievement');
 const WebhookLog = require('./WebhookLog');
 const OutgoingWebhook = require('./OutgoingWebhook');
+const OutgoingWebhookLog = require('./OutgoingWebhookLog');
 
 // Financial Management Models
 const ExpenseCategory = require('./ExpenseCategory');
@@ -134,5 +135,6 @@ module.exports = {
   Setting,
   WebhookLog,
   OutgoingWebhook,
+  OutgoingWebhookLog,
   sequelize, // Export the sequelize instance
 };

@@ -43,9 +43,9 @@ api.interceptors.response.use(
     }
 );
 
-export const confirmReport = async (reportId: string, selectedAccessories: any[] = []) => {
+export const confirmReport = async (reportId: string, selectedAccessories: any[] = [], paymentMethod: string | null = null) => {
     try {
-        const response = await api.put(`/reports/${reportId}/confirm`, { selectedAccessories });
+        const response = await api.put(`/reports/${reportId}/confirm`, { selectedAccessories, paymentMethod });
         return response.data;
     } catch (error) {
         console.error('Error confirming report:', error);

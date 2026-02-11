@@ -1,6 +1,6 @@
 const axios = require('axios');
 const crypto = require('crypto');
-const { OutgoingWebhook } = require('../models');
+const { OutgoingWebhook, OutgoingWebhookLog } = require('../models');
 
 /**
  * Dispatch a webhook event to all subscribed active webhooks
@@ -39,6 +39,7 @@ async function notifySubscribers(event, payload) {
  * @param {object} payload - Data to send
  */
 async function dispatchWebhook(webhook, event, payload) {
+    const startTime = Date.now();
     const timestamp = Date.now();
     const data = {
         event,
@@ -52,6 +53,11 @@ async function dispatchWebhook(webhook, event, payload) {
         .update(body)
         .digest('hex');
 
+    let responseCode = 0;
+    let responseBody = '';
+    let errorMessage = null;
+    let status = 'failure';
+
     try {
         const response = await axios.post(webhook.url, data, {
             headers: {
@@ -64,27 +70,51 @@ async function dispatchWebhook(webhook, event, payload) {
             timeout: 10000 // 10 seconds timeout
         });
 
+        responseCode = response.status;
+        responseBody = JSON.stringify(response.data);
+        status = 'success';
+
         await webhook.update({
             last_triggered_at: new Date(),
-            last_response_code: response.status,
+            last_response_code: responseCode,
             last_error_message: null
         });
 
-        return { success: true, responseCode: response.status };
+        return { success: true, responseCode };
     } catch (error) {
-        console.error(`[Webhook] Delivery failed to ${webhook.url}:`, error.message);
+        responseCode = error.response ? error.response.status : 0;
+        responseBody = error.response ? JSON.stringify(error.response.data) : '';
+        errorMessage = error.message;
+
+        console.error(`[Webhook] Delivery failed to ${webhook.url}:`, errorMessage);
 
         await webhook.update({
             last_triggered_at: new Date(),
-            last_response_code: error.response ? error.response.status : 0,
-            last_error_message: error.message
+            last_response_code: responseCode,
+            last_error_message: errorMessage
         });
 
         return {
             success: false,
-            responseCode: error.response ? error.response.status : 0,
-            error: error.message
+            responseCode,
+            error: errorMessage
         };
+    } finally {
+        const duration = Date.now() - startTime;
+        try {
+            await OutgoingWebhookLog.create({
+                webhook_id: webhook.id,
+                event,
+                payload,
+                response_code: responseCode,
+                response_body: responseBody,
+                duration,
+                status,
+                error_message: errorMessage
+            });
+        } catch (logError) {
+            console.error('[Webhook] Failed to create execution log:', logError.message);
+        }
     }
 }
 
