@@ -64,7 +64,7 @@ router.post('/woocommerce/order-created', async (req, res) => {
         }
 
         // 2. Create Report with 'new_order' status
-        const reportId = `EXT-${wooOrderId}-${Date.now().toString().slice(-4)}`;
+        const reportId = `EXT-${wooOrderId}`;
         const deviceModel = line_items && line_items.length > 0 ? line_items[0].name : 'Unknown Device';
         const totalAmount = orderData.total || 0;
 

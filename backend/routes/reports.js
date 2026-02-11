@@ -292,18 +292,16 @@ router.get('/', async (req, res) => {
           ]
         };
 
-        // Show: (ALL pending) OR (completed/cancelled in date range)
+        // Apply date range filter to EVERYTHING when provided
         whereConditions.push({
-          [Op.or]: [
-            // All pending reports - no date restriction
-            pendingStatusCondition,
-            // Completed/cancelled reports in date range
+          [Op.and]: [
             {
-              [Op.and]: [
-                completedStatusCondition,
-                dateRangeCondition
+              [Op.or]: [
+                pendingStatusCondition,
+                completedStatusCondition
               ]
-            }
+            },
+            dateRangeCondition
           ]
         });
       }

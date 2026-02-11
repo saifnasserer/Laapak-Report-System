@@ -231,6 +231,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap mb-0.5 md:mb-1">
                                                 <span className="font-black text-base md:text-lg text-foreground truncate">{order.client_name}</span>
+                                                <span className="text-[10px] md:text-sm font-bold text-secondary/40 shrink-0">#{order.order_number}</span>
                                                 <Badge variant="primary" className="text-[10px] h-5 px-2">طلب جديد</Badge>
                                             </div>
                                             <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-sm font-medium text-secondary/60">
