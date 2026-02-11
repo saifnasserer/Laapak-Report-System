@@ -813,6 +813,16 @@ router.post('/', async (req, res) => {
 
         const newReport = await Report.create(reportData);
         console.log('Report created successfully:', newReport.id);
+
+        // Trigger outgoing webhooks
+        const { notifySubscribers } = require('../utils/webhook-dispatcher');
+        notifySubscribers('report.created', {
+          report_id: newReport.id,
+          client_name: newReport.client_name,
+          status: newReport.status,
+          source: 'Manual (Direct)'
+        });
+
         res.status(201).json(newReport);
       } catch (error) {
         console.error('Failed to create report with direct schema:', error.message);
@@ -861,6 +871,16 @@ router.post('/', async (req, res) => {
           data,
         });
         console.log('Report created successfully:', newReport.id);
+
+        // Trigger outgoing webhooks
+        const { notifySubscribers } = require('../utils/webhook-dispatcher');
+        notifySubscribers('report.created', {
+          report_id: newReport.id,
+          client_id: clientId,
+          status: newReport.status,
+          source: 'Manual (Legacy)'
+        });
+
         res.status(201).json(newReport);
       } catch (error) {
         console.error('Failed to create report:', error.message);
@@ -1045,6 +1065,15 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     console.log(`Report ${req.params.id} updated successfully`);
+
+    // Trigger outgoing webhooks
+    const { notifySubscribers } = require('../utils/webhook-dispatcher');
+    notifySubscribers('report.updated', {
+      report_id: report.id,
+      client_name: report.client_name,
+      status: report.status,
+      old_status: oldStatus
+    });
 
     // Sync invoice status if report status changed to completed or cancelled
     // Note: req.body.status might be English or Arabic depending on where it's called from

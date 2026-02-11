@@ -12,6 +12,7 @@ const ApiUsageLog = require('./ApiUsageLog');
 const Goal = require('./Goal');
 const Achievement = require('./Achievement');
 const WebhookLog = require('./WebhookLog');
+const OutgoingWebhook = require('./OutgoingWebhook');
 
 // Financial Management Models
 const ExpenseCategory = require('./ExpenseCategory');
@@ -132,5 +133,6 @@ module.exports = {
   ExpectedItem,
   Setting,
   WebhookLog,
+  OutgoingWebhook,
   sequelize, // Export the sequelize instance
 };

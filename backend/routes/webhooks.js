@@ -85,6 +85,16 @@ router.post('/woocommerce/order-created', async (req, res) => {
             notes: `Automatically created from WooCommerce Order #${wooOrderId}. Please update device specifications.`
         });
 
+        // Trigger outgoing webhooks
+        const { notifySubscribers } = require('../utils/webhook-dispatcher');
+        notifySubscribers('report.created', {
+            report_id: report.id,
+            client_id: client.id,
+            client_name: client.name,
+            status: report.status,
+            source: 'WooCommerce'
+        });
+
         res.status(201).json({
             success: true,
             report_id: report.id,
