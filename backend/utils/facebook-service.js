@@ -91,6 +91,60 @@ class FacebookService {
     }
 
     /**
+     * Update Campaign Budget
+     * @param {string} campaignId 
+     * @param {number} dailyBudget - In decimal (e.g., 100.00)
+     */
+    async updateCampaignBudget(campaignId, dailyBudget) {
+        try {
+            // Facebook expects budget in cents/paisa for many currencies
+            // For EGP, it usually expects the value multiplied by 100
+            const amount = Math.round(dailyBudget * 100);
+            const response = await axios.post(`${this.baseUrl}/${campaignId}`, {
+                daily_budget: amount,
+                access_token: this.accessToken
+            });
+            return response.data;
+        } catch (error) {
+            this._handleError('updateCampaignBudget', error);
+        }
+    }
+
+    /**
+     * Toggle Status (Campaign, AdSet, or Ad)
+     * @param {string} id 
+     * @param {string} status - 'ACTIVE' or 'PAUSED'
+     */
+    async toggleStatus(id, status) {
+        try {
+            const response = await axios.post(`${this.baseUrl}/${id}`, {
+                status: status,
+                access_token: this.accessToken
+            });
+            return response.data;
+        } catch (error) {
+            this._handleError('toggleStatus', error);
+        }
+    }
+
+    /**
+     * Create a basic Campaign
+     * @param {string} adAccountId 
+     * @param {Object} campaignData 
+     */
+    async createCampaign(adAccountId, campaignData) {
+        try {
+            const response = await axios.post(`${this.baseUrl}/${adAccountId}/campaigns`, {
+                ...campaignData,
+                access_token: this.accessToken
+            });
+            return response.data;
+        } catch (error) {
+            this._handleError('createCampaign', error);
+        }
+    }
+
+    /**
      * Internal error handler
      */
     _handleError(method, error) {
