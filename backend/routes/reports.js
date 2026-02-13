@@ -10,7 +10,7 @@ const router = express.Router();
 // Base attributes for Report queries (includes all fields including device specs)
 const REPORT_BASE_ATTRIBUTES = [
   'id', 'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
-  'order_number', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
+  'order_number', 'device_brand', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
   'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
   'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id',
   'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories', 'payment_method'

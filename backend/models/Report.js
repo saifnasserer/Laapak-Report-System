@@ -37,6 +37,11 @@ const Report = sequelize.define('Report', {
         allowNull: false,
         field: 'order_number'
     },
+    device_brand: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        field: 'device_brand'
+    },
     device_model: {
         type: DataTypes.STRING(100),
         allowNull: false,

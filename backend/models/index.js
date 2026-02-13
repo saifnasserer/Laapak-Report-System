@@ -14,6 +14,8 @@ const Achievement = require('./Achievement');
 const WebhookLog = require('./WebhookLog');
 const OutgoingWebhook = require('./OutgoingWebhook');
 const OutgoingWebhookLog = require('./OutgoingWebhookLog');
+const ShoppingList = require('./ShoppingList');
+const ShoppingListItem = require('./ShoppingListItem');
 
 // Financial Management Models
 const ExpenseCategory = require('./ExpenseCategory');
@@ -110,6 +112,13 @@ ApiKey.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
 ApiKey.hasMany(ApiUsageLog, { foreignKey: 'api_key_id', as: 'usageLogs' });
 ApiUsageLog.belongsTo(ApiKey, { foreignKey: 'api_key_id', as: 'apiKey' });
 
+// Shopping List associations
+ShoppingList.hasMany(ShoppingListItem, { foreignKey: 'list_id', as: 'items', onDelete: 'CASCADE' });
+ShoppingListItem.belongsTo(ShoppingList, { foreignKey: 'list_id', as: 'list' });
+
+Admin.hasMany(ShoppingList, { foreignKey: 'user_id', as: 'shoppingLists' });
+ShoppingList.belongsTo(Admin, { foreignKey: 'user_id', as: 'owner' });
+
 module.exports = {
   Admin,
   Client,
@@ -136,5 +145,7 @@ module.exports = {
   WebhookLog,
   OutgoingWebhook,
   OutgoingWebhookLog,
+  ShoppingList,
+  ShoppingListItem,
   sequelize, // Export the sequelize instance
 };

@@ -88,6 +88,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         client_name: '',
         client_phone: '',
         client_address: '',
+        device_brand: '',
         device_model: '',
         serial_number: '',
         device_price: '',
@@ -168,6 +169,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         client_name: r.client_name || '',
                         client_phone: r.client_phone || '',
                         client_address: r.client_address || '',
+                        device_brand: r.device_brand || '',
                         device_model: r.device_model || '',
                         serial_number: r.serial_number || '',
                         device_price: r.device_price || r.amount || '0',
@@ -189,7 +191,6 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         amount: r.amount || '0',
                         tax_rate: r.tax_rate || '0',
                         discount: r.discount || '0',
-                        invoice_items: invoiceItems,
                         invoice_items: invoiceItems,
                         status: r.status || 'pending',
                         invoice_id: r.invoice_id || null
@@ -502,13 +503,37 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6 border-t border-black/[0.03]">
                                     <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">الماركة (Brand)</label>
+                                        <Input
+                                            name="device_brand"
+                                            placeholder="Dell, HP, Apple..."
+                                            icon={<PlusCircle size={18} />}
+                                            value={formData.device_brand}
+                                            onChange={handleChange}
+                                            className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-bold"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
                                         <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">موديل الجهاز</label>
                                         <Input
                                             name="device_model"
                                             placeholder="HP xxxxx X7"
                                             icon={<Monitor size={18} />}
                                             value={formData.device_model}
-                                            onChange={handleChange}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                handleChange(e);
+
+                                                // Auto-detect brand if not already set
+                                                if (!formData.device_brand || formData.device_brand === '') {
+                                                    const brands = ['Dell', 'HP', 'Lenovo', 'Apple', 'Asus', 'Acer', 'MSI', 'Surface', 'Toshiba', 'Samsung'];
+                                                    const firstWord = val.split(' ')[0];
+                                                    const detectedBrand = brands.find(b => b.toLowerCase() === firstWord.toLowerCase());
+                                                    if (detectedBrand) {
+                                                        setFormData(prev => ({ ...prev, device_brand: detectedBrand }));
+                                                    }
+                                                }
+                                            }}
                                             className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-bold"
                                             required
                                         />

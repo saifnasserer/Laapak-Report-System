@@ -99,6 +99,12 @@ export const DialogTitle = ({ children, className }: { children: React.ReactNode
     </h3>
 );
 
+export const DialogDescription = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+    <p className={cn("text-sm text-secondary/60", className)}>
+        {children}
+    </p>
+);
+
 // Exports to match Shadcn import pattern
 export {
     // Dialog, // exported above

@@ -16,7 +16,9 @@ import {
     Wallet,
     X,
     ShieldCheck,
-    Package
+    Package,
+    BarChart3,
+    ShoppingCart
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { clsx, type ClassValue } from 'clsx';
@@ -66,6 +68,8 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
     const adminLinks = [
         { href: '/dashboard/admin', label: t('overview'), icon: LayoutDashboard },
+        { href: '/dashboard/admin/analysis', label: 'تحليل المبيعات', icon: BarChart3 },
+        { href: '/dashboard/admin/shopping-lists', label: 'قوائم الطلبات', icon: ShoppingCart },
         { href: '/dashboard/admin/reports', label: t('reports'), icon: FileText },
         { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
         { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
