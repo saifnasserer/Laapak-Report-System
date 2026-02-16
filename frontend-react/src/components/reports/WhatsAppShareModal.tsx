@@ -15,14 +15,46 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ isOpen, 
     const [copied, setCopied] = useState(false);
     const [message, setMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [settings, setSettings] = useState<any>({});
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await api.get('/settings');
+                setSettings(response.data);
+            } catch (error) {
+                console.error('Failed to fetch settings:', error);
+            }
+        };
+
+        if (isOpen) {
+            fetchSettings();
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (report) {
             const password = report.client?.orderCode || report.order_number || report.id || '';
-            const msg = `التقرير الخاص بحضرتك دلوقتي جاهز تقدر تشوف تفاصيله كامله دلوقتي من هنا\nhttps://reports.laapak.com\n\nUsername: ${report.client_phone || ''}\nPassword: ${password}`;
-            setMessage(msg);
+            const username = report.client_phone || report.client?.phone || '';
+            const clientName = report.client_name || report.client?.name || 'عميلنا العزيز';
+            const deviceModel = report.device_model || '';
+
+            const template = settings.template_report_ready;
+
+            if (template) {
+                const msg = template
+                    .replace(/{{client_name}}/g, clientName)
+                    .replace(/{{device_model}}/g, deviceModel)
+                    .replace(/{{username}}/g, username)
+                    .replace(/{{password}}/g, password);
+                setMessage(msg);
+            } else {
+                // Fallback to legacy hardcoded message
+                const msg = `التقرير الخاص بحضرتك دلوقتي جاهز تقدر تشوف تفاصيله كامله دلوقتي من هنا\nhttps://reports.laapak.com\n\nUsername: ${username}\nPassword: ${password}`;
+                setMessage(msg);
+            }
         }
-    }, [report]);
+    }, [report, settings]);
 
     if (!report) return null;
 

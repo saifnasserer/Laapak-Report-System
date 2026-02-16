@@ -12,6 +12,7 @@ import {
     Settings,
     LogOut,
     ChevronRight,
+    ChevronDown,
     TrendingUp,
     Wallet,
     X,
@@ -23,6 +24,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { hasAccess, type AdminRole } from '@/config/permissions';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -40,6 +42,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     const [showFinancial, setShowFinancial] = React.useState(false);
     const [clickCount, setClickCount] = React.useState(0);
     const [lastClickTime, setLastClickTime] = React.useState(0);
+    const [expandedSections, setExpandedSections] = React.useState<number[]>([0, 1]); // Dashboard and Sales sections open by default
 
     React.useEffect(() => {
         const saved = localStorage.getItem('showFinancialDashboard');
@@ -47,6 +50,14 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             setShowFinancial(true);
         }
     }, []);
+
+    const toggleSection = (index: number) => {
+        setExpandedSections(prev =>
+            prev.includes(index)
+                ? prev.filter(i => i !== index)
+                : [...prev, index]
+        );
+    };
 
     const handleVersionClick = () => {
         const now = Date.now();
@@ -66,22 +77,50 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         setLastClickTime(now);
     };
 
-    const adminLinks = [
-        { href: '/dashboard/admin', label: t('overview'), icon: LayoutDashboard },
-        { href: '/dashboard/admin/analysis', label: 'تحليل المبيعات', icon: BarChart3 },
-        { href: '/dashboard/admin/shopping-lists', label: 'قوائم الطلبات', icon: ShoppingCart },
-        { href: '/dashboard/admin/reports', label: t('reports'), icon: FileText },
-        { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
-        { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
-        { href: '/dashboard/admin/inventory', label: 'المخزن', icon: Package },
-        ...(showFinancial ? [
-            { href: '/dashboard/admin/financial', label: t('financial'), icon: TrendingUp },
-            { href: '/dashboard/admin/financial/money-management', label: 'إدارة الأموال', icon: Wallet },
-            { href: '/dashboard/admin/financial/profit-management', label: 'إدارة الأرباح', icon: FileText },
-            { href: '/dashboard/admin/financial/expenses', label: 'المصروفات', icon: Receipt },
-        ] : []),
-        { href: '/dashboard/admin/management', label: 'إدارة النظام', icon: Settings },
-    ];
+    const adminLinkSections = [
+        {
+            title: 'لوحة التحكم',
+            section: 'dashboard' as const,
+            links: [
+                { href: '/dashboard/admin', label: t('overview'), icon: LayoutDashboard },
+            ]
+        },
+        {
+            title: 'المبيعات والعمليات',
+            section: 'salesOperations' as const,
+            links: [
+                { href: '/dashboard/admin/reports', label: t('reports'), icon: FileText },
+                { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
+                { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
+                { href: '/dashboard/admin/shopping-lists', label: 'قوائم الطلبات', icon: ShoppingCart },
+            ]
+        },
+        {
+            title: 'المخزون والتحليلات',
+            section: 'inventoryAnalytics' as const,
+            links: [
+                { href: '/dashboard/admin/inventory', label: 'المخزن', icon: Package },
+                { href: '/dashboard/admin/analysis', label: 'تحليل المبيعات', icon: BarChart3 },
+            ]
+        },
+        ...(showFinancial && user?.role === 'superadmin' ? [{
+            title: 'المالية',
+            section: 'financial' as const,
+            links: [
+                { href: '/dashboard/admin/financial', label: t('financial'), icon: TrendingUp },
+                { href: '/dashboard/admin/financial/money-management', label: 'إدارة الأموال', icon: Wallet },
+                { href: '/dashboard/admin/financial/profit-management', label: 'إدارة الأرباح', icon: FileText },
+                { href: '/dashboard/admin/financial/expenses', label: 'المصروفات', icon: Receipt },
+            ]
+        }] : []),
+        ...(showFinancial && user?.role === 'superadmin' ? [{
+            title: 'النظام',
+            section: 'systemManagement' as const,
+            links: [
+                { href: '/dashboard/admin/management', label: 'إدارة النظام', icon: ShieldCheck },
+            ]
+        }] : []),
+    ].filter(section => hasAccess(user?.role as AdminRole, section.section));
 
 
     const clientLinks = [
@@ -89,7 +128,6 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         { href: '/dashboard/client/warranty', label: 'الضمان', icon: ShieldCheck },
     ];
 
-    const links = user?.type === 'admin' ? adminLinks : clientLinks;
     const isRtl = !pathname.startsWith('/en');
 
     return (
@@ -120,38 +158,104 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             </div>
 
             <div className="px-6 py-4 flex-1 overflow-y-auto custom-scrollbar">
-                <p className="text-[10px] font-black text-secondary/30 uppercase tracking-[0.2em] px-4 mb-4">القائمة الرئيسية</p>
-                <nav className="space-y-1.5">
-                    {links.map((link) => {
-                        const isActive = pathname === link.href;
-                        const Icon = link.icon;
+                <nav className="space-y-3">
+                    {user?.type === 'admin' ? (
+                        adminLinkSections.map((section, sectionIndex) => {
+                            const isExpanded = expandedSections.includes(sectionIndex);
+                            return (
+                                <div key={sectionIndex}>
+                                    <button
+                                        onClick={() => toggleSection(sectionIndex)}
+                                        className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-black text-secondary/40 uppercase tracking-[0.2em] hover:text-secondary/60 transition-colors group"
+                                    >
+                                        <span>{section.title}</span>
+                                        <ChevronDown
+                                            size={14}
+                                            className={cn(
+                                                "transition-transform duration-300",
+                                                isExpanded ? "rotate-180" : "rotate-0"
+                                            )}
+                                        />
+                                    </button>
+                                    <div
+                                        className={cn(
+                                            "overflow-hidden transition-all duration-300 ease-in-out",
+                                            isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+                                        )}
+                                    >
+                                        <div className="space-y-1.5 pt-1">
+                                            {section.links.map((link) => {
+                                                const isActive = pathname === link.href;
+                                                const Icon = link.icon;
 
-                        return (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                onClick={() => setIsOpen(false)}
-                                className={cn(
-                                    'group flex items-center justify-between px-4 py-3 md:py-3 rounded-2xl transition-all no-ripple active:scale-[0.98]',
-                                    isActive
-                                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                        : 'text-secondary/60 hover:bg-primary/5 hover:text-primary'
-                                )}
-                            >
-                                <div className="flex items-center">
-                                    <Icon size={20} className={cn('transition-colors md:w-[20px] md:h-[20px]', isActive ? 'text-white' : 'group-hover:text-primary')} />
-                                    <div className="w-3 md:w-4" />
-                                    <span className="font-bold text-sm md:text-[14px]">{link.label}</span>
+                                                return (
+                                                    <Link
+                                                        key={link.href}
+                                                        href={link.href}
+                                                        onClick={() => setIsOpen(false)}
+                                                        className={cn(
+                                                            'group flex items-center justify-between px-4 py-3 md:py-3 rounded-2xl transition-all no-ripple active:scale-[0.98]',
+                                                            isActive
+                                                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                                                : 'text-secondary/60 hover:bg-primary/5 hover:text-primary'
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center">
+                                                            <Icon size={20} className={cn('transition-colors md:w-[20px] md:h-[20px]', isActive ? 'text-white' : 'group-hover:text-primary')} />
+                                                            <div className="w-3 md:w-4" />
+                                                            <span className="font-bold text-sm md:text-[14px]">{link.label}</span>
+                                                        </div>
+                                                        <ChevronRight size={14} className={cn(
+                                                            'transition-all',
+                                                            isActive
+                                                                ? 'opacity-100 translate-x-0'
+                                                                : 'opacity-0 translate-x-2 flip-h'
+                                                        )} />
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
-                                <ChevronRight size={14} className={cn(
-                                    'transition-all',
-                                    isActive
-                                        ? 'opacity-100 translate-x-0'
-                                        : 'opacity-0 translate-x-2 flip-h'
-                                )} />
-                            </Link>
-                        );
-                    })}
+                            );
+                        })
+                    ) : (
+                        <>
+                            <p className="text-[10px] font-black text-secondary/30 uppercase tracking-[0.2em] px-4 mb-4">القائمة الرئيسية</p>
+                            <div className="space-y-1.5">
+                                {clientLinks.map((link) => {
+                                    const isActive = pathname === link.href;
+                                    const Icon = link.icon;
+
+                                    return (
+                                        <Link
+                                            key={link.href}
+                                            href={link.href}
+                                            onClick={() => setIsOpen(false)}
+                                            className={cn(
+                                                'group flex items-center justify-between px-4 py-3 md:py-3 rounded-2xl transition-all no-ripple active:scale-[0.98]',
+                                                isActive
+                                                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                                    : 'text-secondary/60 hover:bg-primary/5 hover:text-primary'
+                                            )}
+                                        >
+                                            <div className="flex items-center">
+                                                <Icon size={20} className={cn('transition-colors md:w-[20px] md:h-[20px]', isActive ? 'text-white' : 'group-hover:text-primary')} />
+                                                <div className="w-3 md:w-4" />
+                                                <span className="font-bold text-sm md:text-[14px]">{link.label}</span>
+                                            </div>
+                                            <ChevronRight size={14} className={cn(
+                                                'transition-all',
+                                                isActive
+                                                    ? 'opacity-100 translate-x-0'
+                                                    : 'opacity-0 translate-x-2 flip-h'
+                                            )} />
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
                 </nav>
             </div>
 

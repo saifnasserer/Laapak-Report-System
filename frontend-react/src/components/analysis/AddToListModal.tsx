@@ -25,19 +25,21 @@ export const AddToListModal: React.FC<AddToListModalProps> = ({ isOpen, onClose,
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [quantity, setQuantity] = useState(1);
     const [price, setPrice] = useState(0);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen) {
             fetchLists();
             setIsSuccess(false);
+            setError(null);
             setNewListName('');
             setSelectedCurrency('EGP');
-            setIsCreatingNew(false);
+            setIsCreatingNew(!item); // Start in creation mode if no item
             setSelectedListId(null);
             setQuantity(1);
             setPrice(0);
         }
-    }, [isOpen]);
+    }, [isOpen, item]);
 
     const fetchLists = async () => {
         setIsLoading(true);
@@ -47,16 +49,21 @@ export const AddToListModal: React.FC<AddToListModalProps> = ({ isOpen, onClose,
                 const fetchedLists = res.data.data;
                 setLists(fetchedLists);
 
-                // Find first list that doesn't contain the item
-                const availableList = fetchedLists.find((list: any) =>
-                    !list.items?.some((i: any) =>
-                        item && i.brand.toLowerCase() === item.device_brand.toLowerCase() &&
-                        i.model.toLowerCase() === item.device_model.toLowerCase()
-                    )
-                );
+                // Find first list that doesn't contain the item for pre-selection
+                if (item) {
+                    const availableList = fetchedLists.find((list: any) =>
+                        !list.items?.some((i: any) =>
+                            i.brand?.toLowerCase() === item.device_brand?.toLowerCase() &&
+                            i.model?.toLowerCase() === item.device_model?.toLowerCase()
+                        )
+                    );
 
-                if (availableList) {
-                    setSelectedListId(availableList.id);
+                    if (availableList) {
+                        setSelectedListId(availableList.id);
+                    } else if (fetchedLists.length > 0) {
+                        // If all lists have it, just select the first one
+                        setSelectedListId(fetchedLists[0].id);
+                    }
                 }
             }
         } catch (err) {
@@ -67,7 +74,16 @@ export const AddToListModal: React.FC<AddToListModalProps> = ({ isOpen, onClose,
     };
 
     const handleAdd = async () => {
-        if (!item || (!selectedListId && !newListName)) return;
+        setError(null);
+        // If we have an item, we need a list. If we don't have an item, we are just creating a list.
+        if (item && !selectedListId && !newListName) {
+            setError('يرجى اختيار قائمة أو إنشاء واحدة جديدة');
+            return;
+        }
+        if (!item && !newListName) {
+            setError('يرجى إدخال اسم القائمة');
+            return;
+        }
 
         setIsAdding(true);
         try {
@@ -83,20 +99,23 @@ export const AddToListModal: React.FC<AddToListModalProps> = ({ isOpen, onClose,
                 }
             }
 
-            if (listId) {
+            // Only add item if it exists and we have an item to add
+            if (listId && item) {
                 await api.post(`/shopping-lists/${listId}/items`, {
                     brand: item.device_brand,
                     model: item.device_model,
                     quantity,
                     price
                 });
-                setIsSuccess(true);
-                setTimeout(() => {
-                    onClose();
-                }, 1500);
             }
-        } catch (err) {
-            console.error('Failed to add to list:', err);
+
+            setIsSuccess(true);
+            setTimeout(() => {
+                onClose();
+            }, 1000);
+        } catch (err: any) {
+            console.error('Failed to process request:', err);
+            setError(err.response?.data?.message || 'تعذر إتمام الطلب، يرجى المحاولة مرة أخرى');
         } finally {
             setIsAdding(false);
         }
@@ -105,17 +124,30 @@ export const AddToListModal: React.FC<AddToListModalProps> = ({ isOpen, onClose,
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] p-8 border-2 border-black/5 backdrop-blur-3xl bg-white/90">
-                <DialogHeader className="space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-2">
+                <DialogHeader className="space-y-3 text-right">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-2 mx-auto sm:mx-0">
                         <ShoppingCart size={24} />
                     </div>
-                    <DialogTitle className="text-2xl font-black text-foreground">إضافة لقائمة الطلبات</DialogTitle>
+                    <DialogTitle className="text-2xl font-black text-foreground">
+                        {item ? 'إضافة لقائمة الطلبات' : 'إنشاء قائمة جديدة'}
+                    </DialogTitle>
                     <DialogDescription className="text-secondary/60 font-bold">
-                        أضف <span className="text-primary">{item?.device_brand} {item?.device_model}</span> إلى إحدى قوائم التسوق الخاصة بك.
+                        {item ? (
+                            <>أضف <span className="text-primary">{item.device_brand} {item.device_model}</span> إلى إحدى قوائم التسوق الخاصة بك.</>
+                        ) : (
+                            'أنشئ قائمة جديدة لتنظيم مشترياتك وطلبياتك.'
+                        )}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="py-6 space-y-6">
+                    {/* Error Message */}
+                    {error && (
+                        <div className="p-4 rounded-2xl bg-red-50 border-2 border-red-100 text-red-600 text-xs font-bold text-center animate-shake">
+                            {error}
+                        </div>
+                    )}
+
                     {/* List Selection */}
                     {!isCreatingNew ? (
                         <div className="space-y-3">
@@ -126,32 +158,29 @@ export const AddToListModal: React.FC<AddToListModalProps> = ({ isOpen, onClose,
                                 <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                     {lists.map((list) => {
                                         const isAlreadyInList = list.items?.some((i: any) =>
-                                            item && i.brand.toLowerCase() === item.device_brand.toLowerCase() &&
-                                            item && i.model.toLowerCase() === item.device_model.toLowerCase()
+                                            item && i.brand?.toLowerCase() === item.device_brand?.toLowerCase() &&
+                                            item && i.model?.toLowerCase() === item.device_model?.toLowerCase()
                                         );
 
                                         return (
                                             <button
                                                 key={list.id}
-                                                disabled={isAlreadyInList}
                                                 type="button"
                                                 onClick={() => setSelectedListId(list.id)}
                                                 className={clsx(
                                                     "flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-right group",
-                                                    isAlreadyInList
-                                                        ? "border-black/5 bg-black/[0.02] opacity-50 cursor-not-allowed"
-                                                        : selectedListId === list.id
-                                                            ? "border-primary bg-primary/5 text-primary"
-                                                            : "border-black/5 hover:border-black/10 text-secondary/70 hover:bg-black/[0.02]"
+                                                    selectedListId === list.id
+                                                        ? "border-primary bg-primary/5 text-primary"
+                                                        : "border-black/5 hover:border-black/10 text-secondary/70 hover:bg-black/[0.02]"
                                                 )}
                                             >
                                                 <div className="flex flex-col">
                                                     <span className="font-bold">{list.name}</span>
                                                     {isAlreadyInList && (
-                                                        <span className="text-[10px] text-primary font-black uppercase">موجودة بالفعل</span>
+                                                        <span className="text-[10px] text-primary/60 font-black uppercase">موجودة مسبقاً</span>
                                                     )}
                                                 </div>
-                                                {selectedListId === list.id && !isAlreadyInList && <Check size={18} />}
+                                                {selectedListId === list.id && <Check size={18} />}
                                             </button>
                                         );
                                     })}
@@ -219,30 +248,32 @@ export const AddToListModal: React.FC<AddToListModalProps> = ({ isOpen, onClose,
                     )}
 
                     {/* Quantity and Price */}
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t-2 border-black/5">
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-black text-secondary/40 uppercase tracking-widest px-1 text-right block">الكمية</label>
-                            <Input
-                                type="number"
-                                min="1"
-                                value={quantity}
-                                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                                className="h-14 rounded-2xl font-bold text-center"
-                            />
+                    {item && (
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t-2 border-black/5">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-secondary/40 uppercase tracking-widest px-1 text-right block">الكمية</label>
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    value={quantity}
+                                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                                    className="h-14 rounded-2xl font-bold text-center"
+                                />
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-secondary/40 uppercase tracking-widest px-1 text-right block">السعر المتوقع</label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={price}
+                                    onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                                    className="h-14 rounded-2xl font-bold text-center"
+                                    placeholder="0.00"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-black text-secondary/40 uppercase tracking-widest px-1 text-right block">السعر المتوقع</label>
-                            <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={price}
-                                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
-                                className="h-14 rounded-2xl font-bold text-center"
-                                placeholder="0.00"
-                            />
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 <DialogFooter className="flex gap-3 pt-6 border-t-2 border-black/5">

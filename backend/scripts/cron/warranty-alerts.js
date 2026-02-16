@@ -97,12 +97,12 @@ async function sendWarrantyAlerts() {
 
         console.log(`📊 Total alerts found: ${allAlerts.length}`);
 
-        // Filter for urgent alerts only (≤ 3 days) that haven't been sent
+        // Filter for urgent alerts only (≤ 7 days) that haven't been sent
         const urgentAlerts = allAlerts.filter(alert =>
-            alert.days_remaining <= 3 && !alert.is_sent
+            alert.days_remaining <= 7 && !alert.is_sent
         );
 
-        console.log(`🚨 Urgent alerts (≤ 3 days, not sent): ${urgentAlerts.length}`);
+        console.log(`🚨 Urgent alerts (≤ 7 days, not sent): ${urgentAlerts.length}`);
 
         if (urgentAlerts.length === 0) {
             console.log('✅ No urgent alerts to send.');
@@ -111,6 +111,19 @@ async function sendWarrantyAlerts() {
 
         let notificationsSent = 0;
         let notificationsFailed = 0;
+
+        // 1. Fetch templates from settings
+        const { Setting } = require('../../models');
+        const settings = await Setting.findAll({
+            where: {
+                key: ['template_warranty_alert_6m', 'template_warranty_alert_12m']
+            }
+        });
+
+        const templates = {};
+        settings.forEach(s => {
+            templates[s.key] = s.value;
+        });
 
         for (const alert of urgentAlerts) {
             const phone = alert.client_phone || alert.report.client?.phone;
@@ -126,11 +139,25 @@ async function sendWarrantyAlerts() {
             const wTypeArabic = alert.warranty_type === 'maintenance_12months' ? 'صيانة سنوية' : 'صيانة كل 6 أشهر';
             const warrantyEndDate = new Date(alert.warranty_end_date).toISOString().split('T')[0];
 
-            const message = `🛠️ *تذكير بالصيانة الدورية*\n\n` +
-                `أهلاً ${alert.client_name || 'عميلنا العزيز'}،\n\n` +
-                `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${alert.device_model}*) في تاريخ *${warrantyEndDate}*.\n\n` +
-                `الصيانة الدورية تضمن بقاء جهازك في حالة ممتازة وتطيل عمره الافتراضي. يرجى التواصل معنا لترتيب الموعد.\n\n` +
-                `_مع تحيات فريق عمل لابك_`;
+            // Get template based on warranty type
+            const templateKey = alert.warranty_type === 'maintenance_12months' ? 'template_warranty_alert_12m' : 'template_warranty_alert_6m';
+            let message = templates[templateKey];
+
+            if (message) {
+                // Replace variables in template
+                message = message
+                    .replace(/{{client_name}}/g, alert.client_name || 'عميلنا العزيز')
+                    .replace(/{{device_model}}/g, alert.device_model)
+                    .replace(/{{warranty_date}}/g, warrantyEndDate);
+            } else {
+                // Fallback to default if template not found in DB
+                message = `🛠️ *تذكير بالصيانة المجانية*\n\n` +
+                    `أهلاً ${alert.client_name || 'عميلنا العزيز'}،\n\n` +
+                    `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${alert.device_model}*) في تاريخ *${warrantyEndDate}*.\n\n` +
+                    `يرجى العلم أن لديكم مهلة أسبوع قبل أو بعد هذا التاريخ للاستفادة من الصيانة المجانية، بعد ذلك سيتم احتساب رسوم على الصيانة.\n\n` +
+                    `يرجى التواصل معنا لترتيب الموعد.\n\n` +
+                    `_مع تحيات فريق عمل لابك_`;
+            }
 
             try {
                 await notifier.sendText(phone, message);

@@ -157,8 +157,7 @@ export default function AnalysisPage({ params }: { params: Promise<{ locale: str
                             <table className="w-full text-right border-collapse">
                                 <thead>
                                     <tr className="bg-black/[0.02] border-b-2 border-black/5">
-                                        <th className="px-8 py-5 text-[10px] font-black text-secondary/40 uppercase tracking-[0.2em]">الماركة</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-secondary/40 uppercase tracking-[0.2em]">الموديل</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-secondary/40 uppercase tracking-[0.2em]">اسم الجهاز</th>
                                         <th className="px-8 py-5 text-[10px] font-black text-secondary/40 uppercase tracking-[0.2em] text-center w-32">الكمية المباعة</th>
                                         <th className="px-8 py-5 text-[10px] font-black text-secondary/40 uppercase tracking-[0.2em] text-center w-24">إضافة</th>
                                     </tr>
@@ -167,9 +166,9 @@ export default function AnalysisPage({ params }: { params: Promise<{ locale: str
                                     {isLoading ? (
                                         Array.from({ length: 5 }).map((_, i) => (
                                             <tr key={i} className="border-b border-black/5 animate-pulse">
-                                                <td className="px-8 py-5"><div className="h-4 w-20 bg-black/5 rounded" /></td>
-                                                <td className="px-8 py-5"><div className="h-4 w-32 bg-black/5 rounded" /></td>
+                                                <td className="px-8 py-5"><div className="h-4 w-48 bg-black/5 rounded" /></td>
                                                 <td className="px-8 py-5"><div className="h-6 w-12 bg-black/5 rounded-full mx-auto" /></td>
+                                                <td className="px-8 py-5"><div className="h-4 w-10 bg-black/5 rounded mx-auto" /></td>
                                             </tr>
                                         ))
                                     ) : deviceSales.length > 0 ? (
@@ -181,8 +180,10 @@ export default function AnalysisPage({ params }: { params: Promise<{ locale: str
                                                     index === deviceSales.length - 1 && "border-none"
                                                 )}
                                             >
-                                                <td className="px-8 py-5 font-black text-secondary/80">{item.device_brand}</td>
-                                                <td className="px-8 py-5 font-black text-foreground">{item.device_model}</td>
+                                                <td className="px-8 py-5 font-black text-foreground">
+                                                    <span className="text-secondary/40 ml-2">{item.device_brand}</span>
+                                                    {item.device_model}
+                                                </td>
                                                 <td className="px-8 py-5 text-center">
                                                     <span className="inline-flex items-center justify-center bg-primary/10 text-primary font-mono font-black text-lg w-12 h-12 rounded-2xl group-hover:scale-110 transition-transform">
                                                         {item.count}

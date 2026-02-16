@@ -80,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <div className="hidden lg:flex items-center gap-3">
                                 <div className="h-6 w-[1px] bg-black/10" />
                                 <div>
-                                    <h1 className="text-sm font-bold tracking-tight">مرحباً، {user?.username}</h1>
+                                    <h1 className="text-sm font-bold tracking-tight">مرحباً، {user?.name || user?.username}</h1>
                                     <p className="text-[10px] text-secondary font-medium">لوحة تحكم النظام</p>
                                 </div>
                             </div>

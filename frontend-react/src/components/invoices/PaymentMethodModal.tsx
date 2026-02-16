@@ -3,8 +3,9 @@
 import React from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Banknote, Smartphone, CreditCard } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface PaymentMethodModalProps {
     isOpen: boolean;
@@ -23,11 +24,19 @@ export const PaymentMethodModal = ({
 }: PaymentMethodModalProps) => {
     const [localMethod, setLocalMethod] = React.useState(selectedMethod);
 
-    const methods = [
-        { id: 'cash', name: 'نقداً (Cash)', icon: Banknote, color: 'text-green-500', bgColor: 'bg-green-500/10' },
-        { id: 'instapay', name: 'Instapay', icon: Smartphone, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
-        { id: 'bank_transfer', name: 'تحويل بنكي (Bank)', icon: CreditCard, color: 'text-blue-500', bgColor: 'bg-blue-500/10' }
-    ];
+    const methods: Array<{
+        id: string;
+        name: string;
+        logo?: string;
+        icon?: React.ComponentType<any>;
+        color: string;
+        bgColor: string;
+    }> = [
+            { id: 'cash', name: 'نقداً (Cash)', logo: '/images/payment-methods/cash.svg', color: 'text-green-500', bgColor: 'bg-green-500/10' },
+            { id: 'instapay', name: 'Instapay', logo: '/images/payment-methods/instapay.png', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
+            { id: 'wallet', name: 'محفظة (Wallet)', logo: '/images/payment-methods/wallet.svg', color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
+            { id: 'bank_transfer', name: 'تحويل بنكي (Bank)', icon: CreditCard, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' }
+        ];
 
     React.useEffect(() => {
         if (isOpen) {
@@ -64,7 +73,17 @@ export const PaymentMethodModal = ({
                         )}
                     >
                         <div className={cn("p-3 rounded-xl", method.bgColor)}>
-                            <method.icon className={cn("w-6 h-6", method.color)} />
+                            {method.logo ? (
+                                <Image
+                                    src={method.logo}
+                                    alt={method.name}
+                                    width={24}
+                                    height={24}
+                                    className="object-contain"
+                                />
+                            ) : (
+                                <method.icon className={cn("w-6 h-6", method.color)} />
+                            )}
                         </div>
                         <div className="flex-1">
                             <h3 className="font-bold text-secondary">{method.name}</h3>

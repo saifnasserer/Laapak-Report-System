@@ -10,12 +10,14 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
 import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check, Package } from 'lucide-react';
+import Image from 'next/image';
 
 import api from '@/lib/api';
 import { use } from 'react';
 import { cn } from '@/lib/utils';
 import { WhatsAppShareModal } from '@/components/reports/WhatsAppShareModal';
 import { PaymentMethodModal } from '@/components/invoices/PaymentMethodModal';
+import CartItemsPopover from '@/components/reports/CartItemsPopover';
 
 export default function ReportsAdminPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -36,6 +38,11 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     // Action Menu State
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
+
+    // Cart Popover State
+    const [cartPopoverOpen, setCartPopoverOpen] = useState(false);
+    const [cartAnchorEl, setCartAnchorEl] = useState<HTMLElement | null>(null);
+    const [selectedCartItems, setSelectedCartItems] = useState<any[]>([]);
 
     const toggleMenu = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -388,11 +395,20 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                             </TableCell>
                                             <TableCell className="text-center align-middle p-0 min-w-[140px]">
                                                 <div className="flex justify-center items-center gap-2">
-                                                    {/* Accessories Icon */}
+                                                    {/* Accessories Icon - Clickable */}
                                                     {report.selected_accessories && Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0 && (
-                                                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20 shrink-0" title="يوجد إضافات">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedCartItems(report.selected_accessories);
+                                                                setCartAnchorEl(e.currentTarget);
+                                                                setCartPopoverOpen(true);
+                                                            }}
+                                                            className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20 shrink-0 hover:bg-primary/20 hover:scale-110 cursor-pointer"
+                                                            title="عرض العناصر المضافة"
+                                                        >
                                                             <ShoppingCart size={12} />
-                                                        </div>
+                                                        </button>
                                                     )}
 
                                                     {/* Confirmation Badge */}
@@ -402,16 +418,26 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                                         </div>
                                                     )}
 
-                                                    {/* Payment Method Badge */}
+                                                    {/* Payment Method Badge - Logo Only */}
                                                     {report.payment_method && (
-                                                        <div className={cn(
-                                                            "px-2 py-0.5 rounded-md border text-[10px] font-bold flex items-center gap-1 h-6 whitespace-nowrap",
-                                                            report.payment_method === 'instapay' ? "bg-indigo-50 text-indigo-700 border-indigo-100" :
-                                                                report.payment_method === 'vodafone_cash' ? "bg-red-50 text-red-700 border-red-100" :
-                                                                    "bg-orange-50 text-orange-700 border-orange-100"
-                                                        )}>
-                                                            {report.payment_method === 'instapay' ? 'Insta' :
-                                                                report.payment_method === 'vodafone_cash' ? 'V.Cash' : 'Cash'}
+                                                        <div
+                                                            className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center shrink-0"
+                                                            title={
+                                                                report.payment_method === 'instapay' ? 'InstaPay' :
+                                                                    report.payment_method === 'vodafone_cash' || report.payment_method === 'wallet' ? 'Wallet' : 'Cash'
+                                                            }
+                                                        >
+                                                            <Image
+                                                                src={
+                                                                    report.payment_method === 'instapay' ? '/images/payment-methods/instapay.png' :
+                                                                        report.payment_method === 'vodafone_cash' || report.payment_method === 'wallet' ? '/images/payment-methods/wallet.svg' :
+                                                                            '/images/payment-methods/cash.svg'
+                                                                }
+                                                                alt={report.payment_method}
+                                                                width={24}
+                                                                height={24}
+                                                                className="object-contain"
+                                                            />
                                                         </div>
                                                     )}
 
@@ -591,6 +617,18 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                     document.body
                 )
             }
+
+            {/* Cart Items Popover */}
+            <CartItemsPopover
+                items={selectedCartItems}
+                isOpen={cartPopoverOpen}
+                onClose={() => {
+                    setCartPopoverOpen(false);
+                    setCartAnchorEl(null);
+                    setSelectedCartItems([]);
+                }}
+                anchorEl={cartAnchorEl}
+            />
         </DashboardLayout>
     );
 }

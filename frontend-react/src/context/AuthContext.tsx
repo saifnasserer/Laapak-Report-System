@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 
 interface User {
     id: string;
+    name: string;
     username: string;
     role: string;
     type: 'admin' | 'client';

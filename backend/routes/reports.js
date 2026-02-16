@@ -1510,27 +1510,55 @@ router.post('/:id/send-warranty-reminder', auth, async (req, res) => {
     let finalMessage = customMessage;
 
     if (!finalMessage) {
+      // Fetch templates from settings
+      const { Setting } = require('../models');
+      const settings = await Setting.findAll({
+        where: {
+          key: ['template_warranty_alert_6m', 'template_warranty_alert_12m']
+        }
+      });
+
+      const templates = {};
+      settings.forEach(s => {
+        templates[s.key] = s.value;
+      });
+
       // Calculate warranty end date
       const inspectionDate = new Date(report.inspection_date);
       let warrantyEndDate;
       let wTypeArabic;
+      let templateKey;
 
       if (warranty_type === 'maintenance_6months') {
         warrantyEndDate = new Date(inspectionDate);
         warrantyEndDate.setMonth(warrantyEndDate.getMonth() + 6);
         wTypeArabic = 'صيانة كل 6 أشهر';
+        templateKey = 'template_warranty_alert_6m';
       } else {
         warrantyEndDate = new Date(inspectionDate);
         warrantyEndDate.setFullYear(warrantyEndDate.getFullYear() + 1);
         wTypeArabic = 'صيانة سنوية';
+        templateKey = 'template_warranty_alert_12m';
       }
 
-      // Prepare default message
-      finalMessage = `🛠️ *تذكير بالصيانة الدورية*\n\n` +
-        `أهلاً ${report.client_name || 'عميلنا العزيز'}،\n\n` +
-        `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${report.device_model}*) في تاريخ *${warrantyEndDate.toISOString().split('T')[0]}*.\n\n` +
-        `الصيانة الدورية تضمن بقاء جهازك في حالة ممتازة وتطيل عمره الافتراضي. يرجى التواصل معنا لترتيب الموعد.\n\n` +
-        `_مع تحيات فريق عمل لابك_`;
+      const warrantyDateStr = warrantyEndDate.toISOString().split('T')[0];
+      let template = templates[templateKey];
+
+      if (template) {
+        // Replace variables in template
+        finalMessage = template
+          .replace(/{{client_name}}/g, report.client_name || 'عميلنا العزيز')
+          .replace(/{{device_model}}/g, report.device_model)
+          .replace(/{{warranty_date}}/g, warrantyDateStr);
+      } else {
+        // Prepare default message with grace period
+        finalMessage = `🛠️ *تذكير بالصيانة المجانية*\n\n` +
+          `أهلاً ${report.client_name || 'عميلنا العزيز'}،\n\n` +
+          `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${report.device_model}*) في تاريخ *${warrantyDateStr}*.\n\n` +
+          `يرجى العلم أن لديكم مهلة أسبوع قبل أو بعد هذا التاريخ للاستفادة من الصيانة المجانية، بعد ذلك سيتم احتساب رسوم على الصيانة.\n\n` +
+          `يرجى التواصل معنا لترتيب الموعد.\n\n` +
+          `_مع تحيات فريق عمل لابك_`;
+      }
     }
 
     console.log(`[WarrantyReminder] Sending message to ${phone}`);

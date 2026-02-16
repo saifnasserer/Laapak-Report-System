@@ -9,11 +9,13 @@ import {
 } from 'lucide-react';
 import UserManagement from '@/components/management/UserManagement';
 import WebhookManager from '@/components/management/WebhookManager';
+import MessageTemplates from '@/components/management/MessageTemplates';
 import { Link } from '@/i18n/routing';
 import { clsx } from 'clsx';
+import { Settings } from 'lucide-react';
 
 export default function ManagementPage() {
-    const [activeTab, setActiveTab] = React.useState<'users' | 'webhooks'>('users');
+    const [activeTab, setActiveTab] = React.useState<'users' | 'webhooks' | 'settings'>('users');
 
     return (
         <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto pb-24 h-full relative">
@@ -29,7 +31,7 @@ export default function ManagementPage() {
                         <div className="h-2 w-2 rounded-full bg-primary" />
                     </h1>
                     <p className="text-secondary/50 font-medium text-lg max-w-lg leading-relaxed">
-                        {activeTab === 'users' ? 'إدارة حسابات الموظفين وصلاحياتهم' : 'مراقبة وإدارة الربط مع الأنظمة الخارجية'}
+                        {activeTab === 'users' ? 'إدارة حسابات الموظفين وصلاحياتهم' : activeTab === 'webhooks' ? 'مراقبة وإدارة الربط مع الأنظمة الخارجية' : 'تخصيص قوالب الرسائل وتفضيلات النظام'}
                     </p>
                 </div>
 
@@ -43,7 +45,7 @@ export default function ManagementPage() {
             </div>
 
             {/* Tabs Navigation */}
-            <div className="flex items-center gap-2 p-1 bg-white border border-black/5 rounded-2xl w-fit">
+            <div className="flex items-center gap-2 p-1 bg-white border border-black/5 rounded-2xl w-fit flex-wrap">
                 <button
                     onClick={() => setActiveTab('users')}
                     className={clsx(
@@ -64,10 +66,22 @@ export default function ManagementPage() {
                     <Globe size={18} />
                     الـ Webhooks
                 </button>
+                <button
+                    onClick={() => setActiveTab('settings')}
+                    className={clsx(
+                        "flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+                        activeTab === 'settings' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-secondary/40 hover:bg-primary/5 hover:text-primary"
+                    )}
+                >
+                    <Settings size={18} />
+                    الإعدادات
+                </button>
             </div>
 
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-2">
-                {activeTab === 'users' ? <UserManagement /> : <WebhookManager />}
+                {activeTab === 'users' && <UserManagement />}
+                {activeTab === 'webhooks' && <WebhookManager />}
+                {activeTab === 'settings' && <MessageTemplates />}
             </div>
         </div>
     );

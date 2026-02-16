@@ -68,6 +68,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
     const [recentReports, setRecentReports] = useState<any[]>([]);
     const [newOrders, setNewOrders] = useState<any[]>([]);
     const [isReportsLoading, setIsReportsLoading] = useState(true);
+    const [settings, setSettings] = useState<any>({});
 
     const handleDeleteReport = async (reportId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -94,11 +95,15 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
         setIsReportsLoading(true);
         try {
             // Fetch Warranty Alerts and Recent Reports
-            const [warrantyRes, allPendingRes, newOrdersRes] = await Promise.all([
+            const [warrantyRes, allPendingRes, newOrdersRes, settingsRes] = await Promise.all([
                 api.get('/reports/insights/warranty-alerts').catch(() => ({ data: [] })),
                 api.get('/reports?status=pending&limit=50&exclude_inventory=true'),
-                api.get('/reports?status=new_order&limit=20')
+                api.get('/reports?status=new_order&limit=20'),
+                api.get('/settings').catch(() => ({ data: {} }))
             ]);
+
+            // Handle Settings Data
+            setSettings(settingsRes.data || {});
 
             // Handle Warranty Data (ensure it's an array)
             const alertsData = Array.isArray(warrantyRes.data) ? warrantyRes.data : [];
@@ -165,16 +170,30 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
 
         const dateString = warrantyEndDate.toISOString().split('T')[0];
 
-        const defaultMessage = `🛠️ *تذكير بالصيانة الدورية*\n\n` +
-            `أهلاً ${alert.client_name || 'عميلنا العزيز'}،\n\n` +
-            `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${alert.device_model}*) في تاريخ *${dateString}*.\n\n` +
-            `الصيانة الدورية تضمن بقاء جهازك في حالة ممتازة وتطيل عمره الافتراضي. يرجى التواصل معنا لترتيب الموعد.\n\n` +
-            `_مع تحيات فريق عمل لابك_`;
+        // Get template from settings
+        const templateKey = alert.warranty_type === 'maintenance_12months' ? 'template_warranty_alert_12m' : 'template_warranty_alert_6m';
+        let customMessage = settings[templateKey];
+
+        if (customMessage) {
+            // Replace variables in template
+            customMessage = customMessage
+                .replace(/{{client_name}}/g, alert.client_name || 'عميلنا العزيز')
+                .replace(/{{device_model}}/g, alert.device_model)
+                .replace(/{{warranty_date}}/g, dateString);
+        } else {
+            // Fallback to default with grace period
+            customMessage = `🛠️ *تذكير بالصيانة المجانية*\n\n` +
+                `أهلاً ${alert.client_name || 'عميلنا العزيز'}،\n\n` +
+                `نود تذكيركم بموعد *${wTypeArabic}* لجهازكم (*${alert.device_model}*) في تاريخ *${dateString}*.\n\n` +
+                `يرجى العلم أن لديكم مهلة أسبوع قبل أو بعد هذا التاريخ للاستفادة من الصيانة المجانية، بعد ذلك سيتم احتساب رسوم على الصيانة.\n\n` +
+                `يرجى التواصل معنا لترتيب الموعد.\n\n` +
+                `_مع تحيات فريق عمل لابك_`;
+        }
 
         setConfirmDialog({
             open: true,
             alert,
-            message: defaultMessage
+            message: customMessage
         });
     };
 

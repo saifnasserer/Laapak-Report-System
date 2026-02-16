@@ -1,6 +1,7 @@
 const express = require('express');
 const { ShoppingList, ShoppingListItem, Admin } = require('../models');
 const { adminAuth } = require('../middleware/auth');
+const { getExchangeRate } = require('../utils/currency-service');
 const router = express.Router();
 
 /**
@@ -101,9 +102,37 @@ router.patch('/:id', adminAuth, async (req, res) => {
             return res.status(404).json({ success: false, message: 'List not found' });
         }
 
+        // Check if currency is changing
+        if (req.body.currency && req.body.currency !== list.currency) {
+            const oldCurrency = list.currency;
+            const newCurrency = req.body.currency;
+
+            // Get live exchange rate
+            const rate = await getExchangeRate(oldCurrency, newCurrency);
+
+            // Update all items in this list
+            const items = await ShoppingListItem.findAll({ where: { list_id: list.id } });
+
+            for (const item of items) {
+                const newPrice = Math.round((item.price * rate) * 100) / 100; // Round to 2 decimals
+                await item.update({ price: newPrice });
+            }
+        }
+
         await list.update(req.body);
-        res.json({ success: true, data: list });
+
+        // Return updated list with items to reflect price changes in frontend
+        const updatedList = await ShoppingList.findByPk(list.id, {
+            include: [{
+                model: ShoppingListItem,
+                as: 'items',
+                attributes: ['id', 'brand', 'model', 'quantity', 'price', 'is_checked']
+            }]
+        });
+
+        res.json({ success: true, data: updatedList });
     } catch (err) {
+        console.error('List Update Error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
