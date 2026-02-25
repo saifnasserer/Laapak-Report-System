@@ -410,33 +410,33 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         className="space-y-12"
                     >
                         {(report.status === 'completed' || report.status === 'مكتمل') && (
-                            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 p-8 md:p-10 shadow-lg group">
+                            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 p-6 md:p-10 shadow-lg group" dir="rtl">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-green-500/20 transition-colors duration-700" />
                                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
 
-                                <div className="relative flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-10 text-right">
-                                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-[2rem] bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white shadow-xl shadow-green-500/30 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500 shrink-0">
+                                <div className="relative flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-10 text-center md:text-right">
+                                    <div className="w-20 h-20 md:w-28 md:h-28 mx-auto md:mx-0 rounded-[2rem] bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white shadow-xl shadow-green-500/30 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500 shrink-0">
                                         <Trophy size={48} className="md:size-56" />
                                     </div>
 
                                     <div className="flex-1 space-y-4 w-full">
-                                        <div className="flex items-center gap-2 mb-2 justify-end">
-                                            <Sparkles size={16} className="text-green-600 animate-pulse" />
-                                            <span className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Order Completed Successfully</span>
+                                        <div className="flex items-center gap-2 mb-2 justify-center md:justify-start">
+                                            <Sparkles size={16} className="text-green-600 animate-pulse shrink-0" />
+                                            <span className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em] break-words">Order Completed Successfully</span>
                                         </div>
                                         <h2 className="text-3xl md:text-4xl font-black text-secondary tracking-tight">
                                             {viewMode === 'admin' ? 'تمت المهمة بنجاح!' : 'ألف مبروك! جهازك خلص وبقى تمام'}
                                         </h2>
-                                        <p className="text-secondary/60 text-base md:text-lg font-medium leading-relaxed max-w-2xl text-right ml-auto">
+                                        <p className="text-secondary/60 text-sm md:text-lg font-medium leading-relaxed max-w-2xl mx-auto md:mx-0">
                                             {viewMode === 'admin'
                                                 ? 'الأوردر ده خلص وتأكد تسليمه للعميل. عاش جداً!'
                                                 : 'إحنا مبسوطين جداً إننا خدمناك! نتمنى لك تجربة ممتازة وماتترددش تكلمنا في أي وقت لو احتجت مساعدة.'}
                                         </p>
 
-                                        <div className="flex justify-end w-full">
+                                        <div className="flex justify-center md:justify-start w-full">
                                             <Button
                                                 variant="outline"
-                                                className="mt-4 border-green-500/30 text-green-700 hover:bg-green-50 hover:border-green-500/50 transition-colors gap-2 rounded-2xl h-12 px-6 font-bold bg-white/50 backdrop-blur-sm"
+                                                className="mt-4 border-green-500/30 text-green-700 hover:bg-green-50 hover:border-green-500/50 transition-colors gap-2 rounded-2xl h-12 px-6 font-bold bg-white/50 backdrop-blur-sm flex flex-row items-center gap-2"
                                                 onClick={() => setShowConfetti(!showConfetti)}
                                             >
                                                 <PartyPopper size={18} />
@@ -449,53 +449,53 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         )}
 
                         {(report.status === 'shipped' || report.status === 'تم الشحن') && (
-                            <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-black/5 p-8 md:p-10 shadow-sm group">
+                            <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-black/5 p-6 md:p-10 shadow-sm group" dir="rtl">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-colors" />
 
-                                <div className="relative flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-10 text-right">
-                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-[2rem] bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500 shrink-0">
+                                <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10 text-center md:text-right">
+                                    <div className="w-20 h-20 md:w-24 md:h-24 mx-auto md:mx-0 rounded-[2rem] bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500 shrink-0">
                                         <Truck size={40} className="md:size-48" />
                                     </div>
 
                                     <div className="flex-1 space-y-6 w-full">
-                                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-2 mb-2 justify-end xl:justify-start">
-                                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Shipment In Transit</span>
+                                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 md:gap-8">
+                                            <div className="space-y-3 md:space-y-2">
+                                                <div className="flex items-center gap-2 mb-2 justify-center md:justify-start">
+                                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
+                                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] break-words">Shipment In Transit</span>
                                                 </div>
                                                 <h2 className="text-2xl md:text-3xl font-black text-secondary tracking-tight">
                                                     {viewMode === 'admin' ? 'تم الشحن للعميل' : 'جهازك في السكة ليك'}
                                                 </h2>
-                                                <p className="text-secondary/40 text-sm md:text-base font-medium leading-relaxed max-w-xl">
+                                                <p className="text-secondary/60 text-sm md:text-base font-medium leading-relaxed max-w-xl mx-auto md:mx-0">
                                                     {viewMode === 'admin'
                                                         ? `الجهاز اتشحن عن طريق ${report.tracking_method === 'ENO' ? 'البريد المصري' : report.tracking_method}. تقدر تدوس تحت عشان تتبع الشحنة.`
                                                         : `جهازك دلوقتي مع ${report.tracking_method === 'ENO' ? 'البريد المصري' : report.tracking_method} وجاي على عنوانك. تقدر تنسخ رقم التتبع وتشوف هو فين بالظبط دلوقتي.`}
                                                 </p>
                                             </div>
 
-                                            <div className="flex flex-col gap-3 min-w-[300px]">
+                                            <div className="flex flex-col gap-3 w-full md:min-w-[300px]">
                                                 <div
-                                                    className="flex items-center justify-between gap-4 p-4 bg-surface-variant/30 border border-black/[0.03] rounded-2xl cursor-pointer hover:bg-surface-variant/70 hover:border-black/5 transition-all group/copy"
+                                                    className="flex items-center justify-between gap-4 p-4 bg-surface-variant/30 border border-black/[0.03] rounded-2xl cursor-pointer hover:bg-surface-variant/70 hover:border-black/5 transition-all group/copy w-full"
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(report.tracking_code || '');
                                                         setIsCopied(true);
                                                         setTimeout(() => setIsCopied(false), 2000);
                                                     }}
                                                 >
-                                                    <div className="flex items-center justify-center w-12 h-12 bg-white rounded-xl shadow-sm text-primary group-hover/copy:scale-105 transition-transform">
-                                                        {isCopied ? <Check size={20} className="text-green-500" /> : <Copy size={20} />}
-                                                    </div>
-                                                    <div className="text-right">
+                                                    <div className="text-right flex-1 min-w-0">
                                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">{isCopied ? 'تم النسخ بنجاح' : 'رقم التتبع (اضغط للنسخ)'}</p>
-                                                        <p className="text-xl font-mono font-bold text-secondary tracking-widest">{report.tracking_code || '---'}</p>
+                                                        <p className="text-lg md:text-xl font-mono font-bold text-secondary tracking-widest break-all line-clamp-1">{report.tracking_code || '---'}</p>
+                                                    </div>
+                                                    <div className="flex items-center justify-center w-12 h-12 bg-white rounded-xl shadow-sm text-primary group-hover/copy:scale-105 transition-transform shrink-0">
+                                                        {isCopied ? <Check size={20} className="text-green-500" /> : <Copy size={20} />}
                                                     </div>
                                                 </div>
 
                                                 <Button
                                                     variant="primary"
                                                     size="lg"
-                                                    className="rounded-2xl h-14 w-full font-black shadow-xl shadow-primary/10 hover:shadow-primary/20 transition-all gap-3"
+                                                    className="rounded-2xl h-14 w-full font-black shadow-xl shadow-primary/10 hover:shadow-primary/20 transition-all flex flex-row items-center justify-center gap-3"
                                                     onClick={() => {
                                                         const url = report.tracking_method === 'Aramex'
                                                             ? `https://www.aramex.com/eg/ar/track/results?shipmentNumber=${report.tracking_code}`
@@ -503,8 +503,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                         window.open(url, '_blank');
                                                     }}
                                                 >
-                                                    <ExternalLink size={18} />
                                                     تتبع الشحنة
+                                                    <ExternalLink size={18} />
                                                 </Button>
                                             </div>
                                         </div>
@@ -513,20 +513,20 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 text-right">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 text-right" dir="rtl">
                             <div className="space-y-8">
-                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 justify-end">
-                                    بيانات العميل والطلب
-                                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">01</span>
+                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3">
+                                    <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm">01</span>
+                                    بيانات العميل
                                 </h3>
-                                <div className="space-y-6 px-2 md:px-11">
+                                <div className="space-y-6 px-2 md:px-4">
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">اسم العميل</p>
                                         <p className="text-xl md:text-2xl font-bold text-secondary">{report.client_name}</p>
                                     </div>
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">رقم الهاتف</p>
-                                        <p className="text-xl md:text-2xl font-bold text-secondary dir-ltr inline-block">{report.client_phone}</p>
+                                        <p className="text-xl md:text-2xl font-bold text-secondary dir-ltr inline-block" dir="ltr">{report.client_phone}</p>
                                     </div>
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">العنوان</p>
@@ -536,55 +536,55 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             </div>
 
                             <div className="space-y-8">
-                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 justify-end">
-                                    هوية الجهاز والتحقق
-                                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">02</span>
+                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3">
+                                    <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm">02</span>
+                                    هوية الجهاز
                                 </h3>
-                                <div className="space-y-6 px-2 md:px-11">
+                                <div className="space-y-6 px-2 md:px-4">
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">موديل الجهاز</p>
-                                        <div className="flex items-center gap-3 justify-end">
+                                        <div className="flex items-center gap-3">
+                                            <Smartphone className="text-primary/40 shrink-0" size={24} />
                                             <p className="text-xl md:text-2xl font-bold text-secondary">{report.device_model}</p>
-                                            <Smartphone className="text-primary/40" size={24} />
                                         </div>
                                     </div>
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">الرقم التسلسلي (IMEI/SN)</p>
-                                        <p className="text-xl md:text-2xl font-mono font-bold text-secondary/60 bg-surface-variant/20 px-3 py-1 rounded-xl inline-block">{report.serial_number || 'N/A'}</p>
+                                        <p className="text-xl md:text-2xl font-mono font-bold text-secondary/60 bg-surface-variant/20 px-3 py-1 rounded-xl inline-block" dir="ltr">{report.serial_number || 'N/A'}</p>
                                     </div>
-                                    <div className="flex items-center gap-6 md:gap-12 justify-end">
+                                    <div className="flex items-center gap-6 md:gap-12">
                                         <div className="group">
                                             <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">تاريخ الفحص</p>
                                             <p className="text-base md:text-lg font-bold text-secondary/80">{report.inspection_date ? new Date(report.inspection_date).toLocaleDateString('ar-EG') : '-'}</p>
                                         </div>
-                                        <div className="group text-left">
+                                        <div className="group text-right">
                                             <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">رقم الطلب</p>
-                                            <p className="text-base md:text-lg font-black text-primary">#{report.order_number || report.id}</p>
+                                            <p className="text-base md:text-lg font-black text-primary" dir="ltr">#{report.order_number || report.id}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-12 border-t border-black/5">
-                            <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 mb-8 justify-end">
-                                المواصفات التقنية
-                                <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">03</span>
+                        <div className="pt-12 border-t border-black/5" dir="rtl">
+                            <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 mb-8">
+                                <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm">03</span>
+                                المواصفات
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-2 md:px-11">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-2 md:px-4">
                                 {[
                                     { label: 'Processor', value: report.cpu || 'Not Specified', icon: <Cpu size={20} /> },
                                     { label: 'Graphics', value: report.gpu || 'Not Specified', icon: <Monitor size={20} /> },
                                     { label: 'Memory', value: report.ram || 'Not Specified', icon: <Database size={20} /> },
                                     { label: 'Storage', value: report.storage || 'Not Specified', icon: <HardDrive size={20} /> }
                                 ].map((spec, i) => (
-                                    <div key={i} className="flex items-center gap-4 p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all group flex-row-reverse">
+                                    <div key={i} className="flex items-center gap-4 p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all group">
                                         <div className="w-12 h-12 shrink-0 rounded-xl bg-white flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors shadow-sm">
                                             {spec.icon}
                                         </div>
                                         <div className="flex flex-col flex-1 text-right">
-                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5">{spec.label}</p>
-                                            <p className="font-bold text-secondary truncate text-sm md:text-base">{spec.value || '-'}</p>
+                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5" dir="ltr" style={{ textAlign: 'right' }}>{spec.label}</p>
+                                            <p className="font-bold text-secondary truncate text-sm md:text-base" dir="ltr" style={{ textAlign: 'right' }}>{spec.value || '-'}</p>
                                         </div>
                                     </div>
                                 ))}
