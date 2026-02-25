@@ -474,8 +474,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                 </div>
                             </CardHeader>
                             <CardContent className="p-8 space-y-10">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    <div className="lg:col-span-1 space-y-2">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-12 gap-y-6">
+                                    <div className="relative z-50 space-y-2">
                                         <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">البحث عن عميل</label>
                                         <div className="relative">
                                             <Input
@@ -518,30 +518,32 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">رقم الموبايل</label>
-                                        <Input
-                                            name="client_phone"
-                                            placeholder="رقم الموبايل"
-                                            icon={<Smartphone size={18} />}
-                                            value={formData.client_phone}
-                                            onChange={handleChange}
-                                            className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">رقم التقرير</label>
-                                        <Input
-                                            name="order_number"
-                                            icon={<Hash size={18} />}
-                                            value={formData.order_number}
-                                            onChange={handleChange}
-                                            className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-mono text-primary font-black text-lg"
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">رقم الموبايل</label>
+                                            <Input
+                                                name="client_phone"
+                                                placeholder="رقم الموبايل"
+                                                icon={<Smartphone size={18} />}
+                                                value={formData.client_phone}
+                                                onChange={handleChange}
+                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">رقم التقرير</label>
+                                            <Input
+                                                name="order_number"
+                                                icon={<Hash size={18} />}
+                                                value={formData.order_number}
+                                                onChange={handleChange}
+                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-mono text-primary font-black text-lg"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6 border-t border-black/[0.03]">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6 border-t border-black/[0.03]">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">اسم الجهاز (Device Name)</label>
                                         <Input
@@ -617,8 +619,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                     </div>
                                 </div>
 
-                                <div className="mt-6 pt-6 border-t border-black/[0.03] flex flex-col md:flex-row items-center justify-center gap-6">
-                                    <div className="w-full max-w-md space-y-2">
+                                <div className="mt-6 pt-6 border-t border-black/[0.03] flex flex-col md:flex-row items-stretch md:items-center justify-center gap-6">
+                                    <div className="w-full max-w-md mx-auto space-y-2">
                                         <label className="text-[10px] font-black text-secondary/40 uppercase px-4 text-center block">سعر البيع (Selling Price)</label>
                                         <Input
                                             name="amount"
@@ -631,7 +633,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                             required
                                         />
                                     </div>
-                                    <div className="w-full max-w-md space-y-2 animate-in slide-in-from-right-2">
+                                    <div className="w-full max-w-md mx-auto space-y-2 animate-in slide-in-from-right-2">
                                         <div className="flex items-center justify-between px-4">
                                             <label className="text-[10px] font-black text-primary uppercase block">المورد (Supplier)</label>
                                             <button
