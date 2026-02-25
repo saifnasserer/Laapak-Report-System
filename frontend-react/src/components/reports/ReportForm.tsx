@@ -343,7 +343,6 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 client_name: 'اسم العميل / رقم الهاتف',
                 device_model: 'اسم الجهاز',
                 serial_number: 'الرقم التسلسلي (S/N)',
-                device_price: 'سعر الفحص التقريبي',
                 device_source: 'المورد / مصدر الجهاز'
             };
 
