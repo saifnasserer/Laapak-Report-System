@@ -1065,6 +1065,10 @@ router.put('/cost-price/:itemId', adminRoleAuth(['superadmin']), async (req, res
             if (updateResult[0] > 0) {
                 console.log(`Successfully updated item ${itemId} with cost price ${cost_price}`);
 
+                // SYNC TO REPORT: If this invoice item is linked to a report, update the report's device_price too
+                // No longer syncing to reports.device_price as we read from invoice_items directly
+                console.log(`[COST-UPDATE] Updated cost_price for item ${itemId} to ${cost_price}`);
+
                 // Track financial movement if cost changed
                 if (costDiff !== 0) {
                     try {
@@ -1358,7 +1362,8 @@ router.post('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
             repeat_monthly,
             description,
             receipt_url,
-            money_location_id
+            money_location_id,
+            supplier_id
         } = req.body;
 
         const expense = await Expense.create({
@@ -1372,6 +1377,7 @@ router.post('/expenses', adminRoleAuth(['superadmin']), async (req, res) => {
             description,
             receipt_url,
             money_location_id,
+            supplier_id,
             created_by: req.user.id,
             status: 'approved' // Auto-approve for now
         });
@@ -1434,7 +1440,8 @@ router.put('/expenses/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             repeat_monthly,
             description,
             receipt_url,
-            money_location_id
+            money_location_id,
+            supplier_id
         } = req.body;
 
         const expense = await Expense.findByPk(id);
@@ -1525,7 +1532,8 @@ router.put('/expenses/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             repeat_monthly: repeat_monthly || false,
             description,
             receipt_url,
-            money_location_id
+            money_location_id,
+            supplier_id
         });
 
         const updatedExpense = await Expense.findByPk(expense.id, {
@@ -1856,7 +1864,7 @@ router.get('/test', adminRoleAuth(['superadmin']), async (req, res) => {
  * Update cost price for an invoice item
  * Access: Admin/Superadmin
  */
-router.patch('/invoice-items/:id/cost', adminRoleAuth(['admin', 'superadmin']), async (req, res) => {
+router.patch('/invoice-items/:id/cost', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { id } = req.params;
         const { cost_price } = req.body;

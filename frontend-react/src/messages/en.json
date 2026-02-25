@@ -22,6 +22,7 @@
             "my_invoices": "My Invoices",
             "financial": "Financial Management",
             "money": "Expected Money",
+            "suppliers": "Suppliers",
             "logout": "Log Out"
         },
         "admin": {

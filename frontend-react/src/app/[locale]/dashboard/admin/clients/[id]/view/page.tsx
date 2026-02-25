@@ -135,7 +135,12 @@ export default function ClientViewAsAdmin({ params }: { params: Promise<{ locale
                     {reports.length > 0 ? (
                         <div className="space-y-4">
                             {reports.map((report) => {
-                                const invoice = invoices.find(inv => inv.reportId === report.id || inv.report_id === report.id);
+                                const invoice = invoices.find(inv =>
+                                    inv.id === report.invoice_id ||
+                                    inv.reportId === report.id ||
+                                    inv.report_id === report.id ||
+                                    (inv.relatedReports && inv.relatedReports.some((r: any) => r.id === report.id))
+                                );
 
                                 return (
                                     <div key={report.id} className="bg-white/60 backdrop-blur-sm border border-black/5 p-4 md:p-8 rounded-2xl md:rounded-[2rem] hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 group">
@@ -177,10 +182,20 @@ export default function ClientViewAsAdmin({ params }: { params: Promise<{ locale
                                                 <Link href={`/dashboard/client/reports/${report.id}`} target="_blank" className="col-span-1 sm:flex-initial">
                                                     <Button
                                                         variant="ghost"
-                                                        className="w-full rounded-2xl h-11 md:h-14 px-4 md:px-6 font-bold bg-black/5 text-secondary hover:bg-black/10 border border-black/5 gap-2"
+                                                        className="w-full rounded-2xl h-11 md:h-14 px-4 md:px-6 font-black bg-black/5 text-secondary hover:bg-primary/10 hover:text-primary border border-black/5 hover:border-primary/20 gap-3"
                                                     >
-                                                        <ExternalLink size={18} />
-                                                        عرض كعميل
+                                                        <FileText size={20} />
+                                                        تقرير الفحص
+                                                    </Button>
+                                                </Link>
+
+                                                <Link href={`/dashboard/client/warranty?id=${report.id}&client_id=${clientId}`} target="_blank" className="col-span-1 sm:flex-initial">
+                                                    <Button
+                                                        variant="outline"
+                                                        className="w-full rounded-2xl h-11 md:h-14 px-4 md:px-6 font-bold border-primary/20 hover:bg-primary/5 gap-2"
+                                                    >
+                                                        <ShieldCheck size={18} className="text-primary" />
+                                                        الضمان
                                                     </Button>
                                                 </Link>
 
@@ -224,10 +239,101 @@ export default function ClientViewAsAdmin({ params }: { params: Promise<{ locale
                     )}
                 </div>
 
-                {/* Device Care Section Reminder */}
-                <div className="bg-black/[0.02] border border-black/5 p-8 rounded-[3rem] text-center">
-                    <Sparkles className="mx-auto mb-4 text-primary/40" size={40} />
-                    <p className="text-secondary/60 font-medium">سيشاهد العميل نصائح العناية بالجهاز في هذا الجزء من لوحة تحكمه</p>
+                {/* Device Care Section */}
+                <div className="space-y-6 pt-8">
+                    <div className="flex items-center justify-between px-2 md:px-4">
+                        <h2 className="text-xl md:text-2xl font-black flex items-center gap-3">
+                            <Sparkles className="w-6 h-6 md:w-7 md:h-7 text-primary animate-pulse" />
+                            كيف يرى العميل نصائح الحماية؟
+                        </h2>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                        {[
+                            {
+                                title: 'مساحة التخزين',
+                                icon: <Cpu />,
+                                tip: 'خليك فاكر تسيب مساحة فاضية على الهارد، بلاش تملاه للآخر لأن المساحة الفاضية بتفرق في سرعة الجهاز وأداؤه.',
+                                color: '#3B82F6' // blue-500
+                            },
+                            {
+                                title: 'صحة البطارية',
+                                icon: <Battery />,
+                                tip: 'افتكر إن البطارية ليها عمر، بلاش تسيب اللابتوب على الشاحن 24 ساعة وحاول تشحنه من 20٪ لـ 80٪ على قد ما تقدر.',
+                                color: '#F59E0B' // amber-500
+                            },
+                            {
+                                title: 'تهوية الجهاز',
+                                icon: <Thermometer />,
+                                tip: 'خلي بالك من التهوية، ما تحطش اللابتوب على سرير أو مخدة وخليه دايمًا على سطح ناشف علشان ميسخنش.',
+                                color: '#10B981' // green-500
+                            },
+                            {
+                                title: 'نظافة الجهاز',
+                                icon: <Sparkles />,
+                                tip: 'خليك فاكر تنظف اللابتوب كل أسبوع بفوطة ناعمة أو منديل، ومترشش أي سوايل مباشرة على الكيبورد أو الشاشة نهائيًا.',
+                                color: '#A855F7' // purple-500
+                            }
+                        ].map((item, i) => {
+                            const isOpen = openTipIndex === i;
+                            return (
+                                <div
+                                    key={i}
+                                    className="relative group rounded-[3.2rem] p-1 transition-all duration-300 bg-white/40 hover:bg-white/60"
+                                >
+                                    <div className={cn(
+                                        "flex flex-col overflow-hidden rounded-[3rem] bg-white/60 backdrop-blur-sm border transition-all duration-500",
+                                        isOpen ? "border-primary/30 shadow-xl shadow-primary/5" : "border-black/5"
+                                    )}>
+                                        <button
+                                            onClick={() => setOpenTipIndex(isOpen ? null : i)}
+                                            className="flex items-center justify-between p-6 md:p-8 w-full text-right group/btn"
+                                        >
+                                            <div className="flex items-center gap-6">
+                                                <div
+                                                    className="w-14 h-14 rounded-3xl flex items-center justify-center shrink-0 shadow-inner transition-transform group-hover/btn:scale-110 duration-500"
+                                                    style={{ backgroundColor: `${item.color}15`, color: item.color }}
+                                                >
+                                                    {React.cloneElement(item.icon as React.ReactElement<any>, { size: 24 })}
+                                                </div>
+                                                <div className="space-y-1 text-right">
+                                                    <h3 className="text-lg md:text-xl font-black text-secondary">{item.title}</h3>
+                                                    <p className="text-[10px] text-secondary/30 font-black uppercase tracking-widest">نصائح العناية بالجهاز</p>
+                                                </div>
+                                            </div>
+
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-full bg-black/[0.03] flex items-center justify-center text-secondary/20 transition-all duration-500",
+                                                isOpen ? "rotate-180 bg-primary/10 text-primary" : "group-hover/btn:text-secondary/40"
+                                            )}>
+                                                <ChevronDown size={20} />
+                                            </div>
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {isOpen && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: "auto", opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                                                >
+                                                    <div className="px-8 pb-8 pt-2">
+                                                        <div className="p-6 rounded-[2rem] bg-black/[0.02] border border-black/[0.03] relative overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                                                            <p className="text-secondary/70 text-base md:text-lg font-bold leading-relaxed italic relative z-10 text-right">
+                                                                "{item.tip}"
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </DashboardLayout>

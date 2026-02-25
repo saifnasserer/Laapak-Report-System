@@ -11,9 +11,9 @@ const router = express.Router();
 const REPORT_BASE_ATTRIBUTES = [
   'id', 'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
   'order_number', 'device_brand', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
-  'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount',
-  'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id',
-  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories', 'payment_method'
+  'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'device_price',
+  'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id', 'tracking_code', 'tracking_method',
+  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories', 'payment_method', 'supplier_id'
 ];
 
 
@@ -168,6 +168,11 @@ router.get('/', async (req, res) => {
             model: ReportTechnicalTest, // Assuming 'ReportTechnicalTest' is the correct model name
             as: 'technical_tests', // Assuming this alias is defined in your Report model associations
             attributes: ['componentName', 'status', 'notes', 'type', 'icon'], // Specify attributes needed by frontend
+          },
+          {
+            model: InvoiceItem,
+            as: 'invoiceItems',
+            attributes: ['cost_price', 'totalAmount']
           }
         ],
       });
@@ -192,11 +197,13 @@ router.get('/', async (req, res) => {
           gpu: reportInstance.gpu || null,
           ram: reportInstance.ram || null,
           storage: reportInstance.storage || null,
+          device_price: reportInstance.device_price || 0,
           status_badge: reportInstance.status, // Map DB 'status' to 'status_badge'
           external_images: reportInstance.external_images, // Will be parsed by frontend
           hardware_status: reportInstance.hardware_status, // Will be parsed by frontend
           notes: reportInstance.notes,
           client: reportInstance.client ? reportInstance.client.toJSON() : null,
+          supplier_id: reportInstance.supplier_id || null,
           // You can add other fields from reportInstance as needed
         },
         technical_tests: reportInstance.technical_tests ? reportInstance.technical_tests.map(tt => tt.toJSON()) : []
@@ -414,6 +421,11 @@ router.get('/', async (req, res) => {
             through: { attributes: [] }, // Don't include junction table attributes
             attributes: ['id', 'total', 'paymentStatus'],
             required: false // Left join to include reports without invoices
+          },
+          {
+            model: InvoiceItem,
+            as: 'invoiceItems',
+            attributes: ['cost_price', 'totalAmount']
           }
         ],
         order: [
@@ -421,7 +433,7 @@ router.get('/', async (req, res) => {
         ],
         logging: (sql) => {
           console.log('=== SQL QUERY ===');
-          console.log(sql);
+          // console.log(sql);
           console.log('=== END SQL QUERY ===');
         }
       });
@@ -518,7 +530,15 @@ router.get('/', async (req, res) => {
       })));
       console.log('=== END BACKEND REPORTS QUERY DEBUG ===');
 
-      res.json(reports);
+      const mappedReports = reports.map(r => {
+        const report = r.toJSON();
+        return {
+          ...report,
+          device_price: report.device_price || 0
+        };
+      });
+
+      res.json(mappedReports);
     } catch (error) {
       console.error('Failed to fetch all reports:', error);
 
@@ -708,6 +728,11 @@ router.get('/:id', async (req, res) => {
           through: { attributes: [] }, // Don't include junction table attributes
           attributes: ['id', 'total', 'paymentStatus', 'paymentMethod', 'date'],
           required: false // Left join to include reports without invoices
+        },
+        {
+          model: InvoiceItem,
+          as: 'invoiceItems',
+          attributes: ['cost_price', 'totalAmount']
         }
       ],
     });
@@ -720,8 +745,9 @@ router.get('/:id', async (req, res) => {
 
     // Ensure relatedInvoices is properly serialized
     const reportData = report.toJSON ? report.toJSON() : report;
-    console.log('Report data keys:', Object.keys(reportData));
-    console.log('Report data relatedInvoices:', reportData.relatedInvoices);
+
+    // Use device_price as the source of truth for cost
+    reportData.device_price = reportData.device_price || 0;
 
     res.json({ success: true, report: reportData });
   } catch (error) {
@@ -730,41 +756,46 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET /reports/client/me - get reports for the authenticated client
-router.get('/client/me', clientAuth, async (req, res) => {
+// GET /reports/client/me - get reports for the authenticated client (or for a specific client if admin)
+router.get('/client/me', auth, async (req, res) => {
   try {
-    const clientId = req.user.id; // clientAuth middleware sets req.user
-    if (!clientId) {
-      console.error('Client ID not found in token after auth middleware');
-      return res.status(401).json({ error: 'Authentication error: Client ID missing.' });
+    let clientId;
+    const isClient = req.user.type === 'client' || req.user.isClient;
+    const isAdmin = req.user.type === 'admin' || req.user.isAdmin;
+
+    if (isAdmin && req.query.client_id) {
+      clientId = req.query.client_id;
+      console.log(`Admin ${req.user.id} fetching reports for client ID: ${clientId}`);
+    } else if (isClient) {
+      clientId = req.user.id;
+      console.log(`Fetching reports for authenticated client ID: ${clientId}`);
+    } else {
+      return res.status(403).json({ error: 'Access denied. Client ID missing or unauthorized.' });
     }
 
-    console.log(`Fetching reports for authenticated client ID: ${clientId}`);
+    if (!clientId) {
+      console.error('Client ID resolved to null/undefined');
+      return res.status(400).json({ error: 'Client ID is required.' });
+    }
+
     const reports = await Report.findAll({
-      where: { client_id: clientId }, // Ensure 'client_id' matches your Report model's foreign key field name
-      attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
+      where: { client_id: clientId },
+      attributes: REPORT_BASE_ATTRIBUTES,
       include: [
         {
           model: Client,
           as: 'client',
           attributes: ['id', 'name', 'phone', 'email', 'address', 'orderCode'],
         },
-        // Optional: Include ReportTechnicalTest if needed for client dashboard preview
-        // {
-        //   model: ReportTechnicalTest,
-        //   as: 'technical_tests',
-        //   attributes: ['componentName', 'status', 'notes', 'type', 'icon'],
-        // }
       ],
-      order: [['inspection_date', 'DESC']], // Order by inspection_date, or 'created_at' if preferred
+      order: [['inspection_date', 'DESC']],
     });
 
-    // It's not an error if a client has no reports, return empty array
     console.log(`Found ${reports ? reports.length : 0} reports for client ID ${clientId}`);
     res.json({ success: true, data: reports || [] });
 
   } catch (error) {
-    console.error('Failed to fetch reports for authenticated client:', error);
+    console.error('Failed to fetch reports for client context:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
@@ -780,14 +811,6 @@ router.post('/', async (req, res) => {
         // Direct database schema format
         const reportData = { ...req.body };
 
-        // LOG DEVICE SPECS TO DEBUG
-        console.log('========== DEVICE SPECS DEBUG ==========');
-        console.log('Received device specs in request:');
-        console.log('  cpu:', req.body.cpu);
-        console.log('  gpu:', req.body.gpu);
-        console.log('  ram:', req.body.ram);
-        console.log('  storage:', req.body.storage);
-        console.log('========================================');
 
         // Remove device spec fields if columns don't exist yet (migration not run)
         // This prevents errors when creating reports before migration runs
@@ -803,8 +826,6 @@ router.post('/', async (req, res) => {
           console.log('Device spec columns exist in database. Including specs in report creation.');
         }
 
-        // Log the data being used to create the report
-        console.log('Creating report with direct schema:', reportData);
 
         // Generate a report ID if not provided
         if (!reportData.id) {
@@ -919,11 +940,13 @@ router.put('/:id', auth, async (req, res) => {
         'ملغي': 'cancelled',
         'ملغى': 'cancelled',
         'قيد المعالجة': 'pending',
+        'شحن': 'shipped',
+        'تم الشحن': 'shipped',
         'completed': 'completed',
         'pending': 'pending',
+        'shipped': 'shipped',
         'cancelled': 'cancelled',
         'canceled': 'cancelled',
-        'shipped': 'shipped',
         'active': 'pending', // Map 'active' to 'pending'
         'in-progress': 'pending' // Map 'in-progress' to 'pending'
       };
@@ -941,13 +964,26 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
 
+    // Automated transition: If status is 'new_order' and we are updating report data, 
+    // move it to 'pending' automatically.
+    if (report.status === 'new_order' && !req.body.status) {
+      const triggersPending = ['device_brand', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage', 'hardware_status'];
+      const hasTrigger = triggersPending.some(field => req.body[field] !== undefined);
+
+      if (hasTrigger) {
+        console.log(`Auto-transitioning report ${report.id} from 'new_order' to 'pending' due to data update`);
+        req.body.status = 'pending';
+      }
+    }
+
     // Update all fields that can be updated
     // Base fields (always available)
     const baseUpdateFields = [
       'client_id', 'client_name', 'client_phone', 'client_email', 'client_address',
       'order_number', 'device_model', 'serial_number',
-      'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'status',
-      'created_at', 'updated_at'
+      'inspection_date', 'hardware_status', 'external_images', 'invoice_items', 'notes', 'billing_enabled', 'amount', 'device_price', 'status',
+      'tracking_code', 'tracking_method',
+      'created_at', 'updated_at', 'supplier_id'
     ];
 
     // New device spec fields (may not exist until migration runs)
@@ -1057,7 +1093,7 @@ router.put('/:id', auth, async (req, res) => {
         console.error('Attempted status value:', updateData.status);
         return res.status(400).json({
           error: 'Invalid status value',
-          details: `The status value '${updateData.status}' is not valid. Allowed values are: completed, pending, shipped, cancelled`,
+          details: `The status value '${updateData.status}' is not valid. Allowed values are: completed, pending, shipped, cancelled, new_order`,
           attempted_value: updateData.status
         });
       }
@@ -1082,7 +1118,8 @@ router.put('/:id', auth, async (req, res) => {
       const map = {
         'مكتمل': 'completed',
         'قيد الانتظار': 'pending', 'انتظار': 'pending', 'نشط': 'pending', 'active': 'pending',
-        'ملغي': 'cancelled', 'ملغى': 'cancelled', 'cancelled': 'cancelled'
+        'ملغي': 'cancelled', 'ملغى': 'cancelled', 'cancelled': 'cancelled',
+        'شحن': 'shipped', 'تم الشحن': 'shipped', 'shipped': 'shipped'
       };
       return map[s] || s.toLowerCase();
     };
@@ -1653,5 +1690,7 @@ router.post('/:id/share/whatsapp', auth, async (req, res) => {
     res.status(500).json({ message: 'Sharing failed', error: error.message });
   }
 });
+
+
 
 module.exports = router;

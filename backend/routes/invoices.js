@@ -186,9 +186,11 @@ router.post('/', adminAuth, async (req, res) => {
     await Promise.all(items.map(item =>
       InvoiceItem.create({
         invoiceId: invoice.id,
+        report_id: item.report_id || null,
         description: item.description,
         type: item.type || 'standard',
         amount: item.amount,
+        cost_price: item.cost_price || 0,
         quantity: item.quantity || 1,
         totalAmount: item.totalAmount || (item.amount * (item.quantity || 1)),
         created_at: new Date()

@@ -49,7 +49,13 @@ import {
     ShoppingCart,
     Send,
     ExternalLink,
-    Package
+    Package,
+    Truck,
+    RefreshCw,
+    Copy,
+    Trophy,
+    Sparkles,
+    PartyPopper
 } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { useRouter } from '@/i18n/routing';
@@ -57,7 +63,10 @@ import api, { confirmReport } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import Confetti from 'react-confetti';
+import { useWindowSize } from 'react-use';
 import { WhatsAppShareModal } from '@/components/reports/WhatsAppShareModal';
+import { TrackingCodeModal } from '@/components/reports/TrackingCodeModal';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 
@@ -95,6 +104,13 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'vodafone_cash' | 'instapay' | null>(null);
 
     const [shareModalOpen, setShareModalOpen] = useState(false);
+
+    // Status Change State
+    const [showTrackingModal, setShowTrackingModal] = useState(false);
+    const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+
+    // Live Tracking State
+    const [isCopied, setIsCopied] = useState(false);
     const toggleCartItem = (product: any) => {
         setCartItems(prev => {
             const isSelected = prev.find(item => item.id === product.id);
@@ -104,6 +120,17 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             return [...prev, product];
         });
     };
+
+    const { width, height } = useWindowSize();
+    const [showConfetti, setShowConfetti] = useState(false);
+
+    useEffect(() => {
+        if (report?.status === 'completed' || report?.status === 'مكتمل') {
+            setShowConfetti(true);
+        } else {
+            setShowConfetti(false);
+        }
+    }, [report?.status]);
 
     const isRtl = locale === 'ar';
 
@@ -125,6 +152,12 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 const reportData = response.data.report;
                 setReport(reportData);
                 setIsConfirmed(!!reportData.is_confirmed);
+
+                // Set initial step based on status
+                if (reportData.status === 'completed' || reportData.status === 'مكتمل') {
+                    setActiveStep(7);
+                }
+
                 if (reportData.selected_accessories) {
                     setCartItems(reportData.selected_accessories);
                 }
@@ -168,15 +201,17 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         fetchProducts();
     }, [activeStep, products.length]);
 
-    const calculateFinalTotal = () => {
+    const calculateFinalTotal = (methodOverride?: string | null) => {
         const baseTotal = parseFloat(report.amount || 0) + cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0);
         let fee = 0;
         let feeReason = '';
 
-        if (selectedPaymentMethod === 'cash') {
+        const method = methodOverride !== undefined ? methodOverride : selectedPaymentMethod;
+
+        if (method === 'cash') {
             fee = baseTotal * 0.01;
             feeReason = ' (رسوم شركة الشحن 1%)';
-        } else if (selectedPaymentMethod === 'vodafone_cash') {
+        } else if (method === 'vodafone_cash') {
             fee = baseTotal * 0.01;
             feeReason = ' (رسوم سحب فودافون 1%)';
         }
@@ -189,18 +224,14 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         };
     };
 
-    const handleConfirmOrder = () => {
-        setPaymentModalOpen(true);
-    };
-
-    const handleFinalConfirmation = async () => {
-        if (!selectedPaymentMethod) return;
+    const submitConfirmation = async (method: any) => {
+        if (!method) return;
 
         try {
-            const { baseTotal, fee, finalTotal, feeReason } = calculateFinalTotal();
-            await confirmReport(id, cartItems, selectedPaymentMethod);
+            const { baseTotal, fee, finalTotal, feeReason } = calculateFinalTotal(method);
+            await confirmReport(id, cartItems, method);
             setIsConfirmed(true);
-            setReport((prev: any) => ({ ...prev, payment_method: selectedPaymentMethod }));
+            setReport((prev: any) => ({ ...prev, payment_method: method, selected_accessories: cartItems }));
             setPaymentModalOpen(false);
 
             const paymentLabels: any = {
@@ -210,7 +241,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             };
 
             let messageText = `مساء الخير انا راجعت التقرير وجاهز آكد الأوردر\n\n`;
-            messageText += `طريقة الدفع: ${paymentLabels[selectedPaymentMethod]}\n`;
+            messageText += `طريقة الدفع: ${paymentLabels[method]}\n`;
             messageText += `إجمالي الجهاز والإضافات: ${baseTotal.toLocaleString()} ج.م\n`;
             if (fee > 0) {
                 messageText += `الرسوم الإضافية: ${fee.toLocaleString()} ج.م ${feeReason}\n`;
@@ -224,6 +255,19 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         } catch (err) {
             console.error('Failed to confirm report:', err);
         }
+    };
+
+    const handleConfirmOrder = () => {
+        if (isConfirmed && report?.payment_method) {
+            submitConfirmation(report.payment_method);
+        } else {
+            setPaymentModalOpen(true);
+        }
+    };
+
+    const handleFinalConfirmation = async () => {
+        if (!selectedPaymentMethod) return;
+        await submitConfirmation(selectedPaymentMethod);
     };
 
     const handlePrint = (invoiceId: string) => {
@@ -281,6 +325,44 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         }
     };
 
+    const updateStatus = async (newStatus: string, shippingData?: { trackingCode: string, trackingMethod: string }) => {
+        try {
+            if (newStatus === 'shipped' && !shippingData) {
+                setPendingStatus(newStatus);
+                setShowTrackingModal(true);
+                return;
+            }
+
+            await api.put(`/reports/${id}`, {
+                status: newStatus,
+                ...(shippingData?.trackingCode && { tracking_code: shippingData.trackingCode }),
+                ...(shippingData?.trackingMethod && { tracking_method: shippingData.trackingMethod })
+            });
+
+            setReport((prev: any) => ({
+                ...prev,
+                status: newStatus,
+                ...(shippingData?.trackingCode && { tracking_code: shippingData.trackingCode }),
+                ...(shippingData?.trackingMethod && { tracking_method: shippingData.trackingMethod })
+            }));
+
+            if (newStatus === 'shipped') {
+                setShowTrackingModal(false);
+                setPendingStatus(null);
+                setActiveStep(1); // Show the tracking hero
+            }
+
+            if (newStatus === 'completed') {
+                setActiveStep(7); // Show sharing/confirmation
+            }
+
+            alert('تم تحديث الحالة بنجاح');
+        } catch (err) {
+            console.error('Failed to update status:', err);
+            alert('فشل في تحديث الحالة');
+        }
+    };
+
     const statusMap: any = {
         'completed': { label: 'مكتمل', variant: 'success' },
         'مكتمل': { label: 'مكتمل', variant: 'success' },
@@ -288,9 +370,12 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         'قيد الانتظار': { label: 'قيد الانتظار', variant: 'warning' },
         'active': { label: 'قيد الانتظار', variant: 'warning' },
         'نشط': { label: 'قيد الانتظار', variant: 'warning' },
+        'shipped': { label: 'تم الشحن', variant: 'primary' },
+        'تم الشحن': { label: 'تم الشحن', variant: 'primary' },
         'cancelled': { label: 'ملغي', variant: 'destructive' },
         'ملغي': { label: 'ملغي', variant: 'destructive' },
         'ملغى': { label: 'ملغي', variant: 'destructive' },
+        'new_order': { label: 'طلب خارجي', variant: 'primary' },
     };
 
     const getStatusInfo = (status: string) => {
@@ -324,11 +409,115 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         exit={{ opacity: 0, y: -20 }}
                         className="space-y-12"
                     >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                        {(report.status === 'completed' || report.status === 'مكتمل') && (
+                            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 p-8 md:p-10 shadow-lg group">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-green-500/20 transition-colors duration-700" />
+                                <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+
+                                <div className="relative flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-10 text-right">
+                                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-[2rem] bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white shadow-xl shadow-green-500/30 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500 shrink-0">
+                                        <Trophy size={48} className="md:size-56" />
+                                    </div>
+
+                                    <div className="flex-1 space-y-4 w-full">
+                                        <div className="flex items-center gap-2 mb-2 justify-end">
+                                            <Sparkles size={16} className="text-green-600 animate-pulse" />
+                                            <span className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Order Completed Successfully</span>
+                                        </div>
+                                        <h2 className="text-3xl md:text-4xl font-black text-secondary tracking-tight">
+                                            {viewMode === 'admin' ? 'تمت المهمة بنجاح!' : 'ألف مبروك! جهازك خلص وبقى تمام'}
+                                        </h2>
+                                        <p className="text-secondary/60 text-base md:text-lg font-medium leading-relaxed max-w-2xl text-right ml-auto">
+                                            {viewMode === 'admin'
+                                                ? 'الأوردر ده خلص وتأكد تسليمه للعميل. عاش جداً!'
+                                                : 'إحنا مبسوطين جداً إننا خدمناك! نتمنى لك تجربة ممتازة وماتترددش تكلمنا في أي وقت لو احتجت مساعدة.'}
+                                        </p>
+
+                                        <div className="flex justify-end w-full">
+                                            <Button
+                                                variant="outline"
+                                                className="mt-4 border-green-500/30 text-green-700 hover:bg-green-50 hover:border-green-500/50 transition-colors gap-2 rounded-2xl h-12 px-6 font-bold bg-white/50 backdrop-blur-sm"
+                                                onClick={() => setShowConfetti(!showConfetti)}
+                                            >
+                                                <PartyPopper size={18} />
+                                                {showConfetti ? 'وقف الاحتفال' : 'احتفل معانا!'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {(report.status === 'shipped' || report.status === 'تم الشحن') && (
+                            <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-black/5 p-8 md:p-10 shadow-sm group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-colors" />
+
+                                <div className="relative flex flex-col md:flex-row items-start md:items-center gap-8 md:gap-10 text-right">
+                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-[2rem] bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500 shrink-0">
+                                        <Truck size={40} className="md:size-48" />
+                                    </div>
+
+                                    <div className="flex-1 space-y-6 w-full">
+                                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 mb-2 justify-end xl:justify-start">
+                                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Shipment In Transit</span>
+                                                </div>
+                                                <h2 className="text-2xl md:text-3xl font-black text-secondary tracking-tight">
+                                                    {viewMode === 'admin' ? 'تم الشحن للعميل' : 'جهازك في السكة ليك'}
+                                                </h2>
+                                                <p className="text-secondary/40 text-sm md:text-base font-medium leading-relaxed max-w-xl">
+                                                    {viewMode === 'admin'
+                                                        ? `الجهاز اتشحن عن طريق ${report.tracking_method === 'ENO' ? 'البريد المصري' : report.tracking_method}. تقدر تدوس تحت عشان تتبع الشحنة.`
+                                                        : `جهازك دلوقتي مع ${report.tracking_method === 'ENO' ? 'البريد المصري' : report.tracking_method} وجاي على عنوانك. تقدر تنسخ رقم التتبع وتشوف هو فين بالظبط دلوقتي.`}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex flex-col gap-3 min-w-[300px]">
+                                                <div
+                                                    className="flex items-center justify-between gap-4 p-4 bg-surface-variant/30 border border-black/[0.03] rounded-2xl cursor-pointer hover:bg-surface-variant/70 hover:border-black/5 transition-all group/copy"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(report.tracking_code || '');
+                                                        setIsCopied(true);
+                                                        setTimeout(() => setIsCopied(false), 2000);
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-center w-12 h-12 bg-white rounded-xl shadow-sm text-primary group-hover/copy:scale-105 transition-transform">
+                                                        {isCopied ? <Check size={20} className="text-green-500" /> : <Copy size={20} />}
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">{isCopied ? 'تم النسخ بنجاح' : 'رقم التتبع (اضغط للنسخ)'}</p>
+                                                        <p className="text-xl font-mono font-bold text-secondary tracking-widest">{report.tracking_code || '---'}</p>
+                                                    </div>
+                                                </div>
+
+                                                <Button
+                                                    variant="primary"
+                                                    size="lg"
+                                                    className="rounded-2xl h-14 w-full font-black shadow-xl shadow-primary/10 hover:shadow-primary/20 transition-all gap-3"
+                                                    onClick={() => {
+                                                        const url = report.tracking_method === 'Aramex'
+                                                            ? `https://www.aramex.com/eg/ar/track/results?shipmentNumber=${report.tracking_code}`
+                                                            : `https://egyptpost.gov.eg/ar-eg/home/eservices/track-and-trace/`;
+                                                        window.open(url, '_blank');
+                                                    }}
+                                                >
+                                                    <ExternalLink size={18} />
+                                                    تتبع الشحنة
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 text-right">
                             <div className="space-y-8">
-                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3">
-                                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">01</span>
+                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 justify-end">
                                     بيانات العميل والطلب
+                                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">01</span>
                                 </h3>
                                 <div className="space-y-6 px-2 md:px-11">
                                     <div className="group">
@@ -347,30 +536,30 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             </div>
 
                             <div className="space-y-8">
-                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3">
-                                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">02</span>
+                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 justify-end">
                                     هوية الجهاز والتحقق
+                                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">02</span>
                                 </h3>
                                 <div className="space-y-6 px-2 md:px-11">
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">موديل الجهاز</p>
-                                        <div className="flex items-center gap-3">
-                                            <Smartphone className="text-primary/40" size={24} />
+                                        <div className="flex items-center gap-3 justify-end">
                                             <p className="text-xl md:text-2xl font-bold text-secondary">{report.device_model}</p>
+                                            <Smartphone className="text-primary/40" size={24} />
                                         </div>
                                     </div>
                                     <div className="group">
                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">الرقم التسلسلي (IMEI/SN)</p>
                                         <p className="text-xl md:text-2xl font-mono font-bold text-secondary/60 bg-surface-variant/20 px-3 py-1 rounded-xl inline-block">{report.serial_number || 'N/A'}</p>
                                     </div>
-                                    <div className="flex items-center gap-6 md:gap-12">
-                                        <div className="group">
-                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">رقم الطلب</p>
-                                            <p className="text-base md:text-lg font-black text-primary">#{report.order_number || report.id}</p>
-                                        </div>
+                                    <div className="flex items-center gap-6 md:gap-12 justify-end">
                                         <div className="group">
                                             <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">تاريخ الفحص</p>
                                             <p className="text-base md:text-lg font-bold text-secondary/80">{report.inspection_date ? new Date(report.inspection_date).toLocaleDateString('ar-EG') : '-'}</p>
+                                        </div>
+                                        <div className="group text-left">
+                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">رقم الطلب</p>
+                                            <p className="text-base md:text-lg font-black text-primary">#{report.order_number || report.id}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -378,9 +567,9 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         </div>
 
                         <div className="pt-12 border-t border-black/5">
-                            <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 mb-8">
-                                <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">03</span>
+                            <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 mb-8 justify-end">
                                 المواصفات التقنية
+                                <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">03</span>
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-2 md:px-11">
                                 {[
@@ -389,11 +578,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     { label: 'Memory', value: report.ram || 'Not Specified', icon: <Database size={20} /> },
                                     { label: 'Storage', value: report.storage || 'Not Specified', icon: <HardDrive size={20} /> }
                                 ].map((spec, i) => (
-                                    <div key={i} className="flex items-center gap-4 p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                                    <div key={i} className="flex items-center gap-4 p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all group flex-row-reverse">
                                         <div className="w-12 h-12 shrink-0 rounded-xl bg-white flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors shadow-sm">
                                             {spec.icon}
                                         </div>
-                                        <div className="flex flex-col min-w-0">
+                                        <div className="flex flex-col flex-1 text-right">
                                             <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5">{spec.label}</p>
                                             <p className="font-bold text-secondary truncate text-sm md:text-base">{spec.value || '-'}</p>
                                         </div>
@@ -430,11 +619,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             <div className="flex gap-4">
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-green-500" />
-                                    <span className="text-[10px] font-bold text-secondary/40 uppercase">يعمل بكفاءة</span>
+                                    <span className="text-[10px] font-bold text-secondary/40 uppercase">شغال تمام</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-red-500" />
-                                    <span className="text-[10px] font-bold text-secondary/40 uppercase"> غير موجود بالجهاز</span>
+                                    <span className="text-[10px] font-bold text-secondary/40 uppercase">مش موجود بالجهاز</span>
                                 </div>
                             </div>
                         </div>
@@ -451,7 +640,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 if (filteredTests.length === 0) {
                                     return (
                                         <div className="py-12 text-center border-2 border-dashed border-green-100 rounded-[2.5rem] opacity-40">
-                                            <p className="text-sm font-black text-secondary/40">لا توجد فحوصات فنية حالياً</p>
+                                            <p className="text-sm font-black text-secondary/40">مفيش فحوصات فنية اتسجلت لسه</p>
                                         </div>
                                     );
                                 }
@@ -492,11 +681,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                                         {status === 'pass' ? (
                                                                             <div className="bg-green-500 text-white px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] font-black uppercase tracking-tight shadow-md flex items-center gap-2 cursor-default">
                                                                                 <div className="w-1.5 md:w-2 h-1.5 md:h-2 rounded-full bg-white animate-pulse" />
-                                                                                تم الفحص
+                                                                                مية مية
                                                                             </div>
                                                                         ) : (
                                                                             <div className="bg-green-50/50 text-green-600/40 border border-green-100/50 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] font-black uppercase tracking-tight flex items-center gap-2 cursor-default">
-                                                                                تم التحقق
+                                                                                متشيك عليه
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -572,8 +761,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 <ShoppingCart size={24} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black text-secondary">اضافات مهمة !</h3>
-                                <p className="text-sm text-secondary/60">اكتشف أفضل الخيارات لحماية جهازك وزيادة كفاءته</p>
+                                <h3 className="text-2xl font-black text-secondary">إضافات مهمة !</h3>
+                                <p className="text-sm text-secondary/60">دي شوية إضافات بنرشحهالك عشان تحافظ على جهازك وتزود كفاءته</p>
                             </div>
                         </div>
 
@@ -601,7 +790,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                             <div className="space-y-3 flex-1">
                                                 <h4 className="font-bold text-secondary group-hover:text-primary transition-colors line-clamp-2 min-h-[3rem]">{product.name}</h4>
                                                 <div className="flex items-center justify-between mt-auto">
-                                                    <p className="text-xl font-black text-primary">{product.price} <span className="text-[10px] font-bold">ج.م</span></p>
+                                                    <p className="text-xl font-black text-primary">{product.price} <span className="text-[10px] font-bold">جنيه</span></p>
                                                     <Button
                                                         onClick={() => toggleCartItem(product)}
                                                         className={cn(
@@ -635,9 +824,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 <div className="space-y-2">
                                     <h3 className="text-xl md:text-3xl font-black text-secondary flex items-center justify-center gap-3">
                                         <CreditCard className="text-primary" size={28} />
-                                        المبالغ والفوترة
+                                        {viewMode === 'admin' ? 'تفاصيل الحسابات' : 'إجمالي الحساب'}
                                     </h3>
-                                    <p className="text-sm text-secondary/40 font-medium max-w-lg mx-auto">ملخص الحسابات والفواتير المرتبطة بهذا الطلب</p>
+                                    <p className="text-sm text-secondary/40 font-medium max-w-lg mx-auto">
+                                        {viewMode === 'admin' ? 'ملخص الفواتير والإضافات الخاصة بالأوردر ده' : 'راجع حسابك النهائي للإضافات وفاتورة الصيانة'}
+                                    </p>
                                 </div>
                                 <div className="bg-primary/[0.03] p-8 md:p-10 rounded-[3rem] border border-primary/10 w-full max-w-md text-center shadow-xl shadow-primary/[0.02]">
                                     <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">الاجمالي</p>
@@ -645,7 +836,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                         <h2 className="text-4xl md:text-6xl font-black text-primary">
                                             {(parseFloat(report.amount || 0) + cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0)).toLocaleString()}
                                         </h2>
-                                        <span className="text-xl font-bold text-primary/60">ج.م</span>
+                                        <span className="text-xl font-bold text-primary/60">جنيه</span>
                                     </div>
                                 </div>
                             </div>
@@ -656,7 +847,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                                             <ShoppingCart size={20} />
                                         </div>
-                                        <h4 className="text-lg font-bold text-secondary">إضافات للطلب (Accessories)</h4>
+                                        <h4 className="text-lg font-bold text-secondary">إضافات للأوردر (Accessories)</h4>
                                     </div>
                                     <div className="space-y-3 max-w-2xl mx-auto">
                                         {cartItems.map((item) => (
@@ -668,14 +859,14 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                     <span className="font-bold text-secondary text-sm">{item.name}</span>
                                                 </div>
                                                 <div className="text-left">
-                                                    <p className="font-black text-primary">{item.price} <span className="text-[10px] font-bold">ج.م</span></p>
+                                                    <p className="font-black text-primary">{item.price} <span className="text-[10px] font-bold">جنيه</span></p>
                                                 </div>
                                             </div>
                                         ))}
                                         <div className="pt-4 border-t border-black/5 flex justify-between items-center px-2">
                                             <span className="text-secondary/40 font-bold uppercase tracking-widest text-[10px]">إجمالي الإضافات</span>
                                             <span className="text-lg font-black text-primary">
-                                                {cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0).toLocaleString()} ج.م
+                                                {cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0).toLocaleString()} جنيه
                                             </span>
                                         </div>
                                     </div>
@@ -684,9 +875,9 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
                             <div className="space-y-8 w-full">
                                 <div className="flex items-center justify-between px-6 max-w-3xl mx-auto">
-                                    <h4 className="text-lg font-bold text-secondary">الفواتير المرتبطة</h4>
+                                    <h4 className="text-lg font-bold text-secondary">{viewMode === 'admin' ? 'الفواتير الخاصة بالأوردر' : 'فواتيرك'}</h4>
                                     <Badge variant={report.invoice_created ? 'success' : 'warning'} className="rounded-full px-4 py-1">
-                                        {report.invoice_created ? 'تم إنشاء الفواتير' : 'في انتظار الفوترة'}
+                                        {report.invoice_created ? (viewMode === 'admin' ? 'تم إنشاء الفواتير' : 'الفواتير جاهزة') : 'لسه مفيش فواتير'}
                                     </Badge>
                                 </div>
 
@@ -709,10 +900,10 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center justify-between md:justify-end gap-3 md:gap-8 border-t md:border-t-0 pt-4 md:pt-0 border-black/5">
-                                                        <p className="text-sm md:text-lg font-black text-secondary">{parseFloat(inv.total).toLocaleString()} ج.م</p>
+                                                        <p className="text-sm md:text-lg font-black text-secondary">{parseFloat(inv.total).toLocaleString()} جنيه</p>
                                                         <div className="flex items-center gap-3">
                                                             <Badge variant={inv.paymentStatus === 'paid' ? 'success' : 'warning'} className="text-[10px] px-3 py-0.5 rounded-full">
-                                                                {inv.paymentStatus === 'paid' ? 'مدفوعة' : 'معلقة'}
+                                                                {inv.paymentStatus === 'paid' ? 'اتدفعت' : 'لسه متدفعتش'}
                                                             </Badge>
                                                             <ChevronLeft size={18} className="text-secondary/20 group-hover:text-primary transition-colors" />
                                                         </div>
@@ -725,7 +916,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                             <div className="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center">
                                                 <FileText size={32} />
                                             </div>
-                                            <p className="font-bold">لا توجد فواتير مرتبطة حالياً</p>
+                                            <p className="font-bold">مفيش فواتير طلعت للأوردر ده لسه</p>
                                             {/* {viewMode === 'admin' && (
                                                 <Button variant="outline" size="sm" className="mt-2 rounded-2xl" icon={<Plus size={18} />}>إنشاء فاتورة الآن</Button>
                                             )} */}
@@ -749,8 +940,10 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 <CheckCircle2 size={48} />
                             </div>
                             <div className="space-y-2">
-                                <h3 className="text-3xl font-black text-secondary">إتمام مراجعة التقرير</h3>
-                                <p className="text-secondary/60 font-medium">يمكنك الآن تأكيد الطلب أو مشاركته مع العميل.</p>
+                                <h3 className="text-3xl font-black text-secondary">{viewMode === 'admin' ? 'مراجعة التقرير' : 'جاهزين لاستلام جهازك؟'}</h3>
+                                <p className="text-secondary/60 font-medium">
+                                    {viewMode === 'admin' ? 'تقدر دلوقتي تأكد الأوردر النهائي أو تبعت التقرير للعميل يراجعه.' : 'راجع التقرير وأكد الأوردر عشان نجهزهولك ونبعتهولك في أسرع وقت.'}
+                                </p>
                             </div>
 
                             {isConfirmed && (report.payment_method || selectedPaymentMethod) && (
@@ -781,50 +974,74 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center gap-3 justify-center text-primary"
                                 >
                                     <AlertCircle size={20} className="shrink-0" />
-                                    <p className="text-sm font-bold">يرجى تأكيد الطلب لإضافة الأصناف المختارة (Accessories)</p>
+                                    <p className="text-sm font-bold">عشان الإضافات دي تتسجل في الأوردر (Accessories) لازم الأول تأكد الطلب</p>
                                 </motion.div>
                             )}
                         </div>
 
                         <div className="flex flex-wrap items-center justify-center gap-6">
-                            <div
-                                onClick={!isConfirmed ? handleConfirmOrder : undefined}
-                                className={cn(
-                                    "px-10 md:px-12 py-8 rounded-[2.5rem] bg-white border-2 transition-all cursor-pointer group flex items-center gap-6 w-full md:w-auto md:min-w-[420px] justify-center relative overflow-hidden",
-                                    isConfirmed
-                                        ? "border-green-500/30 bg-green-50/10"
-                                        : "border-red-500/40 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/10 hover:-translate-y-1 shadow-xl shadow-red-500/5 bg-red-50/5"
-                                )}
-                            >
-                                {isConfirmed ? (
-                                    <>
-                                        <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0">
-                                            <CheckCircle2 size={32} />
-                                        </div>
-                                        <div className="flex flex-col items-start gap-1">
-                                            <span className="text-xl font-black text-secondary">تم تأكيد الأوردر</span>
-                                            <p className="text-xs font-bold text-green-600/60">شكراً لثقتك في لابق</p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform">
-                                            <ShoppingCart size={32} />
-                                        </div>
-                                        <div className="flex flex-col items-start gap-1">
-                                            <span className="text-xl font-black text-secondary group-hover:text-red-600 transition-colors">تأكيد الأوردر (دفع عند الاستلام)</span>
-                                            <p className="text-sm font-bold text-secondary/40">تأكيد وطريقة الدفع ومشاركة واتساب</p>
-                                        </div>
-                                        <div className="absolute top-0 right-0 p-2">
-                                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                            {(() => {
+                                const hasUnsavedChanges = (() => {
+                                    if (!report) return false;
+                                    const initialAccessories = report.selected_accessories || [];
+                                    const currentIds = [...cartItems].map(item => item.id).sort().join(',');
+                                    const initialIds = [...initialAccessories].map((item: any) => item.id).sort().join(',');
+                                    return currentIds !== initialIds;
+                                })();
+
+                                const isReallyConfirmed = isConfirmed && !hasUnsavedChanges;
+
+                                return (
+                                    <div
+                                        onClick={!isReallyConfirmed ? handleConfirmOrder : undefined}
+                                        className={cn(
+                                            "px-10 md:px-12 py-8 rounded-[2.5rem] bg-white border-2 transition-all cursor-pointer group flex items-center gap-6 w-full md:w-auto md:min-w-[420px] justify-center relative overflow-hidden",
+                                            isReallyConfirmed
+                                                ? "border-green-500/30 bg-green-50/10"
+                                                : "border-red-500/40 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/10 hover:-translate-y-1 shadow-xl shadow-red-500/5 bg-red-50/5"
+                                        )}
+                                    >
+                                        {isReallyConfirmed ? (
+                                            <>
+                                                <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0">
+                                                    <CheckCircle2 size={32} />
+                                                </div>
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <span className="text-xl font-black text-secondary">تم تأكيد الأوردر</span>
+                                                    <p className="text-xs font-bold text-green-600/60">شكراً لثقتك في لابك</p>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform">
+                                                    <ShoppingCart size={32} />
+                                                </div>
+                                                <div className="flex flex-col items-start gap-1 text-right">
+                                                    <span className="text-xl font-black text-secondary group-hover:text-red-600 transition-colors">
+                                                        {isConfirmed && hasUnsavedChanges
+                                                            ? 'تحديث الأوردر (في إضافات نزلت)'
+                                                            : (viewMode === 'admin' ? 'تأكيد وحفظ التغييرات' : 'تأكيد الأوردر (وهدفع عند الاستلام)')
+                                                        }
+                                                    </span>
+                                                    <p className="text-sm font-bold text-secondary/40">
+                                                        {isConfirmed && hasUnsavedChanges
+                                                            ? 'في حاجات جديدة اتضافت للأوردر، أكد التحديث'
+                                                            : (viewMode === 'admin' ? 'تأكيد الطلب وطريقة الدفع من العميل' : 'هنأكد الأوردر وهتختار طريقة الدفع وهنكلمك واتساب')
+                                                        }
+                                                    </p>
+                                                </div>
+                                                <div className="absolute top-0 right-0 p-2">
+                                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                             {[
                                 {
-                                    title: 'مشاركة واتساب',
-                                    // desc: 'إرسال رابط التقرير للعميل مباشرة',
+                                    title: viewMode === 'admin' ? 'مشاركة واتساب' : 'شارك التقرير',
+                                    desc: viewMode === 'admin' ? 'ابعت رابط التقرير للعميل على الواتساب' : 'لو حابب تبعته لحد يشوفه معاك',
                                     icon: <Share2 />,
                                     color: 'primary',
                                     action: () => {
@@ -833,15 +1050,16 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                             navigator.clipboard.writeText(shareUrl);
                                             // Simple alert for feedback since no toast is available
                                             alert('تم نسخ الرابط بنجاح');
+                                            setShareModalOpen(true);
                                         } else {
-                                            const shareMessage = `شوف تقرير الفحص من هنا:\n${shareUrl}`;
+                                            const shareMessage = `بص كده على تقرير فحص جهازي من لابك:\n${shareUrl}`;
                                             window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank');
                                         }
                                     }
                                 },
                                 ...(viewMode === 'admin' ? [
-                                    { title: 'تعديل البيانات', desc: 'تحديث المواصفات أو نتائج الفحص', icon: <Edit />, color: 'secondary', action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
-                                    { title: 'إضافة للمخزن', desc: 'تسجيل الجهاز في قاعدة بيانات المخزن', icon: <Package />, color: 'secondary', action: () => setWarehouseModalOpen(true) }
+                                    { title: 'تعديل التقرير', desc: 'تحديث مواصفات الجهاز أو نتايج الفحص', icon: <Edit />, color: 'secondary', action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
+                                    { title: 'ضيف للمخزن', desc: 'سجل الجهاز في الداتا بيز بتاعة المخزن', icon: <Package />, color: 'secondary', action: () => setWarehouseModalOpen(true) }
                                 ] : [])
                             ].map((item, i) => (
                                 <div
@@ -867,9 +1085,34 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             <div className="pt-12 border-t border-black/5 flex flex-col items-center gap-8">
                                 <div className="text-center">
                                     <p className="text-[10px] font-black text-secondary/20 uppercase tracking-[0.5em] mb-4">Final Status Control</p>
-                                    <div className="flex gap-4 p-2 bg-surface-variant/10 rounded-[2rem] border border-black/5">
-                                        <button className="px-8 py-3 rounded-[1.5rem] text-sm font-bold bg-white shadow-sm text-secondary">قيد المعالجة</button>
-                                        <button className="px-8 py-3 rounded-[1.5rem] text-sm font-bold bg-green-500 text-white shadow-lg shadow-green-500/20">اعتماد كمكتمل</button>
+                                    <div className="flex flex-wrap justify-center gap-4 p-2 bg-surface-variant/10 rounded-[2rem] border border-black/5">
+                                        <button
+                                            onClick={() => updateStatus('pending')}
+                                            className={cn(
+                                                "px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all",
+                                                report.status === 'pending' ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-white text-secondary hover:bg-black/5"
+                                            )}
+                                        >
+                                            قيد الانتظار
+                                        </button>
+                                        <button
+                                            onClick={() => updateStatus('shipped')}
+                                            className={cn(
+                                                "px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all",
+                                                report.status === 'shipped' ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20" : "bg-white text-secondary hover:bg-black/5"
+                                            )}
+                                        >
+                                            تم الشحن
+                                        </button>
+                                        <button
+                                            onClick={() => updateStatus('completed')}
+                                            className={cn(
+                                                "px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all",
+                                                report.status === 'completed' ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-white text-secondary hover:bg-black/5"
+                                            )}
+                                        >
+                                            اعتماد كمكتمل
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -883,6 +1126,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
     return (
         <div className="min-h-screen bg-[#FDFDFF] text-secondary selection:bg-primary/10 selection:text-primary relative p-4 md:p-8 overflow-x-hidden">
+            {showConfetti && <Confetti width={width} height={height} recycle={true} numberOfPieces={200} style={{ zIndex: 9999 }} />}
             {/* Payment Selection Modal */}
             <Modal
                 isOpen={paymentModalOpen}
@@ -1203,6 +1447,20 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                     report={report}
                     locale={locale}
                 />
+
+                <TrackingCodeModal
+                    isOpen={showTrackingModal}
+                    onClose={() => {
+                        setShowTrackingModal(false);
+                        setPendingStatus(null);
+                    }}
+                    onConfirm={(data) => {
+                        if (pendingStatus) {
+                            updateStatus(pendingStatus, data);
+                        }
+                    }}
+                    report={report}
+                />
             </AnimatePresence>
         </div>
     );
@@ -1299,13 +1557,13 @@ function ExternalExaminationSection({ report, onImageClick }: { report: any, onI
                 ))}
             </div> */}
 
-            {report.notes && (
+            {/* {report.notes && (
                 <div className="p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] bg-primary/[0.03] border border-primary/10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-colors" />
                     <h4 className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-4">ملاحظات الفحص الظاهري</h4>
                     <p className="text-sm md:text-xl font-medium text-secondary/80 leading-relaxed whitespace-pre-wrap">{report.notes}</p>
                 </div>
-            )}
+            )} */}
         </div>
     );
 }
@@ -1367,7 +1625,7 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
                     })}
                 </div>
             ) : (
-                <div className="py-12 text-center border-2 border-dashed border-black/5 rounded-[2.5rem] opacity-40"><ImageIcon className="mx-auto mb-4 text-secondary/20" size={48} /><p className="text-sm font-black text-secondary/40">لا توجد صور أو فحوصات تقنية مسجلة</p></div>
+                <div className="py-12 text-center border-2 border-dashed border-black/5 rounded-[2.5rem] opacity-40"><ImageIcon className="mx-auto mb-4 text-secondary/20" size={48} /><p className="text-sm font-black text-secondary/40">مفيش أي صور أو فحوصات تقنية اتسجلت لسه</p></div>
             )}
         </div>
     );
@@ -1409,12 +1667,12 @@ const getComponentTitle = (name: string) => {
 
 const getTestDescription = (name: string) => {
     const comp = (name || '').toLowerCase();
-    if (comp.includes('cpu')) return 'Stress Test للبروسيسور بيختبر قوة المعالج تحت ضغط تقيل، علشان يشوف لو هيقدر يشتغل بكفاءة في أقصى ظروف، وبيكشف لو في مشاكل زي السخونية أو الأداء الضعيف.';
-    if (comp.includes('gpu')) return 'برنامج FurMark بيعمل stress test لكارت الشاشة، يعني بيشغله بأقصى طاقته علشان يشوف هيسخن قد إيه ويقدر يستحمل الضغط ولا لأ.';
-    if (comp.includes('battery')) return 'الصورة دي لقطة من شاشة بتبين تفاصيل حالة بطارية اللابتوب، من خلال الـ BIOS . الهدف إنك تتأكد إن البطارية شغالة كويس وسليمة.';
-    if (comp.includes('hdd') || comp.includes('ssd') || comp.includes('storage')) return 'برنامج Hard Disk Sentinel بيكشف حالة الهارد، سواء HDD أو SSD، وبيقولك لو في مشاكل زي الباد سيكتور أو أداء ضعيف.';
-    if (comp.includes('keyboard')) return 'اختبار زرار الكيبورد بيشوف إذا كانت كل الزراير شغالة صح ولا لأ. بتضغط على كل زر وبتشوف لو الجهاز بيستجيب.';
-    if (comp.includes('info')) return 'الشاشة اللي بتعرض معلومات الجهاز بتوريك حاجات زي ال (Serial Number) ، نوع المعالج (CPU)، الرامات (Memory)، كارت الشاشة (GPU)، ونسخة الـ BIOS.';
-    if (comp.includes('dxdiag')) return 'أداة dxdiag بتجمعلك معلومات عن الجهاز، زي كارت الشاشة، المعالج، الرامات، ونظام التشغيل، وكمان بتكشف لو في مشاكل في الـ DirectX.';
-    return "الصورة دي بتوضح نتايج الاختبارات اللي اتعملت على الجهاز عشان نقيس الأداء ونتأكد إن كل حاجة حالتها ممتازة.";
+    if (comp.includes('cpu')) return 'ده Stress Test للبروسيسور، بنضغط عليه جامد عشان نتأكد إنه شغال بكفاءة 100% ومش بيهنج ولا بيسخن تحت الضغط الكبير.';
+    if (comp.includes('gpu')) return 'استخدمنا FurMark وعملنا stress test لكارت الشاشة بتاعك، يعني دوسنا عليه لأقصى درجة عشان نطمن إنه شغال كويس وحرارته مظبوطة طبيعي.';
+    if (comp.includes('battery')) return 'دي صورة من إعدادات الـ BIOS بتبين لك حالة البطارية من جوة. هدفنا نضمنلك إن البطارية صحتها كويسة وشغالة تمام.';
+    if (comp.includes('hdd') || comp.includes('ssd') || comp.includes('storage')) return 'ببرنامج Hard Disk Sentinel كشفنا على الهارد بتاعك، وبيقولنا بالظبط حالته إيه ولو في أي باد سيكتور أو مشكلة ف الأداء مسجلينها.';
+    if (comp.includes('keyboard')) return 'اختبرنا كل زراير الكيبورد واحد واحد عشان نتأكد إن مفيش زرار معلق وإنه بيستجيب تمام معاك.';
+    if (comp.includes('info')) return 'دي شاشة معلومات الجهاز الأساسية، بتوريك إن كل القطع اللي اتفقنا عليها موجودة صح (زي المعالج، والرامات، وكارت الشاشة والـ Serial Number).';
+    if (comp.includes('dxdiag')) return 'ملخص أداة dxdiag، دي أداة بتجمع تقرير كامل عن الجهاز من كارت الشاشة والرامات لنظام التشغيل، وبنتأكد منها إن مفيش أي مشاكل في التعريفات.';
+    return "الصورة دي بتأكد نتايج الاختبارات التقنية اللي عملناها على الجهاز، عشان نطمن تماماً إن أداءه مية مية ومفيهوش أي مشكلة.";
 };

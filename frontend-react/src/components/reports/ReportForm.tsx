@@ -61,6 +61,7 @@ import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { ClientModal } from '@/components/clients/ClientModal';
+import { SupplierModal } from '@/components/suppliers/SupplierModal';
 
 interface ReportFormProps {
     locale: string;
@@ -72,8 +73,10 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
+    const [suppliers, setSuppliers] = useState<any[]>([]);
     const [showClientResults, setShowClientResults] = useState(false);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [step, setStep] = useState(1);
 
     const [quickSpecs, setQuickSpecs] = useState({
@@ -88,7 +91,6 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         client_name: '',
         client_phone: '',
         client_address: '',
-        device_brand: '',
         device_model: '',
         serial_number: '',
         device_price: '',
@@ -125,6 +127,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         youtube_url: '',
         notes: '',
         device_source: '',
+        supplier_id: '' as string | number,
         billing_enabled: false,
         amount: '0',
         tax_rate: '0',
@@ -143,6 +146,11 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 // Fetch Clients
                 const clientsRes = await api.get('/clients');
                 setClients(clientsRes.data.clients || []);
+
+                // Fetch Suppliers
+                const suppliersRes = await api.get('/suppliers');
+                const loadedSuppliers = suppliersRes.data.data || [];
+                setSuppliers(loadedSuppliers);
 
                 // Fetch Frequent Specs
                 const specsRes = await api.get('/reports/stats/frequent-specs');
@@ -169,7 +177,6 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         client_name: r.client_name || '',
                         client_phone: r.client_phone || '',
                         client_address: r.client_address || '',
-                        device_brand: r.device_brand || '',
                         device_model: r.device_model || '',
                         serial_number: r.serial_number || '',
                         device_price: r.device_price || r.amount || '0',
@@ -183,7 +190,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         order_number: r.order_number || '',
                         hardware_status: hardwareStatus.length ? hardwareStatus : formData.hardware_status,
                         test_screenshots: screenshots.length ? screenshots : formData.test_screenshots,
-                        device_source: '', // Initialize or parse if needed
+                        device_source: r.device_source || (r.supplier_id ? loadedSuppliers.find((s: any) => s.id === r.supplier_id)?.name || '' : ''),
+                        supplier_id: r.supplier_id || '',
                         external_images: externalImgs,
                         youtube_url: '',
                         notes: r.notes || '',
@@ -216,6 +224,14 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
             device_source: ''
         }));
         setShowClientResults(false);
+    };
+
+    const handleSupplierSelect = (supplier: any) => {
+        setFormData(prev => ({
+            ...prev,
+            supplier_id: supplier.id,
+            device_source: supplier.name
+        }));
     };
 
 
@@ -321,6 +337,28 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
 
+    const handleNextStep = () => {
+        if (step === 1) {
+            const requiredFields = {
+                client_name: 'اسم العميل / رقم الهاتف',
+                device_model: 'اسم الجهاز',
+                serial_number: 'الرقم التسلسلي (S/N)',
+                device_price: 'سعر الفحص التقريبي',
+                device_source: 'المورد / مصدر الجهاز'
+            };
+
+            const missing = Object.entries(requiredFields)
+                .filter(([key, _]) => !formData[key as keyof typeof formData])
+                .map(([_, label]) => label);
+
+            if (missing.length > 0) {
+                alert(`يرجى ملء الحقول الإلزامية التالية للاستمرار:\n\n${missing.join('\n')}`);
+                return;
+            }
+        }
+        setStep(step + 1);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (step !== 5) return;
@@ -346,7 +384,9 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
             // Report Data Construction
             const reportData = {
                 ...formData,
-                notes: formData.device_source ? `SOURCE: ${formData.device_source}\n${formData.notes}` : formData.notes,
+                notes: formData.device_source && !formData.notes.includes('SOURCE:')
+                    ? `SOURCE: ${formData.device_source}\n${formData.notes}`
+                    : formData.notes,
                 inspection_date: new Date(formData.inspection_date),
                 hardware_status: JSON.stringify(formData.hardware_status),
                 external_images: JSON.stringify([
@@ -503,37 +543,13 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6 border-t border-black/[0.03]">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">الماركة (Brand)</label>
-                                        <Input
-                                            name="device_brand"
-                                            placeholder="Dell, HP, Apple..."
-                                            icon={<PlusCircle size={18} />}
-                                            value={formData.device_brand}
-                                            onChange={handleChange}
-                                            className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-bold"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">موديل الجهاز</label>
+                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">اسم الجهاز (Device Name)</label>
                                         <Input
                                             name="device_model"
                                             placeholder="HP xxxxx X7"
                                             icon={<Monitor size={18} />}
                                             value={formData.device_model}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                handleChange(e);
-
-                                                // Auto-detect brand if not already set
-                                                if (!formData.device_brand || formData.device_brand === '') {
-                                                    const brands = ['Dell', 'HP', 'Lenovo', 'Apple', 'Asus', 'Acer', 'MSI', 'Surface', 'Toshiba', 'Samsung'];
-                                                    const firstWord = val.split(' ')[0];
-                                                    const detectedBrand = brands.find(b => b.toLowerCase() === firstWord.toLowerCase());
-                                                    if (detectedBrand) {
-                                                        setFormData(prev => ({ ...prev, device_brand: detectedBrand }));
-                                                    }
-                                                }
-                                            }}
+                                            onChange={handleChange}
                                             className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-bold"
                                             required
                                         />
@@ -603,36 +619,50 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
                                 <div className="mt-6 pt-6 border-t border-black/[0.03] flex flex-col md:flex-row items-center justify-center gap-6">
                                     <div className="w-full max-w-md space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 text-center block">السعر التقريبي للجهاز (Est. Value)</label>
+                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 text-center block">سعر البيع (Selling Price)</label>
                                         <Input
-                                            name="device_price"
-                                            placeholder="أدخل السعر..."
+                                            name="amount"
+                                            type="number"
+                                            placeholder="أدخل سعر البيع للعميل..."
                                             icon={<CreditCard size={18} />}
-                                            value={formData.device_price}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    device_price: val,
-                                                    amount: val
-                                                }));
-                                            }}
+                                            value={formData.amount}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                                             className="rounded-full bg-black/[0.02] border-transparent h-12 text-center font-black text-primary"
+                                            required
                                         />
                                     </div>
-                                    {formData.client_name === 'Laapak' && (
-                                        <div className="w-full max-w-md space-y-2 animate-in slide-in-from-right-2">
-                                            <label className="text-[10px] font-black text-primary uppercase px-4 text-center block">مصدر الجهاز (Warehouse Source)</label>
-                                            <Input
-                                                name="device_source"
-                                                placeholder="مثلاً: شراء من عميل، استيراد..."
-                                                icon={<Plus size={18} />}
-                                                value={formData.device_source}
-                                                onChange={handleChange}
-                                                className="rounded-full bg-primary/[0.03] border-primary/20 h-12 text-center font-bold"
-                                            />
+                                    <div className="w-full max-w-md space-y-2 animate-in slide-in-from-right-2">
+                                        <div className="flex items-center justify-between px-4">
+                                            <label className="text-[10px] font-black text-primary uppercase block">المورد (Supplier)</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsSupplierModalOpen(true)}
+                                                className="text-[10px] font-black text-secondary/40 hover:text-primary transition-colors flex items-center gap-1"
+                                            >
+                                                <Plus size={10} />
+                                                إضافة جديد
+                                            </button>
                                         </div>
-                                    )}
+                                        <select
+                                            name="supplier_id"
+                                            value={formData.supplier_id || ''}
+                                            onChange={(e) => {
+                                                const id = e.target.value;
+                                                const supplier = suppliers.find(s => s.id.toString() === id);
+                                                if (supplier) {
+                                                    handleSupplierSelect(supplier);
+                                                } else {
+                                                    setFormData(p => ({ ...p, supplier_id: '', device_source: '' }));
+                                                }
+                                            }}
+                                            className="w-full rounded-full bg-primary/[0.03] border border-primary/20 h-12 px-4 text-center font-bold appearance-none outline-none focus:ring-2 focus:ring-primary/20"
+                                        >
+                                            <option value="">-- الجرد الداخلي --</option>
+                                            {suppliers.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name} {s.code ? `(${s.code})` : ''}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -908,7 +938,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                 <Input readOnly value={formData.device_model} icon={<Monitor size={16} />} className="rounded-full bg-white border-black/5 h-12 text-secondary/60" />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2">سعر الفحص</label>
+                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2">سعر البيع للعميل (Selling Price)</label>
                                                 <Input name="amount" type="number" value={formData.amount} onChange={handleChange} icon={<CreditCard size={18} />} className="rounded-full bg-white border-primary/20 h-12 font-black text-primary" />
                                             </div>
                                         </div>
@@ -976,7 +1006,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </Button>
                     <div className="flex gap-4">
                         {step < 5 ? (
-                            <Button type="button" onClick={() => setStep(step + 1)} className="rounded-full h-12 px-8" icon={<ChevronLeft size={18} />}>المتابعة</Button>
+                            <Button type="button" onClick={handleNextStep} className="rounded-full h-12 px-8" icon={<ChevronLeft size={18} />}>المتابعة</Button>
                         ) : (
                             <Button type="button" onClick={handleSubmit} disabled={isLoading} className="rounded-full h-12 px-12 bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105 transition-all" icon={isLoading ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}>
                                 {isLoading ? 'جاري الحفظ...' : (reportId ? 'تحديث التقرير' : 'حفظ التقرير نهائياً')}
@@ -990,6 +1020,14 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 isOpen={isClientModalOpen}
                 onClose={() => setIsClientModalOpen(false)}
                 onSuccess={handleClientSelect}
+            />
+            <SupplierModal
+                isOpen={isSupplierModalOpen}
+                onClose={() => setIsSupplierModalOpen(false)}
+                onSuccess={(s) => {
+                    setSuppliers(prev => [...prev, s]);
+                    handleSupplierSelect(s);
+                }}
             />
         </div>
     );

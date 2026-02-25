@@ -104,7 +104,9 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
                 items: [{
                     description: `${selectedReportForSale.device_model}`,
                     amount: salePrice,
-                    quantity: 1
+                    quantity: 1,
+                    report_id: selectedReportForSale.id,
+                    cost_price: Number(selectedReportForSale.device_price) || 0
                 }],
                 subtotal: parseFloat(salePrice),
                 taxRate: 0,
@@ -156,7 +158,7 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
     };
 
     const totalStockCount = reports.length;
-    const totalInventoryValue = reports.reduce((sum, r) => sum + (parseFloat(r.cost || r.amount || 0) || 0), 0);
+    const totalInventoryValue = reports.reduce((sum, r) => sum + (parseFloat(r.device_price || r.amount || 0) || 0), 0);
     const uniqueModelsCount = new Set(reports.map(r => r.device_model)).size;
 
     return (

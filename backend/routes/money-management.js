@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { adminAuth } = require('../middleware/auth');
+const { adminAuth, adminRoleAuth } = require('../middleware/auth');
 const { MoneyLocation, MoneyMovement, Invoice, ExpectedItem } = require('../models');
 const { Op } = require('sequelize');
 
@@ -17,7 +17,7 @@ const { Op } = require('sequelize');
  * GET /api/money/locations
  * Get all money locations with their current balances
  */
-router.get('/locations', adminAuth, async (req, res) => {
+router.get('/locations', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const locations = await MoneyLocation.findAll({
             where: { is_active: true },
@@ -44,7 +44,7 @@ router.get('/locations', adminAuth, async (req, res) => {
  * POST /api/money/locations
  * Create a new money location
  */
-router.post('/locations', adminAuth, async (req, res) => {
+router.post('/locations', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { name_ar, type, balance, description } = req.body;
 
@@ -85,7 +85,7 @@ router.post('/locations', adminAuth, async (req, res) => {
  * PUT /api/money/locations/:id
  * Update a money location
  */
-router.put('/locations/:id', adminAuth, async (req, res) => {
+router.put('/locations/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { id } = req.params;
         const { name_ar, type, balance, description, is_active } = req.body;
@@ -131,7 +131,7 @@ router.put('/locations/:id', adminAuth, async (req, res) => {
  * GET /api/money/movements
  * Get money movements with optional filters
  */
-router.get('/movements', adminAuth, async (req, res) => {
+router.get('/movements', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const {
             startDate,
@@ -213,7 +213,7 @@ router.get('/movements', adminAuth, async (req, res) => {
  * POST /api/money/transfer
  * Create a transfer between money locations
  */
-router.post('/transfer', adminAuth, async (req, res) => {
+router.post('/transfer', adminRoleAuth(['superadmin']), async (req, res) => {
     const transaction = await require('../models').sequelize.transaction();
 
     try {
@@ -301,7 +301,7 @@ router.post('/transfer', adminAuth, async (req, res) => {
  * POST /api/money/deposit
  * Create a deposit to a money location
  */
-router.post('/deposit', adminAuth, async (req, res) => {
+router.post('/deposit', adminRoleAuth(['superadmin']), async (req, res) => {
     const transaction = await require('../models').sequelize.transaction();
 
     try {
@@ -364,7 +364,7 @@ router.post('/deposit', adminAuth, async (req, res) => {
  * POST /api/money/movement
  * Unified endpoint for transfers, deposits, and withdrawals
  */
-router.post('/movement', adminAuth, async (req, res) => {
+router.post('/movement', adminRoleAuth(['superadmin']), async (req, res) => {
     const { type, amount, from_location_id, to_location_id, description } = req.body;
 
     // Convert keys to match internal requirements if necessary
@@ -517,7 +517,7 @@ async function handleWithdrawal(req, res, body) {
  * GET /api/money/dashboard
  * Get money management dashboard data
  */
-router.get('/dashboard', adminAuth, async (req, res) => {
+router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 
@@ -600,7 +600,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
  * DELETE /api/money/movements/:id
  * Revert a money movement by reversing the balance changes
  */
-router.delete('/movements/:id', adminAuth, async (req, res) => {
+router.delete('/movements/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     const transaction = await require('../models').sequelize.transaction();
 
     try {
@@ -774,7 +774,7 @@ router.delete('/movements/:id', adminAuth, async (req, res) => {
  * GET /api/money/expected-items
  * Get all expected items with optional filters
  */
-router.get('/expected-items', adminAuth, async (req, res) => {
+router.get('/expected-items', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { type, status, search } = req.query;
 

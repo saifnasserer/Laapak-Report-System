@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Report, Client, Invoice } = require('../models');
-const { auth, adminAuth } = require('../middleware/auth');
+const { auth, adminAuth, adminRoleAuth } = require('../middleware/auth');
 const { Op, fn, col, literal } = require('sequelize');
 
 /**
@@ -46,7 +46,7 @@ const normalizeModelName = (brand, model) => {
  * Get operational analysis data: reports, device sales, and productivity
  * Access: Superadmin only
  */
-router.get('/dashboard', adminAuth, async (req, res) => {
+router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { startDate, endDate, month, year } = req.query;
 

@@ -43,7 +43,7 @@ api.interceptors.response.use(
     }
 );
 
-export const confirmReport = async (reportId: string, selectedAccessories: any[] = [], paymentMethod: string | null = null) => {
+export const confirmReport = async (reportId: string, selectedAccessories: Record<string, unknown>[] = [], paymentMethod: string | null = null) => {
     try {
         const response = await api.put(`/reports/${reportId}/confirm`, { selectedAccessories, paymentMethod });
         return response.data;

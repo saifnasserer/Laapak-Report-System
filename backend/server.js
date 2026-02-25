@@ -36,6 +36,7 @@ const analysisRoutes = require('./routes/analysis');
 const shoppingListsRoutes = require('./routes/shoppingLists');
 const facebookRoutes = require('./routes/facebook');
 const currencyRoutes = require('./routes/currency');
+const suppliersRoutes = require('./routes/suppliers');
 const { auth, adminAuth, clientAuth } = require('./middleware/auth');
 
 // Initialize express app
@@ -297,6 +298,7 @@ app.use('/api/analysis', analysisRoutes);
 app.use('/api/shopping-lists', shoppingListsRoutes);
 app.use('/api/facebook', facebookRoutes);
 app.use('/api/currency', currencyRoutes);
+app.use('/api/suppliers', suppliersRoutes);
 
 // ETA (Egyptian Tax Authority) callback endpoint
 app.get('/eta/callback', (req, res) => {

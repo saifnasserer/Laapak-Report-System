@@ -45,6 +45,12 @@ const ProductCost = sequelize.define('ProductCost', {
         type: DataTypes.STRING(255),
         allowNull: true
     },
+    supplier_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'supplier_id',
+        references: { model: 'suppliers', key: 'id' }
+    },
     purchase_date: {
         type: DataTypes.DATEONLY,
         allowNull: true,
@@ -80,7 +86,7 @@ const ProductCost = sequelize.define('ProductCost', {
 });
 
 // Instance method to get the most recent cost for a product
-ProductCost.getLatestCostByProduct = async function(productName, productModel) {
+ProductCost.getLatestCostByProduct = async function (productName, productModel) {
     return await this.findOne({
         where: {
             product_name: productName,
@@ -92,7 +98,7 @@ ProductCost.getLatestCostByProduct = async function(productName, productModel) {
 };
 
 // Instance method to get cost by serial number
-ProductCost.getCostBySerial = async function(serialNumber) {
+ProductCost.getCostBySerial = async function (serialNumber) {
     return await this.findOne({
         where: {
             serial_number: serialNumber

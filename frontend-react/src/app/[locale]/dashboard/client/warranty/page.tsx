@@ -46,7 +46,9 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
     useEffect(() => {
         const fetchLatestReport = async () => {
             try {
-                const res = await api.get('/reports/client/me');
+                const clientId = searchParams.get('client_id');
+                const url = clientId ? `/reports/client/me?client_id=${clientId}` : '/reports/client/me';
+                const res = await api.get(url);
                 const reports = res.data.data || [];
 
                 if (reportId) {
@@ -71,7 +73,7 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
             }
         };
         fetchLatestReport();
-    }, [reportId]);
+    }, [reportId, searchParams]);
 
     if (isLoading) {
         return (
@@ -84,7 +86,11 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
         );
     }
 
-    const startDate = latestReport ? new Date(latestReport.inspection_date) : new Date();
+    const startDate = latestReport ?
+        ((latestReport.status === 'completed' || latestReport.status === 'مكتمل') && latestReport.updated_at ?
+            new Date(latestReport.updated_at) :
+            new Date(latestReport.inspection_date))
+        : new Date();
 
     // Warranty Periods
     const manufacturingDuration = 180; // 6 months
@@ -294,12 +300,17 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-6">
-                                        <div className="flex items-center gap-3 bg-white/40 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-black/[0.03]">
-                                            <Calendar size={16} className="text-primary/40" />
-                                            <div className="flex flex-col">
-                                                <span className="text-[8px] md:text-[9px] font-black text-secondary/20 uppercase">تاريخ التفعيل</span>
-                                                <span className="text-xs md:text-sm font-bold text-secondary">{format(startDate, 'dd MMMM yyyy', { locale: ar })}</span>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center gap-3 bg-white/40 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-black/[0.03]">
+                                                <Calendar size={16} className="text-primary/40" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[8px] md:text-[9px] font-black text-secondary/20 uppercase">تاريخ التفعيل</span>
+                                                    <span className="text-xs md:text-sm font-bold text-secondary">{format(startDate, 'dd MMMM yyyy', { locale: ar })}</span>
+                                                </div>
                                             </div>
+                                            <p className="text-[10px] text-secondary/40 font-bold mr-2">
+                                                * يبدأ سريان الضمان من تاريخ اكتمال الفحص الفني للجهاز
+                                            </p>
                                         </div>
                                         <div className="flex items-center gap-3 bg-white/40 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-black/[0.03]">
                                             <ShieldCheck size={16} className="text-primary/40" />

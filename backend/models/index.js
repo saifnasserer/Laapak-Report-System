@@ -16,6 +16,7 @@ const OutgoingWebhook = require('./OutgoingWebhook');
 const OutgoingWebhookLog = require('./OutgoingWebhookLog');
 const ShoppingList = require('./ShoppingList');
 const ShoppingListItem = require('./ShoppingListItem');
+const Supplier = require('./Supplier');
 
 // Financial Management Models
 const ExpenseCategory = require('./ExpenseCategory');
@@ -45,6 +46,19 @@ Admin.hasMany(ProductCost, { foreignKey: 'created_by', as: 'createdProductCosts'
 Admin.hasMany(ProductCost, { foreignKey: 'updated_by', as: 'updatedProductCosts' });
 ProductCost.belongsTo(Admin, { foreignKey: 'created_by', as: 'creator' });
 ProductCost.belongsTo(Admin, { foreignKey: 'updated_by', as: 'updater' });
+
+// Supplier associations
+Admin.hasMany(Supplier, { foreignKey: 'created_by', as: 'createdSuppliers' });
+Supplier.belongsTo(Admin, { foreignKey: 'created_by', as: 'creator' });
+
+Supplier.hasMany(Report, { foreignKey: 'supplier_id', as: 'reports' });
+Report.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
+
+Supplier.hasMany(ProductCost, { foreignKey: 'supplier_id', as: 'productCosts' });
+ProductCost.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplierEntity' });
+
+Supplier.hasMany(Expense, { foreignKey: 'supplier_id', as: 'expenses' });
+Expense.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
 
 // Money Location and Movement associations
 Admin.hasMany(MoneyMovement, { foreignKey: 'created_by', as: 'createdMoneyMovements' });
@@ -80,6 +94,10 @@ Invoice.belongsTo(Client, { foreignKey: 'client_id', as: 'client' });
 // Invoice and InvoiceItem associations
 Invoice.hasMany(InvoiceItem, { foreignKey: 'invoiceId', as: 'InvoiceItems' });
 InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoiceId', as: 'invoice' });
+
+// Report and InvoiceItem associations
+Report.hasMany(InvoiceItem, { foreignKey: 'report_id', as: 'invoiceItems' });
+InvoiceItem.belongsTo(Report, { foreignKey: 'report_id', as: 'report' });
 
 // Report and Invoice many-to-many associations through InvoiceReport junction table
 Report.belongsToMany(Invoice, {
@@ -147,5 +165,6 @@ module.exports = {
   OutgoingWebhookLog,
   ShoppingList,
   ShoppingListItem,
+  Supplier,
   sequelize, // Export the sequelize instance
 };

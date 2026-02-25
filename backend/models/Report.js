@@ -104,6 +104,17 @@ const Report = sequelize.define('Report', {
         type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0
     },
+    device_price: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0,
+        field: 'device_price'
+    },
+    invoice_items: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        field: 'invoice_items',
+        comment: 'JSON array of additional report invoice items'
+    },
     // Add invoice tracking fields
     invoice_created: {
         type: DataTypes.BOOLEAN,
@@ -124,8 +135,23 @@ const Report = sequelize.define('Report', {
         comment: 'Date when invoice was created'
     },
     status: {
-        type: DataTypes.ENUM('قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى', 'pending', 'in-progress', 'completed', 'cancelled', 'canceled', 'active', 'new_order'),
+        type: DataTypes.ENUM(
+            'قيد الانتظار', 'قيد المعالجة', 'مكتمل', 'ملغى',
+            'pending', 'in-progress', 'completed', 'shipped', 'cancelled', 'canceled', 'active', 'new_order'
+        ),
         defaultValue: 'قيد الانتظار'
+    },
+    tracking_code: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        field: 'tracking_code',
+        comment: 'Shipping tracking number or code'
+    },
+    tracking_method: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        field: 'tracking_method',
+        comment: 'Shipping method or carrier (e.g., Bosta, Aramex, ENO)'
     },
     admin_id: {
         type: DataTypes.INTEGER,
@@ -156,6 +182,12 @@ const Report = sequelize.define('Report', {
         allowNull: true,
         field: 'payment_method',
         comment: 'The payment method selected by the client (cash, vodafone_cash, instapay)'
+    },
+    supplier_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'supplier_id',
+        references: { model: 'suppliers', key: 'id' }
     }
 }, {
     tableName: 'reports',

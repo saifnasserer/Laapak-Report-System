@@ -3,8 +3,8 @@ const router = express.Router();
 const { Setting } = require('../models');
 const { adminAuth, adminRoleAuth } = require('../middleware/auth');
 
-// Get all settings (admin only)
-router.get('/', adminAuth, async (req, res) => {
+// Get all settings (superadmin only)
+router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const settings = await Setting.findAll();
         // Convert to object for easier frontend use
@@ -50,8 +50,8 @@ router.put('/', adminRoleAuth(['superadmin']), async (req, res) => {
     }
 });
 
-// GET Webhook Logs (admin only)
-router.get('/webhooks/logs', adminAuth, async (req, res) => {
+// GET Webhook Logs (superadmin only)
+router.get('/webhooks/logs', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { WebhookLog } = require('../models');
         const logs = await WebhookLog.findAll({
@@ -91,8 +91,8 @@ router.delete('/webhooks/logs', adminRoleAuth(['superadmin']), async (req, res) 
 
 // --- Outgoing Webhook Subscriptions ---
 
-// GET All Outgoing Webhooks (admin only)
-router.get('/webhooks/outgoing', adminAuth, async (req, res) => {
+// GET All Outgoing Webhooks (superadmin only)
+router.get('/webhooks/outgoing', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { OutgoingWebhook } = require('../models');
         const webhooks = await OutgoingWebhook.findAll({
@@ -166,8 +166,8 @@ router.delete('/webhooks/outgoing/:id', adminRoleAuth(['superadmin']), async (re
     }
 });
 
-// TEST Outgoing Webhook (admin only)
-router.post('/webhooks/outgoing/:id/test', adminAuth, async (req, res) => {
+// TEST Outgoing Webhook (superadmin only)
+router.post('/webhooks/outgoing/:id/test', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { OutgoingWebhook } = require('../models');
         const { dispatchWebhook } = require('../utils/webhook-dispatcher');
@@ -196,8 +196,8 @@ router.post('/webhooks/outgoing/:id/test', adminAuth, async (req, res) => {
     }
 });
 
-// GET Outgoing Webhook Logs (admin only)
-router.get('/webhooks/outgoing/:id/logs', adminAuth, async (req, res) => {
+// GET Outgoing Webhook Logs (superadmin only)
+router.get('/webhooks/outgoing/:id/logs', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
         const { OutgoingWebhookLog } = require('../models');
         const logs = await OutgoingWebhookLog.findAll({

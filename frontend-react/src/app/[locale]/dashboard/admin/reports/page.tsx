@@ -17,6 +17,7 @@ import { use } from 'react';
 import { cn } from '@/lib/utils';
 import { WhatsAppShareModal } from '@/components/reports/WhatsAppShareModal';
 import { PaymentMethodModal } from '@/components/invoices/PaymentMethodModal';
+import { TrackingCodeModal } from '@/components/reports/TrackingCodeModal';
 import CartItemsPopover from '@/components/reports/CartItemsPopover';
 
 export default function ReportsAdminPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -33,7 +34,9 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const [shareModalOpen, setShareModalOpen] = useState(false);
     const [reportToShare, setReportToShare] = useState<any>(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showTrackingModal, setShowTrackingModal] = useState(false);
     const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string, status: string, needsInvoice?: boolean } | null>(null);
+    const [pendingShippedUpdate, setPendingShippedUpdate] = useState<{ id: string, status: string } | null>(null);
 
     // Action Menu State
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -102,6 +105,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         'قيد الانتظار': { label: 'قيد الانتظار', variant: 'warning' },
         'active': { label: 'قيد الانتظار', variant: 'warning' },
         'نشط': { label: 'قيد الانتظار', variant: 'warning' },
+        'shipped': { label: 'تم الشحن', variant: 'primary' },
+        'تم الشحن': { label: 'تم الشحن', variant: 'primary' },
         'cancelled': { label: 'ملغي', variant: 'destructive' },
         'ملغي': { label: 'ملغي', variant: 'destructive' },
         'ملغى': { label: 'ملغي', variant: 'destructive' },
@@ -112,12 +117,13 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         return statusMap[status] || { label: status || 'غير معروف', variant: 'outline' };
     };
 
-    const handleStatusChange = async (reportId: string, newStatus: string, paymentMethod?: string) => {
+    const handleStatusChange = async (reportId: string, newStatus: string, paymentMethod?: string, shippingData?: { trackingCode: string, trackingMethod: string }) => {
         try {
             // Map Arabic status from select back to English for API
             const statusMapToEng: any = {
                 'قيد الانتظار': 'pending',
                 'مكتمل': 'completed',
+                'تم الشحن': 'shipped',
                 'ملغي': 'cancelled',
                 'طلب خارجي': 'new_order'
             };
@@ -131,27 +137,63 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                 return;
             }
 
+            if (engStatus === 'shipped' && !shippingData) {
+                setPendingShippedUpdate({ id: reportId, status: newStatus });
+                setShowTrackingModal(true);
+                return;
+            }
+
             if (engStatus === 'completed' && pendingStatusUpdate?.needsInvoice) {
                 // Auto-create invoice first
                 const report = reports.find(r => r.id === reportId);
                 if (report) {
+                    // Parse extra invoice items safely
+                    let extraItems = [];
+                    try {
+                        if (report.invoice_items) {
+                            extraItems = typeof report.invoice_items === 'string'
+                                ? JSON.parse(report.invoice_items)
+                                : Array.isArray(report.invoice_items) ? report.invoice_items : [];
+                        }
+                    } catch (e) {
+                        console.error('Error parsing report invoice_items', e);
+                    }
+
+                    // Build all invoice items
+                    const allItems = [
+                        {
+                            description: report.device_model,
+                            amount: report.amount || 0,
+                            quantity: 1,
+                            totalAmount: report.amount || 0,
+                            report_id: report.id,
+                            cost_price: report.device_price || 0
+                        },
+                        ...extraItems.map((item: any) => ({
+                            description: item.name || 'بند إضافي',
+                            amount: item.price || 0,
+                            quantity: 1,
+                            totalAmount: item.price || 0,
+                            report_id: report.id,
+                            cost_price: 0 // Assume extra items don't have a tracked cost price unless specified
+                        }))
+                    ];
+
+                    // Calculate total
+                    const calculatedTotal = allItems.reduce((acc, current) => acc + Number(current.amount), 0);
+
                     const invoiceData = {
                         client_id: report.client_id,
                         date: new Date(),
                         report_ids: [report.id],
-                        subtotal: report.amount,
+                        subtotal: calculatedTotal,
                         taxRate: 0,
                         tax: 0,
                         discount: 0,
-                        total: report.amount,
+                        total: calculatedTotal,
                         paymentStatus: 'completed',
                         paymentMethod: paymentMethod || 'cash',
-                        items: [{
-                            description: report.device_model,
-                            amount: report.amount,
-                            quantity: 1,
-                            totalAmount: report.amount
-                        }]
+                        items: allItems
                     };
                     await api.post('/invoices', invoiceData);
                 }
@@ -159,7 +201,9 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
 
             await api.put(`/reports/${reportId}`, {
                 status: engStatus,
-                paymentMethod: paymentMethod || 'cash'
+                paymentMethod: paymentMethod || 'cash',
+                ...(shippingData?.trackingCode && { tracking_code: shippingData.trackingCode }),
+                ...(shippingData?.trackingMethod && { tracking_method: shippingData.trackingMethod })
             });
 
             setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: engStatus } : r));
@@ -167,6 +211,11 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
             if (engStatus === 'completed') {
                 setShowPaymentModal(false);
                 setPendingStatusUpdate(null);
+            }
+
+            if (engStatus === 'shipped') {
+                setShowTrackingModal(false);
+                setPendingShippedUpdate(null);
             }
         } catch (err) {
             console.error('Failed to update status:', err);
@@ -374,20 +423,23 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                                     <select
                                                         value={report.status === 'pending' || report.status === 'انتظار' || report.status === 'نشط' || report.status === 'active' ? 'قيد الانتظار' :
                                                             report.status === 'completed' ? 'مكتمل' :
-                                                                report.status === 'new_order' ? 'طلب خارجي' :
-                                                                    report.status === 'cancelled' || report.status === 'ملغى' ? 'ملغي' : report.status}
+                                                                report.status === 'shipped' ? 'تم الشحن' :
+                                                                    report.status === 'new_order' ? 'طلب خارجي' :
+                                                                        report.status === 'cancelled' || report.status === 'ملغى' ? 'ملغي' : report.status}
                                                         onChange={(e) => handleStatusChange(report.id, e.target.value)}
                                                         className={cn(
                                                             "px-3 py-1.5 rounded-full text-[11px] font-black border outline-none transition-all cursor-pointer appearance-none text-center min-w-[100px]",
                                                             report.status === 'completed' || report.status === 'مكتمل' ? "bg-green-100 text-green-600 border-green-200" :
-                                                                report.status === 'pending' || report.status === 'قيد الانتظار' || report.status === 'انتظار' || report.status === 'active' || report.status === 'نشط' ? "bg-yellow-100 text-yellow-600 border-yellow-200" :
-                                                                    report.status === 'new_order' ? "bg-primary/10 text-primary border-primary/20" :
-                                                                        report.status === 'cancelled' || report.status === 'ملغي' || report.status === 'ملغى' ? "bg-red-100 text-red-600 border-red-200" :
-                                                                            "bg-primary/10 text-primary border-primary/20"
+                                                                report.status === 'shipped' || report.status === 'تم الشحن' ? "bg-blue-100 text-blue-600 border-blue-200" :
+                                                                    report.status === 'pending' || report.status === 'قيد الانتظار' || report.status === 'انتظار' || report.status === 'active' || report.status === 'نشط' ? "bg-yellow-100 text-yellow-600 border-yellow-200" :
+                                                                        report.status === 'new_order' ? "bg-primary/10 text-primary border-primary/20" :
+                                                                            report.status === 'cancelled' || report.status === 'ملغي' || report.status === 'ملغى' ? "bg-red-100 text-red-600 border-red-200" :
+                                                                                "bg-primary/10 text-primary border-primary/20"
                                                         )}
                                                     >
                                                         <option value="طلب خارجي">🛒 طلب خارجي</option>
                                                         <option value="قيد الانتظار">⏳ قيد الانتظار</option>
+                                                        <option value="تم الشحن">📦 تم الشحن</option>
                                                         <option value="مكتمل">✅ مكتمل</option>
                                                         <option value="ملغي">❌ ملغي</option>
                                                     </select>
@@ -395,21 +447,43 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                             </TableCell>
                                             <TableCell className="text-center align-middle p-0 min-w-[140px]">
                                                 <div className="flex justify-center items-center gap-2">
-                                                    {/* Accessories Icon - Clickable */}
-                                                    {report.selected_accessories && Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0 && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedCartItems(report.selected_accessories);
-                                                                setCartAnchorEl(e.currentTarget);
-                                                                setCartPopoverOpen(true);
-                                                            }}
-                                                            className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20 shrink-0 hover:bg-primary/20 hover:scale-110 cursor-pointer"
-                                                            title="عرض العناصر المضافة"
-                                                        >
-                                                            <ShoppingCart size={12} />
-                                                        </button>
-                                                    )}
+                                                    {/* Accessories / Invoice Items Icon - Clickable */}
+                                                    {(() => {
+                                                        let items: any[] = [];
+                                                        try {
+                                                            if (typeof report.invoice_items === 'string') {
+                                                                items = JSON.parse(report.invoice_items);
+                                                            } else if (Array.isArray(report.invoice_items)) {
+                                                                items = report.invoice_items;
+                                                            } else if (Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0) {
+                                                                items = report.selected_accessories.map((item: any, index: number) => ({
+                                                                    id: Date.now() + index,
+                                                                    name: typeof item === 'object' && item !== null ? (item.name || item.description || 'بند غير معروف') : item,
+                                                                    quantity: typeof item === 'object' && item !== null ? (item.quantity || 1) : 1,
+                                                                    price: typeof item === 'object' && item !== null ? (item.price || item.regular_price || 0) : 0
+                                                                }));
+                                                            }
+                                                        } catch (e) {
+                                                            console.error("Failed to parse invoice_items for report:", report.id);
+                                                        }
+
+                                                        if (!items || items.length === 0) return null;
+
+                                                        return (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedCartItems(items);
+                                                                    setCartAnchorEl(e.currentTarget);
+                                                                    setCartPopoverOpen(true);
+                                                                }}
+                                                                className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20 shrink-0 hover:bg-primary/20 hover:scale-110 cursor-pointer"
+                                                                title="عرض التفاصيل الإضافية للبند"
+                                                            >
+                                                                <ShoppingCart size={12} />
+                                                            </button>
+                                                        );
+                                                    })()}
 
                                                     {/* Confirmation Badge */}
                                                     {(report.is_confirmed || report.status === 'completed' || report.status === 'مكتمل') && (
@@ -571,6 +645,23 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         }
                     }}
                     showInvoiceWarning={pendingStatusUpdate?.needsInvoice}
+                />
+
+                <TrackingCodeModal
+                    isOpen={showTrackingModal}
+                    onClose={() => {
+                        setShowTrackingModal(false);
+                        setPendingShippedUpdate(null);
+                        window.location.reload();
+                    }}
+                    onConfirm={(data) => {
+                        if (pendingShippedUpdate) {
+                            // Pass mock req object or update handleStatusChange to accept tracking data explicitly
+                            // Actually, I'll update handleStatusChange to accept an options object
+                            handleStatusChange(pendingShippedUpdate.id, pendingShippedUpdate.status, undefined, data);
+                        }
+                    }}
+                    report={reports.find(r => r.id === (pendingShippedUpdate?.id))}
                 />
             </div>
 

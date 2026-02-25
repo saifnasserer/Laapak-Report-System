@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "NODE_OPTIONS='--max-old-space-size=2048' next build",
     "start": "next start",
     "lint": "eslint"
@@ -18,7 +18,9 @@
     "next": "16.1.6",
     "next-intl": "^4.8.2",
     "react": "19.2.3",
+    "react-confetti": "^6.4.0",
     "react-dom": "19.2.3",
+    "react-use": "^17.6.0",
     "react-zoom-pan-pinch": "^3.7.0",
     "recharts": "^3.7.0",
     "swr": "^2.4.0",

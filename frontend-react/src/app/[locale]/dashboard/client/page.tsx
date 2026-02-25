@@ -128,7 +128,12 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
                         <div className="space-y-4">
                             {reports.map((report) => {
                                 // Find associated invoice if any
-                                const invoice = invoices.find(inv => inv.reportId === report.id || inv.report_id === report.id);
+                                const invoice = invoices.find(inv =>
+                                    inv.id === report.invoice_id ||
+                                    inv.reportId === report.id ||
+                                    inv.report_id === report.id ||
+                                    (inv.relatedReports && inv.relatedReports.some((r: any) => r.id === report.id))
+                                );
 
                                 return (
                                     <div key={report.id} className="bg-white/60 backdrop-blur-sm border border-black/5 p-4 md:p-8 rounded-2xl md:rounded-[2rem] hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 group">

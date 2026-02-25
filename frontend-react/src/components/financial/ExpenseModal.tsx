@@ -16,7 +16,8 @@ import {
     Layout,
     RefreshCcw,
     Trash2,
-    Wallet
+    Wallet,
+    Store
 } from 'lucide-react';
 
 interface ExpenseCategory {
@@ -44,12 +45,14 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
     const [isDeleting, setIsDeleting] = useState(false);
     const [categories, setCategories] = useState<ExpenseCategory[]>([]);
     const [locations, setLocations] = useState<MoneyLocation[]>([]);
+    const [suppliers, setSuppliers] = useState<any[]>([]);
 
     // Form state
     const [name, setName] = useState('');
     const [amount, setAmount] = useState('');
     const [categoryId, setCategoryId] = useState('');
     const [locationId, setLocationId] = useState('');
+    const [supplierId, setSupplierId] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState('');
 
@@ -57,12 +60,14 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
         if (isOpen) {
             fetchCategories();
             fetchLocations();
+            fetchSuppliers();
 
             if (expense) {
                 setName(expense.name_ar || expense.name || '');
                 setAmount(expense.amount?.toString() || '');
                 setCategoryId(expense.category_id?.toString() || '');
                 setLocationId(expense.money_location_id?.toString() || '');
+                setSupplierId(expense.supplier_id?.toString() || '');
                 const expenseDate = expense.date ? new Date(expense.date) : new Date();
                 setDate(expenseDate.toISOString().split('T')[0]);
                 setDescription(expense.description || '');
@@ -72,6 +77,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                 setAmount('');
                 setCategoryId('');
                 setLocationId('');
+                setSupplierId('');
                 setDate(new Date().toISOString().split('T')[0]);
                 setDescription('');
             }
@@ -100,6 +106,17 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
         }
     };
 
+    const fetchSuppliers = async () => {
+        try {
+            const response = await api.get('/suppliers');
+            if (response.data.success) {
+                setSuppliers(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching suppliers:', error);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -110,6 +127,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
             amount: parseFloat(amount),
             category_id: parseInt(categoryId),
             money_location_id: locationId ? parseInt(locationId) : null,
+            supplier_id: supplierId ? parseInt(supplierId) : null,
             date,
             description
         };
@@ -213,6 +231,29 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                                             <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                                                 {Number(loc.balance || 0).toLocaleString()} ج.م
                                             </span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2 text-right">
+                        <Label className="flex items-center gap-2 text-[10px] font-black text-secondary/40 uppercase px-2 justify-start">
+                            <Store size={12} className="text-primary" />
+                            المورد (اختياري)
+                        </Label>
+                        <Select value={supplierId} onValueChange={setSupplierId}>
+                            <SelectTrigger className="h-12 rounded-full bg-white border-primary/10 flex-row-reverse text-sm font-bold text-secondary">
+                                <SelectValue placeholder="اختر المورد المرتبط بالمصروف..." className="text-right w-full" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-[2rem] border-primary/20 shadow-2xl bg-white">
+                                <SelectItem value="none" className="rounded-xl">بدون مورد</SelectItem>
+                                {suppliers.map(sup => (
+                                    <SelectItem key={sup.id} value={sup.id.toString()} className="rounded-xl">
+                                        <div className="flex items-center gap-2 justify-end w-full">
+                                            <span className="font-bold">{sup.name}</span>
+                                            {sup.code && <span className="text-[10px] text-secondary/40 font-mono">({sup.code})</span>}
                                         </div>
                                     </SelectItem>
                                 ))}

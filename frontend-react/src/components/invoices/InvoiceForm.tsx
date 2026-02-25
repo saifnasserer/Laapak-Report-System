@@ -49,7 +49,7 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
         client_name: '',
         client_phone: '',
         date: new Date().toISOString().split('T')[0],
-        items: [] as { description: string, amount: string, quantity: number }[],
+        items: [] as { description: string, amount: string, quantity: number, report_id?: string, cost_price?: number }[],
         taxRate: '0',
         discount: '0',
         paymentMethod: 'cash',
@@ -120,11 +120,49 @@ export default function InvoiceForm({ invoiceId, locale }: InvoiceFormProps) {
                         alert('تنبيه: التقارير المحددة تابعة لعملاء مختلفين. سيتم استخدام بيانات عميل التقرير الأول.');
                     }
 
-                    const newItems = reports.map(r => ({
-                        description: `${r.device_model}})`,
-                        amount: r.amount ? String(r.amount) : '0',
-                        quantity: 1
-                    }));
+                    const newItems = reports.flatMap(r => {
+                        let extraItems: any[] = [];
+                        try {
+                            if (typeof r.invoice_items === 'string') {
+                                extraItems = JSON.parse(r.invoice_items);
+                            } else if (Array.isArray(r.invoice_items) && r.invoice_items.length > 0) {
+                                extraItems = r.invoice_items;
+                            } else if (Array.isArray(r.selected_accessories) && r.selected_accessories.length > 0) {
+                                // Legacy fallback
+                                extraItems = r.selected_accessories.map((item: any) => ({
+                                    name: typeof item === 'object' && item !== null ? (item.name || item.description || 'بند غير معروف') : item,
+                                    price: typeof item === 'object' && item !== null ? (item.price || item.regular_price || 0) : 0,
+                                    quantity: typeof item === 'object' && item !== null ? (item.quantity || 1) : 1
+                                }));
+                            }
+                        } catch (e) {
+                            console.error('Error parsing report invoice_items', e);
+                            if (Array.isArray(r.selected_accessories) && r.selected_accessories.length > 0) {
+                                extraItems = r.selected_accessories.map((item: any) => ({
+                                    name: typeof item === 'object' && item !== null ? (item.name || item.description || 'بند غير معروف') : item,
+                                    price: typeof item === 'object' && item !== null ? (item.price || item.regular_price || 0) : 0,
+                                    quantity: typeof item === 'object' && item !== null ? (item.quantity || 1) : 1
+                                }));
+                            }
+                        }
+
+                        return [
+                            {
+                                description: `${r.device_model}`,
+                                amount: r.amount ? String(r.amount) : '0',
+                                quantity: 1,
+                                report_id: r.id,
+                                cost_price: Number(r.device_price) || 0
+                            },
+                            ...extraItems.map((item: any) => ({
+                                description: item.name || 'بند إضافي',
+                                amount: item.price ? String(item.price) : '0',
+                                quantity: Number(item.quantity) || 1,
+                                report_id: r.id,
+                                cost_price: 0
+                            }))
+                        ];
+                    });
 
                     setFormData(prev => ({
                         ...prev,

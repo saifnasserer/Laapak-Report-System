@@ -9,6 +9,7 @@ export interface SectionPermissions {
     dashboard: boolean;
     salesOperations: boolean;
     inventoryAnalytics: boolean;
+    suppliers: boolean;
     financial: boolean;
     systemManagement: boolean;
 }
@@ -18,13 +19,15 @@ export const ROLE_PERMISSIONS: Record<AdminRole, SectionPermissions> = {
         dashboard: true,
         salesOperations: true,
         inventoryAnalytics: true,
-        financial: false, // Hidden by default, controlled by showFinancial state
-        systemManagement: false, // Hidden by default, controlled by showFinancial state
+        suppliers: true,
+        financial: true, // Controlled by showFinancial state in Sidebar
+        systemManagement: true, // Controlled by showFinancial state in Sidebar
     },
     admin: {
         dashboard: true,
         salesOperations: true,
         inventoryAnalytics: true,
+        suppliers: false,
         financial: false,
         systemManagement: false,
     },
