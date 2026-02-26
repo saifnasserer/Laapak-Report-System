@@ -157,7 +157,7 @@ router.get('/', async (req, res) => {
     try {
       console.log(`Fetching report with ID from query: ${id}`);
       const reportInstance = await Report.findByPk(id, {
-        attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
+        attributes: REPORT_BASE_ATTRIBUTES,
         include: [
           {
             model: Client,
@@ -408,7 +408,7 @@ router.get('/', async (req, res) => {
 
       const reports = await Report.findAll({
         where: whereClause,
-        attributes: REPORT_BASE_ATTRIBUTES, // Explicitly exclude cpu, gpu, ram, storage until migration runs
+        attributes: REPORT_BASE_ATTRIBUTES,
         include: [
           {
             model: Client,
@@ -926,7 +926,7 @@ router.put('/:id', auth, async (req, res) => {
     console.log(`Updating report ${req.params.id} with data:`, req.body);
 
     const report = await Report.findByPk(req.params.id, {
-      attributes: REPORT_BASE_ATTRIBUTES // Explicitly exclude cpu, gpu, ram, storage until migration runs
+      attributes: REPORT_BASE_ATTRIBUTES
     });
     if (!report) {
       return res.status(404).json({ error: 'Report not found' });

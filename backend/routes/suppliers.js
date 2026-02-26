@@ -8,7 +8,7 @@ const { Op, QueryTypes } = require('sequelize');
  * GET /api/suppliers
  * List all suppliers
  */
-router.get('/', adminRoleAuth(['superadmin']), async (req, res) => {
+router.get('/', adminRoleAuth(['admin', 'superadmin']), async (req, res) => {
     try {
         const suppliers = await Supplier.findAll({
             order: [['name', 'ASC']],

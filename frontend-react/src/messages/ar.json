@@ -45,7 +45,13 @@
         "reports": {
             "title": "التقارير",
             "subtitle": "إدارة ومتابعة جميع تقارير الصيانة والضمان",
-            "new_report": "تقرير جديد"
+            "new_report": "تقرير جديد",
+            "specs": {
+                "processor": "المعالج",
+                "graphics": "كارت الشاشة",
+                "memory": "الرامات",
+                "storage": "التخزين"
+            }
         }
     },
     "common": {

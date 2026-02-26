@@ -148,12 +148,27 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                 const report = reports.find(r => r.id === reportId);
                 if (report) {
                     // Parse extra invoice items safely
-                    let extraItems = [];
+                    let extraItems: any[] = [];
                     try {
                         if (report.invoice_items) {
                             extraItems = typeof report.invoice_items === 'string'
                                 ? JSON.parse(report.invoice_items)
                                 : Array.isArray(report.invoice_items) ? report.invoice_items : [];
+                        }
+
+                        // Also check for selected_accessories if extraItems is still empty or as additional items
+                        if (Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0) {
+                            const accessories = report.selected_accessories.map((item: any) => ({
+                                name: typeof item === 'object' && item !== null ? (item.name || item.description || 'بند غير معروف') : item,
+                                price: typeof item === 'object' && item !== null ? (item.price || item.regular_price || 0) : 0,
+                                quantity: typeof item === 'object' && item !== null ? (item.quantity || 1) : 1
+                            }));
+
+                            // Add accessories that aren't already in extraItems (to avoid duplicates if both are present)
+                            accessories.forEach((acc: any) => {
+                                const exists = extraItems.some((ei: any) => ei.name === acc.name);
+                                if (!exists) extraItems.push(acc);
+                            });
                         }
                     } catch (e) {
                         console.error('Error parsing report invoice_items', e);
@@ -172,15 +187,15 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         ...extraItems.map((item: any) => ({
                             description: item.name || 'بند إضافي',
                             amount: item.price || 0,
-                            quantity: 1,
-                            totalAmount: item.price || 0,
+                            quantity: item.quantity || 1,
+                            totalAmount: (item.price || 0) * (item.quantity || 1),
                             report_id: report.id,
-                            cost_price: 0 // Assume extra items don't have a tracked cost price unless specified
+                            cost_price: 0
                         }))
                     ];
 
                     // Calculate total
-                    const calculatedTotal = allItems.reduce((acc, current) => acc + Number(current.amount), 0);
+                    const calculatedTotal = allItems.reduce((acc, current) => acc + Number(current.totalAmount), 0);
 
                     const invoiceData = {
                         client_id: report.client_id,

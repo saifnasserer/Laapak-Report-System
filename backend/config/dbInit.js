@@ -82,7 +82,8 @@ const runMigrations = async () => {
                         // Ignore common "already exists" errors during migrations
                         if (errorMsg.includes('already exists') || errorCode === 'ER_TABLE_EXISTS_ERROR' ||
                             errorCode === 'ER_DUP_ENTRY' || errorMsg.includes('Duplicate entry') ||
-                            errorMsg.includes('Duplicate column name') || errorCode === 'ER_DUP_FIELDNAME') {
+                            errorMsg.includes('Duplicate column name') || errorCode === 'ER_DUP_FIELDNAME' ||
+                            errorMsg.includes('Duplicate foreign key constraint name') || errorCode === 'ER_FK_DUP_NAME') {
                             continue;
                         } else {
                             console.error(`❌ Error in statement ${i + 1} of ${file}:`, errorMsg);

@@ -48,6 +48,7 @@ You can directly invoke skills:
 | `deployment-guard` | "deploy", "release", "production", "go live" |
 | `code-reviewer` | "review code", "check PR", "audit" |
 | `remote-server-management` | "vps", "remote server", "deploy", "ssh" |
+| `learn` | "/learn", "find skill", "install skill", "how to" |
 
 ## Creating New Skills
 

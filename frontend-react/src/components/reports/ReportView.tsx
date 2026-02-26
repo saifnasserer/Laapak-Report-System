@@ -69,6 +69,7 @@ import { WhatsAppShareModal } from '@/components/reports/WhatsAppShareModal';
 import { TrackingCodeModal } from '@/components/reports/TrackingCodeModal';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { PaymentMethodModal } from '@/components/invoices/PaymentMethodModal';
 
 // WooCommerce Configuration
 const WOO_BASE_URL = 'https://laapak.com';
@@ -83,6 +84,7 @@ interface ReportViewProps {
 }
 
 export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
+    const t = useTranslations();
     const router = useRouter();
     const [report, setReport] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -97,17 +99,19 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
     // Warehouse Assignment State
     const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
     const [sourceDetails, setSourceDetails] = useState('');
-    const [isAssigning, setIsAssigning] = useState(false);
+    const [warehouseSubmitting, setWarehouseSubmitting] = useState(false);
+
+    // Invoice & Payment State
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+    const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+    const [showTrackingModal, setShowTrackingModal] = useState(false);
 
     // Payment Modal State
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'vodafone_cash' | 'instapay' | null>(null);
 
     const [shareModalOpen, setShareModalOpen] = useState(false);
-
-    // Status Change State
-    const [showTrackingModal, setShowTrackingModal] = useState(false);
-    const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
     // Live Tracking State
     const [isCopied, setIsCopied] = useState(false);
@@ -284,7 +288,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
         }
 
         try {
-            setIsAssigning(true);
+            setWarehouseSubmitting(true);
 
             // 1. Find or Create Laapak Client
             let laapakClient;
@@ -321,11 +325,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             console.error('Failed to assign to warehouse:', err);
             alert('فشل في إضافة الجهاز للمخزن');
         } finally {
-            setIsAssigning(false);
+            setWarehouseSubmitting(false);
         }
     };
 
-    const updateStatus = async (newStatus: string, shippingData?: { trackingCode: string, trackingMethod: string }) => {
+    const updateStatus = async (newStatus: string, shippingData?: { trackingCode: string, trackingMethod: string }, paymentMethod?: string) => {
         try {
             if (newStatus === 'shipped' && !shippingData) {
                 setPendingStatus(newStatus);
@@ -333,17 +337,102 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 return;
             }
 
+            if (newStatus === 'completed' && !paymentMethod) {
+                setPendingStatus(newStatus);
+                setShowPaymentModal(true);
+                return;
+            }
+
             await api.put(`/reports/${id}`, {
                 status: newStatus,
                 ...(shippingData?.trackingCode && { tracking_code: shippingData.trackingCode }),
-                ...(shippingData?.trackingMethod && { tracking_method: shippingData.trackingMethod })
+                ...(shippingData?.trackingMethod && { tracking_method: shippingData.trackingMethod }),
+                ...(paymentMethod && { payment_method: paymentMethod })
             });
+
+            // Auto-create invoice if status changed to completed
+            if (newStatus === 'completed') {
+                try {
+                    setIsCreatingInvoice(true);
+
+                    // Parse extra invoice items safely
+                    let extraItems: any[] = [];
+                    try {
+                        if (report.invoice_items) {
+                            extraItems = typeof report.invoice_items === 'string'
+                                ? JSON.parse(report.invoice_items)
+                                : Array.isArray(report.invoice_items) ? report.invoice_items : [];
+                        }
+
+                        // Also check for selected_accessories
+                        if (Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0) {
+                            const accessories = report.selected_accessories.map((item: any) => ({
+                                name: typeof item === 'object' && item !== null ? (item.name || item.description || 'بند غير معروف') : item,
+                                price: typeof item === 'object' && item !== null ? (item.price || item.regular_price || 0) : 0,
+                                quantity: typeof item === 'object' && item !== null ? (item.quantity || 1) : 1
+                            }));
+
+                            accessories.forEach((acc: any) => {
+                                const exists = extraItems.some((ei: any) => (ei.name === acc.name || ei.description === acc.name));
+                                if (!exists) extraItems.push(acc);
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Error parsing report items', e);
+                    }
+
+                    const allItems = [
+                        {
+                            description: report.device_model,
+                            amount: report.amount || 0,
+                            quantity: 1,
+                            totalAmount: report.amount || 0,
+                            report_id: report.id,
+                            cost_price: report.device_price || 0
+                        },
+                        ...extraItems.map((item: any) => ({
+                            description: item.name || item.description || 'بند إضافي',
+                            amount: item.price || item.amount || 0,
+                            quantity: item.quantity || 1,
+                            totalAmount: (item.price || item.amount || 0) * (item.quantity || 1),
+                            report_id: report.id,
+                            cost_price: 0
+                        }))
+                    ];
+
+                    const calculatedTotal = allItems.reduce((acc, current) => acc + Number(current.totalAmount), 0);
+
+                    const invoiceData = {
+                        client_id: report.client_id,
+                        date: new Date(),
+                        report_ids: [report.id],
+                        subtotal: calculatedTotal,
+                        taxRate: 0,
+                        tax: 0,
+                        discount: 0,
+                        total: calculatedTotal,
+                        paymentStatus: 'completed',
+                        paymentMethod: paymentMethod || 'cash',
+                        items: allItems
+                    };
+
+                    await api.post('/invoices', invoiceData);
+                    console.log('Auto-invoice created successfully');
+                } catch (invoiceErr) {
+                    console.error('Failed to auto-create invoice:', invoiceErr);
+                    // We don't want to block the status update if invoice creation fails, 
+                    // but we should probably warn the admin
+                } finally {
+                    setIsCreatingInvoice(false);
+                }
+            }
 
             setReport((prev: any) => ({
                 ...prev,
                 status: newStatus,
                 ...(shippingData?.trackingCode && { tracking_code: shippingData.trackingCode }),
-                ...(shippingData?.trackingMethod && { tracking_method: shippingData.trackingMethod })
+                ...(shippingData?.trackingMethod && { tracking_method: shippingData.trackingMethod }),
+                ...(paymentMethod && { payment_method: paymentMethod })
             }));
 
             if (newStatus === 'shipped') {
@@ -353,6 +442,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             }
 
             if (newStatus === 'completed') {
+                setPendingStatus(null);
+                setShowPaymentModal(false);
                 setActiveStep(7); // Show sharing/confirmation
             }
 
@@ -573,17 +664,17 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-2 md:px-4">
                                 {[
-                                    { label: 'Processor', value: report.cpu || 'Not Specified', icon: <Cpu size={20} /> },
-                                    { label: 'Graphics', value: report.gpu || 'Not Specified', icon: <Monitor size={20} /> },
-                                    { label: 'Memory', value: report.ram || 'Not Specified', icon: <Database size={20} /> },
-                                    { label: 'Storage', value: report.storage || 'Not Specified', icon: <HardDrive size={20} /> }
+                                    { label: t('dashboard.reports.specs.processor'), value: report.cpu || 'Not Specified', icon: <Cpu size={20} /> },
+                                    { label: t('dashboard.reports.specs.graphics'), value: report.gpu || 'Not Specified', icon: <Monitor size={20} /> },
+                                    { label: t('dashboard.reports.specs.memory'), value: report.ram || 'Not Specified', icon: <Database size={20} /> },
+                                    { label: t('dashboard.reports.specs.storage'), value: report.storage || 'Not Specified', icon: <HardDrive size={20} /> }
                                 ].map((spec, i) => (
                                     <div key={i} className="flex items-center gap-4 p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all group">
                                         <div className="w-12 h-12 shrink-0 rounded-xl bg-white flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors shadow-sm">
                                             {spec.icon}
                                         </div>
                                         <div className="flex flex-col flex-1 text-right">
-                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5" dir="ltr" style={{ textAlign: 'right' }}>{spec.label}</p>
+                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5" style={{ textAlign: 'right' }}>{spec.label}</p>
                                             <p className="font-bold text-secondary truncate text-sm md:text-base" dir="ltr" style={{ textAlign: 'right' }}>{spec.value || '-'}</p>
                                         </div>
                                     </div>
@@ -1249,8 +1340,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                     </div>
                     <div className="flex justify-end gap-3 pt-4">
                         <Button variant="outline" onClick={() => setWarehouseModalOpen(false)}>إلغاء</Button>
-                        <Button onClick={handleAssignToWarehouse} disabled={isAssigning}>
-                            {isAssigning ? 'جاري الإضافة...' : 'تأكيد الإضافة للمخزن'}
+                        <Button onClick={handleAssignToWarehouse} disabled={warehouseSubmitting}>
+                            {warehouseSubmitting ? 'جاري الإضافة...' : 'تأكيد الإضافة للمخزن'}
                         </Button>
                     </div>
                 </div>
@@ -1460,6 +1551,20 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         }
                     }}
                     report={report}
+                />
+
+                <PaymentMethodModal
+                    isOpen={showPaymentModal}
+                    onClose={() => {
+                        setShowPaymentModal(false);
+                        setPendingStatus(null);
+                    }}
+                    onConfirm={(method) => {
+                        if (pendingStatus) {
+                            updateStatus(pendingStatus, undefined, method);
+                        }
+                    }}
+                    selectedMethod="cash"
                 />
             </AnimatePresence>
         </div>

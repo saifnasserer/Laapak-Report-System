@@ -155,7 +155,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 // Fetch Frequent Specs
                 const specsRes = await api.get('/reports/stats/frequent-specs');
                 if (specsRes.data) {
-                    setQuickSpecs(prev => ({ ...prev, ...specsRes.data }));
+                    setQuickSpecs(prev => ({
+                        cpu: Array.from(new Set([...prev.cpu, ...(specsRes.data.cpu || [])])),
+                        gpu: Array.from(new Set([...prev.gpu, ...(specsRes.data.gpu || [])])),
+                        ram: Array.from(new Set([...prev.ram, ...(specsRes.data.ram || [])])),
+                        storage: Array.from(new Set([...prev.storage, ...(specsRes.data.storage || [])])),
+                    }));
                 }
 
                 // If edit mode, fetch report data
@@ -596,22 +601,29 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                     onChange={handleChange}
                                                     className="rounded-2xl bg-black/[0.02] border-transparent group-hover:bg-white group-hover:border-primary/20 h-12 transition-all"
                                                 />
-                                                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mask-fade-edges">
-                                                    {(quickSpecs as any)[field].map((val: string) => (
-                                                        <button
-                                                            key={val}
-                                                            type="button"
-                                                            onClick={() => setFormData(prev => ({ ...prev, [field]: val }))}
-                                                            className={cn(
-                                                                "text-[9px] font-black px-4 py-2 rounded-full border transition-all uppercase tracking-tighter shrink-0",
-                                                                (formData as any)[field] === val
-                                                                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105"
-                                                                    : "bg-black/[0.03] text-secondary/40 border-transparent hover:border-primary/20 hover:text-primary whitespace-nowrap"
-                                                            )}
-                                                        >
-                                                            {val}
-                                                        </button>
-                                                    ))}
+                                                <div className="space-y-2 px-1">
+                                                    <span className="text-[9px] font-black text-secondary/20 uppercase tracking-[0.2em]">المقترحات</span>
+                                                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mask-fade-edges">
+                                                        {(quickSpecs as any)[field].map((val: string) => (
+                                                            <button
+                                                                key={val}
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, [field]: val }))}
+                                                                className={cn(
+                                                                    "group/btn flex items-center gap-1.5 px-4 py-2 rounded-full border transition-all shrink-0",
+                                                                    (formData as any)[field] === val
+                                                                        ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105"
+                                                                        : "bg-white text-secondary/60 border-black/5 hover:border-primary/20 hover:text-primary hover:shadow-md hover:shadow-primary/5"
+                                                                )}
+                                                            >
+                                                                <Plus size={10} className={cn(
+                                                                    "transition-colors",
+                                                                    (formData as any)[field] === val ? "text-white" : "text-primary/40 group-hover/btn:text-primary"
+                                                                )} />
+                                                                <span className="text-[11px] font-bold uppercase tracking-tight">{val}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
