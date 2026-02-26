@@ -681,6 +681,14 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 ))}
                             </div>
                         </div>
+
+                        {report.update_history && (
+                            <ReportHistorySection
+                                history={typeof report.update_history === 'string'
+                                    ? JSON.parse(report.update_history)
+                                    : report.update_history}
+                            />
+                        )}
                     </motion.div>
                 );
             case 2:
@@ -1781,3 +1789,55 @@ const getTestDescription = (name: string) => {
     if (comp.includes('dxdiag')) return 'ملخص أداة dxdiag، دي أداة بتجمع تقرير كامل عن الجهاز من كارت الشاشة والرامات لنظام التشغيل، وبنتأكد منها إن مفيش أي مشاكل في التعريفات.';
     return "الصورة دي بتأكد نتايج الاختبارات التقنية اللي عملناها على الجهاز، عشان نطمن تماماً إن أداءه مية مية ومفيهوش أي مشكلة.";
 };
+
+function ReportHistorySection({ history }: { history: any[] }) {
+    if (!history || history.length === 0) return null;
+
+    // Sort history by timestamp descending (newest first)
+    const sortedHistory = [...history].sort((a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    return (
+        <div className="pt-12 border-t border-black/5" dir="rtl">
+            <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 mb-8">
+                <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm">04</span>
+                تاريخ التحديثات
+            </h3>
+            <div className="space-y-6 px-2 md:px-4">
+                {sortedHistory.map((entry, i) => (
+                    <div key={i} className="relative flex gap-6 pb-6 last:pb-0 group">
+                        {i !== sortedHistory.length - 1 && (
+                            <div className="absolute top-9 bottom-0 right-4 w-px bg-black/5 group-hover:bg-primary/20 transition-colors" />
+                        )}
+                        <div className="w-8 h-8 shrink-0 rounded-full bg-white border-2 border-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform z-10 shadow-sm">
+                            <RefreshCw size={14} />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                                <span className="text-[10px] font-black text-secondary/40 uppercase tracking-widest">
+                                    {new Date(entry.timestamp).toLocaleString('ar-EG', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </span>
+                                {entry.status_at_update && (
+                                    <Badge variant="outline" className="text-[9px] font-black opacity-60 bg-black/[0.02] border-none px-2 h-5 w-fit">
+                                        الحالة: {entry.status_at_update}
+                                    </Badge>
+                                )}
+                            </div>
+                            <div className="text-sm font-bold text-secondary/80 leading-relaxed bg-black/[0.02] p-4 rounded-2xl border border-transparent group-hover:border-primary/10 group-hover:bg-white group-hover:shadow-lg group-hover:shadow-primary/5 transition-all">
+                                {entry.description}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}

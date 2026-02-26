@@ -188,6 +188,12 @@ const Report = sequelize.define('Report', {
         allowNull: true,
         field: 'supplier_id',
         references: { model: 'suppliers', key: 'id' }
+    },
+    update_history: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        field: 'update_history',
+        comment: 'JSON array of changes/updates made to the report'
     }
 }, {
     tableName: 'reports',

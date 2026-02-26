@@ -10,7 +10,9 @@ export default function EditReportPage({ params }: { params: Promise<{ locale: s
 
     return (
         <DashboardLayout>
-            <ReportForm locale={locale} reportId={id} />
+            <React.Suspense fallback={<div className="p-12 text-center font-bold text-secondary">جاري التحميل...</div>}>
+                <ReportForm locale={locale} reportId={id} />
+            </React.Suspense>
         </DashboardLayout>
     );
 }

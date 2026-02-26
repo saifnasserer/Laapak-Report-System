@@ -57,6 +57,7 @@ import {
     TableCell
 } from '@/components/ui/Table';
 import { useRouter } from '@/i18n/routing';
+import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
@@ -134,8 +135,13 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         discount: '0',
         invoice_items: [] as { name: string, price: string }[],
         status: 'pending',
-        invoice_id: null as string | null
+        invoice_id: null as string | null,
+        update_description: ''
     });
+
+    const searchParams = useSearchParams();
+    const isUpdateMode = searchParams.get('mode') === 'update';
+    const totalSteps = isUpdateMode ? 6 : 5;
 
     const [imageInput, setImageInput] = useState('');
     const [videoInput, setVideoInput] = useState('');
@@ -365,7 +371,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (step !== 5) return;
+        if (step !== totalSteps) return;
 
         const requiredFields = {
             client_name: 'اسم العميل',
@@ -398,6 +404,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     ...formData.test_screenshots.filter(s => s.url)
                 ]),
                 invoice_items: JSON.stringify(formData.invoice_items),
+                update_description: isUpdateMode ? formData.update_description : undefined
             };
 
             let reportId_final = reportId;
@@ -432,18 +439,21 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         <ChevronRight size={22} className={cn(locale === 'ar' ? "" : "rotate-180")} />
                     </Button>
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight">{reportId ? 'تعديل التقرير' : 'إنشاء تقرير فحص'}</h1>
-                        <p className="text-secondary font-medium">خطوة {step} من 5: {
+                        <h1 className="text-3xl font-bold tracking-tight">
+                            {isUpdateMode ? 'تحديث التقرير (History)' : (reportId ? 'تعديل التقرير' : 'إنشاء تقرير فحص')}
+                        </h1>
+                        <p className="text-secondary font-medium">خطوة {step} من {totalSteps}: {
                             step === 1 ? 'البيانات والمواصفات' :
                                 step === 2 ? 'الاختبارات التقنية' :
                                     step === 3 ? 'لقطات شاشة الاختبار' :
-                                        step === 4 ? 'المعاينة الخارجية' : 'الفاتورة والحفظ'
+                                        step === 4 ? 'المعاينة الخارجية' :
+                                            step === 5 ? (isUpdateMode ? 'الفاتورة' : 'الفاتورة والحفظ') : 'وصف التعديل'
                         }</p>
                     </div>
                 </div>
 
                 <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map(s => (
+                    {Array.from({ length: totalSteps }, (_, i) => i + 1).map(s => (
                         <div key={s} className={cn(
                             "w-8 h-2 rounded-full transition-all duration-300",
                             s === step ? "bg-primary w-12" : s < step ? "bg-primary/40" : "bg-black/5"
@@ -1013,16 +1023,48 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </div>
                 )}
 
+                {step === 6 && isUpdateMode && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <Card variant="glass" className="overflow-hidden border-primary/20">
+                            <CardHeader className="p-8 border-b border-black/5 bg-primary/[0.02]">
+                                <CardTitle className="text-xl font-black flex items-center gap-2 text-primary">
+                                    <FileText size={24} />
+                                    وصف التعديل (History Note)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-8 space-y-6">
+                                <div className="space-y-4">
+                                    <label className="text-sm font-bold text-secondary/70 px-2 flex items-center gap-2">
+                                        <Clock size={16} className="text-primary" />
+                                        ما الذي قمت بتغييره في هذا التقرير؟
+                                    </label>
+                                    <textarea
+                                        name="update_description"
+                                        placeholder="مثال: تم تحديث مواصفات المعالج، إضافة صور جديدة للمعاينة، تغيير حالة الهاردوير..."
+                                        value={formData.update_description}
+                                        onChange={handleChange}
+                                        className="w-full min-h-[150px] p-6 rounded-[2rem] bg-black/[0.02] border border-black/5 focus:border-primary/20 outline-none transition-all text-sm font-medium resize-none"
+                                    />
+                                    <p className="text-[10px] text-secondary/40 px-4 font-bold flex items-center gap-2">
+                                        <AlertCircle size={12} />
+                                        سيتم تسجيل هذا الوصف في تاريخ التقرير مع اسمك ووقت التعديل.
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
                 <div className="flex items-center justify-between pt-8 border-t border-black/5 mt-8">
                     <Button type="button" variant="outline" onClick={() => step > 1 ? setStep(step - 1) : router.back()} className="rounded-full h-12 px-8" icon={<ChevronRight size={18} />}>
                         {step === 1 ? 'إلغاء' : 'السابق'}
                     </Button>
                     <div className="flex gap-4">
-                        {step < 5 ? (
+                        {step < totalSteps ? (
                             <Button type="button" onClick={handleNextStep} className="rounded-full h-12 px-8" icon={<ChevronLeft size={18} />}>المتابعة</Button>
                         ) : (
                             <Button type="button" onClick={handleSubmit} disabled={isLoading} className="rounded-full h-12 px-12 bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105 transition-all" icon={isLoading ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}>
-                                {isLoading ? 'جاري الحفظ...' : (reportId ? 'تحديث التقرير' : 'حفظ التقرير نهائياً')}
+                                {isLoading ? 'جاري الحفظ...' : (reportId ? (isUpdateMode ? 'حفظ وتحديث التقرير' : 'تحديث التقرير') : 'حفظ التقرير نهائياً')}
                             </Button>
                         )}
                     </div>

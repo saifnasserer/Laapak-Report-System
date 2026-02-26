@@ -13,7 +13,7 @@ const REPORT_BASE_ATTRIBUTES = [
   'order_number', 'device_brand', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
   'inspection_date', 'hardware_status', 'external_images', 'notes', 'billing_enabled', 'amount', 'device_price',
   'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id', 'tracking_code', 'tracking_method',
-  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories', 'payment_method', 'supplier_id'
+  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories', 'payment_method', 'supplier_id', 'update_history'
 ];
 
 
@@ -983,7 +983,7 @@ router.put('/:id', auth, async (req, res) => {
       'order_number', 'device_model', 'serial_number',
       'inspection_date', 'hardware_status', 'external_images', 'invoice_items', 'notes', 'billing_enabled', 'amount', 'device_price', 'status',
       'tracking_code', 'tracking_method',
-      'created_at', 'updated_at', 'supplier_id'
+      'created_at', 'updated_at', 'supplier_id', 'update_history'
     ];
 
     // New device spec fields (may not exist until migration runs)
@@ -1040,6 +1040,32 @@ router.put('/:id', auth, async (req, res) => {
         console.error('Invalid external_images JSON:', error);
         return res.status(400).json({ error: 'Invalid external_images format' });
       }
+    }
+
+    // Handle Update History
+    if (req.body.update_description) {
+      let currentHistory = [];
+      try {
+        if (report.update_history) {
+          currentHistory = typeof report.update_history === 'string'
+            ? JSON.parse(report.update_history)
+            : (Array.isArray(report.update_history) ? report.update_history : []);
+        }
+      } catch (e) {
+        console.error('Error parsing update_history:', e);
+      }
+
+      const newEntry = {
+        timestamp: new Date(),
+        description: req.body.update_description,
+        admin_id: req.user.id,
+        status_at_update: req.body.status || report.status
+      };
+
+      currentHistory.push(newEntry);
+      report.update_history = currentHistory;
+      // Set req.body.update_history so it gets picked up by the baseUpdateFields loop
+      req.body.update_history = currentHistory;
     }
 
     const oldStatus = report.status;

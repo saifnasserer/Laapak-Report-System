@@ -10,7 +10,9 @@ export default function NewReportPage({ params }: { params: Promise<{ locale: st
 
     return (
         <DashboardLayout>
-            <ReportForm locale={locale} />
+            <React.Suspense fallback={<div className="p-12 text-center font-bold text-secondary">جاري التحميل...</div>}>
+                <ReportForm locale={locale} />
+            </React.Suspense>
         </DashboardLayout>
     );
 }

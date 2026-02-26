@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check, Package } from 'lucide-react';
+import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check, Package, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 
 import api from '@/lib/api';
@@ -698,6 +698,21 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                             <span>تعديل التقرير</span>
                             <Edit size={16} className="text-primary" />
                         </button>
+                        {(() => {
+                            const report = reports.find(r => r.id === activeMenuId);
+                            const isCompleted = report?.status === 'completed' || report?.status === 'مكتمل';
+                            if (!isCompleted) return null;
+
+                            return (
+                                <button
+                                    className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3 text-primary"
+                                    onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${activeMenuId}/edit?mode=update`}
+                                >
+                                    <span>تحديث التقرير (History)</span>
+                                    <RefreshCw size={16} className="text-primary" />
+                                </button>
+                            );
+                        })()}
                         <button
                             className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
                             onClick={(e) => {
