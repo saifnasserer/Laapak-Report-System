@@ -7,23 +7,32 @@ export const getPricesForVariant = (variant: any) => {
     return null
   }
 
+  const calculatedAmount = variant.calculated_price.calculated_amount
+  const originalAmount = variant.calculated_price.original_amount
+
+  // Robustly extract price_type
+  let price_type = variant.calculated_price.price_list_type ||
+    variant.calculated_price.calculated_price?.price_list_type
+
+  // Fallback: If original is higher than calculated, it's a sale/offer
+  if (!price_type && originalAmount > calculatedAmount) {
+    price_type = "sale"
+  }
+
   return {
-    calculated_price_number: variant.calculated_price.calculated_amount,
+    calculated_price_number: calculatedAmount,
     calculated_price: convertToLocale({
-      amount: variant.calculated_price.calculated_amount,
+      amount: calculatedAmount,
       currency_code: variant.calculated_price.currency_code,
     }),
-    original_price_number: variant.calculated_price.original_amount,
+    original_price_number: originalAmount,
     original_price: convertToLocale({
-      amount: variant.calculated_price.original_amount,
+      amount: originalAmount,
       currency_code: variant.calculated_price.currency_code,
     }),
     currency_code: variant.calculated_price.currency_code,
-    price_type: variant.calculated_price.calculated_price.price_list_type,
-    percentage_diff: getPercentageDiff(
-      variant.calculated_price.original_amount,
-      variant.calculated_price.calculated_amount
-    ),
+    price_type,
+    percentage_diff: getPercentageDiff(originalAmount, calculatedAmount),
   }
 }
 

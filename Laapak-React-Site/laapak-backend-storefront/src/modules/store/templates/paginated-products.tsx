@@ -20,6 +20,7 @@ export default async function PaginatedProducts({
   countryCode,
   filters,
   searchQuery,
+  footerProps,
 }: {
   sortBy?: SortOptions
   page: number
@@ -29,6 +30,7 @@ export default async function PaginatedProducts({
   countryCode: string
   filters?: ProductFilters
   searchQuery?: string
+  footerProps?: { collections: any[], productCategories: any[] }
 }) {
   const queryParams: PaginatedProductsParams = {
     limit: 12,
@@ -75,6 +77,7 @@ export default async function PaginatedProducts({
       queryParams={queryParams}
       countryCode={countryCode}
       initialPage={page}
+      footerProps={footerProps}
     />
   )
 }

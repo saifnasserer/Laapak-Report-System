@@ -142,13 +142,20 @@ export default function ProductActions({
           {(product.variants?.length ?? 0) > 1 && (
             <div className="flex flex-col gap-y-4">
               {(product.options || []).map((option) => {
+                const titleMap: Record<string, string> = {
+                  "Material": "الخامة",
+                  "Memory (RAM)": "الذاكرة (RAM)",
+                  "Storage": "التخزين",
+                  "Model": "الموديل",
+                  "Condition": "الحالة"
+                }
                 return (
                   <div key={option.id}>
                     <OptionSelect
                       option={option}
                       current={options[option.id]}
                       updateOption={setOptionValue}
-                      title={option.title ?? ""}
+                      title={titleMap[option.title || ""] || option.title || ""}
                       data-testid="product-options"
                       disabled={!!disabled || isAdding}
                     />

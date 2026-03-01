@@ -1,7 +1,6 @@
 import { HttpTypes } from "@medusajs/types"
 import { Heading, Text } from "@medusajs/ui"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import ProductDescriptionTable from "../../components/product-description-table"
 
 type ProductInfoProps = {
   product: HttpTypes.StoreProduct
@@ -9,28 +8,24 @@ type ProductInfoProps = {
 
 const ProductInfo = ({ product }: ProductInfoProps) => {
   return (
-    <div id="product-info">
-      <div className="flex flex-col gap-y-4 lg:max-w-[500px] mx-auto">
-        {product.collection && (
-          <LocalizedClientLink
-            href={`/collections/${product.collection.handle}`}
-            className="text-medium text-ui-fg-muted hover:text-laapak-green"
-          >
-            {product.collection.title}
-          </LocalizedClientLink>
-        )}
-        <Heading
-          level="h2"
-          className="text-4xl leading-tight font-black text-gray-900"
-          data-testid="product-title"
+    <div id="product-info" className="flex flex-col gap-y-4 items-center text-center">
+      {product.collection && (
+        <LocalizedClientLink
+          href={`/collections/${product.collection.handle}`}
+          className="text-xs font-black text-rose-600 uppercase tracking-widest hover:text-rose-700"
         >
-          {product.title}
-        </Heading>
+          {product.collection.title}
+        </LocalizedClientLink>
+      )}
+      <Heading
+        level="h2"
+        className="text-3xl md:text-4xl leading-tight font-black text-gray-900 tracking-tight"
+        data-testid="product-title"
+      >
+        {product.title}
+      </Heading>
 
-        <div data-testid="product-description" className="mt-2 text-right w-full" dir="rtl">
-          <ProductDescriptionTable description={product.description} />
-        </div>
-      </div>
+      <div className="h-1 w-20 bg-laapak-green/20 rounded-full" />
     </div>
   )
 }

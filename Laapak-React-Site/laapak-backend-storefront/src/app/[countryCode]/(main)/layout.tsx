@@ -8,6 +8,9 @@ import CartMismatchBanner from "@modules/layout/components/cart-mismatch-banner"
 import Footer from "@modules/layout/templates/footer"
 import Nav from "@modules/layout/templates/nav"
 import FreeShippingPriceNudge from "@modules/shipping/components/free-shipping-price-nudge"
+import { listCollections } from "@lib/data/collections"
+import { listCategories } from "@lib/data/categories"
+import { StoreProvider } from "@lib/context/store-context"
 
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseURL()),
@@ -24,8 +27,13 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
     shippingOptions = shipping_options
   }
 
+  const { collections } = await listCollections({
+    fields: "*products",
+  })
+  const productCategories = await listCategories()
+
   return (
-    <>
+    <StoreProvider>
       <Nav />
       {customer && cart && (
         <CartMismatchBanner customer={customer} cart={cart} />
@@ -39,7 +47,7 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
         />
       )}
       {props.children}
-      <Footer />
-    </>
+      <Footer collections={collections} productCategories={productCategories} />
+    </StoreProvider>
   )
 }

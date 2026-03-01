@@ -1,18 +1,20 @@
-import { listCategories } from "@lib/data/categories"
-import { listCollections } from "@lib/data/collections"
+"use client"
+
+import { usePathname } from "next/navigation"
 import { Text, clx } from "@medusajs/ui"
 import Image from "next/image"
 
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
-export default async function Footer() {
-  const { collections } = await listCollections({
-    fields: "*products",
-  })
-  const productCategories = await listCategories()
+export default function Footer({ collections, productCategories }: { collections: any[], productCategories: any[] }) {
+  const pathname = usePathname()
+  const isStorePage = pathname?.includes("/store")
+
 
   return (
-    <footer className="border-t border-ui-border-base w-full bg-white">
+    <footer className={clx("border-t border-ui-border-base w-full bg-white", {
+      "snap-start shrink-0 min-h-[calc(100vh-64px)] flex flex-col justify-center": isStorePage
+    })}>
       <div className="content-container flex flex-col w-full">
         <div className="flex flex-col gap-y-12 md:flex-row items-center md:items-start text-center md:text-right justify-between py-16">
           <div className="w-full max-w-sm flex flex-col items-center md:items-start">
@@ -55,7 +57,7 @@ export default async function Footer() {
                     }
 
                     const children =
-                      c.category_children?.map((child) => ({
+                      c.category_children?.map((child: any) => ({
                         name: child.name,
                         handle: child.handle,
                         id: child.id,
@@ -79,7 +81,7 @@ export default async function Footer() {
                         {children && (
                           <ul className="grid grid-cols-1 mr-3 gap-2 border-r-2 border-gray-100 pr-2">
                             {children &&
-                              children.map((child) => (
+                              children.map((child: any) => (
                                 <li key={child.id}>
                                   <LocalizedClientLink
                                     className="hover:text-laapak-green transition-colors"

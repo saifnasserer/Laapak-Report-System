@@ -38,6 +38,7 @@ type SidebarFiltersProps = {
     currentFilters: ProductFilters
     categories?: string[]
     sortBy: SortOptions
+    onClose?: () => void
 }
 
 const sortOptions = [
@@ -46,7 +47,7 @@ const sortOptions = [
     { value: "price_desc", label: "السعر: من الأعلى للأقل" },
 ]
 
-const SidebarFilters = ({ currentFilters, categories = [], sortBy }: SidebarFiltersProps) => {
+const SidebarFilters = ({ currentFilters, categories = [], sortBy, onClose }: SidebarFiltersProps) => {
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
@@ -102,14 +103,27 @@ const SidebarFilters = ({ currentFilters, categories = [], sortBy }: SidebarFilt
                 <h2 className="text-xl font-bold text-gray-900">
                     تصفية النتائج
                 </h2>
-                {hasActiveFilters() && (
-                    <button
-                        onClick={handleClearFilters}
-                        className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
-                    >
-                        مسح الفلاتر
-                    </button>
-                )}
+                <div className="flex items-center gap-4">
+                    {hasActiveFilters() && (
+                        <button
+                            onClick={handleClearFilters}
+                            className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
+                        >
+                            مسح الفلاتر
+                        </button>
+                    )}
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="small:hidden text-gray-500 hover:text-gray-900 transition-colors p-2"
+                            aria-label="إغلاق"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Sorting Section */}

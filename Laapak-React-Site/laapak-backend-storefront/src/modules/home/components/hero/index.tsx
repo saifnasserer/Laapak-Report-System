@@ -25,7 +25,7 @@ const Hero = () => {
             <Text
               className="text-lg lg:text-xl text-laapak-gray font-medium max-w-xl leading-relaxed"
             >
-              وفر فلوسك واستلم لاب توب استيراد فرز أول بحالة الزيرو. أداء جبار ينجز معاك، سعر ميتفوتش، وضمان استبدال حقيقي عشان تشتري وانت مطمن.
+              وفر فلوسك واستلم لاب توب استيراد فرز أول بحالة الزيرو. أداء جبار ينجز معاك، سعر ميتفوتش، وضمان حقيقي عشان تشتري وانت مطمن.
             </Text>
 
             <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">

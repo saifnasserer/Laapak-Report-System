@@ -1,0 +1,53 @@
+networks:
+  laapak-network:
+    external: true
+
+services:
+  medusa-backend:
+    build:
+      context: ./laapak-backend
+      dockerfile: Dockerfile
+    image: saifnasser/laapak-medusa:backend-latest
+    container_name: medusa-backend
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres_password@postgres-db:5432/medusa_db?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=supersecret
+      - COOKIE_SECRET=supersecret
+      - STORE_CORS=http://82.112.253.29:3003,https://docs.medusajs.com
+      - ADMIN_CORS=http://82.112.253.29:9001,https://docs.medusajs.com
+      - AUTH_CORS=http://82.112.253.29:9001,http://82.112.253.29:3003,https://docs.medusajs.com
+    networks:
+      - laapak-network
+    ports:
+      - "9001:9000"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  medusa-storefront:
+    build:
+      context: ./laapak-backend-storefront
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_bd9f45a9c0ade51d0ea290181c841fae2ed8e5436cd6fd60285fcd5b80841dfa
+        - NEXT_PUBLIC_BASE_URL=http://82.112.253.29:3003
+        - NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://82.112.253.29:9001
+        - NEXT_PUBLIC_DEFAULT_REGION=eg
+    image: saifnasser/laapak-medusa:storefront-latest
+    container_name: medusa-storefront
+    networks:
+      - laapak-network
+    ports:
+      - "3003:8000"
+    restart: always
+    depends_on:
+      - medusa-backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G

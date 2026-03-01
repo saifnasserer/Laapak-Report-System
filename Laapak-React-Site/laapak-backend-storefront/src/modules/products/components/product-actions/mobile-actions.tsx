@@ -77,25 +77,23 @@ const MobileActions: React.FC<MobileActionsProps> = ({
               <span data-testid="mobile-title">{product.title}</span>
               <span>—</span>
               {selectedPrice ? (
-                <div className="flex items-end gap-x-2 text-ui-fg-base">
+                <div className="flex items-center gap-x-2">
                   {selectedPrice.price_type === "sale" && (
-                    <p>
-                      <span className="line-through text-small-regular">
-                        {selectedPrice.original_price}
-                      </span>
-                    </p>
+                    <span className="line-through text-gray-400 text-xs">
+                      {selectedPrice.original_price}
+                    </span>
                   )}
                   <span
-                    className={clx({
-                      "text-ui-fg-interactive":
-                        selectedPrice.price_type === "sale",
+                    className={clx("font-bold", {
+                      "text-rose-600": selectedPrice.price_type === "sale",
+                      "text-laapak-green": selectedPrice.price_type !== "sale",
                     })}
                   >
                     {selectedPrice.calculated_price}
                   </span>
                 </div>
               ) : (
-                <div></div>
+                <div className="w-16 h-4 bg-gray-100 animate-pulse rounded" />
               )}
             </div>
             <div className={clx("grid grid-cols-2 w-full gap-x-4", {
@@ -111,7 +109,7 @@ const MobileActions: React.FC<MobileActionsProps> = ({
                   <span>
                     {variant
                       ? Object.values(options).join(" / ")
-                      : "Select Options"}
+                      : "اختر المواصفات"}
                   </span>
                   <ChevronDown />
                 </div>
@@ -124,10 +122,10 @@ const MobileActions: React.FC<MobileActionsProps> = ({
                 data-testid="mobile-cart-button"
               >
                 {!variant
-                  ? "Select variant"
+                  ? "اختر المواصفات"
                   : !inStock
-                  ? "Out of stock"
-                  : "Add to cart"}
+                    ? "غير متوفر"
+                    : "أضف إلى السلة"}
               </Button>
             </div>
           </div>
@@ -172,16 +170,27 @@ const MobileActions: React.FC<MobileActionsProps> = ({
                     </button>
                   </div>
                   <div className="bg-white px-6 py-12">
+                    <div className="flex flex-col gap-y-2 mb-4 text-right" dir="rtl">
+                      <span className="text-xl font-black text-gray-900">اختر المواصفات</span>
+                      <p className="text-sm text-gray-400">حدد الخيارات المفضلة لجهازك</p>
+                    </div>
                     {(product.variants?.length ?? 0) > 1 && (
                       <div className="flex flex-col gap-y-6">
                         {(product.options || []).map((option) => {
+                          const titleMap: Record<string, string> = {
+                            "Material": "الخامة",
+                            "Memory (RAM)": "الذاكرة (RAM)",
+                            "Storage": "التخزين",
+                            "Model": "الموديل",
+                            "Condition": "الحالة"
+                          }
                           return (
                             <div key={option.id}>
                               <OptionSelect
                                 option={option}
                                 current={options[option.id]}
                                 updateOption={updateOptions}
-                                title={option.title ?? ""}
+                                title={titleMap[option.title || ""] || option.title || ""}
                                 disabled={optionsDisabled}
                               />
                             </div>

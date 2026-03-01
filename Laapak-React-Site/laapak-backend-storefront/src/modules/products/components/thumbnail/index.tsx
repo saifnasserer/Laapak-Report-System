@@ -59,7 +59,7 @@ const ImageOrPlaceholder = ({
       <Video360
         src={video360Url}
         poster={image}
-        className="absolute inset-0 object-contain object-center p-2 w-full h-full"
+        className="absolute inset-0 object-cover object-center w-full h-full"
       />
     )
   }

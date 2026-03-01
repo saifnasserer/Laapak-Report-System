@@ -4,13 +4,15 @@ import Image from "next/image"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import CartButton from "@modules/layout/components/cart-button"
 import SearchBar from "@modules/store/components/search-bar"
+import NavHeader from "./nav-header"
+import NavFilterButton from "./nav-filter-button"
 
 export default async function Nav() {
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
-      <header className="relative h-16 md:h-20 mx-auto border-b duration-200 bg-white border-ui-border-base shadow-sm">
-        <nav className="content-container txt-xsmall-plus text-ui-fg-subtle flex items-center justify-between w-full h-full text-small-regular gap-8">
-          <div className="flex items-center h-full shrink-0 absolute left-1/2 -translate-x-1/2 md:static md:transform-none">
+      <NavHeader>
+        <nav className="content-container txt-xsmall-plus text-ui-fg-subtle flex items-center justify-between w-full h-full text-small-regular gap-x-2 small:gap-x-8">
+          <div className="flex items-center h-full shrink-0">
             <LocalizedClientLink
               href="/"
               className="hover:opacity-80 transition-opacity flex items-center"
@@ -20,13 +22,13 @@ export default async function Nav() {
             </LocalizedClientLink>
           </div>
 
-          <div className="flex-grow hidden medium:flex justify-center max-w-xl">
+          <div className="flex-1 basis-0 hidden medium:flex justify-center max-w-xl">
             <Suspense fallback={<div className="w-full h-10 bg-gray-50 rounded-full animate-pulse" />}>
               <SearchBar />
             </Suspense>
           </div>
 
-          <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-x-4 h-full shrink-0 relative z-10">
+          <div className="flex-1 basis-0 flex items-center justify-end gap-x-2 small:gap-x-4 h-full relative z-10 pr-2 small:pr-0">
             <div className="flex items-center h-full">
               <LocalizedClientLink
                 className="hover:text-laapak-green transition-all group/account flex items-center justify-center w-10 h-10 rounded-full border border-gray-100 bg-white shadow-sm hover:bg-gray-50 p-0"
@@ -41,6 +43,7 @@ export default async function Nav() {
               </LocalizedClientLink>
             </div>
 
+            <NavFilterButton />
             <Suspense
               fallback={
                 <LocalizedClientLink
@@ -64,7 +67,7 @@ export default async function Nav() {
             </Suspense>
           </div>
         </nav>
-      </header>
+      </NavHeader>
     </div>
   )
 }

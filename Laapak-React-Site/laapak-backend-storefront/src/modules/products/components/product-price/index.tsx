@@ -21,38 +21,41 @@ export default function ProductPrice({
     return <div className="block w-32 h-9 bg-gray-100 animate-pulse" />
   }
 
+  const isOnSale = selectedPrice.price_type === "sale"
+
+  // Calculate savings
+  const savings = isOnSale && selectedPrice.original_price_number && selectedPrice.calculated_price_number
+    ? selectedPrice.original_price_number - selectedPrice.calculated_price_number
+    : 0
+
   return (
-    <div className="flex flex-col text-ui-fg-base">
-      <span
-        className={clx("text-xl-semi", {
-          "text-ui-fg-interactive": selectedPrice.price_type === "sale",
-        })}
-      >
-        {!variant && "From "}
+    <div className="flex flex-col gap-1.5">
+      {isOnSale && (
+        <div className="flex items-center gap-3">
+          <span className="line-through text-gray-400 text-base font-medium">
+            {selectedPrice.original_price}
+          </span>
+          {savings > 0 && (
+            <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-100 shadow-sm">
+              <span className="text-xs font-bold text-emerald-600">
+                وفر {savings.toLocaleString()} ج.م
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center gap-3">
         <span
+          className={clx("text-2xl md:text-3xl font-black tracking-tight", {
+            "text-rose-600": isOnSale,
+            "text-laapak-green": !isOnSale,
+          })}
           data-testid="product-price"
-          data-value={selectedPrice.calculated_price_number}
         >
           {selectedPrice.calculated_price}
         </span>
-      </span>
-      {selectedPrice.price_type === "sale" && (
-        <>
-          <p>
-            <span className="text-ui-fg-subtle">Original: </span>
-            <span
-              className="line-through"
-              data-testid="original-product-price"
-              data-value={selectedPrice.original_price_number}
-            >
-              {selectedPrice.original_price}
-            </span>
-          </p>
-          <span className="text-ui-fg-interactive">
-            -{selectedPrice.percentage_diff}%
-          </span>
-        </>
-      )}
+      </div>
     </div>
   )
 }

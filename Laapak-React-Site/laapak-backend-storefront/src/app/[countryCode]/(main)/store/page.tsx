@@ -3,6 +3,7 @@ import { Metadata } from "next"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import StoreTemplate from "@modules/store/templates"
 import { listCategories } from "@lib/data/categories"
+import { listCollections } from "@lib/data/collections"
 import PaginatedProducts from "@modules/store/templates/paginated-products"
 import { Suspense } from "react"
 import SkeletonProductGrid from "@modules/skeletons/templates/skeleton-product-grid"
@@ -45,15 +46,22 @@ export default async function StorePage(props: Params) {
     maxPrice: searchParams.max_price ? parseFloat(searchParams.max_price) : undefined,
   }
 
-  const productCategories = await listCategories().then((res) => res.map(c => c.name))
+  const productCategories = await listCategories()
   const pageNumber = page ? parseInt(page) : 1
   const sort = sortBy || "created_at"
+
+  // Fetch collections for the footer inside InfiniteProducts
+  const { collections } = await listCollections({ fields: "*products" })
 
   return (
     <StoreTemplate
       sortBy={sortBy}
       filters={filters}
-      categories={productCategories}
+      categories={productCategories.map(c => c.name)}
+      footerProps={{
+        collections,
+        productCategories
+      }}
     >
       <Suspense fallback={<SkeletonProductGrid />}>
         <PaginatedProducts

@@ -4,8 +4,10 @@ import Back from "@modules/common/icons/back"
 import FastDelivery from "@modules/common/icons/fast-delivery"
 import Refresh from "@modules/common/icons/refresh"
 
-import Accordion from "./accordion"
 import { HttpTypes } from "@medusajs/types"
+import React from "react"
+import Accordion from "./accordion"
+import ProductDescriptionTable from "../product-description-table"
 
 type ProductTabsProps = {
   product: HttpTypes.StoreProduct
@@ -14,11 +16,15 @@ type ProductTabsProps = {
 const ProductTabs = ({ product }: ProductTabsProps) => {
   const tabs = [
     {
-      label: "Technical Specifications",
+      label: "وصف المنتج",
+      component: <div className="py-8 text-right w-full" dir="rtl"><ProductDescriptionTable description={product.description} /></div>,
+    },
+    {
+      label: "المواصفات التقنية",
       component: <TechnicalSpecsTab product={product} />,
     },
     {
-      label: "Product Information",
+      label: "معلومات إضافية",
       component: <ProductInfoTab product={product} />,
     },
   ]
@@ -45,29 +51,29 @@ const TechnicalSpecsTab = ({ product }: ProductTabsProps) => {
   const specs = (product.metadata?.specs as Record<string, string>) || {}
 
   const specList = [
-    { label: "Processor", value: specs.processor },
-    { label: "Memory (RAM)", value: specs.ram },
-    { label: "Storage", value: specs.storage },
-    { label: "Graphics", value: specs.gpu },
-    { label: "Screen Size", value: specs.screen_size },
-    { label: "Condition", value: specs.condition },
+    { label: "المعالج", value: specs.processor },
+    { label: "الذاكرة (RAM)", value: specs.ram },
+    { label: "التخزين", value: specs.storage },
+    { label: "كارت الشاشة", value: specs.gpu },
+    { label: "حجم الشاشة", value: specs.screen_size },
+    { label: "الحالة", value: specs.condition },
   ].filter(s => s.value)
 
   if (specList.length === 0) {
     return (
-      <div className="text-small-regular py-8">
-        <p>No technical specifications available for this product.</p>
+      <div className="text-small-regular py-8 text-right" dir="rtl">
+        <p>لا توجد مواصفات تقنية متاحة لهذا المنتج.</p>
       </div>
     )
   }
 
   return (
-    <div className="text-small-regular py-8">
+    <div className="text-small-regular py-8 text-right" dir="rtl">
       <div className="grid grid-cols-1 gap-y-4">
         {specList.map((spec, i) => (
           <div key={i} className="flex flex-col gap-y-1">
-            <span className="font-semibold text-ui-fg-subtle">{spec.label}</span>
-            <p className="text-ui-fg-base">{spec.value}</p>
+            <span className="font-bold text-gray-900">{spec.label}</span>
+            <p className="text-gray-600">{spec.value}</p>
           </div>
         ))}
       </div>
@@ -78,73 +84,33 @@ const TechnicalSpecsTab = ({ product }: ProductTabsProps) => {
 
 const ProductInfoTab = ({ product }: ProductTabsProps) => {
   return (
-    <div className="text-small-regular py-8">
+    <div className="text-small-regular py-8 text-right" dir="rtl">
       <div className="grid grid-cols-2 gap-x-8">
         <div className="flex flex-col gap-y-4">
           <div>
-            <span className="font-semibold">Material</span>
-            <p>{product.material ? product.material : "-"}</p>
+            <span className="font-bold">الخامة</span>
+            <p className="text-gray-600">{product.material ? product.material : "-"}</p>
           </div>
           <div>
-            <span className="font-semibold">Country of origin</span>
-            <p>{product.origin_country ? product.origin_country : "-"}</p>
+            <span className="font-bold">بلد المنشأ</span>
+            <p className="text-gray-600">{product.origin_country ? product.origin_country : "-"}</p>
           </div>
           <div>
-            <span className="font-semibold">Type</span>
-            <p>{product.type ? product.type.value : "-"}</p>
+            <span className="font-bold">النوع</span>
+            <p className="text-gray-600">{product.type ? product.type.value : "-"}</p>
           </div>
         </div>
         <div className="flex flex-col gap-y-4">
           <div>
-            <span className="font-semibold">Weight</span>
-            <p>{product.weight ? `${product.weight} g` : "-"}</p>
+            <span className="font-bold">الوزن</span>
+            <p className="text-gray-600">{product.weight ? `${product.weight} جرام` : "-"}</p>
           </div>
           <div>
-            <span className="font-semibold">Dimensions</span>
-            <p>
+            <span className="font-bold">الأبعاد</span>
+            <p className="text-gray-600">
               {product.length && product.width && product.height
                 ? `${product.length}L x ${product.width}W x ${product.height}H`
                 : "-"}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const ShippingInfoTab = () => {
-  return (
-    <div className="text-small-regular py-8">
-      <div className="grid grid-cols-1 gap-y-8">
-        <div className="flex items-start gap-x-2">
-          <FastDelivery />
-          <div>
-            <span className="font-semibold">Fast delivery</span>
-            <p className="max-w-sm">
-              Your package will arrive in 3-5 business days at your pick up
-              location or in the comfort of your home.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-start gap-x-2">
-          <Refresh />
-          <div>
-            <span className="font-semibold">Simple exchanges</span>
-            <p className="max-w-sm">
-              Is the fit not quite right? No worries - we&apos;ll exchange your
-              product for a new one.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-start gap-x-2">
-          <Back />
-          <div>
-            <span className="font-semibold">Easy returns</span>
-            <p className="max-w-sm">
-              Just return your product and we&apos;ll refund your money. No
-              questions asked – we&apos;ll do our best to make sure your return
-              is hassle-free.
             </p>
           </div>
         </div>

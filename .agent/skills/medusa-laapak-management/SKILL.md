@@ -33,9 +33,11 @@ This skill provides the cognitive foundation for working with the Laapak Reports
 - **Data Fetching:** `src/lib/data/products.ts` -> `listProducts`.
     - **CRITICAL:** Always include `+metadata` in the `fields` query parameter to ensure specs are available.
 - **Display Components:**
-    - **Summary:** `src/modules/products/templates/product-info/index.tsx` (Renders key specs in Arabic under the title).
-    - **Description Parsing:** `src/modules/products/components/product-description-table/index.tsx` (Parses plain text descriptions that contain double newlines into structured HTML tables for a premium look).
-    - **Details:** `src/modules/products/components/product-tabs/index.tsx` (Contains the "Technical Specifications" accordion tab).
+    - **Summary:** `src/modules/products/templates/product-info/index.tsx` (Renders key specs in Arabic under the title - centered).
+    - **Description Parsing:** `src/modules/products/components/product-description-table/index.tsx` (Parses plain text descriptions into tables).
+    - **Unified Gallery:** `src/modules/products/components/image-gallery/index.tsx` (Embla-based slider merging 360° video and images).
+    - **Spec Dashboard:** `src/modules/products/components/product-specs-summary/index.tsx` (Minimalist vertical list of technical specs with icons, strictly left-aligned).
+    - **Details:** `src/modules/products/components/product-tabs/index.tsx` (Contains accordions for Description and Specs).
 
 ## Common Workflows
 
@@ -153,3 +155,121 @@ When using `absolute` positioned badge elements (e.g., step number badges) on to
 - **Missing Specs:** Ensure the `metadata` field is explicitly requested in the Medusa API call.
 - **RTL Issues:** The storefront uses RTL by default. Use `laapak-green` and `laapak-gray` tokens for brand consistency.
 - **Google Reviews empty:** If `/store/google-reviews` returns 404, the cache hasn't been seeded yet. Run `npx medusa exec src/jobs/sync-google-reviews.ts` from the backend directory.
+
+---
+
+## Mobile Reels UI Architecture
+
+The mobile `/store` page renders a full-screen, vertical snap-scroll "Reels" UI (Instagram-style) instead of the standard product grid.
+
+### Key files:
+- **`src/modules/store/templates/infinite-products.tsx`** — Switches between desktop grid (`hidden small:grid`) and mobile reels (`flex small:hidden`). Uses `h-[100dvh]` for full-screen height. The Global Footer is appended at the end as a final snap-start element when no more products load.
+- **`src/modules/products/components/product-reel/index.tsx`** — The per-product reel card. Renders full-bleed video or image background, text overlay, and three floating action buttons.
+- **`src/modules/products/components/product-reel/add-to-cart.tsx`** — Toggle Add/Remove from Cart button for the Reels UI. Checks cart via `retrieveCart()` on mount to show correct state. Uses `deleteLineItem` for removal.
+
+### Height/viewport:
+- Use `h-[100dvh]` (not `calc(100vh-64px)`) for the mobile scroll container because the Nav is now transparent and `position: absolute` over the Reels.
+
+### Action Buttons (right-side floating stack):
+1. **Add to Cart** — toggle add/remove, shows checkmark when in cart
+2. **View Details** — `LocalizedClientLink` to product page
+3. **WhatsApp** — Links to `wa.me/<number>?text=<pre-filled Arabic message with product title + URL>`
+
+---
+
+## Global Navigation & Store Context Architecture
+
+### StoreContext Pattern
+`StoreContext` (`src/lib/context/store-context.tsx`) manages `isSidebarOpen` boolean state shared between:
+- `NavFilterButton` — the toggle button in the Nav
+- `StoreTemplate` — where the sidebar renders based on that state
+
+### ⚠️ Critical: Context Provider Scope
+The `StoreProvider` **MUST wrap BOTH the Nav and the store page children** to share state. If placed only around Nav, the sidebar won't react. If placed only around StoreTemplate, the filter button in Nav won't affect it.
+
+**Correct placement:** In the root layout `src/app/[countryCode]/(main)/layout.tsx`:
+```tsx
+return (
+  <StoreProvider>  {/* wraps both Nav and {props.children} */}
+    <Nav />
+    {props.children}
+    <Footer ... />
+  </StoreProvider>
+)
+```
+
+> ⚠️ `StoreProvider` uses React Context (client-side). It CAN be used in a Server Component layout as a wrapper — Next.js handles this correctly as long as all the context state logic stays inside the `"use client"` provider component itself.
+
+### Transparent Header on Store Page
+A `NavHeader` client component (`src/modules/layout/templates/nav/nav-header.tsx`) reads `usePathname()` and conditionally applies `position: absolute` + `bg-gradient` styling on the store page so the Nav overlays the Reels video.
+
+On non-store pages: `relative bg-white border-b shadow-sm` (normal header).
+On `/store` page (mobile only): `absolute top-0 z-50 bg-gradient-to-b from-white/90 to-transparent` overlay.
+
+### Filter Button in Nav
+`NavFilterButton` (`src/modules/layout/templates/nav/nav-filter-button.tsx`):
+- Only renders when `pathname?.includes("/store")`
+- Reads `isSidebarOpen` from `useStoreContext()`
+- Styled identically to CartButton: white bg, gray border, shadow, icon turns green on hover
+
+---
+
+## Compare-at Price / Sale Pricing
+
+### How it works (built-in Medusa V2):
+Medusa V2 already exposes `calculated_amount` (sale price) and `original_amount` (regular price) on `variant.calculated_price`. These are populated when a **Price List** with type `sale` is created.
+
+### Storefront Display:
+`src/modules/products/components/product-preview/price.tsx` — `PreviewPrice` component:
+- When `price.price_type === "sale"`: shows strikethrough `original_price`, red sale `calculated_price`, and a `percentage_diff%` badge
+- When `price.price_type !== "sale"`: shows price in Laapak Green normally
+
+### How to Create a Sale Price in the Admin:
+1. **Admin → Pricing → Add** (or "Price Lists")
+2. Set type to **"Sale"**, give it a name and optionally a date range
+3. Assign it to a **region** (e.g., Egypt/EGP)
+4. Under **Products**, search for your product variant and enter the **discounted price**
+5. The `original_amount` will be the variant's default price, and `calculated_amount` will be the price list price
+6. Products will automatically show the strikethrough UI on the storefront
+
+> The `PreviewPrice` component handles all the rendering automatically — no custom metadata needed.
+
+---
+
+## Landing Page Components
+
+### `HotDeals` Component
+Uses the shared `ProductSlider` (Embla Carousel) instead of a static grid.
+- RTL direction, autoplay 3s, looping
+- Arrow buttons appear on hover (desktop only)
+- Pass more products via `allHomeProducts.slice(0, 8)` in `page.tsx` to allow more swiping
+
+### `ProductSlider` Component (`src/modules/home/components/product-slider/index.tsx`)
+Embla-based horizontal carousel. Apply this to any section needing a slider. Key config:
+```tsx
+useEmblaCarousel(
+  { align: "start", direction: "rtl", containScroll: "trimSnaps", dragFree: true, loop: true },
+  [Autoplay({ delay: 3000, stopOnInteraction: false })]
+)
+```
+
+---
+
+---
+
+## Premium UI/UX Patterns
+
+### 1. Product Page Hierarchy (Deskstop 2-Column)
+**Structure:**
+- **Left (sticky):** Unified `ImageGallery` taking up `calc(100vh - 240px)` screen height.
+- **Right:** centered `ProductInfo` → minimalist `ProductSpecsSummary` (Left aligned) → `ProductActions` → `ProductTrustBadges` → `ProductTabs` (Accordion).
+
+### 2. Media Protection & Display
+- **Gallery Fit:** Always use `object-cover` for a full-bleed "fitting" look.
+- **Protection:** Disable right-click (`onContextMenu={(e) => e.preventDefault()}`) and dragging (`draggable={false}`) on all gallery media.
+- **Video:** Use `controlsList="nodownload"` for the `video` tag.
+
+### 3. Localization Patterns
+- **Titles:** Center product titles and collection links.
+- **Specs:** Standard technical specs (English) should be strictly **left-aligned** with icons to their left, even in an RTL layout, for better technical readability.
+- **Accordions:** Move long descriptions into an accordion labelled "وصف المنتج" to keep the initial page height manageable.

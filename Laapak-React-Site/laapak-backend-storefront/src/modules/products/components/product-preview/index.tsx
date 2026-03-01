@@ -39,7 +39,7 @@ export default function ProductPreview({
         data-testid="product-wrapper"
         className="flex flex-col h-full bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
       >
-        <div className="relative aspect-[4/3] bg-white">
+        <div className="relative aspect-[4/3] bg-white group-hover:scale-105 transition-transform duration-500">
           <Thumbnail
             thumbnail={product.thumbnail}
             images={product.images}
@@ -48,6 +48,14 @@ export default function ProductPreview({
             isFeatured={isFeatured}
             className="rounded-none shadow-none ring-0 border-none bg-transparent"
           />
+          {cheapestPrice?.price_type === "sale" && (
+            <div className="absolute top-2 left-2 z-10 animate-fade-in">
+              <div className="bg-rose-600 text-white text-[10px] md:text-xs font-black px-2.5 py-1 rounded-full shadow-lg border border-rose-500 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                خصم حصري
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex flex-col flex-1 p-4 md:p-5 gap-3 md:gap-4 bg-gray-50/50">
           <Text className="text-gray-900 font-bold text-base md:text-lg leading-tight line-clamp-2" data-testid="product-title">
@@ -67,7 +75,7 @@ export default function ProductPreview({
           </div>
 
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-200">
-            <div className="text-laapak-green font-black text-xl flex items-baseline gap-1" data-testid="product-price">
+            <div className="flex items-baseline gap-1" data-testid="product-price">
               {cheapestPrice && <PreviewPrice price={cheapestPrice} />}
             </div>
             <span className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-laapak-green group-hover:bg-laapak-green group-hover:text-white transition-colors shadow-sm">
