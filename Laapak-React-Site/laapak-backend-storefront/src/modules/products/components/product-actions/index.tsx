@@ -183,7 +183,7 @@ export default function ProductActions({
               : "أضف إلى السلة"}
         </Button>
         <a
-          href={`https://wa.me/201000000000?text=استفسار بخصوص: ${product.title}`}
+          href={`https://wa.me/201013148007?text=استفسار بخصوص: ${product.title}`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full mt-2"

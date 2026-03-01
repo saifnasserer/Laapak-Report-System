@@ -5,7 +5,7 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import Thumbnail from "../thumbnail"
 import PreviewPrice from "./price"
 
-export default async function ProductPreview({
+export default function ProductPreview({
   product,
   isFeatured,
   region,
@@ -18,12 +18,20 @@ export default async function ProductPreview({
     product,
   })
 
-  // Mock specs until backend is fully integrated
+  const metadataSpecs = (product.metadata as Record<string, any>)?.specs || {}
+
+  // Dynamic specs pulled from Medusa metadata
   const specs = [
-    { label: "المعالج", value: "Core i7" },
-    { label: "الرام", value: "16GB" },
-    { label: "التخزين", value: "512GB" },
-  ]
+    { label: "المعالج", value: metadataSpecs.processor },
+    { label: "كارت الشاشة", value: metadataSpecs.gpu },
+  ].filter(s => s.value) // Only show available specs
+
+  const video360Url = (product.metadata as Record<string, any>)?.video_360_url as string | undefined
+  if (video360Url) {
+    console.log(`[ProductPreview] Video available for: ${product.title}`)
+  } else {
+    console.log(`[ProductPreview] NO video for: ${product.title}`)
+  }
 
   return (
     <LocalizedClientLink href={`/products/${product.handle}`} className="group block h-full">
@@ -35,21 +43,26 @@ export default async function ProductPreview({
           <Thumbnail
             thumbnail={product.thumbnail}
             images={product.images}
+            video360Url={video360Url}
             size="full"
             isFeatured={isFeatured}
             className="rounded-none shadow-none ring-0 border-none bg-transparent"
           />
         </div>
-        <div className="flex flex-col flex-1 p-5 gap-4 bg-gray-50/50">
-          <Text className="text-gray-900 font-bold text-lg leading-tight line-clamp-2" data-testid="product-title">
+        <div className="flex flex-col flex-1 p-4 md:p-5 gap-3 md:gap-4 bg-gray-50/50">
+          <Text className="text-gray-900 font-bold text-base md:text-lg leading-tight line-clamp-2" data-testid="product-title">
             {product.title}
           </Text>
 
-          <div className="flex flex-wrap gap-2 mt-auto">
+          <div className="flex flex-wrap gap-2 mt-auto" dir="rtl">
             {specs.map((spec, i) => (
-              <span key={i} className="inline-flex items-center px-2 py-1 bg-white text-laapak-gray text-xs rounded-md border border-gray-100 shadow-sm">
-                <span className="font-semibold ml-1">{spec.label}:</span> {spec.value}
-              </span>
+              <div
+                key={i}
+                className="flex items-center gap-x-1 px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-800 shadow-sm max-w-full overflow-hidden"
+                title={spec.label}
+              >
+                <span className="truncate max-w-full">{spec.value}</span>
+              </div>
             ))}
           </div>
 

@@ -37,7 +37,7 @@ const TrustBadges = () => {
                         <div className="bg-white p-3 rounded-full shadow-sm mb-2 border border-gray-50">
                             {badge.icon}
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900">{badge.title}</h3>
+                        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 whitespace-nowrap">{badge.title}</h3>
                         <p className="text-laapak-gray font-medium">{badge.description}</p>
                     </div>
                 ))}

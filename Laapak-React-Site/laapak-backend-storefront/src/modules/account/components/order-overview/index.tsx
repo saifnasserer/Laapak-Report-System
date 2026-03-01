@@ -5,8 +5,11 @@ import { Button } from "@medusajs/ui"
 import OrderCard from "../order-card"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { HttpTypes } from "@medusajs/types"
+import { useTranslation } from "@lib/translations"
 
 const OrderOverview = ({ orders }: { orders: HttpTypes.StoreOrder[] }) => {
+  const { t } = useTranslation()
+
   if (orders?.length) {
     return (
       <div className="flex flex-col gap-y-8 w-full">
@@ -24,17 +27,17 @@ const OrderOverview = ({ orders }: { orders: HttpTypes.StoreOrder[] }) => {
 
   return (
     <div
-      className="w-full flex flex-col items-center gap-y-4"
+      className="w-full flex flex-col items-center gap-y-4 py-12"
       data-testid="no-orders-container"
     >
-      <h2 className="text-large-semi">Nothing to see here</h2>
-      <p className="text-base-regular">
-        You don&apos;t have any orders yet, let us change that {":)"}
+      <h2 className="text-xl font-bold">{t("account.orders.none_title")}</h2>
+      <p className="text-base-regular text-ui-fg-subtle">
+        {t("account.orders.none_description")}
       </p>
       <div className="mt-4">
-        <LocalizedClientLink href="/" passHref>
-          <Button data-testid="continue-shopping-button">
-            Continue shopping
+        <LocalizedClientLink href="/store" passHref>
+          <Button data-testid="continue-shopping-button" className="bg-laapak-green hover:bg-laapak-green/90 rounded-full px-8">
+            {t("account.orders.continue_shopping")}
           </Button>
         </LocalizedClientLink>
       </div>

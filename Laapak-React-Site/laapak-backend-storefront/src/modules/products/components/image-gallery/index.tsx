@@ -1,15 +1,25 @@
 import { HttpTypes } from "@medusajs/types"
 import { Container } from "@medusajs/ui"
 import Image from "next/image"
+import Video360 from "@modules/products/components/video-360"
 
 type ImageGalleryProps = {
   images: HttpTypes.StoreProductImage[]
+  video360Url?: string
 }
 
-const ImageGallery = ({ images }: ImageGalleryProps) => {
+const ImageGallery = ({ images, video360Url }: ImageGalleryProps) => {
   return (
     <div className="flex items-start relative">
       <div className="flex flex-col flex-1 small:mx-16 gap-y-4">
+        {video360Url && (
+          <Container className="relative aspect-[29/34] w-full overflow-hidden bg-ui-bg-subtle">
+            <Video360
+              src={video360Url}
+              className="absolute inset-0 w-full h-full object-cover rounded-rounded"
+            />
+          </Container>
+        )}
         {images.map((image, index) => {
           return (
             <Container

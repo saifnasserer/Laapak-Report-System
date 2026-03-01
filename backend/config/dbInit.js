@@ -217,7 +217,7 @@ const seedInitialData = async () => {
                 },
                 {
                     key: 'store_phone',
-                    value: '01000000000',
+                    value: '01013148007',
                     type: 'string',
                     description: 'Store contact phone number'
                 },

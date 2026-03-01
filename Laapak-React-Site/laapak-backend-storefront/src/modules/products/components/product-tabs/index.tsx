@@ -14,12 +14,12 @@ type ProductTabsProps = {
 const ProductTabs = ({ product }: ProductTabsProps) => {
   const tabs = [
     {
-      label: "Product Information",
-      component: <ProductInfoTab product={product} />,
+      label: "Technical Specifications",
+      component: <TechnicalSpecsTab product={product} />,
     },
     {
-      label: "Shipping & Returns",
-      component: <ShippingInfoTab />,
+      label: "Product Information",
+      component: <ProductInfoTab product={product} />,
     },
   ]
 
@@ -40,6 +40,41 @@ const ProductTabs = ({ product }: ProductTabsProps) => {
     </div>
   )
 }
+
+const TechnicalSpecsTab = ({ product }: ProductTabsProps) => {
+  const specs = (product.metadata?.specs as Record<string, string>) || {}
+
+  const specList = [
+    { label: "Processor", value: specs.processor },
+    { label: "Memory (RAM)", value: specs.ram },
+    { label: "Storage", value: specs.storage },
+    { label: "Graphics", value: specs.gpu },
+    { label: "Screen Size", value: specs.screen_size },
+    { label: "Condition", value: specs.condition },
+  ].filter(s => s.value)
+
+  if (specList.length === 0) {
+    return (
+      <div className="text-small-regular py-8">
+        <p>No technical specifications available for this product.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="text-small-regular py-8">
+      <div className="grid grid-cols-1 gap-y-4">
+        {specList.map((spec, i) => (
+          <div key={i} className="flex flex-col gap-y-1">
+            <span className="font-semibold text-ui-fg-subtle">{spec.label}</span>
+            <p className="text-ui-fg-base">{spec.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 
 const ProductInfoTab = ({ product }: ProductTabsProps) => {
   return (

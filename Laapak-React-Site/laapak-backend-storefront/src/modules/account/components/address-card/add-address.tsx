@@ -11,6 +11,7 @@ import Modal from "@modules/common/components/modal"
 import { SubmitButton } from "@modules/checkout/components/submit-button"
 import { HttpTypes } from "@medusajs/types"
 import { addCustomerAddress } from "@lib/data/customer"
+import { useTranslation } from "@lib/translations"
 
 const AddAddress = ({
   region,
@@ -21,6 +22,7 @@ const AddAddress = ({
 }) => {
   const [successState, setSuccessState] = useState(false)
   const { state, open, close: closeModal } = useToggleState(false)
+  const { t } = useTranslation()
 
   const [formState, formAction] = useActionState(addCustomerAddress, {
     isDefaultShipping: addresses.length === 0,
@@ -49,31 +51,31 @@ const AddAddress = ({
   return (
     <>
       <button
-        className="border border-ui-border-base rounded-rounded p-5 min-h-[220px] h-full w-full flex flex-col justify-between"
+        className="border border-ui-border-base rounded-rounded p-5 min-h-[220px] h-full w-full flex flex-col justify-between hover:border-laapak-green/50 transition-colors group"
         onClick={open}
         data-testid="add-address-button"
       >
-        <span className="text-base-semi">New address</span>
-        <Plus />
+        <span className="text-base-semi">{t("account.address.new")}</span>
+        <Plus className="group-hover:text-laapak-green transition-colors" />
       </button>
 
       <Modal isOpen={state} close={close} data-testid="add-address-modal">
         <Modal.Title>
-          <Heading className="mb-2">Add address</Heading>
+          <Heading className="mb-2">{t("account.address.add")}</Heading>
         </Modal.Title>
         <form action={formAction}>
           <Modal.Body>
             <div className="flex flex-col gap-y-2">
               <div className="grid grid-cols-2 gap-x-2">
                 <Input
-                  label="First name"
+                  label={t("account.address.first_name")}
                   name="first_name"
                   required
                   autoComplete="given-name"
                   data-testid="first-name-input"
                 />
                 <Input
-                  label="Last name"
+                  label={t("account.address.last_name")}
                   name="last_name"
                   required
                   autoComplete="family-name"
@@ -81,34 +83,34 @@ const AddAddress = ({
                 />
               </div>
               <Input
-                label="Company"
+                label={t("account.address.company")}
                 name="company"
                 autoComplete="organization"
                 data-testid="company-input"
               />
               <Input
-                label="Address"
+                label={t("account.address.address")}
                 name="address_1"
                 required
                 autoComplete="address-line1"
                 data-testid="address-1-input"
               />
               <Input
-                label="Apartment, suite, etc."
+                label={t("account.address.apartment")}
                 name="address_2"
                 autoComplete="address-line2"
                 data-testid="address-2-input"
               />
               <div className="grid grid-cols-[144px_1fr] gap-x-2">
                 <Input
-                  label="Postal code"
+                  label={t("account.address.postal_code")}
                   name="postal_code"
                   required
                   autoComplete="postal-code"
                   data-testid="postal-code-input"
                 />
                 <Input
-                  label="City"
+                  label={t("account.address.city")}
                   name="city"
                   required
                   autoComplete="locality"
@@ -116,7 +118,7 @@ const AddAddress = ({
                 />
               </div>
               <Input
-                label="Province / State"
+                label={t("account.address.province")}
                 name="province"
                 autoComplete="address-level1"
                 data-testid="state-input"
@@ -129,7 +131,7 @@ const AddAddress = ({
                 data-testid="country-select"
               />
               <Input
-                label="Phone"
+                label={t("account.address.phone")}
                 name="phone"
                 autoComplete="phone"
                 data-testid="phone-input"
@@ -150,12 +152,12 @@ const AddAddress = ({
                 type="reset"
                 variant="secondary"
                 onClick={close}
-                className="h-10"
+                className="h-10 rounded-full"
                 data-testid="cancel-button"
               >
-                Cancel
+                {t("account.info.cancel")}
               </Button>
-              <SubmitButton data-testid="save-button">Save</SubmitButton>
+              <SubmitButton data-testid="save-button" className="rounded-full bg-laapak-green">{t("account.address.save")}</SubmitButton>
             </div>
           </Modal.Footer>
         </form>

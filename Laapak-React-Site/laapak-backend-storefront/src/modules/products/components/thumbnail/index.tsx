@@ -3,11 +3,13 @@ import Image from "next/image"
 import React from "react"
 
 import PlaceholderImage from "@modules/common/icons/placeholder-image"
+import Video360 from "@modules/products/components/video-360"
 
 type ThumbnailProps = {
   thumbnail?: string | null
   // TODO: Fix image typings
   images?: any[] | null
+  video360Url?: string | null
   size?: "small" | "medium" | "large" | "full" | "square"
   isFeatured?: boolean
   className?: string
@@ -17,6 +19,7 @@ type ThumbnailProps = {
 const Thumbnail: React.FC<ThumbnailProps> = ({
   thumbnail,
   images,
+  video360Url,
   size = "small",
   isFeatured,
   className,
@@ -41,7 +44,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       )}
       data-testid={dataTestid}
     >
-      <ImageOrPlaceholder image={initialImage} size={size} />
+      <ImageOrPlaceholder image={initialImage} size={size} video360Url={video360Url} />
     </Container>
   )
 }
@@ -49,7 +52,18 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
 const ImageOrPlaceholder = ({
   image,
   size,
-}: Pick<ThumbnailProps, "size"> & { image?: string }) => {
+  video360Url,
+}: Pick<ThumbnailProps, "size" | "video360Url"> & { image?: string }) => {
+  if (video360Url) {
+    return (
+      <Video360
+        src={video360Url}
+        poster={image}
+        className="absolute inset-0 object-contain object-center p-2 w-full h-full"
+      />
+    )
+  }
+
   return image ? (
     <Image
       src={image}

@@ -4,6 +4,7 @@ import { useEffect } from "react"
 
 import useToggleState from "@lib/hooks/use-toggle-state"
 import { useFormStatus } from "react-dom"
+import { useTranslation } from "@lib/translations"
 
 type AccountInfoProps = {
   label: string
@@ -22,11 +23,12 @@ const AccountInfo = ({
   isSuccess,
   isError,
   clearState,
-  errorMessage = "An error occurred, please try again",
+  errorMessage,
   children,
   'data-testid': dataTestid
 }: AccountInfoProps) => {
   const { state, close, toggle } = useToggleState()
+  const { t } = useTranslation()
 
   const { pending } = useFormStatus()
 
@@ -45,7 +47,7 @@ const AccountInfo = ({
     <div className="text-small-regular" data-testid={dataTestid}>
       <div className="flex items-end justify-between">
         <div className="flex flex-col">
-          <span className="uppercase text-ui-fg-base">{label}</span>
+          <span className="uppercase text-ui-fg-subtle font-bold text-[10px] tracking-widest mb-1">{label}</span>
           <div className="flex items-center flex-1 basis-0 justify-end gap-x-4">
             {typeof currentInfo === "string" ? (
               <span className="font-semibold" data-testid="current-info">{currentInfo}</span>
@@ -63,7 +65,7 @@ const AccountInfo = ({
             data-testid="edit-button"
             data-active={state}
           >
-            {state ? "Cancel" : "Edit"}
+            {state ? t("account.info.cancel") : t("account.info.edit")}
           </Button>
         </div>
       </div>
@@ -82,7 +84,7 @@ const AccountInfo = ({
           data-testid="success-message"
         >
           <Badge className="p-2 my-4" color="green">
-            <span>{label} updated succesfully</span>
+            <span>{t("account.info.success")}</span>
           </Badge>
         </Disclosure.Panel>
       </Disclosure>
@@ -101,7 +103,7 @@ const AccountInfo = ({
           data-testid="error-message"
         >
           <Badge className="p-2 my-4" color="red">
-            <span>{errorMessage}</span>
+            <span>{errorMessage || t("account.info.error")}</span>
           </Badge>
         </Disclosure.Panel>
       </Disclosure>
@@ -122,11 +124,11 @@ const AccountInfo = ({
             <div className="flex items-center justify-end mt-2">
               <Button
                 isLoading={pending}
-                className="w-full small:max-w-[140px]"
+                className="w-full small:max-w-[140px] bg-laapak-green hover:bg-laapak-green/90 rounded-full"
                 type="submit"
                 data-testid="save-button"
               >
-                Save changes
+                {t("account.info.save")}
               </Button>
             </div>
           </div>
