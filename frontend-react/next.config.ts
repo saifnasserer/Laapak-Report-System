@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination: `${backendUrl}/api/:path*`,
       },
+      {
+        source: '/medusa/:path*',
+        destination: 'http://82.112.253.29:9001/:path*',
+      },
     ];
   },
 };

@@ -97,7 +97,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
             // Fetch Warranty Alerts and Recent Reports
             const [warrantyRes, allPendingRes, newOrdersRes, settingsRes] = await Promise.all([
                 api.get('/reports/insights/warranty-alerts').catch(() => ({ data: [] })),
-                api.get('/reports?status=pending&limit=50&exclude_inventory=true'),
+                api.get('/reports?status[]=pending&status[]=shipping&limit=50&exclude_inventory=true'),
                 api.get('/reports?status=new_order&limit=20'),
                 api.get('/settings').catch(() => ({ data: {} }))
             ]);
@@ -204,6 +204,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
             'new_order': { label: 'طلب خارجي', variant: 'primary' },
             'cancelled': { label: 'ملغي', variant: 'destructive' },
             'active': { label: 'نشط', variant: 'primary' },
+            'shipping': { label: 'قيد الشحن', variant: 'primary' },
+            'status_shipped': { label: 'تم الشحن', variant: 'success' },
         };
 
         const info = statusMap[status] || { label: status, variant: 'secondary' };
@@ -291,7 +293,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                 <div className="space-y-6">
                     <h2 className="text-2xl font-black flex items-center gap-3 px-2">
                         <Clock size={28} className="text-primary" />
-                        أحدث الطلبات المعلقة
+                        أحدث الطلبات (معلقة / شحن)
                     </h2>
 
                     {isReportsLoading ? (

@@ -272,6 +272,7 @@ router.get('/', async (req, res) => {
             { status: 'pending' },
             { status: 'active' },
             { status: 'new_order' },
+            { status: 'shipping' },
             { status: null }
           ]
         };

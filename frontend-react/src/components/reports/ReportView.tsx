@@ -72,10 +72,11 @@ import { Input } from '@/components/ui/Input';
 import { PaymentMethodModal } from '@/components/invoices/PaymentMethodModal';
 
 // WooCommerce Configuration
-const WOO_BASE_URL = 'https://laapak.com';
-const WOO_CONSUMER_KEY = 'ck_a00837182f934a0f93d63877b3e33e127cefc11b';
-const WOO_CONSUMER_SECRET = 'cs_2186f8d150aa716f9c6b3d1c66e9c96f5e6b209d';
-const ACCESSORIES_CATEGORY_ID = 462;
+const ACCESSORIES_CATEGORY_ID = 'pcat_01KJX49W9EFHXGNJKY27C27X53';
+
+// Medusa Config
+const MEDUSA_PUBLISHABLE_KEY = 'pk_bd9f45a9c0ade51d0ea290181c841fae2ed8e5436cd6fd60285fcd5b80841dfa';
+const MEDUSA_BASE_URL = '/medusa'; // via next.config.ts proxy
 
 interface ReportViewProps {
     id: string;
@@ -182,20 +183,37 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             if (products.length === 0) {
                 try {
                     setIsLoadingProducts(true);
-                    const auth = btoa(`${WOO_CONSUMER_KEY}:${WOO_CONSUMER_SECRET}`);
-                    const response = await axios.get(`${WOO_BASE_URL}/wp-json/wc/v3/products`, {
+                    const response = await axios.get(`${MEDUSA_BASE_URL}/store/products`, {
                         params: {
-                            category: ACCESSORIES_CATEGORY_ID,
-                            status: 'publish',
-                            per_page: 20
+                            category_id: [ACCESSORIES_CATEGORY_ID],
+                            fields: '*variants.prices,*variants',
+                            limit: 50
                         },
                         headers: {
-                            'Authorization': `Basic ${auth}`
+                            'x-publishable-api-key': MEDUSA_PUBLISHABLE_KEY
                         }
                     });
-                    setProducts(response.data);
+
+                    // Map Medusa products to the format expected by the UI
+                    const mappedProducts = response.data.products.map((p: any) => {
+                        // Medusa V2 Price structure: variants[0].prices[0].amount
+                        // Prices are in minor units (e.g., 5000 = 50.00 EGP)
+                        const firstVariant = p.variants?.[0];
+                        const firstPrice = firstVariant?.prices?.[0];
+                        const priceAmount = firstPrice ? firstPrice.amount : 0;
+
+                        return {
+                            id: p.id || p.handle || `product-${Math.random().toString(36).substr(2, 9)}`,
+                            name: p.title,
+                            price: priceAmount,
+                            images: p.images?.map((img: any) => ({ src: img.url })) || [],
+                            description: p.description
+                        };
+                    });
+
+                    setProducts(mappedProducts);
                 } catch (err) {
-                    console.error('Failed to fetch products:', err);
+                    console.error('Failed to fetch products from Medusa:', err);
                 } finally {
                     setIsLoadingProducts(false);
                 }

@@ -67,6 +67,7 @@ router.get('/summary', adminRoleAuth(['superadmin']), async (req, res) => {
                     SUM(COALESCE(ii.cost_price, r.device_price, r.amount, 0)) as total_device_cost 
                 FROM reports r
                 LEFT JOIN invoice_items ii ON r.id = ii.report_id
+                WHERE r.status != 'cancelled'
                 GROUP BY r.supplier_id
             ) r ON s.id = r.supplier_id
             LEFT JOIN (
@@ -120,7 +121,7 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 SELECT SUM(COALESCE(ii.cost_price, r.device_price, r.amount, 0)) as total_device_cost 
                 FROM reports r
                 LEFT JOIN invoice_items ii ON r.id = ii.report_id
-                WHERE r.supplier_id = ?
+                WHERE r.supplier_id = ? AND r.status != 'cancelled'
             ) r ON 1=1
             LEFT JOIN (
                 SELECT SUM(amount) as total_paid 
@@ -152,6 +153,10 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 {
                     model: Report,
                     as: 'reports',
+                    where: {
+                        status: { [Op.ne]: 'cancelled' }
+                    },
+                    required: false,
                     limit: 20,
                     order: [['created_at', 'DESC']],
                     attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'device_price', 'amount'],
