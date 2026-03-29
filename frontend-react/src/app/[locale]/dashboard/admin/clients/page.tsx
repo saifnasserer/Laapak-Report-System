@@ -68,8 +68,9 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
             // Based on backend implementation plan, it's soft delete (status inactive)
             // But usually UI removes it or greys it out. Let's assume we remove from active list if filter hides inactive
             // Or just update local state status
-            setClients(prev => prev.map(c => c.id === id ? { ...c, status: 'inactive' } : c));
+            setClients(prev => prev.map(c => String(c.id) === String(id) ? { ...c, status: 'inactive' } : c));
             setActiveMenuId(null);
+            alert('تم حذف العميل بنجاح (تم نقله للأرشيف)');
         } catch (error) {
             console.error('Failed to delete client:', error);
             alert('فشل حذف العميل');
@@ -197,7 +198,7 @@ export default function ClientsAdminPage({ params }: { params: Promise<{ locale:
                     initialData={currentClient}
                     onSuccess={(client: any) => {
                         if (isEditMode) {
-                            setClients(prev => prev.map(c => c.id === client.id ? client : c));
+                            setClients(prev => prev.map(c => String(c.id) === String(client.id) ? client : c));
                         } else {
                             setClients(prev => [client, ...prev]);
                         }

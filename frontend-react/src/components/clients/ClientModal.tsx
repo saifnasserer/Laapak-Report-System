@@ -61,10 +61,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 : `LPK${formData.orderCode}`;
 
             const payload = {
+                ...(isEditMode ? initialData : {}),
                 ...formData,
                 orderCode: finalOrderCode,
-                // Keep other fields if editing
-                ...(isEditMode ? initialData : {})
             };
 
             let res;

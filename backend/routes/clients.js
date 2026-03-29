@@ -127,6 +127,7 @@ router.post('/', adminAuth, [
 // @access  Private (Admin only)
 router.put('/:id', adminAuth, (req, res) => {
     const { name, phone, email, address, status, orderCode, companyName, taxNumber, notes } = req.body;
+    console.log('Backend: Updating client', req.params.id, 'with data:', { name, phone, status, orderCode });
 
     // Find client
     Client.findByPk(req.params.id)
@@ -177,6 +178,7 @@ router.put('/:id', adminAuth, (req, res) => {
 // @desc    Soft delete a client (set status to inactive)
 // @access  Private (Admin only)
 router.delete('/:id', adminAuth, (req, res) => {
+    console.log('Backend: Deleting (archiving) client:', req.params.id);
     // Find client
     Client.findByPk(req.params.id)
         .then(client => {
