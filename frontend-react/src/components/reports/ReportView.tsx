@@ -263,8 +263,12 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             };
 
             let messageText = `مساء الخير انا راجعت التقرير وجاهز آكد الأوردر\n\n`;
-            messageText += `طريقة الدفع: ${paymentLabels[method]}\n`;
-            messageText += `إجمالي الجهاز والإضافات: ${baseTotal.toLocaleString()} ج.م\n`;
+            messageText += `الجهاز: ${report.device_model}\n`;
+            if (cartItems.length > 0) {
+                messageText += `الإضافات: ${cartItems.map(i => i.name).join(' + ')}\n`;
+            }
+            messageText += `طريقة الدفع: ${paymentLabels[method]}\n\n`;
+            messageText += `الإجمالي (شامل الإضافات): ${baseTotal.toLocaleString()} ج.م\n`;
             if (fee > 0) {
                 messageText += `الرسوم الإضافية: ${fee.toLocaleString()} ج.م ${feeReason}\n`;
             }

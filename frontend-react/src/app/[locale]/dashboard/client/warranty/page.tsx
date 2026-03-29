@@ -129,13 +129,15 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
     const maintenance2StartDate = addDays(startDate, maintenance1Duration);
     const maintenance2 = calculateProgress(maintenance2StartDate, maintenance2Duration);
 
+    const isOverallExpired = maintenance2.isExpired;
+
     const WarrantyCard = ({ title, icon: Icon, data, description }: any) => (
         <Card className="overflow-hidden border border-black/5 bg-white/60 backdrop-blur-sm rounded-[2rem] transition-all hover:border-primary/20">
             <CardContent className="p-8 space-y-6">
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-4">
                         <div className={cn("w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-colors",
-                            data.isExpired ? "bg-destructive/10 text-destructive" :
+                            data.isExpired ? "bg-orange-500/10 text-orange-600" :
                                 data.isNotStarted ? "bg-black/5 text-secondary/40" : "bg-primary/10 text-primary")}>
                             <Icon className="w-6 h-6 md:w-7 md:h-7" />
                         </div>
@@ -145,7 +147,7 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                         </div>
                     </div>
                     <div className={cn("px-3 py-1 md:px-4 md:py-1.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest",
-                        data.isExpired ? "bg-destructive/10 text-destructive" :
+                        data.isExpired ? "bg-orange-500/10 text-orange-600" :
                             data.isNotStarted ? "bg-secondary/10 text-secondary/40" :
                                 "bg-green-500/10 text-green-600")}>
                         {data.isExpired ? 'منتهي' : data.isNotStarted ? 'لم يبدأ' : 'نشط'}
@@ -155,12 +157,12 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                 <div className="space-y-3">
                     <div className="flex justify-between items-end text-[10px] font-black uppercase tracking-widest text-secondary/20">
                         <span>مستوى التقدم</span>
-                        <span className={cn("font-black", data.isExpired ? "text-destructive/40" : "text-primary")}>{Math.round(data.progress)}%</span>
+                        <span className={cn("font-black", data.isExpired ? "text-orange-500/40" : "text-primary")}>{Math.round(data.progress)}%</span>
                     </div>
                     <div className="h-3 bg-black/[0.03] rounded-full overflow-hidden">
                         <div
                             className={cn("h-full rounded-full transition-all duration-1000 ease-out",
-                                data.isExpired ? "bg-destructive/40" :
+                                data.isExpired ? "bg-orange-500/40" :
                                     data.isNotStarted ? "bg-black/[0.05]" :
                                         "bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]")}
                             style={{ width: `${data.progress}%` }}
@@ -275,8 +277,16 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                 ) : (
                     <>
                         {/* Device Info Summary */}
-                        <div className="bg-white/60 backdrop-blur-md p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-black/5 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-8 md:p-12 opacity-[0.03] rotate-12 group-hover:scale-110 transition-transform duration-1000 pointer-events-none">
+                        <div className={cn(
+                            "p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border relative overflow-hidden group transition-all duration-700",
+                            isOverallExpired
+                                ? "bg-orange-50/40 backdrop-blur-md border-orange-200/50 shadow-sm"
+                                : "bg-white/60 backdrop-blur-md border-black/5"
+                        )}>
+                            <div className={cn(
+                                "absolute top-0 right-0 p-8 md:p-12 opacity-[0.03] rotate-12 group-hover:scale-110 transition-transform duration-1000 pointer-events-none",
+                                isOverallExpired ? "text-orange-950" : "text-black"
+                            )}>
                                 <ShieldCheck size={200} className="md:w-[280px] md:h-[280px]" />
                             </div>
                             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -285,14 +295,25 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                                         <div className="px-4 py-1.5 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-[0.2em]">
                                             الجهاز المؤمن
                                         </div>
-                                        <div className="px-4 py-1.5 bg-green-500/10 text-green-600 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                            حماية نشطة
+                                        <div className={cn(
+                                            "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2",
+                                            isOverallExpired
+                                                ? "bg-orange-500/10 text-orange-600"
+                                                : "bg-green-500/10 text-green-600"
+                                        )}>
+                                            <div className={cn(
+                                                "w-1.5 h-1.5 rounded-full",
+                                                isOverallExpired ? "bg-orange-500" : "bg-green-500 animate-pulse"
+                                            )} />
+                                            {isOverallExpired ? 'حماية منتهية' : 'حماية نشطة'}
                                         </div>
                                     </div>
 
                                     <div className="space-y-1">
-                                        <h2 className="text-2xl md:text-5xl font-black text-secondary tracking-tight">{latestReport.device_model}</h2>
+                                        <h2 className={cn(
+                                            "text-2xl md:text-5xl font-black tracking-tight",
+                                            isOverallExpired ? "text-secondary/70" : "text-secondary"
+                                        )}>{latestReport.device_model}</h2>
                                         <div className="flex items-center gap-3">
                                             <span className="text-[9px] md:text-[10px] font-black text-secondary/20 uppercase tracking-[0.2em] md:tracking-[0.3em]">Serial Number:</span>
                                             <span className="text-xs md:text-sm font-mono font-bold text-secondary/60 bg-surface-variant/20 px-2 md:px-3 py-0.5 md:py-1 rounded-lg">{latestReport.serial_number || 'N/A'}</span>
@@ -302,7 +323,7 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                                     <div className="flex flex-wrap items-center gap-6">
                                         <div className="flex flex-col gap-2">
                                             <div className="flex items-center gap-3 bg-white/40 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-black/[0.03]">
-                                                <Calendar size={16} className="text-primary/40" />
+                                                <Calendar size={16} className={cn(isOverallExpired ? "text-orange-500/40" : "text-primary/40")} />
                                                 <div className="flex flex-col">
                                                     <span className="text-[8px] md:text-[9px] font-black text-secondary/20 uppercase">تاريخ التفعيل</span>
                                                     <span className="text-xs md:text-sm font-bold text-secondary">{format(startDate, 'dd MMMM yyyy', { locale: ar })}</span>
@@ -313,7 +334,7 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-3 bg-white/40 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-black/[0.03]">
-                                            <ShieldCheck size={16} className="text-primary/40" />
+                                            <ShieldCheck size={16} className={cn(isOverallExpired ? "text-orange-500/40" : "text-primary/40")} />
                                             <div className="flex flex-col">
                                                 <span className="text-[8px] md:text-[9px] font-black text-secondary/20 uppercase">نوع الضمان</span>
                                                 <span className="text-xs md:text-sm font-bold text-secondary text-nowrap">ضمان لابك الرسمي (12 شهر)</span>
@@ -322,15 +343,32 @@ function WarrantyPageContent({ params }: { params: Promise<{ locale: string }> }
                                     </div>
                                 </div>
 
-                                {/* <div className="flex items-center gap-4 bg-primary/5 p-6 rounded-[2rem] border border-primary/10">
-                                    <div className="text-right">
-                                        <p className="text-[9px] font-black text-primary/40 uppercase tracking-widest mb-1">الموقع المعتمد</p>
-                                        <p className="text-lg font-black text-secondary">فرع الكرادة - بغداد</p>
+                                {isOverallExpired ? (
+                                    <div className="flex flex-col gap-3 shrink-0">
+                                        <Button
+                                            className="rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black px-8 h-14 shadow-lg shadow-orange-500/20 group/btn"
+                                            onClick={() => router.push(`/dashboard/client/services`)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Settings className="group-hover/btn:rotate-90 transition-transform duration-500" size={20} />
+                                                طلب صيانة مدفوعة
+                                            </div>
+                                        </Button>
+                                        <p className="text-[10px] text-orange-900/40 font-bold text-center">
+                                            الضمان انتهى، الصيانة الاحترافية متاحة دائماً
+                                        </p>
                                     </div>
-                                    <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-                                        <CheckCircle2 size={28} />
+                                ) : (
+                                    <div className="flex items-center gap-4 bg-primary/5 p-6 rounded-[2rem] border border-primary/10">
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black text-primary/40 uppercase tracking-widest mb-1">الموقع المعتمد</p>
+                                            <p className="text-lg font-black text-secondary">فرع القاهرة - مصر</p>
+                                        </div>
+                                        <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+                                            <CheckCircle2 size={28} />
+                                        </div>
                                     </div>
-                                </div> */}
+                                )}
                             </div>
                         </div>
 
