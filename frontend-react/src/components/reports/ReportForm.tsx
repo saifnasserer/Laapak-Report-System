@@ -136,7 +136,10 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         invoice_items: [] as { name: string, price: string }[],
         status: 'pending',
         invoice_id: null as string | null,
-        update_description: ''
+        update_description: '',
+        payment_method: '' as string,
+        is_confirmed: false as boolean,
+        selected_accessories: [] as any[]
     });
 
     const searchParams = useSearchParams();
@@ -212,7 +215,11 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         discount: r.discount || '0',
                         invoice_items: invoiceItems,
                         status: r.status || 'pending',
-                        invoice_id: r.invoice_id || null
+                        invoice_id: r.invoice_id || null,
+                        update_description: '',
+                        payment_method: r.payment_method || '',
+                        is_confirmed: !!r.is_confirmed,
+                        selected_accessories: typeof r.selected_accessories === 'string' ? JSON.parse(r.selected_accessories) : (r.selected_accessories || [])
                     });
                 }
             } catch (err) {
@@ -226,16 +233,31 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     }, [reportId]);
 
     const handleClientSelect = (client: any) => {
-        setFormData(prev => ({
-            ...prev,
-            client_id: client.id,
-            client_name: client.name,
-            client_phone: client.phone,
-            client_address: client.address || '',
-            device_source: ''
-        }));
+        setFormData(prev => {
+            const isNewClient = prev.client_id !== '' && String(client.id) !== String(prev.client_id);
+            return {
+                ...prev,
+                client_id: client.id,
+                client_name: client.name,
+                client_phone: client.phone,
+                client_address: client.address || '',
+                device_source: '',
+                // Reset only client-specific confirmation/payment details when switching clients
+                ...(isNewClient ? {
+                    payment_method: '',
+                    is_confirmed: false,
+                    invoice_items: [],
+                    selected_accessories: [],
+                    invoice_id: null,
+                    status: 'pending'
+                    // NOTE: amount, billing_enabled, and device_price are NOT reset
+                    // because they belong to the device, not the client
+                } : {})
+            };
+        });
         setShowClientResults(false);
     };
+
 
     const handleSupplierSelect = (supplier: any) => {
         setFormData(prev => ({
@@ -404,7 +426,10 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     ...formData.test_screenshots.filter(s => s.url)
                 ]),
                 invoice_items: JSON.stringify(formData.invoice_items),
-                update_description: isUpdateMode ? formData.update_description : undefined
+                update_description: isUpdateMode ? formData.update_description : undefined,
+                payment_method: formData.payment_method,
+                is_confirmed: formData.is_confirmed,
+                selected_accessories: JSON.stringify(formData.selected_accessories)
             };
 
             let reportId_final = reportId;

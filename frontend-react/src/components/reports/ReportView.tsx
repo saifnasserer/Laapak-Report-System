@@ -164,7 +164,10 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 }
 
                 if (reportData.selected_accessories) {
-                    setCartItems(reportData.selected_accessories);
+                    const accessories = typeof reportData.selected_accessories === 'string'
+                        ? JSON.parse(reportData.selected_accessories)
+                        : reportData.selected_accessories;
+                    setCartItems(Array.isArray(accessories) ? accessories : []);
                 }
                 setError(null);
             } catch (err: any) {
@@ -1530,6 +1533,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             <AnimatePresence>
                 {selectedImage && (
                     <motion.div
+                        key="image-lightbox"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -1563,6 +1567,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
                 {/* WhatsApp Share Modal */}
                 <WhatsAppShareModal
+                    key="whatsapp-share-modal"
                     isOpen={shareModalOpen}
                     onClose={() => setShareModalOpen(false)}
                     report={report}
@@ -1570,6 +1575,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 />
 
                 <TrackingCodeModal
+                    key="tracking-code-modal"
                     isOpen={showTrackingModal}
                     onClose={() => {
                         setShowTrackingModal(false);
@@ -1584,6 +1590,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 />
 
                 <PaymentMethodModal
+                    key="payment-method-modal"
                     isOpen={showPaymentModal}
                     onClose={() => {
                         setShowPaymentModal(false);

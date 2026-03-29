@@ -98,44 +98,21 @@ export default function InventoryPage({ params }: { params: Promise<{ locale: st
             setIsSelling(true);
             let finalClient = selectedClient;
 
-            const invoicePayload = {
-                client_id: finalClient.id,
-                date: new Date().toISOString().split('T')[0],
-                items: [{
-                    description: `${selectedReportForSale.device_model}`,
-                    amount: salePrice,
-                    quantity: 1,
-                    report_id: selectedReportForSale.id,
-                    cost_price: Number(selectedReportForSale.device_price) || 0
-                }],
-                subtotal: parseFloat(salePrice),
-                taxRate: 0,
-                tax: 0,
-                discount: 0,
-                total: parseFloat(salePrice),
-                paymentMethod: 'cash',
-                paymentStatus: 'unpaid',
-                notes: `بيع جهاز من المخزن. المصدر: ${getSourceFromNotes(selectedReportForSale.notes)}`,
-                report_ids: [selectedReportForSale.id]
-            };
-
-            const invoiceRes = await api.post('/invoices', invoicePayload);
-
             await api.put(`/reports/${selectedReportForSale.id}`, {
-                status: 'completed',
+                status: 'pending',
                 client_id: finalClient.id,
                 client_name: finalClient.name,
                 client_phone: finalClient.phone,
                 client_address: finalClient.address || '-',
-                created_at: new Date().toISOString(),
+                amount: salePrice,
                 updated_at: new Date().toISOString(),
                 inspection_date: new Date().toISOString(),
                 notes: selectedReportForSale.notes + `\nSOLD TO: ${finalClient.name} on ${new Date().toLocaleDateString()}`
             });
 
             setIsSellModalOpen(false);
-            router.push(`/dashboard/admin/invoices?highlight=${invoiceRes.data.id}`);
             setReports(prev => prev.filter(r => r.id !== selectedReportForSale.id));
+            alert('تم نقل الجهاز بنجاح. يمكنك الآن إتمام البيع من صفحة التقرير.');
 
         } catch (err) {
             console.error('Sale failed:', err);

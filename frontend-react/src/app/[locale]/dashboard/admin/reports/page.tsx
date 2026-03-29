@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check, Package, RefreshCw } from 'lucide-react';
+import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check, Package, RefreshCw, Copy } from 'lucide-react';
 import Image from 'next/image';
 
 import api from '@/lib/api';
@@ -246,6 +246,46 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         } catch (err) {
             console.error('Failed to delete report:', err);
             alert('فشل في حذف التقرير');
+        }
+    };
+
+    const handleDuplicateReport = async (reportId: string | number) => {
+        try {
+            const response = await api.get(`/reports/${reportId}`);
+            const sourceReport = response.data;
+
+            // Clone data and reset fields
+            const {
+                id,
+                created_at,
+                updated_at,
+                inspection_date,
+                createdAt,
+                updatedAt,
+                inspectionDate,
+                invoice_id,
+                invoice_created,
+                invoice_date,
+                is_confirmed,
+                ...clonedData
+            } = sourceReport;
+
+            const duplicatePayload = {
+                ...clonedData,
+                status: 'pending',
+                is_confirmed: false,
+                notes: (clonedData.notes || '') + '\n(Duplicate of #' + id + ')',
+            };
+
+            const createResponse = await api.post('/reports', duplicatePayload);
+            const newReport = createResponse.data;
+
+            setReports(prev => [newReport, ...prev]);
+            alert('تم تكرار التقرير بنجاح');
+            setActiveMenuId(null);
+        } catch (err) {
+            console.error('Failed to duplicate report:', err);
+            alert('فشل في تكرار التقرير');
         }
     };
 
@@ -591,19 +631,41 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                     const source = prompt('أدخل تفاصيل المصدر (اختياري):', '');
                                     const sourceNote = source ? `\nSource: ${source}` : '';
 
-                                    // 3. Update Reports
+                                    // 3. Update Reports - reset all client-specific data
                                     await Promise.all(selectedReportIds.map(id =>
                                         api.put(`/reports/${id}`, {
                                             client_id: laapakClient.id,
-                                            client_name: laapakClient.name, // Update denormalized name
-                                            notes: (reports.find(r => r.id === id)?.notes || '') + sourceNote
+                                            client_name: laapakClient.name,
+                                            notes: (reports.find(r => r.id === id)?.notes || '') + sourceNote,
+                                            // Reset all client-specific confirmation/billing data
+                                            payment_method: '',
+                                            is_confirmed: false,
+                                            selected_accessories: JSON.stringify([]),
+                                            invoice_items: JSON.stringify([]),
+                                            billing_enabled: false,
+                                            amount: 0,
+                                            invoice_id: null,
+                                            status: 'pending'
                                         })
                                     ));
 
                                     // 4. Update Local State
                                     setReports(prev => prev.map(r =>
                                         selectedReportIds.includes(r.id)
-                                            ? { ...r, client_id: laapakClient.id, client_name: laapakClient.name, notes: r.notes + sourceNote }
+                                            ? {
+                                                ...r,
+                                                client_id: laapakClient.id,
+                                                client_name: laapakClient.name,
+                                                notes: (r.notes || '') + sourceNote,
+                                                payment_method: null,
+                                                is_confirmed: false,
+                                                selected_accessories: [],
+                                                invoice_items: [],
+                                                billing_enabled: false,
+                                                amount: 0,
+                                                invoice_id: null,
+                                                status: 'pending'
+                                            }
                                             : r
                                     ));
 
@@ -722,6 +784,16 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         >
                             <span className="text-[#25D366]">مشاركة واتساب</span>
                             <Share2 size={16} className="text-[#25D366]" />
+                        </button>
+
+                        <button
+                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
+                            onClick={() => {
+                                handleDuplicateReport(activeMenuId);
+                            }}
+                        >
+                            <span>تكرار التقرير (Duplicate)</span>
+                            <Copy size={16} className="text-primary" />
                         </button>
                         <div className="h-[1px] bg-black/5 mx-2 my-1" />
                         <button
