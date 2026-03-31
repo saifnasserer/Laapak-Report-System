@@ -238,13 +238,14 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                         {activeTab === 'reports' ? (
                             <div className="space-y-4">
                                 {supplier.reports && supplier.reports.length > 0 ? supplier.reports.map((r: any) => {
-                                    const displayCost = Number(r.device_price || 0);
+                                    // Calculate display cost and sell price from invoiceItems if they exist, otherwise fall back to report fields
+                                    const displayCost = (r.invoiceItems && r.invoiceItems.length > 0)
+                                        ? r.invoiceItems.reduce((sum: number, item: any) => sum + Number(item.cost_price || 0), 0)
+                                        : Number(r.device_price || 0);
 
-                                    const invoiceSellPrice = r.invoiceItems?.[0]?.totalAmount;
-                                    const reportSellPrice = r.amount;
-                                    const displaySellPrice = (invoiceSellPrice !== null && invoiceSellPrice !== undefined && Number(invoiceSellPrice) > 0)
-                                        ? Number(invoiceSellPrice)
-                                        : Number(reportSellPrice || 0);
+                                    const displaySellPrice = (r.invoiceItems && r.invoiceItems.length > 0)
+                                        ? r.invoiceItems.reduce((sum: number, item: any) => sum + Number(item.totalAmount || 0), 0)
+                                        : Number(r.amount || 0);
 
                                     const hasMissingCost = displayCost === 0;
 

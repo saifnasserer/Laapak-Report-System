@@ -22,6 +22,7 @@ import {
     DollarSign,
     Receipt,
     ArrowUpRight,
+    Tag,
     Loader2
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
@@ -33,6 +34,13 @@ export default function ProfitManagementPage() {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [data, setData] = useState<any[]>([]);
+    const [kpis, setKpis] = useState({
+        totalRevenue: 0,
+        totalCost: 0,
+        totalExpenses: 0,
+        netProfit: 0,
+        profitMargin: 0
+    });
     const [search, setSearch] = useState('');
 
     // Logic: Week Navigation
@@ -71,6 +79,9 @@ export default function ProfitManagementPage() {
             if (response.data.success) {
                 if (page === 1) {
                     setData(response.data.data.items);
+                    if (response.data.data.kpis) {
+                        setKpis(response.data.data.kpis);
+                    }
                 } else {
                     setData(prev => [...prev, ...response.data.data.items]);
                 }
@@ -194,18 +205,85 @@ export default function ProfitManagementPage() {
                         </div>
 
                         {/* Week Navigator */}
-                        <div className="flex items-center bg-white/60 backdrop-blur-md rounded-full border border-primary/20 p-1 self-start md:self-center">
-                            <Button variant="ghost" size="icon" onClick={handlePrevWeek} className="rounded-full hover:bg-white/80 w-10 h-10">
-                                <ChevronRight className="h-4 w-4" />
+                        <div className="flex items-center bg-white/60 backdrop-blur-md rounded-full border-2 border-primary/20 p-1.5 self-start md:self-center shadow-sm">
+                            <Button variant="ghost" size="icon" onClick={handlePrevWeek} className="rounded-full hover:bg-white/80 w-10 h-10 transition-colors">
+                                <ChevronRight size={18} />
                             </Button>
-                            <div className="px-5 py-1 text-sm font-bold font-mono">
+                            <div className="px-6 py-1 text-sm font-black font-mono text-secondary/80 min-w-[160px] text-center">
                                 {format(dateRange.startDate, 'dd MMM', { locale: ar })} - {format(dateRange.endDate, 'dd MMM', { locale: ar })}
                             </div>
-                            <Button variant="ghost" size="icon" onClick={handleNextWeek} className="rounded-full hover:bg-white/80 w-10 h-10">
-                                <ChevronLeft className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" onClick={handleNextWeek} className="rounded-full hover:bg-white/80 w-10 h-10 transition-colors">
+                                <ChevronLeft size={18} />
                             </Button>
                         </div>
+                    </div>
 
+                    {/* KPI Dashboard - Money Management Style */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Total Sales Card */}
+                        <div className="bg-primary/5 border-2 border-primary/10 rounded-[2.5rem] p-8 flex items-center justify-between overflow-hidden relative group shadow-sm hover:shadow-md transition-all duration-300">
+                            <div className="absolute -right-6 -bottom-6 text-primary/5 transition-transform duration-500 group-hover:scale-110 pointer-events-none">
+                                <DollarSign size={140} />
+                            </div>
+                            <div className="relative z-10">
+                                <p className="text-sm font-black text-primary/60 mb-2 uppercase tracking-widest">إجمالي المبيعات (الفواتير)</p>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-4xl font-black font-mono text-primary leading-none">{kpis.totalRevenue.toLocaleString()}</span>
+                                    <span className="text-sm font-black text-primary/40 uppercase">ج.م</span>
+                                </div>
+                            </div>
+                            <div className="w-16 h-16 bg-primary/10 rounded-[1.5rem] flex items-center justify-center text-primary relative z-10 shadow-inner">
+                                <DollarSign size={32} />
+                            </div>
+                        </div>
+
+                        {/* Net Profit Card */}
+                        <div className={`border-2 rounded-[2.5rem] p-8 flex items-center justify-between overflow-hidden relative group shadow-sm hover:shadow-md transition-all duration-300
+                            ${kpis.netProfit >= 0 ? 'bg-green-500/[0.03] border-green-500/10' : 'bg-red-500/[0.03] border-red-500/10'}`}>
+                            <div className={`absolute -right-6 -bottom-6 transition-transform duration-500 group-hover:scale-110 pointer-events-none
+                                ${kpis.netProfit >= 0 ? 'text-green-500/5' : 'text-red-500/5'}`}>
+                                <TrendingUp size={140} />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <p className={`text-sm font-black uppercase tracking-widest ${kpis.netProfit >= 0 ? 'text-green-600/60' : 'text-red-600/60'}`}>صافي الربح</p>
+                                    <Badge variant={kpis.profitMargin >= 0 ? 'success' : 'destructive'} className="text-[10px] font-black h-5 px-2 rounded-lg py-0">
+                                        {kpis.profitMargin.toFixed(1)}%
+                                    </Badge>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className={`text-4xl font-black font-mono leading-none ${kpis.netProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                        {kpis.netProfit.toLocaleString()}
+                                    </span>
+                                    <span className={`text-sm font-black uppercase ${kpis.netProfit >= 0 ? 'text-green-600/40' : 'text-red-600/40'}`}>ج.م</span>
+                                </div>
+                            </div>
+                            <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center relative z-10 shadow-inner
+                                ${kpis.netProfit >= 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-500'}`}>
+                                <TrendingUp size={32} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Cost Summary Row */}
+                    <div className="bg-white/30 backdrop-blur-sm border-2 border-primary/5 rounded-[2rem] p-4 shadow-sm">
+                        <div className="flex items-center justify-between px-4">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-600">
+                                    <Receipt size={24} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5">تكلفة البضائع المبيعة (COGS)</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-2xl font-black font-mono text-secondary">{kpis.totalCost.toLocaleString()}</span>
+                                        <span className="text-xs font-black text-secondary/30">ج.م</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="text-[10px] font-bold text-secondary/30 max-w-[200px] text-left leading-relaxed">
+                                يتم احتساب التكلفة بناءً على سعر شراء كل صنف في الفواتير المدفوعة
+                            </p>
+                        </div>
                     </div>
 
                     {/* Filters Bar */}
@@ -240,42 +318,47 @@ export default function ProfitManagementPage() {
                         </div>
                     ) : filteredData.length > 0 ? (
                         filteredData.map((inv: any) => {
-                            const hasMissingCost = !inv.total_cost || Number(inv.total_cost) === 0;
-                            const isProfitable = Number(inv.total_profit) > 0;
+                            const isExpense = inv.type === 'expense';
+                            const hasMissingCost = !isExpense && (!inv.total_cost || Number(inv.total_cost) === 0);
+                            const isProfitable = !isExpense && Number(inv.total_profit) > 0;
 
                             return (
                                 <div
                                     key={inv.id}
                                     className={`relative group rounded-[3.2rem] p-1 transition-all duration-300 ${hasMissingCost
                                         ? 'bg-gradient-to-l from-amber-500/10 to-transparent hover:from-amber-500/20'
-                                        : 'bg-white/40 hover:bg-white/60'
+                                        : isExpense ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'bg-white/40 hover:bg-white/60'
                                         }`}
                                 >
                                     <div className={`
                                         flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-6 
                                         rounded-[3rem] bg-white/60 backdrop-blur-sm border 
-                                        ${hasMissingCost ? 'border-amber-500/30' : 'border-primary/20'} 
+                                        ${hasMissingCost ? 'border-amber-500/30' : isExpense ? 'border-blue-500/20' : 'border-primary/20'} 
                                         transition-all
                                     `}>
                                         {/* Left: Icon & Info */}
                                         <div className="flex items-center gap-4 w-full md:w-auto">
                                             <div className={`
                                                 w-14 h-14 rounded-3xl flex items-center justify-center shrink-0 shadow-inner
-                                                ${hasMissingCost ? 'bg-amber-500/10 text-amber-600' : 'bg-primary/10 text-primary'}
+                                                ${hasMissingCost ? 'bg-amber-500/10 text-amber-600' : isExpense ? 'bg-blue-500/10 text-blue-600' : 'bg-primary/10 text-primary'}
                                             `}>
-                                                <Receipt size={24} />
+                                                {isExpense ? <Tag size={24} /> : <Receipt size={24} />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-bold text-foreground truncate">{inv.client_name}</h3>
-                                                    <span className="text-xs font-mono text-secondary/40">#{inv.invoice_id}</span>
+                                                    <h3 className="font-bold text-foreground truncate">
+                                                        {isExpense ? inv.description : inv.client_name}
+                                                    </h3>
+                                                    <span className="text-xs font-mono text-secondary/40">
+                                                        {isExpense ? (inv.category || 'مصروف') : `#${inv.invoice_id}`}
+                                                    </span>
                                                 </div>
                                                 <div className="flex items-center gap-3 text-sm">
                                                     <span className="text-secondary/60 flex items-center gap-1">
                                                         <Calendar size={12} />
                                                         {format(new Date(inv.date), 'yyyy-MM-dd')}
                                                     </span>
-                                                    {Boolean(inv.total_cost) && Number(inv.total_cost) > 0 && (
+                                                    {!isExpense && Boolean(inv.total_cost) && Number(inv.total_cost) > 0 && (
                                                         <span className="text-secondary/40 font-mono text-xs bg-surface-variant px-2 py-0.5 rounded-full">
                                                             ت: {Number(inv.total_cost).toLocaleString()}
                                                         </span>
@@ -284,37 +367,54 @@ export default function ProfitManagementPage() {
                                             </div>
                                         </div>
 
-                                        {/* Middle: Status Warning if missing cost */}
-                                        {hasMissingCost && (
-                                            <div className="hidden md:flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-full border border-amber-100">
-                                                <AlertCircle size={16} />
-                                                <span className="text-xs font-bold">يرجى تحديد التكلفة</span>
-                                            </div>
-                                        )}
+                                        {/* Middle: Status Badge */}
+                                        <div className="hidden md:flex items-center gap-2">
+                                            {hasMissingCost && (
+                                                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-full border border-amber-100">
+                                                    <AlertCircle size={16} />
+                                                    <span className="text-xs font-bold">يرجى تحديد التكلفة</span>
+                                                </div>
+                                            )}
+                                            {isExpense && (
+                                                <Badge 
+                                                    variant="outline" 
+                                                    className={`
+                                                        border-none px-4 py-2 rounded-full font-bold text-xs
+                                                        ${inv.supplier_id ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}
+                                                    `}
+                                                >
+                                                    {inv.supplier_id ? 'مدفوع لمورد' : 'معتمد'}
+                                                </Badge>
+                                            )}
+                                        </div>
 
                                         {/* Right: Profit & Actions */}
                                         <div className="flex items-center justify-between w-full md:w-auto gap-6 pl-2">
                                             <div className="text-left">
-                                                <div className="text-xs text-secondary/50 mb-1 font-medium">صافي الربح</div>
-                                                <div className={`font-black text-xl font-mono ${isProfitable ? 'text-green-600' : hasMissingCost ? 'text-amber-600' : 'text-red-500'}`}>
-                                                    {hasMissingCost ? '--' : Number(inv.total_profit).toLocaleString()}
+                                                <div className="text-xs text-secondary/50 mb-1 font-medium">
+                                                    {isExpense ? 'المبلغ' : 'صافي الربح'}
+                                                </div>
+                                                <div className={`font-black text-xl font-mono ${isExpense ? 'text-red-500' : isProfitable ? 'text-green-600' : hasMissingCost ? 'text-amber-600' : 'text-red-500'}`}>
+                                                    {isExpense ? `-${Number(inv.amount).toLocaleString()}` : hasMissingCost ? '--' : Number(inv.total_profit).toLocaleString()}
                                                     <span className="text-xs mr-1 opacity-50">ج.م</span>
                                                 </div>
                                             </div>
 
-                                            <Button
-                                                onClick={() => handleOpenEdit(inv)}
-                                                size="icon"
-                                                variant="ghost"
-                                                className={`
-                                                    rounded-full w-10 h-10 transition-all 
-                                                    ${hasMissingCost
-                                                        ? 'bg-amber-500 text-white hover:bg-amber-600'
-                                                        : 'bg-surface-variant hover:bg-primary hover:text-white'}
-                                                `}
-                                            >
-                                                {hasMissingCost ? <Edit2 size={18} /> : <ArrowUpRight size={18} />}
-                                            </Button>
+                                            {!isExpense && (
+                                                <Button
+                                                    onClick={() => handleOpenEdit(inv)}
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className={`
+                                                        rounded-full w-10 h-10 transition-all 
+                                                        ${hasMissingCost
+                                                            ? 'bg-amber-500 text-white hover:bg-amber-600'
+                                                            : 'bg-surface-variant hover:bg-primary hover:text-white'}
+                                                    `}
+                                                >
+                                                    {hasMissingCost ? <Edit2 size={18} /> : <ArrowUpRight size={18} />}
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

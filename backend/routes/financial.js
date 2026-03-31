@@ -16,7 +16,8 @@ const {
     Admin,
     Client,
     MoneyLocation,
-    MoneyMovement
+    MoneyMovement,
+    sequelize
 } = require('../models');
 const { findLocationForPaymentMethod } = require('./invoice-hooks');
 const { Op } = require('sequelize');
@@ -125,7 +126,13 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                         [Op.between]: [startDateStr, endDateStr]
                     },
                     status: ['approved', 'paid'],
-                    type: 'variable' // Only get variable expenses, not fixed profits
+                    // Exclude supplier expenses (linked to COGS)
+                    // and exclude 'Work Costs' (Category 4) and 'Personal Expenses' (Category 3)
+                    // to keep the Expenses card focused on Operating Expenses (OpEx)
+                    supplier_id: null,
+                    category_id: {
+                        [Op.notIn]: [3, 4] // Exclude Personal and Work Costs
+                    }
                 }
             });
 
@@ -381,7 +388,8 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                             [Op.between]: [trendStartStr, trendEndStr]
                         },
                         status: ['approved', 'paid'],
-                        type: 'variable' // Only get variable expenses, not fixed profits
+                        type: 'variable', // Only get variable expenses, not fixed profits
+                        supplier_id: null // Exclude supplier expenses
                     }
                 });
 
@@ -414,7 +422,8 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                         [Op.between]: [startDateStr, endDateStr]
                     },
                     status: ['approved', 'paid'],
-                    type: 'variable' // Only get variable expenses, not fixed profits
+                    type: 'variable', // Only get variable expenses, not fixed profits
+                    supplier_id: null // Exclude supplier expenses
                 },
                 include: [{
                     model: ExpenseCategory,
@@ -499,7 +508,8 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             const prevExpenses = await Expense.findAll({
                 where: {
                     date: { [Op.between]: [prevStartStr, prevEndStr] },
-                    status: 'approved'
+                    status: 'approved',
+                    supplier_id: null // Exclude supplier expenses
                 }
             });
 
@@ -738,13 +748,12 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
 
         // Type filtering (show only invoices, only expenses, or both)
         const results = [];
+        let filteredInvoices = [];
+        let expenses = [];
 
         if (!type || type === 'invoices') {
             try {
                 console.log('Fetching completed/paid invoices first, then filtering...');
-
-                // Use direct SQL query to get ALL invoices with their data
-                const { sequelize } = require('../models');
 
                 // Fetch completed/paid invoices with their cost data (or all if explicitly requested)
                 const showAllInvoices = req.query.showAllInvoices === 'true';
@@ -776,7 +785,7 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
                 console.log(`Total ${showAllInvoices ? 'invoices' : 'completed/paid invoices'} in database: ${allInvoices.length}`);
 
                 // Now filter the results in application layer
-                let filteredInvoices = allInvoices;
+                filteredInvoices = allInvoices;
 
                 // Filter by payment status - ALWAYS show only completed/paid invoices by default
                 if (req.query.paymentStatus && req.query.paymentStatus !== 'all') {
@@ -856,7 +865,7 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
         if (!type || type === 'expenses') {
             try {
                 // Get expenses
-                const expenses = await Expense.findAll({
+                expenses = await Expense.findAll({
                     where: {
                         ...expenseWhere,
                         status: ['approved', 'paid']
@@ -882,7 +891,8 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
                         category: expense.category?.name_ar,
                         amount: parseFloat(expense.amount),
                         expense_type: expense.type,
-                        color: expense.category?.color
+                        color: expense.category?.color,
+                        supplier_id: expense.supplier_id
                     });
                 }
             } catch (expenseError) {
@@ -907,14 +917,64 @@ router.get('/profit-management', adminRoleAuth(['superadmin']), async (req, res)
         console.log(`Sending ${results.length} total results, hasMore: ${hasMore}`);
         console.log('Sample result:', results[0]);
 
+        // --- KPI Calculation for Profit Management ---
+        let kpis = {
+            totalRevenue: 0,
+            totalCost: 0,
+            totalExpenses: 0,
+            netProfit: 0,
+            profitMargin: 0
+        };
+
+        try {
+            // 1. Calculate Revenue & Cost from Invoices in date range
+            const invoiceKpisQuery = `
+                SELECT 
+                    COALESCE(SUM(i.total), 0) as total_revenue,
+                    COALESCE(SUM(cost_data.invoice_cost), 0) as total_cost
+                FROM invoices i
+                LEFT JOIN (
+                    SELECT invoiceId, SUM(cost_price * quantity) as invoice_cost
+                    FROM invoice_items
+                    GROUP BY invoiceId
+                ) cost_data ON i.id = cost_data.invoiceId
+                WHERE i.paymentStatus IN ('completed', 'paid')
+                ${startDate && endDate ? `AND i.date BETWEEN '${startDate}' AND '${endDate}'` : ''}
+            `;
+            const [invoiceKpis] = await sequelize.query(invoiceKpisQuery);
+            kpis.totalRevenue = parseFloat(invoiceKpis[0].total_revenue);
+            kpis.totalCost = parseFloat(invoiceKpis[0].total_cost);
+
+            // 2. Calculate Operating Expenses (Excluding Supplier Expenses) in date range
+            const expenseQuery = {
+                status: ['approved', 'paid'],
+                type: 'variable',
+                supplier_id: null
+            };
+            if (startDate && endDate) {
+                expenseQuery.date = { [Op.between]: [startDate, endDate] };
+            }
+
+            const totalExpensesAmt = await Expense.sum('amount', { where: expenseQuery });
+            kpis.totalExpenses = parseFloat(totalExpensesAmt || 0);
+
+            // 3. Final Calculations
+            kpis.netProfit = kpis.totalRevenue - kpis.totalCost;
+            kpis.profitMargin = kpis.totalRevenue > 0 ? (kpis.netProfit / kpis.totalRevenue) * 100 : 0;
+
+        } catch (kpiError) {
+            console.error('Error calculating KPIs for profit management:', kpiError);
+        }
+
         res.json({
             success: true,
             data: {
                 items: results,
+                kpis: kpis,
                 pagination: {
                     page: parseInt(page),
                     limit: parseInt(limit),
-                    total: results.length,
+                    total: filteredInvoices.length + (type === 'expenses' || !type ? expenses.length : 0),
                     hasMore: hasMore
                 }
             }

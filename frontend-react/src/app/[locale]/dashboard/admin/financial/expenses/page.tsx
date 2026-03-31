@@ -265,8 +265,16 @@ export default function ExpensesPage() {
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            <Badge variant="success" className="bg-green-100 text-green-700 hover:bg-green-200 border-none px-4 py-1.5 rounded-full font-bold text-xs">
-                                                معتمد
+                                            <Badge 
+                                                variant={expense.supplier_id ? "outline" : "success"} 
+                                                className={`
+                                                    border-none px-4 py-1.5 rounded-full font-bold text-xs
+                                                    ${expense.supplier_id 
+                                                        ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' 
+                                                        : 'bg-green-100 text-green-700 hover:bg-green-200'}
+                                                `}
+                                            >
+                                                {expense.supplier_id ? 'مدفوع لمورد' : 'معتمد'}
                                             </Badge>
                                             <Button
                                                 variant="ghost"

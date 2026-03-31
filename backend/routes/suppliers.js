@@ -52,9 +52,9 @@ router.get('/summary', adminRoleAuth(['superadmin']), async (req, res) => {
                 s.phone,
                 s.contact_person,
                 s.status,
-                (COALESCE(pc.total_cost, 0) + COALESCE(r.total_device_cost, 0)) as total_debt,
+                (COALESCE(pc.total_cost, 0) + COALESCE(rc.total_device_cost, 0)) as total_debt,
                 COALESCE(e.total_paid, 0) as total_paid,
-                ((COALESCE(pc.total_cost, 0) + COALESCE(r.total_device_cost, 0)) - COALESCE(e.total_paid, 0)) as balance
+                ((COALESCE(pc.total_cost, 0) + COALESCE(rc.total_device_cost, 0)) - COALESCE(e.total_paid, 0)) as balance
             FROM suppliers s
             LEFT JOIN (
                 SELECT supplier_id, SUM(cost_price) as total_cost 
@@ -64,19 +64,23 @@ router.get('/summary', adminRoleAuth(['superadmin']), async (req, res) => {
             LEFT JOIN (
                 SELECT 
                     r.supplier_id, 
-                    SUM(COALESCE(ii.cost_price, r.device_price, r.amount, 0)) as total_device_cost 
+                    SUM(COALESCE(ri.report_cost, r.device_price, r.amount, 0)) as total_device_cost 
                 FROM reports r
-                LEFT JOIN invoice_items ii ON r.id = ii.report_id
+                LEFT JOIN (
+                    SELECT report_id, SUM(cost_price) as report_cost
+                    FROM invoice_items
+                    WHERE report_id IS NOT NULL
+                    GROUP BY report_id
+                ) ri ON r.id = ri.report_id
                 WHERE r.status != 'cancelled'
                 GROUP BY r.supplier_id
-            ) r ON s.id = r.supplier_id
+            ) rc ON s.id = rc.supplier_id
             LEFT JOIN (
                 SELECT supplier_id, SUM(amount) as total_paid 
                 FROM expenses 
                 WHERE status IN ('approved', 'paid')
                 GROUP BY supplier_id
             ) e ON s.id = e.supplier_id
-            GROUP BY s.id, s.name, s.code, s.phone, s.contact_person, s.status, pc.total_cost, r.total_device_cost, e.total_paid
             ORDER BY s.name ASC
         `);
 
@@ -108,9 +112,9 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
         // Get financial summary only using SQL (safer against ONLY_FULL_GROUP_BY)
         const [financials] = await sequelize.query(`
             SELECT 
-                (COALESCE(pc.total_cost, 0) + COALESCE(r.total_device_cost, 0)) as total_debt,
+                (COALESCE(pc.total_cost, 0) + COALESCE(rc.total_device_cost, 0)) as total_debt,
                 COALESCE(e.total_paid, 0) as total_paid,
-                ((COALESCE(pc.total_cost, 0) + COALESCE(r.total_device_cost, 0)) - COALESCE(e.total_paid, 0)) as balance
+                ((COALESCE(pc.total_cost, 0) + COALESCE(rc.total_device_cost, 0)) - COALESCE(e.total_paid, 0)) as balance
             FROM (SELECT 1 as dummy) d
             LEFT JOIN (
                 SELECT SUM(cost_price) as total_cost 
@@ -118,11 +122,16 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 WHERE supplier_id = ?
             ) pc ON 1=1
             LEFT JOIN (
-                SELECT SUM(COALESCE(ii.cost_price, r.device_price, r.amount, 0)) as total_device_cost 
+                SELECT SUM(COALESCE(ri.report_cost, r.device_price, r.amount, 0)) as total_device_cost 
                 FROM reports r
-                LEFT JOIN invoice_items ii ON r.id = ii.report_id
+                LEFT JOIN (
+                    SELECT report_id, SUM(cost_price) as report_cost
+                    FROM invoice_items
+                    WHERE report_id IS NOT NULL
+                    GROUP BY report_id
+                ) ri ON r.id = ri.report_id
                 WHERE r.supplier_id = ? AND r.status != 'cancelled'
-            ) r ON 1=1
+            ) rc ON 1=1
             LEFT JOIN (
                 SELECT SUM(amount) as total_paid 
                 FROM expenses 
