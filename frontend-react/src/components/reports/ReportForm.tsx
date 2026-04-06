@@ -185,26 +185,25 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     };
 
     const uploadToCatbox = async (file: File) => {
-        const formData = new FormData();
-        formData.append('reqtype', 'fileupload');
-        formData.append('fileToUpload', file);
+        const uploadData = new FormData();
+        uploadData.append('file', file);
 
         try {
-            const response = await fetch('https://catbox.moe/user/api.php', {
+            // Use backend proxy to bypass CORS restrictions
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            const response = await fetch('/api/upload/catbox', {
                 method: 'POST',
-                body: formData,
+                headers: {
+                    ...(token ? { 'x-auth-token': token } : {})
+                },
+                body: uploadData,
             });
 
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(text || `Upload failed with status ${response.status}`);
-            }
-
-            const url = await response.text();
-            if (url.trim().startsWith('http')) {
-                return url.trim();
+            const data = await response.json();
+            if (data.success && data.url) {
+                return data.url;
             } else {
-                console.error('Catbox response error:', url);
+                console.error('Catbox proxy error:', data.error || data);
                 return null;
             }
         } catch (err) {

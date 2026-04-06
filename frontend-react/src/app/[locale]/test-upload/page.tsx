@@ -29,31 +29,28 @@ export default function TestVideoUploadPage() {
         setResult(null);
 
         const formData = new FormData();
-        formData.append("reqtype", "fileupload");
-        formData.append("fileToUpload", file);
+        formData.append("file", file);
 
         try {
-            console.log("Starting Catbox upload for:", file.name, "Size:", file.size);
+            console.log("Starting Catbox upload via proxy for:", file.name, "Size:", file.size);
             
-            // Catbox API endpoint
-            const response = await fetch("https://catbox.moe/user/api.php", {
+            // Use backend proxy to bypass CORS
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            const response = await fetch("/api/upload/catbox", {
                 method: "POST",
+                headers: {
+                    ...(token ? { 'x-auth-token': token } : {})
+                },
                 body: formData,
-                // Do NOT set headers for multipart/form-data, browser handles it
             });
 
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(text || `Upload failed with status ${response.status}`);
-            }
-
-            const url = await response.text();
+            const data = await response.json();
             
-            if (url.trim().startsWith("http")) {
-                setResult(url.trim());
-                console.log("Catbox upload successful:", url);
+            if (data.success && data.url) {
+                setResult(data.url);
+                console.log("Catbox upload successful:", data.url);
             } else {
-                throw new Error(`Invalid response from Catbox: ${url}`);
+                throw new Error(data.error || data.details || "Upload failed");
             }
         } catch (err: any) {
             console.error("Upload error details:", err);
