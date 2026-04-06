@@ -46,7 +46,8 @@ import {
     Bluetooth,
     Link2,
     Trash2,
-    SquareCheck
+    SquareCheck,
+    Loader2
 } from 'lucide-react';
 import {
     Table,
@@ -148,6 +149,180 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
     const [imageInput, setImageInput] = useState('');
     const [videoInput, setVideoInput] = useState('');
+    const [uploadingComponents, setUploadingComponents] = useState<string[]>([]);
+    const [isExternalUploading, setIsExternalUploading] = useState(false);
+    const [isVideoUploading, setIsVideoUploading] = useState(false);
+    const [dragActiveComponent, setDragActiveComponent] = useState<string | null>(null);
+    const [isExternalDragActive, setIsExternalDragActive] = useState(false);
+    const [isVideoDragActive, setIsVideoDragActive] = useState(false);
+
+    const uploadToImgBB = async (file: File) => {
+        const apiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
+        if (!apiKey) {
+            console.error('ImgBB API Key is missing');
+            return null;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            if (data.success) {
+                return data.data.url;
+            } else {
+                console.error('ImgBB response error:', data.error);
+                return null;
+            }
+        } catch (err) {
+            console.error('ImgBB upload error:', err);
+            return null;
+        }
+    };
+
+    const uploadToCatbox = async (file: File) => {
+        const formData = new FormData();
+        formData.append('reqtype', 'fileupload');
+        formData.append('fileToUpload', file);
+
+        try {
+            const response = await fetch('https://catbox.moe/user/api.php', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || `Upload failed with status ${response.status}`);
+            }
+
+            const url = await response.text();
+            if (url.trim().startsWith('http')) {
+                return url.trim();
+            } else {
+                console.error('Catbox response error:', url);
+                return null;
+            }
+        } catch (err) {
+            console.error('Catbox upload error:', err);
+            return null;
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent, componentName: string) => {
+        let file: File | undefined;
+        
+        if ('files' in e.target && e.target.files) {
+            file = e.target.files[0];
+        } else if ('dataTransfer' in e) {
+            e.preventDefault();
+            file = e.dataTransfer.files[0];
+        }
+
+        if (!file) return;
+
+        setUploadingComponents(prev => [...prev, componentName]);
+        const url = await uploadToImgBB(file);
+        if (url) {
+            handleTestScreenshotAdd(componentName, url);
+        } else {
+            alert('فشل رفع الصورة. يرجى المحاولة مرة أخرى.');
+        }
+        setUploadingComponents(prev => prev.filter(c => c !== componentName));
+        setDragActiveComponent(null);
+        
+        if ('target' in e && 'value' in e.target) {
+            (e.target as any).value = '';
+        }
+    };
+
+    const handleExternalImageUploadCore = async (files: FileList | File[]) => {
+        const fileArray = Array.from(files);
+        if (fileArray.length === 0) return;
+
+        setIsExternalUploading(true);
+        for (const file of fileArray) {
+            const url = await uploadToImgBB(file);
+            if (url) {
+                setFormData(prev => ({
+                    ...prev,
+                    external_images: [...prev.external_images, { url, type: 'image' }]
+                }));
+            }
+        }
+        setIsExternalUploading(false);
+    };
+
+    const handleExternalImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            handleExternalImageUploadCore(e.target.files);
+            e.target.value = '';
+        }
+    };
+
+    const handleVideoUploadCore = async (files: FileList | File[]) => {
+        const fileArray = Array.from(files);
+        if (fileArray.length === 0) return;
+
+        setIsVideoUploading(true);
+        for (const file of fileArray) {
+            const url = await uploadToCatbox(file);
+            if (url) {
+                setFormData(prev => ({
+                    ...prev,
+                    external_images: [...prev.external_images, { url, type: 'video' }]
+                }));
+            } else {
+                alert('فشل رفع الفيديو. يرجى المحاولة مرة أخرى.');
+            }
+        }
+        setIsVideoUploading(false);
+    };
+
+    const handleVideoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            handleVideoUploadCore(e.target.files);
+            e.target.value = '';
+        }
+    };
+
+    const handleDrag = (e: React.DragEvent, componentName: string | 'external' | 'video', active: boolean) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (componentName === 'external') {
+            setIsExternalDragActive(active);
+        } else if (componentName === 'video') {
+            setIsVideoDragActive(active);
+        } else {
+            setDragActiveComponent(active ? componentName : null);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent, componentName: string | 'external' | 'video') => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (componentName === 'external') {
+            setIsExternalDragActive(false);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleExternalImageUploadCore(e.dataTransfer.files);
+            }
+        } else if (componentName === 'video') {
+            setIsVideoDragActive(false);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleVideoUploadCore(e.dataTransfer.files);
+            }
+        } else {
+            setDragActiveComponent(null);
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFileUpload(e, componentName);
+            }
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -802,42 +977,106 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                             </div>
                                             <h5 className="font-black text-sm">{getComponentTitle(s.component)}</h5>
                                         </div>
-                                        {s.url && (
-                                            <Badge variant="secondary" className="bg-green-500 text-white border-transparent py-1 animate-in zoom-in">تم إرفاق النتيجة</Badge>
-                                        )}
-                                    </div>
-                                    <div className="p-6 space-y-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-1">رابط صورة نتيجة الاختبار</label>
-                                            <Input
-                                                placeholder="https://example.com/image.jpg"
-                                                value={s.url || ''}
-                                                onChange={(e) => handleTestScreenshotAdd(s.component, e.target.value)}
-                                                className={cn(
-                                                    "rounded-full bg-black/[0.02] border-transparent h-11 text-xs",
-                                                    s.url && !isDirectImageLink(s.url) && "border-amber-400/50 bg-amber-50/50"
-                                                )}
-                                                icon={<Link2 size={16} />}
+                                        <div className="flex items-center gap-2">
+                                            <input 
+                                                id={`file-input-${s.component}`}
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={(e) => handleFileUpload(e, s.component)}
                                             />
+                                            {s.url && (
+                                                <Badge variant="secondary" className="bg-green-500 text-white border-transparent py-1 animate-in zoom-in">تم إرفاق النتيجة</Badge>
+                                            )}
                                         </div>
-                                        {s.url && (
-                                            <div className="relative aspect-video rounded-2xl overflow-hidden group/img animate-in fade-in zoom-in duration-300 bg-black/5">
-                                                <img src={s.url} className="w-full h-full object-contain" alt={s.component} />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                    <Button variant="destructive" size="sm" className="rounded-full h-9 text-[10px]" onClick={() => handleTestScreenshotAdd(s.component, '')}>
-                                                        <Trash2 size={14} className="ml-1" /> حذف الصورة
-                                                    </Button>
+                                    </div>
+                                    <div 
+                                        className={cn(
+                                            "p-6 space-y-4 transition-all duration-300",
+                                            dragActiveComponent === s.component && "bg-primary/5 ring-2 ring-primary ring-inset rounded-b-[2rem]"
+                                        )}
+                                        onDragOver={(e) => handleDrag(e, s.component, true)}
+                                        onDragLeave={(e) => handleDrag(e, s.component, false)}
+                                        onDrop={(e) => handleDrop(e, s.component)}
+                                    >
+                                        {!s.url && !uploadingComponents.includes(s.component) ? (
+                                            <div 
+                                                onClick={() => document.getElementById(`file-input-${s.component}`)?.click()}
+                                                className="border-2 border-dashed border-black/10 rounded-2xl p-10 flex flex-col items-center justify-center gap-3 hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group/drop"
+                                            >
+                                                <div className="w-12 h-12 rounded-full bg-black/[0.03] flex items-center justify-center text-secondary/40 group-hover/drop:bg-primary/10 group-hover/drop:text-primary transition-all">
+                                                    <Plus size={24} />
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm font-black text-secondary">اسحب الصورة هنا أو اضغط للرفع</p>
+                                                    <p className="text-[10px] text-secondary/40 font-bold uppercase mt-1">Image or Screenshot</p>
                                                 </div>
                                             </div>
+                                        ) : (
+                                            <>
+                                                {s.url && (
+                                                    <div className="relative aspect-video rounded-2xl overflow-hidden group/img animate-in fade-in zoom-in duration-300 bg-black/5 shadow-inner">
+                                                        <img src={s.url} className="w-full h-full object-contain" alt={s.component} />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                            <Button 
+                                                                variant="destructive" 
+                                                                size="sm" 
+                                                                className="rounded-full h-9 text-[10px]" 
+                                                                onClick={() => handleTestScreenshotAdd(s.component, '')}
+                                                            >
+                                                                <Trash2 size={14} className="ml-1" /> حذف الصورة
+                                                            </Button>
+                                                            <Button 
+                                                                variant="outline" 
+                                                                size="sm" 
+                                                                className="rounded-full h-9 text-[10px] bg-white border-transparent text-primary hover:bg-white/90" 
+                                                                onClick={() => document.getElementById(`file-input-${s.component}`)?.click()}
+                                                            >
+                                                                <Camera size={14} className="ml-1" /> تغيير الصورة
+                                                            </Button>
+                                                        </div>
+                                                        {dragActiveComponent === s.component && (
+                                                            <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in">
+                                                                <div className="bg-white/90 p-4 rounded-2xl shadow-xl flex items-center gap-2 scale-110 transition-transform">
+                                                                    <Plus size={20} className="text-primary" />
+                                                                    <span className="text-sm font-black text-primary">افلت لاستبدال الصورة</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {uploadingComponents.includes(s.component) && !s.url && (
+                                                    <div className="aspect-video rounded-2xl bg-black/[0.02] border border-black/5 flex flex-col items-center justify-center gap-3">
+                                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                                        <p className="text-[10px] font-black text-primary animate-pulse">جاري الرفع...</p>
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
-                                        <div className="pt-2 border-t border-black/5">
-                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-1">ملاحظات فنية على الاختبار</label>
-                                            <Input
-                                                placeholder="اكتب أي ملاحظة فنية هنا..."
-                                                value={s.comment || ''}
-                                                onChange={(e) => handleTestScreenshotComment(s.component, e.target.value)}
-                                                className="rounded-full h-11 text-xs bg-black/[0.02] border-transparent mt-1"
-                                            />
+
+                                        <div className="space-y-4 pt-2">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-1">رابط صورة نتيجة الاختبار (أو اسحبها أعلاه)</label>
+                                                <Input
+                                                    placeholder="https://example.com/image.jpg"
+                                                    value={s.url || ''}
+                                                    onChange={(e) => handleTestScreenshotAdd(s.component, e.target.value)}
+                                                    className={cn(
+                                                        "rounded-full bg-black/[0.02] border-transparent h-11 text-xs",
+                                                        s.url && !isDirectImageLink(s.url) && "border-amber-400/50 bg-amber-50/50"
+                                                    )}
+                                                    icon={<Link2 size={16} />}
+                                                />
+                                            </div>
+                                            <div className="pt-2 border-t border-black/5">
+                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-1">ملاحظات فنية على الاختبار</label>
+                                                <Input
+                                                    placeholder="اكتب أي ملاحظة فنية هنا..."
+                                                    value={s.comment || ''}
+                                                    onChange={(e) => handleTestScreenshotComment(s.component, e.target.value)}
+                                                    className="rounded-full h-11 text-xs bg-black/[0.02] border-transparent mt-1"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -857,17 +1096,57 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                             </CardHeader>
                             <CardContent className="p-8 space-y-10">
                                 <div className="space-y-6">
-                                    <div className="flex flex-col md:flex-row items-center gap-4 bg-black/[0.01] p-2 pr-6 rounded-full border border-black/5">
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest flex items-center gap-2">
-                                                <ImageIcon size={14} />
-                                                صور الجهاز
-                                            </h4>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 px-2">
+                                            <ImageIcon size={14} className="text-primary/60" />
+                                            <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest">صور الجهاز (خارجي)</h4>
                                         </div>
-                                        <div className="flex flex-1 gap-2 w-full">
+
+                                        <div 
+                                            className={cn(
+                                                "border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center gap-4 transition-all duration-300 cursor-pointer overflow-hidden relative w-full",
+                                                isExternalDragActive 
+                                                    ? "border-primary bg-primary/[0.05] ring-4 ring-primary/10 ring-inset" 
+                                                    : "border-black/5 bg-black/[0.01] hover:bg-black/[0.02] hover:border-black/10"
+                                            )}
+                                            onDragOver={(e) => handleDrag(e, 'external', true)}
+                                            onDragLeave={(e) => handleDrag(e, 'external', false)}
+                                            onDrop={(e) => handleDrop(e, 'external')}
+                                            onClick={() => document.getElementById('external-image-upload')?.click()}
+                                        >
+                                            <input 
+                                                id="external-image-upload"
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={handleExternalImageInputChange}
+                                            />
+                                            {isExternalUploading && (
+                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 z-10">
+                                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                                    <p className="text-xs font-black text-primary animate-pulse">جاري رفع الصور...</p>
+                                                </div>
+                                            )}
+                                            <div className={cn(
+                                                "w-16 h-16 rounded-full flex items-center justify-center transition-all",
+                                                isExternalDragActive ? "bg-primary text-white scale-110" : "bg-primary/10 text-primary"
+                                            )}>
+                                                <ImageIcon size={32} />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-lg font-black text-secondary">اسحب صور الجهاز هنا</p>
+                                                <p className="text-sm text-secondary/40 font-bold mt-1">سيتم رفع الصور تلقائياً وتحويلها لروابط</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 bg-black/[0.01] p-1 pr-5 rounded-full border border-black/5">
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <Link2 size={14} className="text-secondary/30" />
+                                            </div>
                                             <Input
                                                 id="device-image-url-input"
-                                                placeholder="رابط الصورة..."
+                                                placeholder="أو أضف رابط صورة يدوياً هنا..."
                                                 value={imageInput}
                                                 onChange={(e) => setImageInput(e.target.value)}
                                                 onKeyDown={(e) => {
@@ -876,10 +1155,9 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                         handleDeviceImageAdd();
                                                     }
                                                 }}
-                                                className="rounded-full border-transparent bg-white h-11 text-xs flex-1 focus:border-primary/20 transition-all font-medium"
-                                                icon={<Link2 size={14} />}
+                                                className="rounded-full border-transparent bg-transparent h-11 text-xs flex-1 focus:ring-0 font-medium"
                                             />
-                                            <Button type="button" onClick={handleDeviceImageAdd} className="rounded-full h-11 px-6 shadow-md shadow-primary/10 text-xs font-bold" icon={<Plus size={16} />}>إضافة</Button>
+                                            <Button type="button" onClick={handleDeviceImageAdd} className="rounded-full h-10 px-6 shadow-md shadow-primary/10 text-xs font-bold" icon={<Plus size={16} />}>إضافة</Button>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -895,17 +1173,56 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                 </div>
 
                                 <div className="pt-10 border-t border-black/[0.03] space-y-6">
-                                    <div className="flex flex-col md:flex-row items-center gap-4 bg-black/[0.01] p-2 pr-6 rounded-full border border-black/5">
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest flex items-center gap-2">
-                                                <Video size={14} />
-                                                فيديو الفحص
-                                            </h4>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 px-2">
+                                            <Video size={14} className="text-primary/60" />
+                                            <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest">فيديو الفحص</h4>
                                         </div>
-                                        <div className="flex flex-1 gap-2 w-full">
+
+                                        <div 
+                                            className={cn(
+                                                "border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center gap-4 transition-all duration-300 cursor-pointer overflow-hidden relative w-full",
+                                                isVideoDragActive 
+                                                    ? "border-primary bg-primary/[0.05] ring-4 ring-primary/10 ring-inset" 
+                                                    : "border-black/5 bg-black/[0.01] hover:bg-black/[0.02] hover:border-black/10"
+                                            )}
+                                            onDragOver={(e) => handleDrag(e, 'video', true)}
+                                            onDragLeave={(e) => handleDrag(e, 'video', false)}
+                                            onDrop={(e) => handleDrop(e, 'video')}
+                                            onClick={() => document.getElementById('external-video-upload')?.click()}
+                                        >
+                                            <input 
+                                                id="external-video-upload"
+                                                type="file"
+                                                className="hidden"
+                                                accept="video/*"
+                                                onChange={handleVideoInputChange}
+                                            />
+                                            {isVideoUploading && (
+                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 z-10">
+                                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                                    <p className="text-xs font-black text-primary animate-pulse">جاري رفع الفيديو...</p>
+                                                </div>
+                                            )}
+                                            <div className={cn(
+                                                "w-16 h-16 rounded-full flex items-center justify-center transition-all",
+                                                isVideoDragActive ? "bg-primary text-white scale-110" : "bg-primary/10 text-primary"
+                                            )}>
+                                                <Video size={32} />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-lg font-black text-secondary">اسحب فيديو الفحص هنا</p>
+                                                <p className="text-sm text-secondary/40 font-bold mt-1">أو اضغط لاختياره من جهازك (UPLOADS TO CATBOX)</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 bg-black/[0.01] p-1 pr-5 rounded-full border border-black/5">
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <Link2 size={14} className="text-secondary/30" />
+                                            </div>
                                             <Input
                                                 id="video-url-input"
-                                                placeholder="رابط يوتيوب أو فيديو..."
+                                                placeholder="أو أضف رابط فيديو يدوياً (YouTube, etc)..."
                                                 value={videoInput}
                                                 onChange={(e) => setVideoInput(e.target.value)}
                                                 onKeyDown={(e) => {
@@ -914,10 +1231,9 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                         handleVideoAdd();
                                                     }
                                                 }}
-                                                className="rounded-full border-transparent bg-white h-11 text-xs flex-1 focus:border-primary/20 transition-all font-medium"
-                                                icon={<Link2 size={14} />}
+                                                className="rounded-full border-transparent bg-transparent h-11 text-xs flex-1 focus:ring-0 font-medium"
                                             />
-                                            <Button type="button" onClick={handleVideoAdd} variant="outline" className="rounded-full h-11 px-6 border-primary/20 text-primary hover:bg-primary/5 text-xs font-bold" icon={<Plus size={16} />}>إضافة</Button>
+                                            <Button type="button" onClick={handleVideoAdd} className="rounded-full h-10 px-6 shadow-md shadow-primary/10 text-xs font-bold" icon={<Plus size={16} />}>إضافة</Button>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
