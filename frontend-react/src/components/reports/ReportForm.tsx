@@ -82,10 +82,10 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     const [step, setStep] = useState(1);
 
     const [quickSpecs, setQuickSpecs] = useState({
-        cpu: ['Core i9', 'Core i7', 'Core i5', 'Ryzen 9', 'Ryzen 7', 'Apple M3 Pro', 'Apple M2 Pro'],
-        gpu: ['RTX 4090', 'RTX 4070', 'RTX 3060', '8-Core GPU', '10-Core GPU', 'Iris Xe'],
-        ram: ['64GB', '32GB', '16GB', '8GB', '4GB'],
-        storage: ['2TB SSD', '1TB SSD', '512GB SSD', '256GB SSD', '1TB HDD']
+        cpu: [] as string[],
+        gpu: [] as string[],
+        ram: [] as string[],
+        storage: [] as string[]
     });
 
     const [formData, setFormData] = useState({
@@ -339,12 +339,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 // Fetch Frequent Specs
                 const specsRes = await api.get('/reports/stats/frequent-specs');
                 if (specsRes.data) {
-                    setQuickSpecs(prev => ({
-                        cpu: Array.from(new Set([...prev.cpu, ...(specsRes.data.cpu || [])])),
-                        gpu: Array.from(new Set([...prev.gpu, ...(specsRes.data.gpu || [])])),
-                        ram: Array.from(new Set([...prev.ram, ...(specsRes.data.ram || [])])),
-                        storage: Array.from(new Set([...prev.storage, ...(specsRes.data.storage || [])])),
-                    }));
+                    setQuickSpecs({
+                        cpu: specsRes.data.cpu || [],
+                        gpu: specsRes.data.gpu || [],
+                        ram: specsRes.data.ram || [],
+                        storage: specsRes.data.storage || [],
+                    });
                 }
 
                 // If edit mode, fetch report data
