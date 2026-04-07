@@ -1160,6 +1160,23 @@ router.put('/:id', auth, async (req, res) => {
         const newStatus = normalizedNew;
         console.log(`Report status changed from '${oldStatus}' to '${req.body.status}' (Normalized: ${newStatus}), syncing invoices...`);
 
+        // Send WhatsApp notification if status changed to 'shipped'
+        if (newStatus === 'shipped') {
+          try {
+            const phone = report.client_phone;
+            if (phone) {
+              const reportLink = `https://reports.laapak.com/ar/reports/${report.id}`;
+              const message = `تم تسليم الجهاز لشركة الشحن، تقدر تتابعة من خلال صفحة التقرير: ${reportLink}`;
+              console.log(`[WhatsApp] Sending shipped notification for report ${report.id} to ${phone}`);
+              await Notifier.sendText(phone, message);
+            } else {
+              console.warn(`[WhatsApp] No phone number found for report ${report.id}, skipping notification.`);
+            }
+          } catch (waError) {
+            console.error('[WhatsApp] Failed to send shipped notification:', waError.message);
+          }
+        }
+
         // Map English report status to invoice payment status
         let invoicePaymentStatus = null;
         if (newStatus === 'completed') {
