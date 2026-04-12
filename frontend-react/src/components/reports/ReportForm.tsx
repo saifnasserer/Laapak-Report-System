@@ -338,11 +338,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 // Fetch Frequent Specs
                 const specsRes = await api.get('/reports/stats/frequent-specs');
                 if (specsRes.data) {
+                    const extractValues = (arr: any[]) => (arr || []).map((item: any) => typeof item === 'object' && item !== null ? item.value : item);
                     setQuickSpecs({
-                        cpu: specsRes.data.cpu || [],
-                        gpu: specsRes.data.gpu || [],
-                        ram: specsRes.data.ram || [],
-                        storage: specsRes.data.storage || [],
+                        cpu: extractValues(specsRes.data.cpu),
+                        gpu: extractValues(specsRes.data.gpu),
+                        ram: extractValues(specsRes.data.ram),
+                        storage: extractValues(specsRes.data.storage),
                     });
                 }
 
