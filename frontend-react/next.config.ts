@@ -28,10 +28,8 @@ const nextConfig: NextConfig = {
   },
   /* config options here */
   async rewrites() {
-    // Use environment variable for backend URL
-    // In production: http://82.112.253.29:3001
-    // In local Docker: http://report-system:3001
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://report-system:3001';
+    // Standardize to internal Docker networking for server-side proxying
+    const backendUrl = 'http://report-system:3001';
 
     return [
       {
