@@ -342,14 +342,6 @@ router.put('/:id', auth, async (req, res) => {
       if (triggers.some(field => req.body[field] !== undefined)) {
         req.body.status = 'pending';
       }
-      }
-    }
-
-    // Warehouse item status enforcement logic
-    if (Number(updateData.client_id || report.client_id) === 143) {
-      if (['cancelled', 'canceled', 'ملغى', 'ملغي'].includes(updateData.status)) {
-        updateData.status = 'pending';
-      }
     }
 
     const baseFields = [
@@ -388,6 +380,14 @@ router.put('/:id', auth, async (req, res) => {
         status_at_update: req.body.status || report.status
       });
       updateData.update_history = history;
+    }
+
+    // Warehouse item status enforcement — prevent cancelling inventory items
+    const effectiveClientId = Number(updateData.client_id || report.client_id);
+    if (effectiveClientId === 143) {
+      if (['cancelled', 'canceled', 'ملغى', 'ملغي'].includes(updateData.status)) {
+        updateData.status = 'pending';
+      }
     }
 
     await report.update(updateData);
