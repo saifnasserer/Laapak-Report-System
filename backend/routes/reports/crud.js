@@ -263,6 +263,11 @@ router.post('/', async (req, res) => {
         reportData.id = 'RPT' + Date.now() + Math.floor(Math.random() * 1000);
       }
 
+      // Warehouse item status default logic
+      if (Number(reportData.client_id) === 143) {
+        reportData.status = 'pending';
+      }
+
       const newReport = await Report.create(reportData);
       
       notifySubscribers('report.created', {
@@ -336,6 +341,14 @@ router.put('/:id', auth, async (req, res) => {
       const triggers = ['device_brand', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage', 'hardware_status'];
       if (triggers.some(field => req.body[field] !== undefined)) {
         req.body.status = 'pending';
+      }
+      }
+    }
+
+    // Warehouse item status enforcement logic
+    if (Number(updateData.client_id || report.client_id) === 143) {
+      if (['cancelled', 'canceled', 'ملغى', 'ملغي'].includes(updateData.status)) {
+        updateData.status = 'pending';
       }
     }
 

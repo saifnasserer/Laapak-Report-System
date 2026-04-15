@@ -34,7 +34,7 @@ import { ar } from 'date-fns/locale';
 import { SupplierModal } from '@/components/suppliers/SupplierModal';
 import { cn } from '@/lib/utils';
 import { useInView } from 'react-intersection-observer';
-import { Search, X } from 'lucide-react';
+import { FilterBar } from '@/components/ui/FilterBar';
 
 export default function SupplierProfilePage({ params }: { params: Promise<{ locale: string, id: string }> }) {
     const { locale, id } = use(params);
@@ -46,6 +46,7 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -53,6 +54,7 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
     const [isCostModalOpen, setIsCostModalOpen] = useState(false);
     const [selectedReportForCost, setSelectedReportForCost] = useState<any>(null);
     const [isUpdatingCost, setIsUpdatingCost] = useState(false);
+    const [filteredExpenses, setFilteredExpenses] = useState<any[]>([]);
 
     const { ref, inView } = useInView({
         threshold: 0,
@@ -65,6 +67,7 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
             const data = response.data.data;
             setSupplier(data);
             setReports(data.reports || []);
+            setFilteredExpenses(data.expenses || []);
             setHasMore(data.total_reports_count > (data.reports?.length || 0));
             setPage(1);
         } catch (error) {
@@ -94,17 +97,17 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
     };
 
     const handleSearch = async (query: string) => {
-        setIsLoading(true);
+        setIsSearching(true);
         try {
             const response = await api.get(`/suppliers/${id}/reports?page=1&limit=20&q=${query}`);
             const { data, pagination } = response.data;
-            setReports(data);
+            setReports(data || []);
             setPage(1);
-            setHasMore(1 < pagination.totalPages);
+            setHasMore(1 < (pagination?.totalPages || 0));
         } catch (error) {
             console.error('Search failed:', error);
         } finally {
-            setIsLoading(false);
+            setIsSearching(false);
         }
     };
 
@@ -122,11 +125,32 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
         const timer = setTimeout(() => {
             if (debouncedSearch !== searchTerm) {
                 setDebouncedSearch(searchTerm);
-                handleSearch(searchTerm);
+                if (activeTab === 'reports') {
+                    handleSearch(searchTerm);
+                } else {
+                    // Local filtering for expenses
+                    const filtered = (supplier?.expenses || []).filter((ex: any) => 
+                        (ex.name_ar || ex.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (ex.payment_method || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        ex.amount?.toString().includes(searchTerm) ||
+                        ex.id?.toString().includes(searchTerm)
+                    );
+                    setFilteredExpenses(filtered);
+                }
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm]);
+    }, [searchTerm, activeTab]);
+
+    // Reset search when switching tabs to avoid confusion
+    const handleTabChange = (tab: 'reports' | 'expenses') => {
+        setActiveTab(tab);
+        setSearchTerm('');
+        setDebouncedSearch('');
+        if (tab === 'expenses' && supplier) {
+            setFilteredExpenses(supplier.expenses || []);
+        }
+    };
 
     const handleUpdateCost = async (reportId: string, itemId: number | null, newCost: number) => {
         setIsUpdatingCost(true);
@@ -277,10 +301,21 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
 
                 {/* Details Tabbed Section */}
                 <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row items-center gap-4 w-full">
-                        <div className="flex items-center gap-2 bg-black/[0.02] p-1.5 rounded-2xl border border-black/5 w-fit shrink-0">
+                    <FilterBar
+                        search={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        onClear={() => setSearchTerm('')}
+                        placeholder={activeTab === 'reports' 
+                            ? "ابحث برقم التقرير، الموديل، السيريال، أو اسم العميل..." 
+                            : "ابحث في سجل الدفعات (المبلغ، الطريقة، الوصف)..."
+                        }
+                        showStatus={false}
+                        showDate={false}
+                        className="w-full"
+                    >
+                        <div className="flex items-center gap-2 bg-black/[0.04] p-1 rounded-2xl border border-black/5 w-fit shrink-0">
                             <button
-                                onClick={() => setActiveTab('reports')}
+                                onClick={() => handleTabChange('reports')}
                                 className={cn(
                                     "px-6 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2",
                                     activeTab === 'reports' ? "bg-white text-primary shadow-sm" : "text-secondary/40 hover:text-secondary"
@@ -290,7 +325,7 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                                 الأجهزة المستوردة ({supplier.total_reports_count || 0})
                             </button>
                             <button
-                                onClick={() => setActiveTab('expenses')}
+                                onClick={() => handleTabChange('expenses')}
                                 className={cn(
                                     "px-6 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2",
                                     activeTab === 'expenses' ? "bg-white text-primary shadow-sm" : "text-secondary/40 hover:text-secondary"
@@ -300,30 +335,7 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                                 سجل الدفعات ({supplier.expenses?.length || 0})
                             </button>
                         </div>
-                        
-                        {activeTab === 'reports' && (
-                            <div className="flex-1 w-full relative group">
-                                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-secondary/40 group-focus-within:text-primary transition-colors">
-                                    <Search size={18} />
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="ابحث برقم التقرير، الموديل، السيريال، أو اسم العميل..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-black/[0.02] border border-black/5 rounded-2xl h-[52px] pr-12 pl-12 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
-                                />
-                                {searchTerm && (
-                                    <button 
-                                        onClick={() => setSearchTerm('')}
-                                        className="absolute inset-y-0 left-4 flex items-center text-secondary/40 hover:text-destructive transition-colors"
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    </FilterBar>
 
                     <div className="mt-6 md:mt-8">
                         {activeTab === 'reports' ? (
@@ -388,6 +400,11 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                                                                  (r.status === 'pending' || r.status === 'active' || r.status === 'قيد الانتظار' ? 'قيد الانتظار' :
                                                                   (r.status === 'shipped' || r.status === 'تم الشحن' ? 'تم الشحن' : r.status))}
                                                             </Badge>
+                                                            {(r.client_id === 143 || (r.client_name || '').toLowerCase().includes('laapak') || (r.client_name || '').includes('لاباك')) && (
+                                                                <Badge className="rounded-full text-[10px] h-5 font-black px-3 bg-blue-100 text-blue-600 border-blue-200">
+                                                                    بالمخزن
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -459,13 +476,13 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
 
                                 {/* Infinite Scroll Loading Anchor */}
                                 <div ref={ref} className="h-20 flex items-center justify-center">
-                                    {isFetchingMore && (
+                                    {(isFetchingMore || isSearching) && (
                                         <div className="flex items-center gap-2 text-primary font-bold animate-pulse">
                                             <Loader2 className="animate-spin" size={20} />
-                                            <span>جاري تحميل المزيد...</span>
+                                            <span>جاري {isSearching ? 'البحث' : 'تحميل المزيد'}...</span>
                                         </div>
                                     )}
-                                    {!hasMore && reports.length > 0 && (
+                                    {!hasMore && reports.length > 0 && !isSearching && (
                                         <div className="text-secondary/20 font-black text-xs uppercase tracking-widest">
                                             نهاية القائمة
                                         </div>
@@ -474,7 +491,7 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {supplier.expenses && supplier.expenses.length > 0 ? supplier.expenses.map((ex: any) => (
+                                {filteredExpenses && filteredExpenses.length > 0 ? filteredExpenses.map((ex: any) => (
                                     <div
                                         key={ex.id}
                                         className="relative group rounded-[3.2rem] p-1 transition-all duration-300 bg-white/40 hover:bg-white/60"

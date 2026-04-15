@@ -417,16 +417,15 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 client_phone: client.phone,
                 client_address: client.address || '',
                 device_source: '',
+                // Auto-set status to pending for warehouse items
+                status: String(client.id) === '143' ? 'pending' : (isNewClient ? 'pending' : prev.status),
                 // Reset only client-specific confirmation/payment details when switching clients
                 ...(isNewClient ? {
                     payment_method: '',
                     is_confirmed: false,
                     invoice_items: [],
                     selected_accessories: [],
-                    invoice_id: null,
-                    status: 'pending'
-                    // NOTE: amount, billing_enabled, and device_price are NOT reset
-                    // because they belong to the device, not the client
+                    invoice_id: null
                 } : {})
             };
         });

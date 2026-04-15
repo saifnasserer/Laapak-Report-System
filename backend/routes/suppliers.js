@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { Supplier, Report, ProductCost, Expense, Admin, InvoiceItem, sequelize } = require('../models');
+const { Supplier, Report, ProductCost, Expense, Admin, InvoiceItem, Client, sequelize } = require('../models');
 const { adminAuth, adminRoleAuth } = require('../middleware/auth');
 const { Op, QueryTypes } = require('sequelize');
+
+const EXCLUDED_STATUSES = ['cancelled', 'canceled', 'ملغى', 'ملغي'];
+const EXCLUDED_STATUSES_SQL = "'cancelled', 'canceled', 'ملغى', 'ملغي'";
 
 /**
  * GET /api/suppliers
@@ -72,7 +75,7 @@ router.get('/summary', adminRoleAuth(['superadmin']), async (req, res) => {
                     WHERE report_id IS NOT NULL
                     GROUP BY report_id
                 ) ri ON r.id = ri.report_id
-                WHERE r.status != 'cancelled'
+                WHERE r.status NOT IN (${EXCLUDED_STATUSES_SQL})
                 GROUP BY r.supplier_id
             ) rc ON s.id = rc.supplier_id
             LEFT JOIN (
@@ -117,15 +120,29 @@ router.get('/:id/reports', adminRoleAuth(['superadmin']), async (req, res) => {
 
         const whereConditions = {
             supplier_id: id,
-            status: { [Op.notIn]: ['cancelled', 'canceled'] }
+            status: { [Op.notIn]: EXCLUDED_STATUSES }
         };
+
+        const include = [
+            {
+                model: InvoiceItem,
+                as: 'invoiceItems',
+                attributes: ['id', 'cost_price', 'totalAmount', 'report_id']
+            },
+            {
+                model: Client,
+                as: 'client',
+                attributes: ['id', 'name']
+            }
+        ];
 
         if (search) {
             whereConditions[Op.or] = [
                 { id: { [Op.like]: `%${search}%` } },
                 { device_model: { [Op.like]: `%${search}%` } },
                 { serial_number: { [Op.like]: `%${search}%` } },
-                { client_name: { [Op.like]: `%${search}%` } }
+                { client_name: { [Op.like]: `%${search}%` } },
+                { '$client.name$': { [Op.like]: `%${search}%` } }
             ];
         }
 
@@ -134,14 +151,9 @@ router.get('/:id/reports', adminRoleAuth(['superadmin']), async (req, res) => {
             limit,
             offset,
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'device_price', 'amount'],
-            include: [
-                {
-                    model: InvoiceItem,
-                    as: 'invoiceItems',
-                    attributes: ['id', 'cost_price', 'totalAmount', 'report_id']
-                }
-            ]
+            attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'device_price', 'amount', 'client_name'],
+            include,
+            subQuery: false
         });
 
         res.json({
@@ -191,7 +203,7 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                     WHERE report_id IS NOT NULL
                     GROUP BY report_id
                 ) ri ON r.id = ri.report_id
-                WHERE r.supplier_id = ? AND r.status != 'cancelled'
+                WHERE r.supplier_id = ? AND r.status NOT IN (${EXCLUDED_STATUSES_SQL})
             ) rc ON 1=1
             LEFT JOIN (
                 SELECT SUM(amount) as total_paid 
@@ -207,7 +219,7 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
         const totalReportsCount = await Report.count({
             where: {
                 supplier_id: req.params.id,
-                status: { [Op.notIn]: ['cancelled', 'canceled'] }
+                status: { [Op.notIn]: EXCLUDED_STATUSES }
             }
         });
 
@@ -232,7 +244,7 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                     model: Report,
                     as: 'reports',
                     where: {
-                        status: { [Op.notIn]: ['cancelled', 'canceled'] }
+                        status: { [Op.notIn]: EXCLUDED_STATUSES }
                     },
                     required: false,
                     limit: 20,
