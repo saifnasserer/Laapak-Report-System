@@ -104,6 +104,67 @@ router.get('/summary', adminRoleAuth(['superadmin']), async (req, res) => {
 });
 
 /**
+ * GET /api/suppliers/:id/reports
+ * Get paginated and searchable reports for a specific supplier
+ */
+router.get('/:id/reports', adminRoleAuth(['superadmin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const offset = (page - 1) * limit;
+        const search = req.query.q || '';
+
+        const whereConditions = {
+            supplier_id: id,
+            status: { [Op.notIn]: ['cancelled', 'canceled'] }
+        };
+
+        if (search) {
+            whereConditions[Op.or] = [
+                { id: { [Op.like]: `%${search}%` } },
+                { device_model: { [Op.like]: `%${search}%` } },
+                { serial_number: { [Op.like]: `%${search}%` } },
+                { client_name: { [Op.like]: `%${search}%` } }
+            ];
+        }
+
+        const { count, rows: reports } = await Report.findAndCountAll({
+            where: whereConditions,
+            limit,
+            offset,
+            order: [['created_at', 'DESC']],
+            attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'device_price', 'amount'],
+            include: [
+                {
+                    model: InvoiceItem,
+                    as: 'invoiceItems',
+                    attributes: ['id', 'cost_price', 'totalAmount', 'report_id']
+                }
+            ]
+        });
+
+        res.json({
+            success: true,
+            data: reports,
+            pagination: {
+                total: count,
+                page,
+                limit,
+                totalPages: Math.ceil(count / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get supplier reports error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error loading supplier reports',
+            error: error.message
+        });
+    }
+});
+
+/**
  * GET /api/suppliers/:id
  * Get single supplier with details
  */
@@ -142,6 +203,14 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             type: QueryTypes.SELECT
         });
 
+        // Get total reports count separately for the tab label
+        const totalReportsCount = await Report.count({
+            where: {
+                supplier_id: req.params.id,
+                status: { [Op.notIn]: ['cancelled', 'canceled'] }
+            }
+        });
+
         const summary = financials || { total_debt: 0, total_paid: 0, balance: 0 };
 
         if (!summary) {
@@ -166,7 +235,7 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                         status: { [Op.notIn]: ['cancelled', 'canceled'] }
                     },
                     required: false,
-                    limit: 100,
+                    limit: 20,
                     order: [['created_at', 'DESC']],
                     attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'device_price', 'amount'],
                     include: [
@@ -209,7 +278,10 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
 
         res.json({
             success: true,
-            data: supplierData
+            data: {
+                ...supplierData,
+                total_reports_count: totalReportsCount
+            }
         });
     } catch (error) {
         console.error('Get supplier error:', error);

@@ -252,9 +252,12 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const handleDuplicateReport = async (reportId: string | number) => {
         try {
             const response = await api.get(`/reports/${reportId}`);
-            const sourceReport = response.data;
+            // Correct data path: source data is nested under .report
+            const sourceReport = response.data.report;
 
             // Clone data and reset fields
+            // We MUST strip out nested objects like 'client', 'supplier', 'invoiceItems'
+            // to avoid Sequelize errors on the backend during POST /reports
             const {
                 id,
                 created_at,
@@ -267,6 +270,11 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                 invoice_created,
                 invoice_date,
                 is_confirmed,
+                client,
+                supplier,
+                creator,
+                invoiceItems,
+                relatedInvoices,
                 ...clonedData
             } = sourceReport;
 
@@ -275,6 +283,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                 status: 'pending',
                 is_confirmed: false,
                 notes: (clonedData.notes || '') + '\n(Duplicate of #' + id + ')',
+                // Ensure inspection_date is cleared for the copy to avoid confusion
+                inspection_date: null 
             };
 
             const createResponse = await api.post('/reports', duplicatePayload);

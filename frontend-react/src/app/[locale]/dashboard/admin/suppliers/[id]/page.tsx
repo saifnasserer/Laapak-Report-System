@@ -33,6 +33,8 @@ import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { SupplierModal } from '@/components/suppliers/SupplierModal';
 import { cn } from '@/lib/utils';
+import { useInView } from 'react-intersection-observer';
+import { Search, X } from 'lucide-react';
 
 export default function SupplierProfilePage({ params }: { params: Promise<{ locale: string, id: string }> }) {
     const { locale, id } = use(params);
@@ -40,19 +42,67 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
     const [supplier, setSupplier] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'reports' | 'expenses'>('reports');
+    const [reports, setReports] = useState<any[]>([]);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCostModalOpen, setIsCostModalOpen] = useState(false);
     const [selectedReportForCost, setSelectedReportForCost] = useState<any>(null);
     const [isUpdatingCost, setIsUpdatingCost] = useState(false);
 
+    const { ref, inView } = useInView({
+        threshold: 0,
+    });
+
     const fetchSupplierData = async () => {
         setIsLoading(true);
         try {
             const response = await api.get(`/suppliers/${id}`);
-            setSupplier(response.data.data);
+            const data = response.data.data;
+            setSupplier(data);
+            setReports(data.reports || []);
+            setHasMore(data.total_reports_count > (data.reports?.length || 0));
+            setPage(1);
         } catch (error) {
             console.error('Failed to fetch supplier data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchMoreReports = async () => {
+        if (!hasMore || isFetchingMore) return;
+        
+        setIsFetchingMore(true);
+        try {
+            const nextPage = page + 1;
+            const response = await api.get(`/suppliers/${id}/reports?page=${nextPage}&limit=20&q=${debouncedSearch}`);
+            const { data, pagination } = response.data;
+            
+            setReports(prev => [...prev, ...data]);
+            setPage(nextPage);
+            setHasMore(nextPage < pagination.totalPages);
+        } catch (error) {
+            console.error('Failed to fetch more reports:', error);
+        } finally {
+            setIsFetchingMore(false);
+        }
+    };
+
+    const handleSearch = async (query: string) => {
+        setIsLoading(true);
+        try {
+            const response = await api.get(`/suppliers/${id}/reports?page=1&limit=20&q=${query}`);
+            const { data, pagination } = response.data;
+            setReports(data);
+            setPage(1);
+            setHasMore(1 < pagination.totalPages);
+        } catch (error) {
+            console.error('Search failed:', error);
         } finally {
             setIsLoading(false);
         }
@@ -61,6 +111,22 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
     useEffect(() => {
         fetchSupplierData();
     }, [id]);
+
+    useEffect(() => {
+        if (inView && hasMore && !isFetchingMore && activeTab === 'reports') {
+            fetchMoreReports();
+        }
+    }, [inView, hasMore, isFetchingMore, activeTab]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (debouncedSearch !== searchTerm) {
+                setDebouncedSearch(searchTerm);
+                handleSearch(searchTerm);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
     const handleUpdateCost = async (reportId: string, itemId: number | null, newCost: number) => {
         setIsUpdatingCost(true);
@@ -211,33 +277,58 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
 
                 {/* Details Tabbed Section */}
                 <div className="space-y-6">
-                    <div className="flex items-center gap-2 bg-black/[0.02] p-1.5 rounded-2xl border border-black/5 w-fit">
-                        <button
-                            onClick={() => setActiveTab('reports')}
-                            className={cn(
-                                "px-6 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2",
-                                activeTab === 'reports' ? "bg-white text-primary shadow-sm" : "text-secondary/40 hover:text-secondary"
-                            )}
-                        >
-                            <Package size={18} />
-                            الأجهزة المستوردة ({supplier.reports?.length || 0})
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('expenses')}
-                            className={cn(
-                                "px-6 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2",
-                                activeTab === 'expenses' ? "bg-white text-primary shadow-sm" : "text-secondary/40 hover:text-secondary"
-                            )}
-                        >
-                            <History size={18} />
-                            سجل الدفعات ({supplier.expenses?.length || 0})
-                        </button>
+                    <div className="flex flex-col md:flex-row items-center gap-4 w-full">
+                        <div className="flex items-center gap-2 bg-black/[0.02] p-1.5 rounded-2xl border border-black/5 w-fit shrink-0">
+                            <button
+                                onClick={() => setActiveTab('reports')}
+                                className={cn(
+                                    "px-6 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2",
+                                    activeTab === 'reports' ? "bg-white text-primary shadow-sm" : "text-secondary/40 hover:text-secondary"
+                                )}
+                            >
+                                <Package size={18} />
+                                الأجهزة المستوردة ({supplier.total_reports_count || 0})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('expenses')}
+                                className={cn(
+                                    "px-6 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2",
+                                    activeTab === 'expenses' ? "bg-white text-primary shadow-sm" : "text-secondary/40 hover:text-secondary"
+                                )}
+                            >
+                                <History size={18} />
+                                سجل الدفعات ({supplier.expenses?.length || 0})
+                            </button>
+                        </div>
+                        
+                        {activeTab === 'reports' && (
+                            <div className="flex-1 w-full relative group">
+                                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-secondary/40 group-focus-within:text-primary transition-colors">
+                                    <Search size={18} />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="ابحث برقم التقرير، الموديل، السيريال، أو اسم العميل..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full bg-black/[0.02] border border-black/5 rounded-2xl h-[52px] pr-12 pl-12 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
+                                />
+                                {searchTerm && (
+                                    <button 
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute inset-y-0 left-4 flex items-center text-secondary/40 hover:text-destructive transition-colors"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-6 md:mt-8">
                         {activeTab === 'reports' ? (
                             <div className="space-y-4">
-                                {supplier.reports && supplier.reports.length > 0 ? supplier.reports.map((r: any) => {
+                                {reports && reports.length > 0 ? reports.map((r: any) => {
                                     // Calculate display cost and sell price from invoiceItems if they exist, otherwise fall back to report fields
                                     const displayCost = (r.invoiceItems && r.invoiceItems.length > 0)
                                         ? r.invoiceItems.reduce((sum: number, item: any) => sum + Number(item.cost_price || 0), 0)
@@ -286,8 +377,16 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                                                                 <Calendar size={12} />
                                                                 {r.inspection_date ? format(new Date(r.inspection_date), 'dd/MM/yyyy') : '---'}
                                                             </span>
-                                                            <Badge variant={r.status === 'completed' ? 'primary' : 'outline'} className="rounded-full text-[10px] h-5">
-                                                                {r.status === 'completed' ? 'مكتمل' : r.status}
+                                                            <Badge 
+                                                                variant={r.status === 'completed' || r.status === 'مكتمل' ? 'primary' : 'outline'} 
+                                                                className={cn(
+                                                                    "rounded-full text-[10px] h-5 font-black px-3",
+                                                                    r.status === 'pending' || r.status === 'active' || r.status === 'قيد الانتظار' ? "bg-amber-100 text-amber-600 border-amber-200" : ""
+                                                                )}
+                                                            >
+                                                                {r.status === 'completed' || r.status === 'مكتمل' ? 'مكتمل' : 
+                                                                 (r.status === 'pending' || r.status === 'active' || r.status === 'قيد الانتظار' ? 'قيد الانتظار' :
+                                                                  (r.status === 'shipped' || r.status === 'تم الشحن' ? 'تم الشحن' : r.status))}
                                                             </Badge>
                                                         </div>
                                                     </div>
@@ -357,6 +456,21 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                                         لا توجد أجهزة مسجلة لهذا المورد
                                     </div>
                                 )}
+
+                                {/* Infinite Scroll Loading Anchor */}
+                                <div ref={ref} className="h-20 flex items-center justify-center">
+                                    {isFetchingMore && (
+                                        <div className="flex items-center gap-2 text-primary font-bold animate-pulse">
+                                            <Loader2 className="animate-spin" size={20} />
+                                            <span>جاري تحميل المزيد...</span>
+                                        </div>
+                                    )}
+                                    {!hasMore && reports.length > 0 && (
+                                        <div className="text-secondary/20 font-black text-xs uppercase tracking-widest">
+                                            نهاية القائمة
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-4">
