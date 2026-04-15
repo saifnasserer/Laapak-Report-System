@@ -163,10 +163,10 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                     model: Report,
                     as: 'reports',
                     where: {
-                        status: { [Op.ne]: 'cancelled' }
+                        status: { [Op.notIn]: ['cancelled', 'canceled'] }
                     },
                     required: false,
-                    limit: 20,
+                    limit: 100,
                     order: [['created_at', 'DESC']],
                     attributes: ['id', 'device_model', 'serial_number', 'inspection_date', 'status', 'device_price', 'amount'],
                     include: [
@@ -180,13 +180,13 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 {
                     model: ProductCost,
                     as: 'productCosts',
-                    limit: 20,
+                    limit: 100,
                     order: [['created_at', 'DESC']]
                 },
                 {
                     model: Expense,
                     as: 'expenses',
-                    limit: 20,
+                    limit: 100,
                     order: [['date', 'DESC']]
                 }
             ]
