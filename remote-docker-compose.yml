@@ -34,6 +34,8 @@ services:
       dockerfile: Dockerfile
     image: saifnasser/laapak-reports:frontend-latest
     container_name: laapak-frontend-react
+    environment:
+      - BACKEND_URL=http://report-system:3001
     networks:
       - laapak-network
     deploy:

@@ -28,8 +28,9 @@ const nextConfig: NextConfig = {
   },
   /* config options here */
   async rewrites() {
-    // Standardize to internal Docker networking for server-side proxying
-    const backendUrl = 'http://report-system:3001';
+    // Dynamic backend URL based on environment
+    // Use 'report-system:3001' in Docker/Production, 'localhost:3001' for local dev
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
 
     return [
       {

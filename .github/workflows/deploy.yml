@@ -63,9 +63,25 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: CATBOX_USERHASH,JWT_SECRET,EVOLUTION_URL,EVOLUTION_API_KEY,EVOLUTION_INSTANCE,EVOLUTION_TOKEN,FB_ACCESS_TOKEN,NEXT_PUBLIC_IMGBB_API_KEY,NEXT_PUBLIC_API_URL
           script: |
             cd /home/deploy/laapak-projects/reports
             git pull origin main
+            
+            # Update .env file with secrets
+            echo "PORT=3001" > .env
+            echo "NODE_ENV=production" >> .env
+            echo "CATBOX_USERHASH=$CATBOX_USERHASH" >> .env
+            echo "JWT_SECRET=$JWT_SECRET" >> .env
+            echo "EVOLUTION_URL=$EVOLUTION_URL" >> .env
+            echo "EVOLUTION_API_KEY=$EVOLUTION_API_KEY" >> .env
+            echo "EVOLUTION_INSTANCE=$EVOLUTION_INSTANCE" >> .env
+            echo "EVOLUTION_TOKEN=$EVOLUTION_TOKEN" >> .env
+            echo "FB_ACCESS_TOKEN=$FB_ACCESS_TOKEN" >> .env
+            echo "FB_GRAPH_VERSION=v18.0" >> .env
+            echo "NEXT_PUBLIC_IMGBB_API_KEY=$NEXT_PUBLIC_IMGBB_API_KEY" >> .env
+            echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" >> .env
+            
             docker compose -f remote-docker-compose.yml pull
             docker compose -f remote-docker-compose.yml up -d
             docker restart nginx-proxy
