@@ -94,6 +94,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             section: 'salesOperations' as const,
             links: [
                 { href: '/dashboard/admin/reports', label: t('reports'), icon: FileText },
+                { href: '/reports/scan', label: 'تقرير فحص تلقائي', icon: LayoutDashboard },
                 { href: '/dashboard/admin/invoices', label: t('invoices'), icon: Receipt },
                 { href: '/dashboard/admin/clients', label: t('clients'), icon: Users },
                 { href: '/dashboard/admin/shopping-lists', label: 'قوائم الطلبات', icon: ShoppingCart },
@@ -131,6 +132,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     const clientLinks = [
         { href: '/dashboard/client', label: t('overview'), icon: LayoutDashboard },
         { href: '/dashboard/client/warranty', label: 'الضمان', icon: ShieldCheck },
+        { href: '/reports/scan', label: 'تقرير فحص تلقائي', icon: FileText },
     ];
 
     const isRtl = !pathname.startsWith('/en');

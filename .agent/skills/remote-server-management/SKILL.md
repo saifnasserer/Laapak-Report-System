@@ -127,6 +127,7 @@ If you deploy but changes don't appear:
 ### 2. Nginx Proxy Issues (Docker-managed)
 - **Context:** Nginx is now a Docker container (`nginx-proxy`).
 - **Configs:** Found in `/home/deploy/fz-projects/system/docker-infra/nginx/conf.d/`.
+- **Direct API Routing:** For projects with separate backend/frontend (like Laapak Reports), always add a `location /api/` block in Nginx to point directly to the backend container (e.g., `http://report-system:3001`). This is more robust than using Next.js `rewrites`.
 - **Restart:** `docker compose restart nginx-proxy`.
 - **Refresh DNS/Upstreams:** `docker exec nginx-proxy nginx -s reload`.
 - **Important:** Host-level Nginx must remain **DISABLED** to avoid port 80/443 conflicts.
@@ -134,10 +135,35 @@ If you deploy but changes don't appear:
 ### 3. PM2 / Host Services
 - **Note:** PM2 and Host-level Nginx have been removed/uninstalled. All logic must reside in Docker containers.
 
-### 3. SQL Errors (500 Internal Server Error)
+### 4. SQL Errors (500 Internal Server Error)
 - **Constraint:** The production database runs in **Strict Mode** (`only_full_group_by`).
 - **Symptom:** Queries working locally fail on production with `Expression #X of SELECT list is not in GROUP BY clause`.
 - **Fix:** Ensure all non-aggregated columns in the SELECT list are present in the GROUP BY clause.
+
+### 5. GitHub Actions Secret Mapping (CRITICAL)
+- **Problem:** Deployment succeeds but the app returns 500 errors because of missing environment variables.
+- **Diagnosis:** Check the `.env` file on the remote server. If variables are empty, they were not passed correctly.
+- **Cause:** `appleboy/ssh-action` requires secrets to be explicitly mapped in the `env` section of the step before they can be used in the `envs` list.
+- **Fix:** Update `deploy.yml`:
+  ```yaml
+  - name: Deploy to VPS
+    uses: appleboy/ssh-action@v1.0.3
+    env:
+      JWT_SECRET: ${{ secrets.JWT_SECRET }} # MUST BE HERE
+    with:
+      envs: JWT_SECRET # AND HERE
+      script: echo "JWT_SECRET=$JWT_SECRET" > .env
+  ```
+
+### 6. Nginx vs. Next.js Rewrites
+- **Problem:** `/api` requests fail with `ECONNREFUSED` in frontend logs, even if the backend is running.
+- **Cause:** Next.js internal rewrites might fail if `BACKEND_URL` is not correctly resolved or if the container environment is stale.
+- **Recommendation:** Use Nginx for all routing. Add a `location /api/` block directly in the Nginx config to point to the backend service.
+
+### 7. cat <<'EOF' in SSH Scripts
+- **Pitfall:** When writing files via SSH using a heredoc (`cat <<EOF`), the local shell expands `$` variables BEFORE sending the command.
+- **Result:** Remote files (like Nginx configs) will have empty variables.
+- **Fix:** Use single quotes around the marker: `cat <<'EOF'`. This preserves `$` symbols for the remote system.
 
 ## Standard Maintenance Procedures
 
