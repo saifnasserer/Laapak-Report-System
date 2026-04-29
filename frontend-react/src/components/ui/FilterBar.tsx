@@ -97,24 +97,31 @@ export function FilterBar({
 
             {/* Date Range Selection */}
             {showDate && onStartDateChange && onEndDateChange && (
-                <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] font-black text-secondary/40 uppercase flex items-center gap-1">
-                        <Calendar size={10} /> الفترة:
-                    </span>
-                    <div className="flex items-center bg-black/5 p-1 rounded-full gap-1">
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => onStartDateChange(e.target.value)}
-                            className="h-9 px-3 rounded-full border-none bg-transparent text-[10px] font-bold outline-none focus:bg-white transition-all w-28 sm:w-32"
-                        />
-                        <span className="text-secondary/20">-</span>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => onEndDateChange(e.target.value)}
-                            className="h-9 px-3 rounded-full border-none bg-transparent text-[10px] font-bold outline-none focus:bg-white transition-all w-28 sm:w-32"
-                        />
+                <div className="flex items-center bg-black/5 p-1 rounded-full gap-1 shrink-0 border border-black/5 transition-all hover:bg-black/[0.07]">
+                    <div className="flex items-center px-3 gap-2">
+                        <Calendar size={14} className="text-primary" />
+                        <span className="text-[10px] font-black text-secondary/60 uppercase">الفترة</span>
+                    </div>
+                    <div className="flex items-center bg-white rounded-full shadow-sm border border-black/5">
+                        <div className="relative group flex items-center">
+                            <span className="absolute right-3 text-[10px] font-black text-secondary/40 pointer-events-none z-10">من</span>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => onStartDateChange(e.target.value)}
+                                className="h-9 pr-8 pl-3 text-center rounded-r-full border-none bg-transparent text-[11px] font-bold text-secondary outline-none hover:bg-primary/5 focus:bg-primary/10 transition-all w-[110px] sm:w-[130px] font-mono cursor-pointer relative [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-clear-button]:hidden"
+                            />
+                        </div>
+                        <div className="w-px h-5 bg-black/10"></div>
+                        <div className="relative group flex items-center">
+                            <span className="absolute right-3 text-[10px] font-black text-secondary/40 pointer-events-none z-10">إلى</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => onEndDateChange(e.target.value)}
+                                className="h-9 pr-8 pl-3 text-center rounded-l-full border-none bg-transparent text-[11px] font-bold text-secondary outline-none hover:bg-primary/5 focus:bg-primary/10 transition-all w-[110px] sm:w-[130px] font-mono cursor-pointer relative [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-clear-button]:hidden"
+                            />
+                        </div>
                     </div>
                 </div>
             )}

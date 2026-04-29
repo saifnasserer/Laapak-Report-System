@@ -117,11 +117,43 @@ router.get('/:id/reports', adminRoleAuth(['superadmin']), async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const offset = (page - 1) * limit;
         const search = req.query.q || '';
+        const { startDate, endDate } = req.query;
 
         const whereConditions = {
             supplier_id: id,
             status: { [Op.notIn]: EXCLUDED_STATUSES }
         };
+
+        if (search) {
+            whereConditions[Op.or] = [
+                { id: { [Op.like]: `%${search}%` } },
+                { device_model: { [Op.like]: `%${search}%` } },
+                { serial_number: { [Op.like]: `%${search}%` } },
+                { client_name: { [Op.like]: `%${search}%` } },
+                { '$client.name$': { [Op.like]: `%${search}%` } }
+            ];
+        }
+
+        if (startDate && endDate) {
+            // If there's already an Op.or from search, we need to combine them properly using Op.and
+            const dateCondition = {
+                [Op.or]: [
+                    { inspection_date: { [Op.between]: [startDate + ' 00:00:00', endDate + ' 23:59:59'] } },
+                    { 
+                        inspection_date: null,
+                        created_at: { [Op.between]: [startDate + ' 00:00:00', endDate + ' 23:59:59'] }
+                    }
+                ]
+            };
+            
+            if (whereConditions[Op.or]) {
+                const searchCondition = { [Op.or]: whereConditions[Op.or] };
+                delete whereConditions[Op.or];
+                whereConditions[Op.and] = [searchCondition, dateCondition];
+            } else {
+                whereConditions[Op.or] = dateCondition[Op.or];
+            }
+        }
 
         const include = [
             {
@@ -135,16 +167,6 @@ router.get('/:id/reports', adminRoleAuth(['superadmin']), async (req, res) => {
                 attributes: ['id', 'name']
             }
         ];
-
-        if (search) {
-            whereConditions[Op.or] = [
-                { id: { [Op.like]: `%${search}%` } },
-                { device_model: { [Op.like]: `%${search}%` } },
-                { serial_number: { [Op.like]: `%${search}%` } },
-                { client_name: { [Op.like]: `%${search}%` } },
-                { '$client.name$': { [Op.like]: `%${search}%` } }
-            ];
-        }
 
         const { count, rows: reports } = await Report.findAndCountAll({
             where: whereConditions,
@@ -182,20 +204,59 @@ router.get('/:id/reports', adminRoleAuth(['superadmin']), async (req, res) => {
  */
 router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
     try {
-        // Get financial summary only using SQL (safer against ONLY_FULL_GROUP_BY)
+        const { startDate, endDate } = req.query;
+        
+        const dateSelects = startDate && endDate ? `
+            ,
+            (COALESCE(pc.period_cost, 0) + COALESCE(rc.period_device_cost, 0)) as period_debt,
+            COALESCE(e.period_paid, 0) as period_paid,
+            ((COALESCE(pc.period_cost, 0) + COALESCE(rc.period_device_cost, 0)) - COALESCE(e.period_paid, 0)) as period_balance,
+            (COALESCE(pc.rolled_cost, 0) + COALESCE(rc.rolled_device_cost, 0)) as rolled_over_debt,
+            COALESCE(e.rolled_paid, 0) as rolled_over_paid,
+            ((COALESCE(pc.rolled_cost, 0) + COALESCE(rc.rolled_device_cost, 0)) - COALESCE(e.rolled_paid, 0)) as rolled_over_balance
+        ` : `
+            ,
+            (COALESCE(pc.total_cost, 0) + COALESCE(rc.total_device_cost, 0)) as period_debt,
+            COALESCE(e.total_paid, 0) as period_paid,
+            ((COALESCE(pc.total_cost, 0) + COALESCE(rc.total_device_cost, 0)) - COALESCE(e.total_paid, 0)) as period_balance,
+            0 as rolled_over_debt,
+            0 as rolled_over_paid,
+            0 as rolled_over_balance
+        `;
+
+        const pcSelects = startDate && endDate ? `
+            SUM(cost_price) as total_cost,
+            SUM(CASE WHEN DATE(COALESCE(purchase_date, created_at)) >= :startDate AND DATE(COALESCE(purchase_date, created_at)) <= :endDate THEN cost_price ELSE 0 END) as period_cost,
+            SUM(CASE WHEN DATE(COALESCE(purchase_date, created_at)) < :startDate THEN cost_price ELSE 0 END) as rolled_cost
+        ` : `SUM(cost_price) as total_cost`;
+
+        const rcSelects = startDate && endDate ? `
+            SUM(COALESCE(ri.report_cost, r.device_price, r.amount, 0)) as total_device_cost,
+            SUM(CASE WHEN DATE(COALESCE(r.inspection_date, r.created_at)) >= :startDate AND DATE(COALESCE(r.inspection_date, r.created_at)) <= :endDate THEN COALESCE(ri.report_cost, r.device_price, r.amount, 0) ELSE 0 END) as period_device_cost,
+            SUM(CASE WHEN DATE(COALESCE(r.inspection_date, r.created_at)) < :startDate THEN COALESCE(ri.report_cost, r.device_price, r.amount, 0) ELSE 0 END) as rolled_device_cost
+        ` : `SUM(COALESCE(ri.report_cost, r.device_price, r.amount, 0)) as total_device_cost`;
+
+        const eSelects = startDate && endDate ? `
+            SUM(amount) as total_paid,
+            SUM(CASE WHEN DATE(date) >= :startDate AND DATE(date) <= :endDate THEN amount ELSE 0 END) as period_paid,
+            SUM(CASE WHEN DATE(date) < :startDate THEN amount ELSE 0 END) as rolled_paid
+        ` : `SUM(amount) as total_paid`;
+
+        // Get financial summary using SQL with optional date range
         const [financials] = await sequelize.query(`
             SELECT 
                 (COALESCE(pc.total_cost, 0) + COALESCE(rc.total_device_cost, 0)) as total_debt,
                 COALESCE(e.total_paid, 0) as total_paid,
                 ((COALESCE(pc.total_cost, 0) + COALESCE(rc.total_device_cost, 0)) - COALESCE(e.total_paid, 0)) as balance
+                ${dateSelects}
             FROM (SELECT 1 as dummy) d
             LEFT JOIN (
-                SELECT SUM(cost_price) as total_cost 
+                SELECT ${pcSelects} 
                 FROM product_costs 
-                WHERE supplier_id = ?
+                WHERE supplier_id = :id
             ) pc ON 1=1
             LEFT JOIN (
-                SELECT SUM(COALESCE(ri.report_cost, r.device_price, r.amount, 0)) as total_device_cost 
+                SELECT ${rcSelects}
                 FROM reports r
                 LEFT JOIN (
                     SELECT report_id, SUM(cost_price) as report_cost
@@ -203,24 +264,36 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                     WHERE report_id IS NOT NULL
                     GROUP BY report_id
                 ) ri ON r.id = ri.report_id
-                WHERE r.supplier_id = ? AND r.status NOT IN (${EXCLUDED_STATUSES_SQL})
+                WHERE r.supplier_id = :id AND r.status NOT IN (${EXCLUDED_STATUSES_SQL})
             ) rc ON 1=1
             LEFT JOIN (
-                SELECT SUM(amount) as total_paid 
+                SELECT ${eSelects}
                 FROM expenses 
-                WHERE supplier_id = ? AND status IN ('approved', 'paid')
+                WHERE supplier_id = :id AND status IN ('approved', 'paid')
             ) e ON 1=1
         `, {
-            replacements: [req.params.id, req.params.id, req.params.id],
+            replacements: { id: req.params.id, startDate, endDate },
             type: QueryTypes.SELECT
         });
 
+        // Date conditions for relations
+        const reportWhere = { supplier_id: req.params.id, status: { [Op.notIn]: EXCLUDED_STATUSES } };
+        const expenseWhere = {};
+
+        if (startDate && endDate) {
+            reportWhere[Op.or] = [
+                { inspection_date: { [Op.between]: [startDate + ' 00:00:00', endDate + ' 23:59:59'] } },
+                { 
+                    inspection_date: null,
+                    created_at: { [Op.between]: [startDate + ' 00:00:00', endDate + ' 23:59:59'] }
+                }
+            ];
+            expenseWhere.date = { [Op.between]: [startDate, endDate] };
+        }
+
         // Get total reports count separately for the tab label
         const totalReportsCount = await Report.count({
-            where: {
-                supplier_id: req.params.id,
-                status: { [Op.notIn]: EXCLUDED_STATUSES }
-            }
+            where: reportWhere
         });
 
         const summary = financials || { total_debt: 0, total_paid: 0, balance: 0 };
@@ -243,9 +316,7 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 {
                     model: Report,
                     as: 'reports',
-                    where: {
-                        status: { [Op.notIn]: EXCLUDED_STATUSES }
-                    },
+                    where: reportWhere,
                     required: false,
                     limit: 20,
                     order: [['created_at', 'DESC']],
@@ -267,6 +338,8 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
                 {
                     model: Expense,
                     as: 'expenses',
+                    where: Object.keys(expenseWhere).length ? expenseWhere : undefined,
+                    required: false,
                     limit: 100,
                     order: [['date', 'DESC']]
                 }
@@ -285,7 +358,13 @@ router.get('/:id', adminRoleAuth(['superadmin']), async (req, res) => {
             ...supplier.toJSON(),
             total_debt: summary.total_debt,
             total_paid: summary.total_paid,
-            balance: summary.balance
+            balance: summary.balance,
+            period_debt: summary.period_debt,
+            period_paid: summary.period_paid,
+            period_balance: summary.period_balance,
+            rolled_over_debt: summary.rolled_over_debt,
+            rolled_over_paid: summary.rolled_over_paid,
+            rolled_over_balance: summary.rolled_over_balance
         };
 
         res.json({

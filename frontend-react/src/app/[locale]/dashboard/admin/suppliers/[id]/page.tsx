@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/Input';
 import api from '@/lib/api';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { SupplierModal } from '@/components/suppliers/SupplierModal';
 import { cn } from '@/lib/utils';
@@ -56,6 +56,9 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
     const [isUpdatingCost, setIsUpdatingCost] = useState(false);
     const [filteredExpenses, setFilteredExpenses] = useState<any[]>([]);
 
+    const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+    const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+
     const { ref, inView } = useInView({
         threshold: 0,
     });
@@ -63,7 +66,11 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
     const fetchSupplierData = async () => {
         setIsLoading(true);
         try {
-            const response = await api.get(`/suppliers/${id}`);
+            const query = new URLSearchParams();
+            if (startDate) query.append('startDate', startDate);
+            if (endDate) query.append('endDate', endDate);
+            
+            const response = await api.get(`/suppliers/${id}?${query.toString()}`);
             const data = response.data.data;
             setSupplier(data);
             setReports(data.reports || []);
@@ -83,7 +90,15 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
         setIsFetchingMore(true);
         try {
             const nextPage = page + 1;
-            const response = await api.get(`/suppliers/${id}/reports?page=${nextPage}&limit=20&q=${debouncedSearch}`);
+            const query = new URLSearchParams({
+                page: String(nextPage),
+                limit: '20',
+                q: debouncedSearch
+            });
+            if (startDate) query.append('startDate', startDate);
+            if (endDate) query.append('endDate', endDate);
+            
+            const response = await api.get(`/suppliers/${id}/reports?${query.toString()}`);
             const { data, pagination } = response.data;
             
             setReports(prev => [...prev, ...data]);
@@ -99,7 +114,15 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
     const handleSearch = async (query: string) => {
         setIsSearching(true);
         try {
-            const response = await api.get(`/suppliers/${id}/reports?page=1&limit=20&q=${query}`);
+            const queryParams = new URLSearchParams({
+                page: '1',
+                limit: '20',
+                q: query
+            });
+            if (startDate) queryParams.append('startDate', startDate);
+            if (endDate) queryParams.append('endDate', endDate);
+            
+            const response = await api.get(`/suppliers/${id}/reports?${queryParams.toString()}`);
             const { data, pagination } = response.data;
             setReports(data || []);
             setPage(1);
@@ -113,7 +136,7 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
 
     useEffect(() => {
         fetchSupplierData();
-    }, [id]);
+    }, [id, startDate, endDate]);
 
     useEffect(() => {
         if (inView && hasMore && !isFetchingMore && activeTab === 'reports') {
@@ -252,17 +275,32 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                 </div>
 
                 {/* Financial Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                         <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full transition-all hover:border-primary/20">
                             <div>
-                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">إجمالي المشتريات</p>
+                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">الرصيد المرحل</p>
+                                <h3 className="text-3xl font-black text-secondary flex items-baseline gap-1">
+                                    {Number(supplier.rolled_over_balance || 0).toLocaleString()}
+                                    <span className="text-xs text-secondary/50 font-bold">ج.م</span>
+                                </h3>
+                            </div>
+                            <div className="w-14 h-14 rounded-3xl bg-secondary/5 text-secondary/40 hidden sm:flex items-center justify-center">
+                                <History size={28} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
+                        <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full transition-all hover:border-primary/20">
+                            <div>
+                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">مشتريات الفترة</p>
                                 <h3 className="text-3xl font-black text-red-600 flex items-baseline gap-1">
-                                    {Number(supplier.total_debt || 0).toLocaleString()}
+                                    {Number(supplier.period_debt !== undefined ? supplier.period_debt : supplier.total_debt).toLocaleString()}
                                     <span className="text-xs text-red-600/50 font-bold">ج.م</span>
                                 </h3>
                             </div>
-                            <div className="w-14 h-14 rounded-3xl bg-red-500/10 text-red-600 flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-3xl bg-red-500/10 text-red-600 hidden sm:flex items-center justify-center">
                                 <CreditCard size={28} />
                             </div>
                         </div>
@@ -271,13 +309,13 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                     <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                         <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full transition-all hover:border-primary/20">
                             <div>
-                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">إجمالي النقدية المدفوعة</p>
+                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">مدفوعات الفترة</p>
                                 <h3 className="text-3xl font-black text-emerald-600 flex items-baseline gap-1">
-                                    {Number(supplier.total_paid || 0).toLocaleString()}
+                                    {Number(supplier.period_paid !== undefined ? supplier.period_paid : supplier.total_paid).toLocaleString()}
                                     <span className="text-xs text-emerald-600/50 font-bold">ج.م</span>
                                 </h3>
                             </div>
-                            <div className="w-14 h-14 rounded-3xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-3xl bg-emerald-500/10 text-emerald-600 hidden sm:flex items-center justify-center">
                                 <Wallet size={28} />
                             </div>
                         </div>
@@ -286,13 +324,13 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                     <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                         <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full transition-all hover:border-primary/20">
                             <div>
-                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">الرصيد المتبقي للمورد</p>
+                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">إجمالي الرصيد</p>
                                 <h3 className="text-3xl font-black text-primary flex items-baseline gap-1">
                                     {Number(supplier.balance || 0).toLocaleString()}
                                     <span className="text-xs text-primary/50 font-bold">ج.م</span>
                                 </h3>
                             </div>
-                            <div className="w-14 h-14 rounded-3xl bg-primary/10 text-primary flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-3xl bg-primary/10 text-primary hidden sm:flex items-center justify-center">
                                 <ArrowUpRight size={28} />
                             </div>
                         </div>
@@ -310,7 +348,11 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                             : "ابحث في سجل الدفعات (المبلغ، الطريقة، الوصف)..."
                         }
                         showStatus={false}
-                        showDate={false}
+                        showDate={true}
+                        startDate={startDate}
+                        onStartDateChange={setStartDate}
+                        endDate={endDate}
+                        onEndDateChange={setEndDate}
                         className="w-full"
                     >
                         <div className="flex items-center gap-2 bg-black/[0.04] p-1 rounded-2xl border border-black/5 w-fit shrink-0">

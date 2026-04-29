@@ -239,23 +239,7 @@ export default function SuppliersAdminPage({ params }: { params: Promise<{ local
                                         <div className="flex items-center gap-6 w-full md:w-auto justify-end">
                                             <div className="flex flex-wrap items-center gap-6 text-left md:text-right pr-4">
                                                 <div>
-                                                    <div className="text-[10px] text-secondary/40 font-black uppercase tracking-widest mb-1 opacity-60">المديونية</div>
-                                                    <div className="font-black text-xl font-mono text-red-600">
-                                                        {Number(s.total_debt || 0).toLocaleString()}
-                                                        <span className="text-[10px] mr-1 opacity-50 font-bold">ج.م</span>
-                                                    </div>
-                                                </div>
-                                                <div className="w-px h-8 bg-black/5 hidden md:block"></div>
-                                                <div>
-                                                    <div className="text-[10px] text-secondary/40 font-black uppercase tracking-widest mb-1 opacity-60">المسدد</div>
-                                                    <div className="font-black text-xl font-mono text-emerald-600">
-                                                        {Number(s.total_paid || 0).toLocaleString()}
-                                                        <span className="text-[10px] mr-1 opacity-50 font-bold">ج.م</span>
-                                                    </div>
-                                                </div>
-                                                <div className="w-px h-8 bg-black/5 hidden md:block"></div>
-                                                <div>
-                                                    <div className="text-[10px] text-secondary/40 font-black uppercase tracking-widest mb-1 opacity-60">الرصيد</div>
+                                                    <div className="text-[10px] text-secondary/40 font-black uppercase tracking-widest mb-1 opacity-60">الرصيد المتبقي</div>
                                                     <div className={`font-black text-2xl font-mono ${Number(s.balance || 0) > 0 ? 'text-red-600' : 'text-primary'}`}>
                                                         {Math.abs(Number(s.balance || 0)).toLocaleString()}
                                                         <span className="text-xs mr-1 opacity-50 font-bold">ج.م</span>
