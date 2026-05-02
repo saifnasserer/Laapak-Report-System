@@ -15,9 +15,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslations } from 'next-intl';
+import api from '@/lib/api';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 const ProcurementPage = () => {
-    const { token } = useAuth();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [params, setParams] = useState({
         budget: 100000,
@@ -30,16 +32,8 @@ const ProcurementPage = () => {
     const handleGenerate = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/procurement/plan`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(params)
-            });
-            const data = await response.json();
-            setResult(data);
+            const response = await api.post('/procurement/plan', params);
+            setResult(response.data);
         } catch (error) {
             console.error('Error generating plan:', error);
         } finally {
@@ -48,7 +42,8 @@ const ProcurementPage = () => {
     };
 
     return (
-        <div className="space-y-8 pb-12">
+        <DashboardLayout>
+            <div className="space-y-8 pb-12">
             {/* Header */}
             <div className="bg-white/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-black/5 shadow-sm">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -264,6 +259,7 @@ const ProcurementPage = () => {
                 </div>
             )}
         </div>
+        </DashboardLayout>
     );
 };
 

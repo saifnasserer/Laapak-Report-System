@@ -1,6 +1,6 @@
 {
   "name": "Laapak Reports",
-  "short_name": "لابك",
+  "short_name": "Laapak Reports",
   "description": "System for managing Laapak reports",
   "start_url": "/ar/login",
   "display": "standalone",

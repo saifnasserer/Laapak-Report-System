@@ -105,6 +105,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             section: 'inventoryAnalytics' as const,
             links: [
                 { href: '/dashboard/admin/inventory', label: 'المخزن', icon: Package },
+                { href: '/dashboard/admin/procurement', label: 'تخطيط المشتريات', icon: ShoppingCart },
             ]
         },
         ...(showFinancial ? [{
