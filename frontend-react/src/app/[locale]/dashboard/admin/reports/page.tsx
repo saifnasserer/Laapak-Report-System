@@ -407,8 +407,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
             <div className="space-y-10">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight">تقارير فحص الأجهزة</h1>
-                        <p className="text-secondary font-medium">إدارة ومتابعة جميع تقارير فحص الأجهزة والمواصفات</p>
+                        <h1 className="text-xl md:text-3xl font-bold tracking-tight">تقارير فحص الأجهزة</h1>
+                        <p className="text-secondary text-xs md:text-sm font-medium">إدارة ومتابعة جميع تقارير فحص الأجهزة والمواصفات</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="w-full max-w-[240px]">
@@ -608,7 +608,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
 
                 {/* Floating Action Bar for Selected Reports */}
                 {selectedReportIds.length > 0 && (
-                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-black/5 shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-black/5 shadow-2xl rounded-[2rem] md:rounded-full px-4 md:px-6 py-3 flex flex-wrap md:flex-nowrap items-center justify-center gap-3 md:gap-4 z-50 animate-in slide-in-from-bottom-4 duration-300 w-[95%] md:w-auto">
                         <span className="font-bold text-sm">
                             تم تحديد <span className="text-primary">{selectedReportIds.length}</span> تقرير
                         </span>

@@ -156,13 +156,13 @@ export default function ExpensesPage() {
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-black text-foreground flex items-center gap-3">
-                                <span className="p-3 bg-primary/10 rounded-3xl text-primary">
-                                    <PieChart size={28} />
+                            <h1 className="text-xl md:text-3xl font-black text-foreground flex items-center gap-2 md:gap-3">
+                                <span className="p-2 md:p-3 bg-primary/10 rounded-2xl md:rounded-3xl text-primary">
+                                    <PieChart size={24} className="md:w-7 md:h-7" />
                                 </span>
                                 إدارة المصروفات
                             </h1>
-                            <p className="text-secondary/70 font-medium mt-2 mr-16">
+                            <p className="text-secondary/70 text-xs md:text-sm font-medium mt-1 md:mt-2 md:mr-16">
                                 متابعة المصروفات التشغيلية والإدارية
                             </p>
                         </div>

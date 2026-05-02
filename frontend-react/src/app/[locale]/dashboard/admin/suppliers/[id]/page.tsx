@@ -242,7 +242,7 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                         </div>
                         <div className="space-y-1">
                             <div className="flex items-center gap-3">
-                                <h1 className="text-3xl font-black tracking-tight text-foreground">{supplier.name}</h1>
+                                <h1 className="text-xl md:text-3xl font-black tracking-tight text-foreground">{supplier.name}</h1>
                                 {supplier.code && (
                                     <Badge variant="outline" className="font-mono bg-white text-xs px-3 py-1 border-primary/10 text-primary uppercase">
                                         {supplier.code}
@@ -279,8 +279,8 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                     <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                         <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full transition-all hover:border-primary/20">
                             <div>
-                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">الرصيد المرحل</p>
-                                <h3 className="text-3xl font-black text-secondary flex items-baseline gap-1">
+                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-1.5 md:mb-2">الرصيد المرحل</p>
+                                <h3 className="text-xl md:text-3xl font-black text-secondary flex items-baseline gap-1">
                                     {Number(supplier.rolled_over_balance || 0).toLocaleString()}
                                     <span className="text-xs text-secondary/50 font-bold">ج.م</span>
                                 </h3>
@@ -294,8 +294,8 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                     <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                         <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full transition-all hover:border-primary/20">
                             <div>
-                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">مشتريات الفترة</p>
-                                <h3 className="text-3xl font-black text-red-600 flex items-baseline gap-1">
+                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-1.5 md:mb-2">مشتريات الفترة</p>
+                                <h3 className="text-xl md:text-3xl font-black text-red-600 flex items-baseline gap-1">
                                     {Number(supplier.period_debt !== undefined ? supplier.period_debt : supplier.total_debt).toLocaleString()}
                                     <span className="text-xs text-red-600/50 font-bold">ج.م</span>
                                 </h3>
@@ -309,8 +309,8 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                     <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                         <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full transition-all hover:border-primary/20">
                             <div>
-                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">مدفوعات الفترة</p>
-                                <h3 className="text-3xl font-black text-emerald-600 flex items-baseline gap-1">
+                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-1.5 md:mb-2">مدفوعات الفترة</p>
+                                <h3 className="text-xl md:text-3xl font-black text-emerald-600 flex items-baseline gap-1">
                                     {Number(supplier.period_paid !== undefined ? supplier.period_paid : supplier.total_paid).toLocaleString()}
                                     <span className="text-xs text-emerald-600/50 font-bold">ج.م</span>
                                 </h3>
@@ -324,8 +324,8 @@ export default function SupplierProfilePage({ params }: { params: Promise<{ loca
                     <div className="relative group rounded-[2.5rem] p-1 bg-white/40">
                         <div className="flex items-center justify-between p-6 rounded-[2.3rem] bg-white/60 backdrop-blur-sm border border-primary/10 h-full transition-all hover:border-primary/20">
                             <div>
-                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-2">إجمالي الرصيد</p>
-                                <h3 className="text-3xl font-black text-primary flex items-baseline gap-1">
+                                <p className="text-secondary/40 text-[10px] font-bold uppercase tracking-widest mb-1.5 md:mb-2">إجمالي الرصيد</p>
+                                <h3 className="text-xl md:text-3xl font-black text-primary flex items-baseline gap-1">
                                     {Number(supplier.balance || 0).toLocaleString()}
                                     <span className="text-xs text-primary/50 font-bold">ج.م</span>
                                 </h3>

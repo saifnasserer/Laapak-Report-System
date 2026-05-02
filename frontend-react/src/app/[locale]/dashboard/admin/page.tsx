@@ -224,14 +224,14 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                 {/* New External Orders - High Priority Section */}
                 {newOrders.length > 0 && (
                     <div className="space-y-6">
-                        <div className="flex items-center justify-between px-2">
-                            <h2 className="text-2xl font-black flex items-center gap-3">
-                                <div className="p-2 bg-primary/10 rounded-xl">
-                                    <ShoppingCart size={28} className="text-primary" />
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-2">
+                            <h2 className="text-xl md:text-2xl font-black flex items-center gap-2 md:gap-3">
+                                <div className="p-1.5 md:p-2 bg-primary/10 rounded-xl">
+                                    <ShoppingCart size={22} className="text-primary md:w-7 md:h-7" />
                                 </div>
                                 طلبات خارجية جديدة
                             </h2>
-                            <Badge variant="primary" circular className="h-8 px-4 text-sm shadow-sm animate-pulse">
+                            <Badge variant="primary" circular className="h-7 md:h-8 px-3 md:px-4 text-[10px] md:text-sm shadow-sm animate-pulse w-fit">
                                 {newOrders.length} طلبات بحاجة للتنسيق
                             </Badge>
                         </div>
@@ -291,8 +291,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
 
                 {/* Recent Reports - Row Style */}
                 <div className="space-y-6">
-                    <h2 className="text-2xl font-black flex items-center gap-3 px-2">
-                        <Clock size={28} className="text-primary" />
+                    <h2 className="text-lg md:text-2xl font-black flex items-center gap-2 md:gap-3 px-2">
+                        <Clock size={24} className="text-primary md:w-7 md:h-7" />
                         أحدث الطلبات (معلقة / شحن)
                     </h2>
 
@@ -372,8 +372,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ locale: s
                                     <TriangleAlert size={24} />
                                 </div>
                                 <div>
-                                    <h5 className="font-bold text-lg m-0 text-amber-950">تنبيهات الضمان</h5>
-                                    <p className="text-secondary/60 text-sm m-0 font-medium">العملاء الذين تنتهي ضماناتهم قريباً</p>
+                                    <h5 className="font-bold text-base md:text-lg m-0 text-amber-950">تنبيهات الضمان</h5>
+                                    <p className="text-secondary/60 text-xs md:text-sm m-0 font-medium">العملاء الذين تنتهي ضماناتهم قريباً</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">

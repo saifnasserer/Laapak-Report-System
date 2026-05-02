@@ -168,8 +168,8 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
             <div className="space-y-10">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight">الفواتير</h1>
-                        <p className="text-secondary font-medium">إدارة الفواتير والمدفوعات المالية</p>
+                        <h1 className="text-xl md:text-3xl font-bold tracking-tight">الفواتير</h1>
+                        <p className="text-secondary text-xs md:text-sm font-medium">إدارة الفواتير والمدفوعات المالية</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="w-full max-w-[240px]">
@@ -193,7 +193,7 @@ export default function InvoicesAdminPage({ params }: { params: Promise<{ locale
                             size="md"
                             icon={<Plus size={20} />}
                             onClick={() => router.push('/dashboard/admin/invoices/new')}
-                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-12 px-8 rounded-full shadow-lg shadow-primary/20"
+                            className="bg-primary text-white scale-105 hover:scale-110 active:scale-100 transition-all font-black h-11 md:h-12 px-5 md:px-8 rounded-full shadow-lg shadow-primary/20 text-xs md:text-base"
                         >
                             فاتورة جديدة
                         </Button>
