@@ -1,0 +1,20 @@
+{
+  "name": "Laapak Reports",
+  "short_name": "لابك",
+  "description": "System for managing Laapak reports",
+  "start_url": "/ar/login",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#00C853",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

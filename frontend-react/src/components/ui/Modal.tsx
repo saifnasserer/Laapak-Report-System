@@ -36,7 +36,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div
                 className={cn(
-                    "bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200",
+                    "bg-white rounded-[2.5rem] w-full max-w-lg animate-in zoom-in-95 duration-200 flex flex-col max-h-[85dvh]",
                     className
                 )}
                 onClick={(e) => e.stopPropagation()}
@@ -50,7 +50,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
                         <X size={20} className="text-secondary" />
                     </button>
                 </div>
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom,1.5rem))] custom-scrollbar rounded-b-[2.5rem]">
                     {children}
                 </div>
             </div>

@@ -172,9 +172,9 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
             title={expense ? "تعديل مصروف" : "إضافة مصروف جديد"}
             className="max-w-[550px]"
         >
-            <form onSubmit={handleSubmit} className="space-y-6 text-right" dir="rtl">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 text-right" dir="rtl">
                 {/* Section 1: Identity */}
-                <div className="space-y-4 bg-black/[0.02] p-6 rounded-[2.5rem] border border-primary/5">
+                <div className="space-y-4 bg-black/[0.02] p-4 sm:p-6 rounded-[2.5rem] border border-primary/5">
                     <div className="space-y-2">
                         <Label className="flex items-center gap-2 text-[10px] font-black text-secondary/40 uppercase px-2 justify-start">
                             <FileText size={12} className="text-primary" />
@@ -263,8 +263,8 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                 </div>
 
                 {/* Section 2: Financial Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2 bg-black/[0.02] p-5 rounded-[2.5rem] border border-primary/5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2 bg-black/[0.02] p-4 sm:p-5 rounded-[2.5rem] border border-primary/5">
                         <Label className="flex items-center gap-2 text-[10px] font-black text-secondary/40 uppercase px-2 justify-start">
                             <DollarSign size={12} className="text-primary" />
                             المبلغ
@@ -283,7 +283,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                         </div>
                     </div>
 
-                    <div className="space-y-2 bg-black/[0.02] p-5 rounded-[2.5rem] border border-primary/5">
+                    <div className="space-y-2 bg-black/[0.02] p-4 sm:p-5 rounded-[2.5rem] border border-primary/5">
                         <Label className="flex items-center gap-2 text-[10px] font-black text-secondary/40 uppercase px-2 justify-start">
                             <CalendarIcon size={12} className="text-primary" />
                             تاریخ المصروف
@@ -299,7 +299,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                 </div>
 
                 {/* Section 3: Notes */}
-                <div className="space-y-2 bg-primary/[0.02] p-5 rounded-[2.5rem] border border-primary/5">
+                <div className="space-y-2 bg-primary/[0.02] p-4 sm:p-5 rounded-[2.5rem] border border-primary/5">
                     <Label className="flex items-center gap-2 text-[10px] font-black text-secondary/40 uppercase px-2 justify-start">
                         <FileText size={12} className="text-primary" />
                         ملاحظات وتفاصيل إضافية
@@ -312,7 +312,7 @@ export default function ExpenseModal({ isOpen, onClose, onSuccess, expense }: Ex
                     />
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-black/5">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4 border-t border-black/5">
                     <Button
                         type="submit"
                         disabled={isLoading || isDeleting}

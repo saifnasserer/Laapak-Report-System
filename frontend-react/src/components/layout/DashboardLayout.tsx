@@ -64,9 +64,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <main className="flex-1 flex flex-col h-full overflow-hidden relative">
                 {/* Integrated Header for Sidebar Toggle */}
                 {!isClient && (
-                    <header className="h-16 md:h-20 shrink-0 grid grid-cols-3 items-center px-4 md:px-8 border-b border-black/5 bg-white/50 backdrop-blur-md z-30 relative">
+                    <header className="h-[calc(4rem+env(safe-area-inset-top,0px))] md:h-[calc(5rem+env(safe-area-inset-top,0px))] shrink-0 flex items-center justify-between px-4 md:px-8 pt-[env(safe-area-inset-top,0px)] border-b border-black/5 bg-white/50 backdrop-blur-md z-30 relative">
                         {/* Left Side: Menu & Welcome */}
-                        <div className="flex items-center gap-2 md:gap-4">
+                        <div className="flex items-center gap-2 md:gap-4 flex-1">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
                                 className={cn(
@@ -87,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
 
                         {/* Center: Logo */}
-                        <div className="flex justify-center items-center h-full">
+                        <div className="flex justify-center items-center shrink-0">
                             <Image
                                 src="/logo.png"
                                 alt="Laapak"
@@ -99,7 +99,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
 
                         {/* Right Side: Actions */}
-                        <div className="flex items-center justify-end gap-2 md:gap-3">
+                        <div className="flex items-center justify-end gap-2 md:gap-3 flex-1">
                             <Button
                                 size="sm"
                                 icon={<Plus size={16} className="md:w-5 md:h-5" />}

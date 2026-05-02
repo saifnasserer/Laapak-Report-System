@@ -167,23 +167,23 @@ export default function ExpensesPage() {
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
                             {/* Week Navigator */}
-                            <div className="flex items-center bg-white/60 backdrop-blur-md rounded-full border border-primary/20 p-1">
-                                <Button variant="ghost" size="icon" onClick={handlePrevWeek} className="rounded-full hover:bg-white/80 w-10 h-10">
+                            <div className="flex items-center justify-between w-full sm:w-auto bg-white/60 backdrop-blur-md rounded-full border border-primary/20 p-1">
+                                <Button variant="ghost" size="icon" onClick={handlePrevWeek} className="rounded-full hover:bg-white/80 w-10 h-10 shrink-0">
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
-                                <div className="px-5 py-1 text-sm font-bold font-mono min-w-[140px] text-center">
+                                <div className="px-2 sm:px-5 py-1 text-sm font-bold font-mono min-w-[120px] sm:min-w-[140px] text-center truncate">
                                     {format(dateRange.startDate, 'dd MMM', { locale: ar })} - {format(dateRange.endDate, 'dd MMM', { locale: ar })}
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={handleNextWeek} className="rounded-full hover:bg-white/80 w-10 h-10">
+                                <Button variant="ghost" size="icon" onClick={handleNextWeek} className="rounded-full hover:bg-white/80 w-10 h-10 shrink-0">
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
                             </div>
 
                             <Button
                                 onClick={handleAdd}
-                                className="h-11 rounded-full px-6 gap-2 bg-primary text-white hover:scale-105 transition-all font-bold"
+                                className="h-11 w-full sm:w-auto rounded-full px-6 gap-2 bg-primary text-white hover:scale-105 transition-all font-bold justify-center"
                             >
                                 <Plus size={18} /> إضافة مصروف
                             </Button>

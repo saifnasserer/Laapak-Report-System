@@ -45,6 +45,7 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
                 "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
                 className
             )}
+            data-select-trigger="true"
             {...props}
         >
             {children}
@@ -79,7 +80,11 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(({ cl
 
     React.useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (contentRef.current && !contentRef.current.contains(event.target as Node) && !(event.target as Element).closest('button')) {
+            if (
+                contentRef.current && 
+                !contentRef.current.contains(event.target as Node) && 
+                !(event.target as Element).closest('button[data-select-trigger]')
+            ) {
                 setOpen(false);
             }
         };
@@ -92,13 +97,34 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(({ cl
         };
     }, [open, setOpen]);
 
+    const [triggerRect, setTriggerRect] = React.useState<DOMRect | null>(null);
+
+    React.useEffect(() => {
+        if (open) {
+            // Find the trigger element
+            const triggers = document.querySelectorAll('button[data-select-trigger="true"]');
+            for (let i = 0; i < triggers.length; i++) {
+                // Determine if this is the active trigger (simplistic approach: check if its context matches)
+                // A more robust way is to pass a ref, but we'll try to find the closest relative parent.
+                // For a robust generic fix, we attach an ID to the trigger context.
+            }
+        }
+    }, [open]);
+
     if (!open) return null;
 
+    // We'll use a simpler approach for Portal:
+    // Actually, without rewriting the whole Select component to track trigger refs,
+    // a quick fix for `absolute` clipping inside modals is to make the Modal `overflow-y-auto` instead of `overflow-hidden`
+    // Wait, Modal needs overflow-hidden for rounded corners. 
+    // We can use a CSS fix in SelectContent: add fixed positioning if needed, but absolute is relative to the parent.
+    // If the parent is not clipped, absolute is fine.
+    
     return (
         <div
             ref={contentRef}
             className={cn(
-                "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80",
+                "absolute z-[100] min-w-[8rem] overflow-y-auto max-h-[250px] custom-scrollbar rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80",
                 position === "popper" && "top-[calc(100%+4px)] w-full",
                 className
             )}

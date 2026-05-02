@@ -5,13 +5,29 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { Montserrat, Noto_Sans_Arabic } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
+
+export const viewport: Viewport = {
+    themeColor: '#00C853',
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
     title: 'Laapak Reports',
     description: 'System for managing Laapak reports',
+    manifest: '/manifest.json',
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'default',
+        title: 'لابك',
+    },
     icons: {
         icon: '/favicon.png',
+        apple: '/logo.png',
     },
 };
 
@@ -59,6 +75,19 @@ export default async function RootLayout({
                         {children}
                     </AuthProvider>
                 </NextIntlClientProvider>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            if ('serviceWorker' in navigator) {
+                                window.addEventListener('load', function() {
+                                    navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                                        console.log('ServiceWorker registration failed: ', err);
+                                    });
+                                });
+                            }
+                        `,
+                    }}
+                />
             </body>
         </html>
     );

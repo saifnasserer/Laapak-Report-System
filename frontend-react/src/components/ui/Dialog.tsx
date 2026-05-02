@@ -49,7 +49,7 @@ export const DialogContent = ({ children, className, variant = 'default' }: { ch
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-300">
             <div
                 className={cn(
-                    "relative w-full max-w-lg overflow-hidden transition-all animate-in zoom-in-95 duration-300",
+                    "relative w-full max-w-lg flex flex-col max-h-[85dvh] transition-all animate-in zoom-in-95 duration-300",
                     variant === 'glass'
                         ? "bg-white/80 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-[2.5rem]"
                         : "bg-white rounded-xl shadow-2xl",
@@ -57,13 +57,13 @@ export const DialogContent = ({ children, className, variant = 'default' }: { ch
                 )}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-0">
+                <div className={cn("p-0 overflow-y-auto pb-[max(0rem,env(safe-area-inset-bottom,0rem))] custom-scrollbar", variant === 'glass' ? "rounded-b-[2.5rem]" : "rounded-b-xl")}>
                     {children}
                 </div>
                 <button
                     onClick={() => onOpenChange(false)}
                     className={cn(
-                        "absolute right-6 top-6 p-2 rounded-full transition-all duration-300 z-50",
+                        "absolute start-6 top-6 p-2 rounded-full transition-all duration-300 z-50",
                         variant === 'glass'
                             ? "bg-black/5 hover:bg-black/10 text-foreground/60"
                             : "hover:bg-black/5 text-foreground/70"
