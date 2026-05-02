@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/medusa/:path*',
-        destination: 'http://82.112.253.29:9001/:path*',
+        destination: 'https://api.laapak.com/:path*',
       },
     ];
   },

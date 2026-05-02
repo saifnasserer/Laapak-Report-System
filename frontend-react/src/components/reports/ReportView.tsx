@@ -189,8 +189,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                     console.log('Fetching accessories from Medusa...');
                     const response = await axios.get(`${MEDUSA_BASE_URL}/store/products`, {
                         params: {
-                            category_id: ACCESSORIES_CATEGORY_ID, // Medusa V2 accepts string or array, string is more standard for single ID
-                            fields: '*variants.prices,*variants,*images', // Ensure images are also expanded
+                            category_id: ACCESSORIES_CATEGORY_ID,
+                            fields: '+variants.prices,+variants,+images', // Simplified expansion
                             limit: 50
                         },
                         headers: {
