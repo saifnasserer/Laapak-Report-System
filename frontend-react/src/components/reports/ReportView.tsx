@@ -186,10 +186,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             if (products.length === 0) {
                 try {
                     setIsLoadingProducts(true);
+                    console.log('Fetching accessories from Medusa...');
                     const response = await axios.get(`${MEDUSA_BASE_URL}/store/products`, {
                         params: {
-                            category_id: [ACCESSORIES_CATEGORY_ID],
-                            fields: '*variants.prices,*variants',
+                            category_id: ACCESSORIES_CATEGORY_ID, // Medusa V2 accepts string or array, string is more standard for single ID
+                            fields: '*variants.prices,*variants,*images', // Ensure images are also expanded
                             limit: 50
                         },
                         headers: {
@@ -197,13 +198,19 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         }
                     });
 
+                    if (!response.data || !response.data.products) {
+                        console.error('Invalid response from Medusa:', response.data);
+                        setProducts([]);
+                        return;
+                    }
+
                     // Map Medusa products to the format expected by the UI
                     const mappedProducts = response.data.products.map((p: any) => {
                         // Medusa V2 Price structure: variants[0].prices[0].amount
                         // Prices are in minor units (e.g., 5000 = 50.00 EGP)
                         const firstVariant = p.variants?.[0];
                         const firstPrice = firstVariant?.prices?.[0];
-                        const priceAmount = firstPrice ? firstPrice.amount : 0;
+                        const priceAmount = firstPrice ? (firstPrice.amount || firstPrice.raw_amount?.value || 0) : 0;
 
                         return {
                             id: p.id || p.handle || `product-${Math.random().toString(36).substr(2, 9)}`,
@@ -214,9 +221,10 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         };
                     });
 
+                    console.log(`Successfully fetched ${mappedProducts.length} accessories`);
                     setProducts(mappedProducts);
-                } catch (err) {
-                    console.error('Failed to fetch products from Medusa:', err);
+                } catch (err: any) {
+                    console.error('Failed to fetch products from Medusa:', err.message, err.response?.data);
                 } finally {
                     setIsLoadingProducts(false);
                 }
@@ -898,39 +906,48 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {products.map((product: any) => {
-                                    const isInCart = cartItems.find(item => item.id === product.id);
-                                    return (
-                                        <div key={product.id} className="group bg-white rounded-[2rem] border border-black/5 p-4 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col">
-                                            <div className="aspect-square w-full rounded-2xl overflow-hidden bg-surface-variant/5 mb-4 relative">
-                                                {product.images && product.images[0] ? (
-                                                    <img src={product.images[0].src} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-secondary/20">
-                                                        <Package size={48} />
+                                {products.length > 0 ? (
+                                    products.map((product: any) => {
+                                        const isInCart = cartItems.find(item => item.id === product.id);
+                                        return (
+                                            <div key={product.id} className="group bg-white rounded-[2rem] border border-black/5 p-4 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col">
+                                                <div className="aspect-square w-full rounded-2xl overflow-hidden bg-surface-variant/5 mb-4 relative">
+                                                    {product.images && product.images[0] ? (
+                                                        <img src={product.images[0].src} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-secondary/20">
+                                                            <Package size={48} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-3 flex-1">
+                                                    <h4 className="font-bold text-secondary group-hover:text-primary transition-colors line-clamp-2 min-h-[3rem]">{product.name}</h4>
+                                                    <div className="flex items-center justify-between mt-auto">
+                                                        <p className="text-xl font-black text-primary">{product.price} <span className="text-[10px] font-bold">جنيه</span></p>
+                                                        <Button
+                                                            onClick={() => toggleCartItem(product)}
+                                                            className={cn(
+                                                                "rounded-xl px-4 py-2 text-xs font-black transition-all",
+                                                                isInCart
+                                                                    ? "bg-red-50 text-red-500 hover:bg-red-100 border-red-100"
+                                                                    : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                                                            )}
+                                                        >
+                                                            {isInCart ? 'حذف من الطلب' : 'إضافة للطلب'}
+                                                        </Button>
                                                     </div>
-                                                )}
-                                            </div>
-                                            <div className="space-y-3 flex-1">
-                                                <h4 className="font-bold text-secondary group-hover:text-primary transition-colors line-clamp-2 min-h-[3rem]">{product.name}</h4>
-                                                <div className="flex items-center justify-between mt-auto">
-                                                    <p className="text-xl font-black text-primary">{product.price} <span className="text-[10px] font-bold">جنيه</span></p>
-                                                    <Button
-                                                        onClick={() => toggleCartItem(product)}
-                                                        className={cn(
-                                                            "rounded-xl px-4 py-2 text-xs font-black transition-all",
-                                                            isInCart
-                                                                ? "bg-red-50 text-red-500 hover:bg-red-100 border-red-100"
-                                                                : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                                                        )}
-                                                    >
-                                                        {isInCart ? 'حذف من الطلب' : 'إضافة للطلب'}
-                                                    </Button>
                                                 </div>
                                             </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="col-span-full py-20 text-center bg-surface-variant/5 rounded-[3rem] border-2 border-dashed border-black/5">
+                                        <div className="w-16 h-16 rounded-full bg-surface-variant/20 flex items-center justify-center mx-auto mb-4 text-secondary/20">
+                                            <Package size={32} />
                                         </div>
-                                    );
-                                })}
+                                        <p className="font-bold text-secondary/40">لا توجد إضافات متاحة حالياً</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </motion.div>
