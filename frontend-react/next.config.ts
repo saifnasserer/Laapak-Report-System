@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     // Dynamic backend URL based on environment
     // Use 'report-system:3001' in Docker/Production, 'localhost:3001' for local dev
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.BACKEND_URL || 'http://report-system:3001';
 
     return [
       {

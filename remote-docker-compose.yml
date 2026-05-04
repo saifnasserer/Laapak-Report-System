@@ -32,10 +32,14 @@ services:
     build:
       context: ./frontend-react
       dockerfile: Dockerfile
+      args:
+        - BACKEND_URL=http://report-system:3001
+        - NEXT_PUBLIC_API_URL=https://reports.laapak.com/api
     image: saifnasser/laapak-reports:frontend-latest
     container_name: laapak-frontend-react
     environment:
       - BACKEND_URL=http://report-system:3001
+      - NEXT_PUBLIC_API_URL=https://reports.laapak.com/api
     networks:
       - laapak-network
     deploy:

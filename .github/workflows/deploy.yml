@@ -49,6 +49,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_IMGBB_API_KEY=${{ secrets.NEXT_PUBLIC_IMGBB_API_KEY }}
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            BACKEND_URL=http://report-system:3001
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
