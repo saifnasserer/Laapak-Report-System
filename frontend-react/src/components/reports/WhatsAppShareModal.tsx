@@ -35,9 +35,11 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ isOpen, 
     useEffect(() => {
         if (report) {
             const password = report.client?.orderCode || report.order_number || report.id || '';
-            const username = report.client_phone || report.client?.phone || '';
-            const clientName = report.client_name || report.client?.name || 'عميلنا العزيز';
+            const username = report.client?.phone || report.client_phone || '';
+            const clientName = report.client?.name || report.client_name || 'عميلنا العزيز';
             const deviceModel = report.device_model || '';
+
+            const directLink = `https://reports.laapak.com/${locale}/login?u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}&r=/${locale}/reports/${report.id}`;
 
             const template = settings.template_report_ready;
 
@@ -46,11 +48,18 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ isOpen, 
                     .replace(/{{client_name}}/g, clientName)
                     .replace(/{{device_model}}/g, deviceModel)
                     .replace(/{{username}}/g, username)
-                    .replace(/{{password}}/g, password);
-                setMessage(msg);
+                    .replace(/{{password}}/g, password)
+                    .replace(/{{direct_link}}/g, directLink);
+                
+                // If direct_link wasn't in template, append it
+                if (!template.includes('{{direct_link}}')) {
+                    setMessage(`${msg}\n\nرابط الدخول المباشر:\n${directLink}`);
+                } else {
+                    setMessage(msg);
+                }
             } else {
                 // Fallback to legacy hardcoded message
-                const msg = `التقرير الخاص بحضرتك دلوقتي جاهز تقدر تشوف تفاصيله كامله دلوقتي من هنا\nhttps://reports.laapak.com\n\nUsername: ${username}\nPassword: ${password}`;
+                const msg = `التقرير الخاص بحضرتك دلوقتي جاهز تقدر تشوف تفاصيله كامله دلوقتي من هنا\n${directLink}\n\nأو يمكنك الدخول يدوياً:\nUsername: ${username}\nPassword: ${password}`;
                 setMessage(msg);
             }
         }

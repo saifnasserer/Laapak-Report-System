@@ -15,7 +15,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     isLoading: boolean;
-    login: (identifier: string, credential: string) => Promise<void>;
+    login: (identifier: string, credential: string, redirectPath?: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
     }, []);
 
-    const login = async (identifier: string, credential: string) => {
+    const login = async (identifier: string, credential: string, redirectPath?: string) => {
         try {
             const response = await api.post('/auth/login', {
                 identifier,
@@ -50,8 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
 
-            // Redirect based on user type
-            if (userData.type === 'admin') {
+            // Redirect based on user type or provided path
+            if (redirectPath) {
+                router.push(redirectPath as any);
+            } else if (userData.type === 'admin') {
                 router.push('/dashboard/admin');
             } else {
                 router.push('/dashboard/client');

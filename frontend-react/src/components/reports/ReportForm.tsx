@@ -145,7 +145,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
     const searchParams = useSearchParams();
     const isUpdateMode = searchParams.get('mode') === 'update';
-    const totalSteps = isUpdateMode ? 6 : 5;
+    const totalSteps = isUpdateMode ? 5 : 4;
 
     const [imageInput, setImageInput] = useState('');
     const [videoInput, setVideoInput] = useState('');
@@ -236,6 +236,169 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         
         if ('target' in e && 'value' in e.target) {
             (e.target as any).value = '';
+        }
+    };
+
+    const handleScanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const scanData = JSON.parse(text);
+
+            const roundToStandard = (gb: number) => {
+                if (gb <= 0) return 0;
+                const standards = [128, 256, 512, 1024, 2048];
+                const closest = standards.reduce((prev, curr) => 
+                    Math.abs(curr - gb) < Math.abs(prev - gb) ? curr : prev
+                );
+                // Use standard if within 15% margin
+                return (Math.abs(closest - gb) / gb < 0.15) ? closest : Math.round(gb);
+            };
+
+            const formatSize = (gb: number) => {
+                const rounded = roundToStandard(gb);
+                return rounded >= 1024 ? `${rounded / 1024}TB` : `${rounded}GB`;
+            };
+
+            setFormData(prev => {
+                const newData = { ...prev };
+
+                // 1. System Info & Serial (Matched with ScanReportView)
+                if (scanData.system) {
+                    const manufacturer = scanData.system.manufacturer || '';
+                    const model = scanData.system.model || '';
+                    newData.device_model = `${manufacturer} ${model}`.trim();
+                    
+                    if (scanData.system.system_serial) {
+                        newData.serial_number = scanData.system.system_serial;
+                    }
+                }
+
+                // 2. CPU
+                if (scanData.cpu?.name) {
+                    newData.cpu = scanData.cpu.name;
+                }
+
+                // 3. RAM
+                if (scanData.ram?.total) {
+                    newData.ram = `${scanData.ram.total} GB`;
+                }
+
+                // 4. GPU (Matched with ScanReportView gpu.devices)
+                if (scanData.gpu?.devices?.length > 0) {
+                    newData.gpu = scanData.gpu.devices
+                        .map((g: any) => {
+                            const vendor = g.vendor || '';
+                            const name = g.name || '';
+                            if (name.toLowerCase().includes(vendor.toLowerCase())) return name;
+                            return `${vendor} ${name}`.trim();
+                        })
+                        .join(' + ');
+                }
+
+                // 5. Storage (Matched with ScanReportView storage.devices)
+                let storageDetails = {};
+                if (scanData.storage?.devices?.length > 0) {
+                    const internalDrives = scanData.storage.devices.filter((d: any) => 
+                        d.type?.toLowerCase() !== 'usb' && 
+                        !String(d.model || '').toLowerCase().includes('usb')
+                    );
+
+                    if (internalDrives.length > 0) {
+                        newData.storage = internalDrives
+                            .map((d: any) => {
+                                const sizeGb = d.size_gb || (d.size ? d.size / (1024 ** 3) : 0);
+                                return `${formatSize(sizeGb)} ${d.type || 'SSD'}`;
+                            })
+                            .join(' + ');
+                        
+                        // Store detailed storage stats
+                        storageDetails = {
+                            devices: internalDrives.map((d: any) => ({
+                                model: d.model,
+                                size: d.size_gb,
+                                health: d.health_pct || d.health_percent || 100,
+                                type: d.type
+                            }))
+                        };
+                    }
+                }
+
+                // 6. Battery & Display
+                let batteryDetails = {};
+                const batteryDevice = scanData.battery?.devices?.[0];
+                if (batteryDevice?.health_percentage) {
+                    newData.battery_capacity = `${Math.round(batteryDevice.health_percentage)}% Health`;
+                    batteryDetails = {
+                        health: batteryDevice.health_percentage,
+                        cycles: batteryDevice.cycle_count || 0,
+                        design: batteryDevice.design_capacity,
+                        full: batteryDevice.full_charge_capacity
+                    };
+                }
+
+                let displayDetails = {};
+                const mainDisplay = scanData.display?.active_displays?.[0];
+                if (mainDisplay?.resolution) {
+                    const { width, height } = mainDisplay.resolution;
+                    newData.display_size = `${width}x${height} @ ${mainDisplay.refresh_rate || ''}Hz`;
+                    displayDetails = {
+                        width,
+                        height,
+                        refresh_rate: mainDisplay.refresh_rate
+                    };
+                }
+
+                // Detailed RAM & CPU stats for hardware_status
+                const ramDetails = {
+                    total: scanData.ram?.total,
+                    type: scanData.ram?.type,
+                    speed: scanData.ram?.speed_mhz
+                };
+
+                const cpuDetails = {
+                    name: scanData.cpu?.name,
+                    cores: scanData.cpu?.physical_cores,
+                    temp: scanData.cpu?.temperature_c,
+                    cache: scanData.cpu?.l3_cache_mb
+                };
+
+                const gpuDetails = {
+                    devices: scanData.gpu?.devices?.map((g: any) => ({
+                        name: g.name,
+                        vram: g.vram_mb,
+                        vendor: g.vendor
+                    }))
+                };
+
+                newData.hardware_status = prev.hardware_status.map(item => {
+                    if (['CPU', 'GPU', 'Storage', 'Battery', 'Display', 'Wifi', 'Bluetooth'].includes(item.componentName)) {
+                        let detail = {};
+                        if (item.componentName === 'CPU') detail = cpuDetails;
+                        if (item.componentName === 'GPU') detail = gpuDetails;
+                        if (item.componentName === 'Storage') detail = storageDetails;
+                        if (item.componentName === 'Battery') detail = batteryDetails;
+                        if (item.componentName === 'Display') detail = displayDetails;
+                        if (item.componentName === 'RAM') detail = ramDetails;
+
+                        return { 
+                            ...item, 
+                            status: 'pass', 
+                            comment: Object.keys(detail).length > 0 ? JSON.stringify(detail) : 'تم الفحص برمجياً: سليم' 
+                        };
+                    }
+                    return item;
+                });
+
+                return newData;
+            });
+
+            alert('تم استخراج بيانات الجهاز بنجاح! يرجى مراجعة الحقول.');
+        } catch (err) {
+            console.error('Failed to parse scan file:', err);
+            alert('فشل في قراءة ملف الفحص. تأكد أنه ملف JSON صحيح.');
         }
     };
 
@@ -644,9 +807,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         <p className="text-secondary font-medium">خطوة {step} من {totalSteps}: {
                             step === 1 ? 'البيانات والمواصفات' :
                                 step === 2 ? 'الاختبارات التقنية' :
-                                    step === 3 ? 'لقطات شاشة الاختبار' :
-                                        step === 4 ? 'المعاينة الخارجية' :
-                                            step === 5 ? (isUpdateMode ? 'الفاتورة' : 'الفاتورة والحفظ') : 'وصف التعديل'
+                                    step === 3 ? 'المعاينة الخارجية' :
+                                        step === 4 ? (isUpdateMode ? 'لقطات شاشة الاختبار' : 'لقطات شاشة الاختبار والحفظ') : 'وصف التعديل'
                         }</p>
                     </div>
                 </div>
@@ -674,16 +836,37 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                         </CardTitle>
                                         <p className="text-xs text-secondary/40 font-bold uppercase tracking-widest px-1">أدخل بيانات العميل وهوية الجهاز والمواصفات الأساسية</p>
                                     </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setIsClientModalOpen(true)}
-                                        className="rounded-full h-10 px-6 border-primary/20 text-primary hover:bg-primary/5"
-                                        icon={<Plus size={16} />}
-                                    >
-                                        إضافة عميل جديد
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <div className="relative">
+                                            <input 
+                                                type="file" 
+                                                id="scan-upload" 
+                                                className="hidden" 
+                                                accept=".json" 
+                                                onChange={handleScanUpload} 
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="primary"
+                                                size="sm"
+                                                onClick={() => document.getElementById('scan-upload')?.click()}
+                                                className="rounded-full h-10 px-6 shadow-lg shadow-primary/20"
+                                                icon={<Zap size={16} />}
+                                            >
+                                                رفع فحص ذكي
+                                            </Button>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsClientModalOpen(true)}
+                                            className="rounded-full h-10 px-6 border-primary/20 text-primary hover:bg-primary/5"
+                                            icon={<Plus size={16} />}
+                                        >
+                                            إضافة عميل جديد
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-8 space-y-10">
@@ -799,43 +982,108 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                         <h6 className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] opacity-30">Technical Specifications</h6>
                                     </div>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">
-                                        {(['cpu', 'gpu', 'ram', 'storage'] as const).map((field) => (
-                                            <div key={field} className="space-y-4 group">
-                                                <Input
-                                                    name={field}
-                                                    label={field.toUpperCase()}
-                                                    placeholder={field.toUpperCase() + "..."}
-                                                    icon={field === 'cpu' ? <Cpu size={18} /> : field === 'gpu' ? <Monitor size={18} /> : field === 'ram' ? <Database size={18} /> : <HardDrive size={18} />}
-                                                    value={(formData as any)[field]}
-                                                    onChange={handleChange}
-                                                    className="rounded-2xl bg-black/[0.02] border-transparent group-hover:bg-white group-hover:border-primary/20 h-12 transition-all"
-                                                />
-                                                <div className="space-y-2 px-1">
-                                                    <span className="text-[9px] font-black text-secondary/20 uppercase tracking-[0.2em]">المقترحات</span>
-                                                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mask-fade-edges">
-                                                        {(quickSpecs as any)[field].map((val: string) => (
-                                                            <button
-                                                                key={val}
-                                                                type="button"
-                                                                onClick={() => setFormData(prev => ({ ...prev, [field]: val }))}
-                                                                className={cn(
-                                                                    "group/btn flex items-center gap-1.5 px-4 py-2 rounded-full border transition-all shrink-0",
-                                                                    (formData as any)[field] === val
-                                                                        ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105"
-                                                                        : "bg-white text-secondary/60 border-black/5 hover:border-primary/20 hover:text-primary hover:shadow-md hover:shadow-primary/5"
+                                        {(['cpu', 'gpu', 'ram', 'storage'] as const).map((field) => {
+                                            const hStatus = formData.hardware_status;
+                                            const statusItem = hStatus.find((h: any) => h.componentName?.toLowerCase() === field.toLowerCase() || (field === 'storage' && h.componentName === 'Storage'));
+                                            let techData: any = null;
+                                            if (statusItem?.comment) {
+                                                try { techData = JSON.parse(statusItem.comment); } catch (e) {}
+                                            }
+
+                                            return (
+                                                <div key={field} className="space-y-4 group">
+                                                    <div className="relative">
+                                                        <Input
+                                                            name={field}
+                                                            label={field.toUpperCase()}
+                                                            placeholder={field.toUpperCase() + "..."}
+                                                            icon={field === 'cpu' ? <Cpu size={18} /> : field === 'gpu' ? <Monitor size={18} /> : field === 'ram' ? <Database size={18} /> : <HardDrive size={18} />}
+                                                            value={(formData as any)[field]}
+                                                            onChange={handleChange}
+                                                            className="rounded-2xl bg-black/[0.02] border-transparent group-hover:bg-white group-hover:border-primary/20 h-12 transition-all"
+                                                        />
+                                                        {techData && (
+                                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex gap-1 animate-in fade-in zoom-in">
+                                                                {field === 'cpu' && techData.cores && (
+                                                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5">{techData.cores} Cores</Badge>
                                                                 )}
-                                                            >
-                                                                <Plus size={10} className={cn(
-                                                                    "transition-colors",
-                                                                    (formData as any)[field] === val ? "text-white" : "text-primary/40 group-hover/btn:text-primary"
-                                                                )} />
-                                                                <span className="text-[11px] font-bold uppercase tracking-tight">{val}</span>
-                                                            </button>
-                                                        ))}
+                                                                {field === 'ram' && techData.speed && (
+                                                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5">{techData.speed}MHz</Badge>
+                                                                )}
+                                                                {field === 'storage' && techData.devices?.[0]?.health && (
+                                                                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-100 text-[9px] font-black h-5">Health: {techData.devices[0].health}%</Badge>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2 px-1">
+                                                        <span className="text-[9px] font-black text-secondary/20 uppercase tracking-[0.2em]">المقترحات</span>
+                                                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mask-fade-edges">
+                                                            {(quickSpecs as any)[field].map((val: string) => (
+                                                                <button
+                                                                    key={val}
+                                                                    type="button"
+                                                                    onClick={() => setFormData(prev => ({ ...prev, [field]: val }))}
+                                                                    className={cn(
+                                                                        "group/btn flex items-center gap-1.5 px-4 py-2 rounded-full border transition-all shrink-0",
+                                                                        (formData as any)[field] === val
+                                                                            ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105"
+                                                                            : "bg-white text-secondary/60 border-black/5 hover:border-primary/20 hover:text-primary hover:shadow-md hover:shadow-primary/5"
+                                                                    )}
+                                                                >
+                                                                    <Plus size={10} className={cn(
+                                                                        "transition-colors",
+                                                                        (formData as any)[field] === val ? "text-white" : "text-primary/40 group-hover/btn:text-primary"
+                                                                    )} />
+                                                                    <span className="text-[11px] font-bold uppercase tracking-tight">{val}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* New Section for Battery and Display */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 border-t border-black/[0.03]">
+                                        {[
+                                            { name: 'battery_capacity', label: 'حالة البطارية (Battery)', icon: <Zap size={18} />, component: 'Battery' },
+                                            { name: 'display_size', label: 'دقة الشاشة (Display)', icon: <Monitor size={18} />, component: 'Display' }
+                                        ].map((field) => {
+                                            const hStatus = formData.hardware_status;
+                                            const statusItem = hStatus.find((h: any) => h.componentName === field.component);
+                                            let techData: any = null;
+                                            if (statusItem?.comment) {
+                                                try { techData = JSON.parse(statusItem.comment); } catch (e) {}
+                                            }
+
+                                            return (
+                                                <div key={field.name} className="space-y-4 group">
+                                                    <div className="relative">
+                                                        <Input
+                                                            name={field.name}
+                                                            label={field.label}
+                                                            placeholder={field.label + "..."}
+                                                            icon={field.icon}
+                                                            value={(formData as any)[field.name]}
+                                                            onChange={handleChange}
+                                                            className="rounded-2xl bg-black/[0.02] border-transparent group-hover:bg-white group-hover:border-primary/20 h-12 transition-all"
+                                                        />
+                                                        {techData && (
+                                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex gap-1">
+                                                                {field.component === 'Battery' && techData.cycles && (
+                                                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5">{techData.cycles} Cycles</Badge>
+                                                                )}
+                                                                {field.component === 'Display' && techData.refresh_rate && (
+                                                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5">{techData.refresh_rate}Hz</Badge>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -917,6 +1165,20 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-base group-hover:translate-x-1 transition-transform">{item.nameAr || item.componentName}</span>
+                                                        {(() => {
+                                                            try {
+                                                                const tech = JSON.parse(item.comment);
+                                                                if (item.componentName === 'CPU') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.cores} Cores | {tech.temp}°C</span>;
+                                                                if (item.componentName === 'Battery') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.cycles} Cycles | {Math.round(tech.health)}% Health</span>;
+                                                                if (item.componentName === 'RAM') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.speed}MHz | {tech.type}</span>;
+                                                                if (item.componentName === 'Storage') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">Health: {tech.devices?.[0]?.health}% | {tech.devices?.[0]?.type}</span>;
+                                                                if (item.componentName === 'Display') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.width}x{tech.height} @ {tech.refresh_rate}Hz</span>;
+                                                                if (item.componentName === 'GPU') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.devices?.[0]?.vram}MB VRAM</span>;
+                                                            } catch (e) {
+                                                                if (item.comment) return <span className="text-[10px] text-secondary/40 font-medium">{item.comment}</span>;
+                                                            }
+                                                            return null;
+                                                        })()}
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -958,7 +1220,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </Card>
                 )}
 
-                {step === 3 && (
+                {step === 4 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="flex flex-col items-center text-center mb-8">
                             <h2 className="text-2xl font-black text-secondary flex items-center gap-2">
@@ -1084,7 +1346,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </div>
                 )}
 
-                {step === 4 && (
+                {step === 3 && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <Card variant="glass" className="overflow-hidden">
                             <CardHeader className="p-8 pb-4 border-b border-black/[0.03]">
@@ -1250,120 +1512,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </div>
                 )}
 
-                {step === 5 && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-8">
-                        <Card variant="glass" className="overflow-hidden border-primary/10">
-                            <CardHeader className="p-8 border-b border-black/5 bg-primary/[0.02] flex flex-row items-center justify-between">
-                                <CardTitle className="text-xl font-black flex items-center gap-2 text-primary">
-                                    <Receipt size={24} />
-                                    بيانات الفاتورة والاعتماد
-                                </CardTitle>
-                                <div className="flex items-center gap-3">
-                                    {formData.billing_enabled && reportId && (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant={formData.invoice_id ? "outline" : "primary"} // Use string literal "default" if "primary" is not a valid variant, checking Button component usage, usually "default" or "primary" is fine but "default" is safer if "primary" is custom. Wait, previous code uses className for color. Let's stick to standard variants or className
-                                            onClick={() => {
-                                                if (formData.invoice_id) {
-                                                    router.push(`/dashboard/admin/invoices/${formData.invoice_id}/edit`);
-                                                } else {
-                                                    // Save first then redirect to ensure data is consistent?
-                                                    // For now direct redirect as per plan.
-                                                    router.push(`/dashboard/admin/invoices/new?reportIds=${reportId}`);
-                                                }
-                                            }}
-                                            className={cn(
-                                                "rounded-full h-9 px-4 text-xs font-bold animate-in zoom-in",
-                                                formData.invoice_id
-                                                    ? "border-primary/20 text-primary hover:bg-primary/5"
-                                                    : "bg-primary text-white shadow-md shadow-primary/20"
-                                            )}
-                                        >
-                                            {formData.invoice_id ? 'عرض الفاتورة' : 'إنشاء فاتورة'}
-                                        </Button>
-                                    )}
-                                    <div className="flex items-center gap-3 bg-white/50 p-2 px-4 rounded-full border border-black/5">
-                                        <span className="text-[10px] font-black text-secondary/60 uppercase tracking-widest">إصدار فاتورة؟</span>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" className="sr-only peer" checked={formData.billing_enabled} onChange={(e) => setFormData(prev => ({ ...prev, billing_enabled: e.target.checked }))} />
-                                            <div className="w-12 h-6 bg-black/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:start-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-8 space-y-8">
-                                {formData.billing_enabled ? (
-                                    <div className="space-y-8 animate-in slide-in-from-top-2">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8 rounded-[2.5rem] bg-black/[0.02] border border-black/5">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2">اسم الجهاز</label>
-                                                <Input readOnly value={formData.device_model} icon={<Monitor size={16} />} className="rounded-full bg-white border-black/5 h-12 text-secondary/60" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-2">سعر البيع للعميل (Selling Price)</label>
-                                                <Input name="amount" type="number" value={formData.amount} onChange={handleChange} icon={<CreditCard size={18} />} className="rounded-full bg-white border-primary/20 h-12 font-black text-primary" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between px-2">
-                                                <h4 className="text-sm font-black text-secondary/40 uppercase tracking-tighter">بنود إضافية (Extra Items)</h4>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={handleInvoiceItemAdd}
-                                                    className="h-8 rounded-full border-dashed border-primary/20 text-primary text-[10px]"
-                                                    icon={<Plus size={12} />}
-                                                >
-                                                    إضافة بند
-                                                </Button>
-                                            </div>
-                                            {formData.invoice_items.map((item, index) => (
-                                                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-4 rounded-3xl bg-black/[0.02] border border-black/5 animate-in slide-in-from-top-1">
-                                                    <div className="md:col-span-7">
-                                                        <Input
-                                                            placeholder="وصف البند..."
-                                                            value={item.name}
-                                                            onChange={(e) => handleInvoiceItemChange(index, 'name', e.target.value)}
-                                                            className="rounded-full h-10 bg-white text-xs border-transparent focus:border-primary/20"
-                                                        />
-                                                    </div>
-                                                    <div className="md:col-span-3">
-                                                        <Input
-                                                            type="number"
-                                                            placeholder="السعر"
-                                                            value={item.price}
-                                                            onChange={(e) => handleInvoiceItemChange(index, 'price', e.target.value)}
-                                                            className="rounded-full h-10 bg-white text-xs border-transparent focus:border-primary/20 font-mono text-center text-primary"
-                                                        />
-                                                    </div>
-                                                    <div className="md:col-span-2 flex justify-end">
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            onClick={() => handleInvoiceItemRemove(index)}
-                                                            className="h-10 w-10 rounded-full text-red-500 hover:bg-red-50"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="py-20 flex flex-col items-center justify-center text-center bg-black/[0.01] rounded-[2.5rem] border border-dashed border-black/5">
-                                        <Receipt size={40} className="text-secondary/10" />
-                                        <p className="font-bold text-secondary/40">لم يتم تفعيل الفوترة</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
-
-                {step === 6 && isUpdateMode && (
+                {step === 5 && isUpdateMode && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <Card variant="glass" className="overflow-hidden border-primary/20">
                             <CardHeader className="p-8 border-b border-black/5 bg-primary/[0.02]">

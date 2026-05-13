@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/Input';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
-
-import { use } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, use } from 'react';
 
 export default function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -23,6 +23,35 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
     const [identifier, setIdentifier] = useState('');
     const [credential, setCredential] = useState('');
     const [error, setError] = useState('');
+
+    const searchParams = useSearchParams();
+    const autoLoginAttempted = React.useRef(false);
+
+    useEffect(() => {
+        const u = searchParams.get('u');
+        const p = searchParams.get('p');
+        const r = searchParams.get('r');
+
+        if (u && p && !autoLoginAttempted.current) {
+            autoLoginAttempted.current = true;
+            setIdentifier(u);
+            setCredential(p);
+            
+            const performAutoLogin = async () => {
+                setIsLoading(true);
+                try {
+                    await login(u, p, r || undefined);
+                } catch (err) {
+                    console.error('Auto-login failed:', err);
+                    setError(t('error'));
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            
+            performAutoLogin();
+        }
+    }, [searchParams, login, t]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

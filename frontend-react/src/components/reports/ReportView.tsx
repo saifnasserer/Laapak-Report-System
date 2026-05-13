@@ -696,22 +696,60 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                 المواصفات
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-2 md:px-4">
-                                {[
-                                    { label: t('dashboard.reports.specs.processor'), value: report.cpu || 'Not Specified', icon: <Cpu size={20} /> },
-                                    { label: t('dashboard.reports.specs.graphics'), value: report.gpu || 'Not Specified', icon: <Monitor size={20} /> },
-                                    { label: t('dashboard.reports.specs.memory'), value: report.ram || 'Not Specified', icon: <Database size={20} /> },
-                                    { label: t('dashboard.reports.specs.storage'), value: report.storage || 'Not Specified', icon: <HardDrive size={20} /> }
-                                ].map((spec, i) => (
-                                    <div key={i} className="flex items-center gap-4 p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all group">
-                                        <div className="w-12 h-12 shrink-0 rounded-xl bg-white flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors shadow-sm">
-                                            {spec.icon}
+                                {(() => {
+                                    const hStatus = typeof report.hardware_status === 'string' ? JSON.parse(report.hardware_status) : (report.hardware_status || []);
+                                    const getDetail = (comp: string) => {
+                                        const item = hStatus.find((h: any) => h.componentName === comp);
+                                        if (!item || !item.comment) return null;
+                                        try { return JSON.parse(item.comment); } catch (e) { return null; }
+                                    };
+
+                                    const cpuD = getDetail('CPU');
+                                    const gpuD = getDetail('GPU');
+                                    const ramD = getDetail('RAM');
+                                    const storageD = getDetail('Storage');
+                                    const batteryD = getDetail('Battery');
+
+                                    return [
+                                        { 
+                                            label: t('dashboard.reports.specs.processor'), 
+                                            value: report.cpu || 'Not Specified', 
+                                            icon: <Cpu size={20} />,
+                                            subStats: cpuD ? `${cpuD.cores} Cores | ${cpuD.temp}°C` : null
+                                        },
+                                        { 
+                                            label: t('dashboard.reports.specs.graphics'), 
+                                            value: report.gpu || 'Not Specified', 
+                                            icon: <MonitorIcon size={20} />,
+                                            subStats: gpuD?.devices?.[0] ? `${gpuD.devices[0].vram}MB VRAM` : null
+                                        },
+                                        { 
+                                            label: t('dashboard.reports.specs.memory'), 
+                                            value: report.ram || 'Not Specified', 
+                                            icon: <Database size={20} />,
+                                            subStats: ramD?.speed ? `${ramD.speed}MHz ${ramD.type || ''}` : null
+                                        },
+                                        { 
+                                            label: t('dashboard.reports.specs.storage'), 
+                                            value: report.storage || 'Not Specified', 
+                                            icon: <HardDrive size={20} />,
+                                            subStats: storageD?.devices?.[0]?.health ? `Health: ${storageD.devices[0].health}%` : null
+                                        }
+                                    ].map((spec, i) => (
+                                        <div key={i} className="flex items-center gap-4 p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                                            <div className="w-12 h-12 shrink-0 rounded-xl bg-white flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors shadow-sm">
+                                                {spec.icon}
+                                            </div>
+                                            <div className="flex flex-col flex-1 text-right min-w-0">
+                                                <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5" style={{ textAlign: 'right' }}>{spec.label}</p>
+                                                <p className="font-bold text-secondary truncate text-sm md:text-base" dir="ltr" style={{ textAlign: 'right' }}>{spec.value || '-'}</p>
+                                                {spec.subStats && (
+                                                    <p className="text-[10px] font-black text-primary/60 mt-0.5" style={{ textAlign: 'right' }}>{spec.subStats}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col flex-1 text-right">
-                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5" style={{ textAlign: 'right' }}>{spec.label}</p>
-                                            <p className="font-bold text-secondary truncate text-sm md:text-base" dir="ltr" style={{ textAlign: 'right' }}>{spec.value || '-'}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ));
+                                })()}
                             </div>
                         </div>
 
@@ -1734,30 +1772,61 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
     } catch (e) { }
 
     const testScreenshots = media.filter((m: any) => m.type === 'test_screenshot');
+    
+    // Extract technical data from hardware_status
+    let hStatus: any[] = [];
+    try {
+        hStatus = typeof report.hardware_status === 'string' ? JSON.parse(report.hardware_status) : (report.hardware_status || []);
+    } catch (e) { }
+
+    // Components we want to show even if no screenshot exists
+    const technicalComponents = ['CPU', 'GPU', 'Battery', 'Storage', 'Display'];
+    
+    // Combine both: prioritize screenshots, fallback to tech data
+    const allTests = technicalComponents.map(comp => {
+        const screenshot = testScreenshots.find((s: any) => (s.component || '').toLowerCase() === comp.toLowerCase());
+        const statusItem = hStatus.find((h: any) => h.componentName === comp);
+        
+        let techData = null;
+        if (statusItem?.comment) {
+            try { techData = JSON.parse(statusItem.comment); } catch (e) {}
+        }
+
+        return {
+            component: comp,
+            screenshot: screenshot,
+            techData: techData,
+            status: statusItem?.status || 'neutral'
+        };
+    }).filter(t => t.screenshot || t.techData);
+
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
     return (
         <div className="space-y-6">
-            <h3 className="text-lg font-black text-secondary pr-3 border-r-4 border-primary">الفحص المتقدم</h3>
-            {testScreenshots.length > 0 ? (
+            <h3 className="text-lg font-black text-secondary pr-3 border-r-4 border-primary">الفحص المتقدم والنتائج التقنية</h3>
+            {allTests.length > 0 ? (
                 <div className="space-y-3">
-                    {testScreenshots.map((item: any, idx: number) => {
+                    {allTests.map((item: any, idx: number) => {
                         const isOpen = openIndex === idx;
-                        const componentName = item.component || item.name || '';
                         return (
                             <div key={idx} className={cn("bg-white border rounded-[1.5rem] overflow-hidden transition-all duration-300", isOpen ? "border-primary/20 shadow-lg" : "border-black/5 hover:border-black/10 shadow-sm")}>
                                 <button onClick={() => setOpenIndex(isOpen ? null : idx)} className="w-full px-4 md:px-6 py-4 md:py-5 flex items-center justify-between group text-right">
                                     <div className="flex items-center gap-4">
                                         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors", isOpen ? "bg-primary text-white" : "bg-black/[0.03] text-secondary/40 group-hover:bg-primary/10 group-hover:text-primary")}>
-                                            {getComponentIcon(componentName)}
+                                            {getComponentIcon(item.component)}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-secondary text-base">{getComponentTitle(componentName)}</span>
-                                            {/* <span className="text-[10px] text-secondary/40 font-bold uppercase tracking-wider">Advanced Technical Test | فحص فني متقدم</span> */}
+                                            <span className="font-bold text-secondary text-base">{getComponentTitle(item.component)}</span>
+                                            <span className="text-[9px] text-primary/60 font-black uppercase tracking-wider">
+                                                {item.screenshot ? 'لقطة شاشة الاختبار' : 'نتائج الفحص البرمجي'}
+                                            </span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 text-[10px] font-black h-6 px-3 rounded-full">(PASSED)</Badge>
+                                        <Badge variant="outline" className={cn("text-[10px] font-black h-6 px-3 rounded-full", item.status === 'pass' ? "bg-green-50 text-green-700 border-green-100" : "bg-black/5 text-secondary/40")}>
+                                            {item.status === 'pass' ? '(PASSED)' : '(CHECKED)'}
+                                        </Badge>
                                         <div className={cn("transition-transform duration-300", isOpen ? "rotate-90 text-primary" : "text-secondary/20")}><ChevronLeft size={20} /></div>
                                     </div>
                                 </button>
@@ -1765,14 +1834,57 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
                                     {isOpen && (
                                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
                                             <div className="px-6 pb-8 pt-4 border-t border-black/[0.03]">
-                                                <div className="w-full aspect-video md:aspect-[21/9] bg-black/[0.02] rounded-2xl md:rounded-3xl overflow-hidden border border-black/5 cursor-zoom-in group/img relative" onClick={() => onImageClick(item.url)}>
-                                                    <img src={item.url} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110" alt="نتيجة فحص فني متقدم" />
-                                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center"><Search className="text-white" size={32} /></div>
-                                                </div>
+                                                {item.screenshot ? (
+                                                    <div className="w-full aspect-video md:aspect-[21/9] bg-black/[0.02] rounded-2xl md:rounded-3xl overflow-hidden border border-black/5 cursor-zoom-in group/img relative mb-6" onClick={() => onImageClick(item.screenshot.url)}>
+                                                        <img src={item.screenshot.url} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110" alt="نتيجة فحص فني متقدم" />
+                                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center"><Search className="text-white" size={32} /></div>
+                                                    </div>
+                                                ) : item.techData ? (
+                                                    <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                        {item.component === 'Battery' && (
+                                                            <>
+                                                                <TechStatCard label="صحة البطارية" value={`${Math.round(item.techData.health)}%`} icon={<Zap size={16} />} color="text-primary" />
+                                                                <TechStatCard label="دورات الشحن" value={`${item.techData.cycles}`} icon={<RefreshCw size={16} />} />
+                                                                <TechStatCard label="السعة الفعلية" value={`${Math.round(item.techData.full / 1000)} Wh`} icon={<Battery size={16} />} />
+                                                            </>
+                                                        )}
+                                                        {item.component === 'CPU' && (
+                                                            <>
+                                                                <TechStatCard label="عدد الأنوية" value={`${item.techData.cores}`} icon={<Cpu size={16} />} color="text-primary" />
+                                                                <TechStatCard label="درجة الحرارة" value={`${item.techData.temp}°C`} icon={<Thermometer size={16} />} />
+                                                                <TechStatCard label="L3 Cache" value={`${item.techData.cache} MB`} icon={<Database size={16} />} />
+                                                            </>
+                                                        )}
+                                                        {item.component === 'Storage' && item.techData.devices?.[0] && (
+                                                            <>
+                                                                <TechStatCard label="حالة الهارد" value={`${item.techData.devices[0].health}%`} icon={<ShieldCheck size={16} />} color="text-green-600" />
+                                                                <TechStatCard label="المساحة" value={`${Math.round(item.techData.devices[0].size)} GB`} icon={<HardDrive size={16} />} />
+                                                                <TechStatCard label="النوع" value={item.techData.devices[0].type} icon={<Zap size={16} />} />
+                                                            </>
+                                                        )}
+                                                        {item.component === 'Display' && (
+                                                            <>
+                                                                <TechStatCard label="دقة الشاشة" value={`${item.techData.width}×${item.techData.height}`} icon={<MonitorIcon size={16} />} color="text-primary" />
+                                                                <TechStatCard label="معدل التحديث" value={`${item.techData.refresh_rate}Hz`} icon={<Zap size={16} />} />
+                                                                <TechStatCard label="فحص الألوان" value="سليم 100%" icon={<CheckCircle2 size={16} />} color="text-green-600" />
+                                                            </>
+                                                        )}
+                                                        {item.component === 'GPU' && item.techData.devices?.[0] && (
+                                                            <>
+                                                                <TechStatCard label="كارت الشاشة" value={item.techData.devices[0].name} icon={<MonitorIcon size={16} />} color="text-primary" />
+                                                                <TechStatCard label="VRAM" value={`${item.techData.devices[0].vram} MB`} icon={<Zap size={16} />} />
+                                                                <TechStatCard label="الشركة" value={item.techData.devices[0].vendor} icon={<CheckCircle2 size={16} />} />
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                ) : null}
+                                                
                                                 <div className="space-y-4 md:space-y-6">
                                                     <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-black/[0.02] border border-black/[0.03]">
                                                         <h5 className="text-[10px] font-black text-secondary/30 uppercase tracking-widest mb-2 md:mb-3">شرح تفصيلي للفحص</h5>
-                                                        <p className="text-secondary/70 text-sm md:text-base leading-relaxed font-bold">{item.comment || getTestDescription(componentName)}</p>
+                                                        <p className="text-secondary/70 text-sm md:text-base leading-relaxed font-bold">
+                                                            {item.screenshot?.comment || getTestDescription(item.component)}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1786,6 +1898,20 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
             ) : (
                 <div className="py-12 text-center border-2 border-dashed border-black/5 rounded-[2.5rem] opacity-40"><ImageIcon className="mx-auto mb-4 text-secondary/20" size={48} /><p className="text-sm font-black text-secondary/40">مفيش أي صور أو فحوصات تقنية اتسجلت لسه</p></div>
             )}
+        </div>
+    );
+}
+
+function TechStatCard({ label, value, icon, color }: { label: string, value: string, icon: any, color?: string }) {
+    return (
+        <div className="p-4 rounded-2xl bg-white border border-black/5 shadow-sm flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0">
+                {icon}
+            </div>
+            <div className="min-w-0">
+                <p className="text-[9px] font-black text-secondary/30 uppercase mb-0.5">{label}</p>
+                <p className={cn("text-xs font-black truncate", color || "text-secondary")}>{value}</p>
+            </div>
         </div>
     );
 }
