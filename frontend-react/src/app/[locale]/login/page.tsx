@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, use, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -9,7 +9,6 @@ import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, use } from 'react';
 
 export default function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
@@ -25,7 +24,7 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
     const [error, setError] = useState('');
 
     const searchParams = useSearchParams();
-    const autoLoginAttempted = React.useRef(false);
+    const autoLoginAttempted = useRef(false);
 
     useEffect(() => {
         const u = searchParams.get('u');
