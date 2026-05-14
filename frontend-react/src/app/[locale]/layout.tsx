@@ -8,7 +8,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { Metadata, Viewport } from 'next';
 
 export const viewport: Viewport = {
-    themeColor: '#00C853',
+    themeColor: '#FFFFFF',
     width: 'device-width',
     initialScale: 1,
     maximumScale: 1,

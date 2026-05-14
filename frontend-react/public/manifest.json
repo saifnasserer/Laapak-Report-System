@@ -5,7 +5,7 @@
   "start_url": "/ar/login",
   "display": "standalone",
   "background_color": "#FFFFFF",
-  "theme_color": "#00C853",
+  "theme_color": "#FFFFFF",
   "orientation": "portrait-primary",
   "dir": "rtl",
   "lang": "ar",

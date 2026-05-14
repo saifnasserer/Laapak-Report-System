@@ -92,6 +92,13 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
 
     const dueInvoices = invoices.filter(inv => inv.paymentStatus !== 'completed' && inv.paymentStatus !== 'paid');
 
+    const reportsWithoutInvoice = reports.filter(r => !invoices.some(inv =>
+        inv.id === r.invoice_id ||
+        inv.reportId === r.id ||
+        inv.report_id === r.id ||
+        (inv.relatedReports && inv.relatedReports.some((rel: any) => rel.id === r.id))
+    )).length;
+
     const totalWarrantyDays = 180 + 14 + 180 + 180;
     const warrantySummaries = reports
         .filter(r => r.status === 'completed' || r.status === 'مكتمل')
@@ -225,15 +232,15 @@ export default function ClientDashboard({ params }: { params: Promise<{ locale: 
                             delay: 0.08,
                             icon: <ShieldCheck size={16} />,
                             iconBg: 'bg-green-500/10 text-green-600',
-                            value: activeWarrantyCount > 0 ? minWarrantyDays : 0,
-                            label: activeWarrantyCount > 0 ? 'يوم ضمان' : 'منتهي',
+                            value: activeWarrantyCount,
+                            label: activeWarrantyCount === 1 ? 'ضمان فعّال' : activeWarrantyCount > 1 ? 'ضمانات فعّالة' : 'منتهي',
                         },
                         {
                             delay: 0.16,
                             icon: <Receipt size={16} />,
                             iconBg: 'bg-amber-500/5 text-amber-500',
-                            value: dueInvoices.length,
-                            label: 'فواتير',
+                            value: reportsWithoutInvoice,
+                            label: reportsWithoutInvoice === 1 ? 'بدون فاتورة' : 'بدون فواتير',
                         },
                     ].map((kbi, i) => (
                         <motion.div

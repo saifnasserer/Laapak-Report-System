@@ -1,15 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
 import { Table, TableRow, TableCell } from '@/components/ui/Table';
-import { Search, Plus, Filter, Download, MoreVertical, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check, Package, RefreshCw, Copy } from 'lucide-react';
+import { Search, Plus, ShoppingCart, Edit, Trash2, CheckCircle2, Share2, MoreHorizontal, X, Check, Package, RefreshCw, Copy, Calendar, ChevronLeft, ChevronRight, Smartphone } from 'lucide-react';
 import Image from 'next/image';
 
 import api from '@/lib/api';
@@ -20,6 +19,61 @@ import { PaymentMethodModal } from '@/components/invoices/PaymentMethodModal';
 import { TrackingCodeModal } from '@/components/reports/TrackingCodeModal';
 import CartItemsPopover from '@/components/reports/CartItemsPopover';
 
+const STATUS_TABS = [
+    { key: 'all', label: 'الكل' },
+    { key: 'pending', label: 'قيد الانتظار' },
+    { key: 'shipped', label: 'تم الشحن' },
+    { key: 'completed', label: 'مكتمل' },
+    { key: 'cancelled', label: 'ملغي' },
+] as const;
+
+const CLIENT_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+
+function getInitials(name: string) {
+    return (name || '').charAt(0).toUpperCase();
+}
+
+function getClientColor(name: string) {
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return CLIENT_COLORS[Math.abs(hash) % CLIENT_COLORS.length];
+}
+
+function SkeletonRow() {
+    return (
+        <tr className="animate-pulse">
+            {[1, 2, 3, 4, 5, 6, 7].map((c) => (
+                <td key={c} className="px-4 py-5">
+                    <div className="h-5 bg-black/[0.03] rounded-lg" style={{ width: c === 3 ? '80%' : c === 2 ? '60%' : '70%' }} />
+                </td>
+            ))}
+        </tr>
+    );
+}
+
+function SkeletonCard() {
+    return (
+        <div className="bg-white/60 border border-black/5 p-4 rounded-2xl animate-pulse space-y-3">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-black/[0.03]" />
+                    <div className="space-y-2">
+                        <div className="h-4 w-28 bg-black/[0.03] rounded-lg" />
+                        <div className="h-3 w-20 bg-black/[0.02] rounded-lg" />
+                    </div>
+                </div>
+                <div className="h-8 w-24 bg-black/[0.03] rounded-full" />
+            </div>
+            <div className="flex gap-2">
+                <div className="h-8 flex-1 bg-black/[0.03] rounded-full" />
+                <div className="h-8 flex-1 bg-black/[0.03] rounded-full" />
+            </div>
+        </div>
+    );
+}
+
 export default function ReportsAdminPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = use(params);
     const t = useTranslations('dashboard.reports');
@@ -27,8 +81,14 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const [reports, setReports] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [showAll, setShowAll] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('all');
     const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
+
+    // Month filter
+    const now = new Date();
+    const [filterYear, setFilterYear] = useState(now.getFullYear());
+    const [filterMonth, setFilterMonth] = useState(now.getMonth());
+    const [showMonthPicker, setShowMonthPicker] = useState(false);
 
     // WhatsApp Share State
     const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -38,6 +98,9 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string, status: string, needsInvoice?: boolean } | null>(null);
     const [pendingShippedUpdate, setPendingShippedUpdate] = useState<{ id: string, status: string } | null>(null);
 
+    // Bulk WhatsApp
+    const [bulkShareModalOpen, setBulkShareModalOpen] = useState(false);
+
     // Action Menu State
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
@@ -46,6 +109,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const [cartPopoverOpen, setCartPopoverOpen] = useState(false);
     const [cartAnchorEl, setCartAnchorEl] = useState<HTMLElement | null>(null);
     const [selectedCartItems, setSelectedCartItems] = useState<any[]>([]);
+
+    const monthNames = ['يناير', 'فبراير', 'مارس', 'إبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
     const toggleMenu = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -62,7 +127,6 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         }
     };
 
-    // Close menu when clicking outside
     React.useEffect(() => {
         const handleClickOutside = () => {
             setActiveMenuId(null);
@@ -84,7 +148,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         const fetchReports = async () => {
             try {
                 setIsLoading(true);
-                const response = await api.get(`/reports?fetch_mode=all_reports${showAll ? '' : '&exclude_inventory=true'}`);
+                const response = await api.get(`/reports?fetch_mode=all_reports`);
                 setReports(response.data);
                 setError(null);
             } catch (err: any) {
@@ -96,7 +160,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         };
 
         fetchReports();
-    }, [showAll]);
+    }, []);
 
     const statusMap: any = {
         'completed': { label: 'مكتمل', variant: 'success' },
@@ -119,7 +183,6 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
 
     const handleStatusChange = async (reportId: string, newStatus: string, paymentMethod?: string, shippingData?: { trackingCode: string, trackingMethod: string }) => {
         try {
-            // Map Arabic status from select back to English for API
             const statusMapToEng: any = {
                 'قيد الانتظار': 'pending',
                 'مكتمل': 'completed',
@@ -144,10 +207,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
             }
 
             if (engStatus === 'completed' && pendingStatusUpdate?.needsInvoice) {
-                // Auto-create invoice first
                 const report = reports.find(r => r.id === reportId);
                 if (report) {
-                    // Parse extra invoice items safely
                     let extraItems: any[] = [];
                     try {
                         if (report.invoice_items) {
@@ -155,16 +216,12 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                 ? JSON.parse(report.invoice_items)
                                 : Array.isArray(report.invoice_items) ? report.invoice_items : [];
                         }
-
-                        // Also check for selected_accessories if extraItems is still empty or as additional items
                         if (Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0) {
                             const accessories = report.selected_accessories.map((item: any) => ({
                                 name: typeof item === 'object' && item !== null ? (item.name || item.description || 'بند غير معروف') : item,
                                 price: typeof item === 'object' && item !== null ? (item.price || item.regular_price || 0) : 0,
                                 quantity: typeof item === 'object' && item !== null ? (item.quantity || 1) : 1
                             }));
-
-                            // Add accessories that aren't already in extraItems (to avoid duplicates if both are present)
                             accessories.forEach((acc: any) => {
                                 const exists = extraItems.some((ei: any) => ei.name === acc.name);
                                 if (!exists) extraItems.push(acc);
@@ -174,7 +231,6 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         console.error('Error parsing report invoice_items', e);
                     }
 
-                    // Build all invoice items
                     const allItems = [
                         {
                             description: report.device_model,
@@ -194,7 +250,6 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                         }))
                     ];
 
-                    // Calculate total
                     const calculatedTotal = allItems.reduce((acc, current) => acc + Number(current.totalAmount), 0);
 
                     const invoiceData = {
@@ -252,29 +307,13 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const handleDuplicateReport = async (reportId: string | number) => {
         try {
             const response = await api.get(`/reports/${reportId}`);
-            // Correct data path: source data is nested under .report
             const sourceReport = response.data.report;
 
-            // Clone data and reset fields
-            // We MUST strip out nested objects like 'client', 'supplier', 'invoiceItems'
-            // to avoid Sequelize errors on the backend during POST /reports
             const {
-                id,
-                created_at,
-                updated_at,
-                inspection_date,
-                createdAt,
-                updatedAt,
-                inspectionDate,
-                invoice_id,
-                invoice_created,
-                invoice_date,
-                is_confirmed,
-                client,
-                supplier,
-                creator,
-                invoiceItems,
-                relatedInvoices,
+                id, created_at, updated_at, inspection_date,
+                createdAt, updatedAt, inspectionDate,
+                invoice_id, invoice_created, invoice_date, is_confirmed,
+                client, supplier, creator, invoiceItems, relatedInvoices,
                 ...clonedData
             } = sourceReport;
 
@@ -283,8 +322,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                 status: 'pending',
                 is_confirmed: false,
                 notes: (clonedData.notes || '') + '\n(Duplicate of #' + id + ')',
-                // Ensure inspection_date is cleared for the copy to avoid confusion
-                inspection_date: null 
+                inspection_date: null
             };
 
             const createResponse = await api.post('/reports', duplicatePayload);
@@ -304,95 +342,80 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         return status === 'pending' || status === 'waiting' || status === 'قيد الانتظار' || status === 'انتظار' || status === 'active' || status === 'نشط' || status === 'new_order';
     };
 
-    const isReportInCurrentMonth = (report: any) => {
-        const reportDate = report.inspection_date || report.inspectionDate || report.created_at || report.createdAt;
-        if (!reportDate) return false;
-
-        const date = new Date(reportDate);
-        const now = new Date();
-        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    const getStatusGroup = (status: string) => {
+        const s = (status || '').toLowerCase();
+        if (s === 'pending' || s === 'قيد الانتظار' || s === 'انتظار' || s === 'active' || s === 'نشط' || s === 'new_order' || s === 'طلب خارجي') return 'pending';
+        if (s === 'shipped' || s === 'تم الشحن') return 'shipped';
+        if (s === 'completed' || s === 'مكتمل') return 'completed';
+        if (s === 'cancelled' || s === 'ملغي' || s === 'ملغى') return 'cancelled';
+        return 'other';
     };
 
-    const filteredReports = reports.filter(report => {
-        const term = searchTerm.toLowerCase();
+    const filteredReports = useMemo(() => {
+        return reports.filter(report => {
+            if (report.client_name?.toLowerCase() === 'laapak') return false;
 
-        // Search logic (matching reports.js)
-        const matchesSearch = term === '' || (
-            report.order_number?.toLowerCase().includes(term) ||
-            report.client_name?.toLowerCase().includes(term) ||
-            report.device_model?.toLowerCase().includes(term) ||
-            report.serial_number?.toLowerCase().includes(term) ||
-            report.id?.toString().includes(term) ||
-            report.client_phone?.toLowerCase().includes(term) ||
-            report.client_email?.toLowerCase().includes(term) ||
-            report.status?.toLowerCase().includes(term)
-        );
+            const term = searchTerm.toLowerCase();
 
-        if (!matchesSearch) return false;
+            const matchesSearch = term === '' || (
+                report.order_number?.toLowerCase().includes(term) ||
+                report.client_name?.toLowerCase().includes(term) ||
+                report.device_model?.toLowerCase().includes(term) ||
+                report.serial_number?.toLowerCase().includes(term) ||
+                report.id?.toString().includes(term) ||
+                report.client_phone?.toLowerCase().includes(term) ||
+                report.client_email?.toLowerCase().includes(term) ||
+                report.status?.toLowerCase().includes(term)
+            );
+            if (!matchesSearch) return false;
 
-        // If "Show All" is active, don't apply the default date/status filters
-        if (showAll) return true;
+            if (statusFilter !== 'all') {
+                return getStatusGroup(report.status) === statusFilter;
+            }
 
-        // Default Filter Logic: If no search term, show (Pending) OR (Current Month)
-        if (term === '') {
-            return isPendingReport(report) || isReportInCurrentMonth(report);
-        }
+            if (term === '') {
+                const reportDate = report.inspection_date || report.inspectionDate || report.created_at || report.createdAt;
+                const isCurrentMonth = reportDate && (
+                    new Date(reportDate).getMonth() === filterMonth &&
+                    new Date(reportDate).getFullYear() === filterYear
+                );
+                return isPendingReport(report) || isCurrentMonth;
+            }
 
-        return true;
-    });
+            return true;
+        });
+    }, [reports, searchTerm, statusFilter, filterMonth, filterYear]);
 
-    // Toggle selection of a single report
     const toggleSelectReport = (reportId: string, e: React.MouseEvent) => {
         e.stopPropagation();
-
-        // Find the report to be toggled
         const report = filteredReports.find(r => r.id === reportId);
         if (!report) return;
 
         setSelectedReportIds(prev => {
-            // Unselecting
             if (prev.includes(reportId)) {
                 return prev.filter(id => id !== reportId);
             }
-
-            // Selecting - Check if compatible with existing selection
             if (prev.length > 0) {
                 const firstSelectedId = prev[0];
                 const firstSelectedReport = reports.find(r => r.id === firstSelectedId);
-
                 if (firstSelectedReport && firstSelectedReport.client_id !== report.client_id) {
                     alert('لا يمكن تحديد تقارير لعملاء مختلفين في نفس الفاتورة.');
                     return prev;
                 }
             }
-
             return [...prev, reportId];
         });
     };
 
-    // Toggle select all eligible reports (restricted to single client)
     const toggleSelectAll = () => {
-        // If items are selected, clear selection
         if (selectedReportIds.length > 0) {
             setSelectedReportIds([]);
             return;
         }
-
-        // If no items selected, select all for the FIRST eligible client found
         const eligibleReports = filteredReports.filter(r => !r.invoice_created && !r.invoice_id);
-
         if (eligibleReports.length === 0) return;
-
         const firstReport = eligibleReports[0];
-        const clientId = firstReport.client_id;
-
-        const sameClientReports = eligibleReports.filter(r => r.client_id === clientId);
-
-        if (sameClientReports.length < eligibleReports.length) {
-            // Optional: Inform user that only one client's reports were selected
-            // alert(`تم تحديد تقارير العميل: ${firstReport.client_name}`);
-        }
-
+        const sameClientReports = eligibleReports.filter(r => r.client_id === firstReport.client_id);
         setSelectedReportIds(sameClientReports.map(r => r.id));
     };
 
@@ -402,211 +425,413 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         window.location.href = `/${locale}/dashboard/admin/invoices/new?reportIds=${urlArgs}`;
     };
 
+    const handleBulkShare = () => {
+        if (selectedReportIds.length === 0) return;
+        setBulkShareModalOpen(true);
+    };
+
+    const navigateMonth = (dir: number) => {
+        let m = filterMonth + dir;
+        let y = filterYear;
+        if (m < 0) { m = 11; y--; }
+        if (m > 11) { m = 0; y++; }
+        setFilterMonth(m);
+        setFilterYear(y);
+    };
+
+    const renderStatusSelect = (report: any) => (
+        <select
+            value={report.status === 'pending' || report.status === 'انتظار' || report.status === 'نشط' || report.status === 'active' ? 'قيد الانتظار' :
+                report.status === 'completed' ? 'مكتمل' :
+                    report.status === 'shipped' ? 'تم الشحن' :
+                        report.status === 'new_order' ? 'طلب خارجي' :
+                            report.status === 'cancelled' || report.status === 'ملغى' ? 'ملغي' : report.status}
+            onChange={(e) => handleStatusChange(report.id, e.target.value)}
+            className={cn(
+                "px-3 py-1.5 rounded-full text-[11px] font-black border outline-none transition-all cursor-pointer appearance-none text-center min-w-[100px]",
+                report.status === 'completed' || report.status === 'مكتمل' ? "bg-green-100 text-green-600 border-green-200" :
+                    report.status === 'shipped' || report.status === 'تم الشحن' ? "bg-blue-100 text-blue-600 border-blue-200" :
+                        report.status === 'pending' || report.status === 'قيد الانتظار' || report.status === 'انتظار' || report.status === 'active' || report.status === 'نشط' ? "bg-yellow-100 text-yellow-600 border-yellow-200" :
+                            report.status === 'new_order' ? "bg-primary/10 text-primary border-primary/20" :
+                                report.status === 'cancelled' || report.status === 'ملغي' || report.status === 'ملغى' ? "bg-red-100 text-red-600 border-red-200" :
+                                    "bg-primary/10 text-primary border-primary/20"
+            )}
+        >
+            <option value="طلب خارجي">طلب خارجي</option>
+            <option value="قيد الانتظار">قيد الانتظار</option>
+            <option value="تم الشحن">تم الشحن</option>
+            <option value="مكتمل">مكتمل</option>
+            <option value="ملغي">ملغي</option>
+        </select>
+    );
+
+    const renderDetailsCell = (report: any) => {
+        let items: any[] = [];
+        try {
+            if (typeof report.invoice_items === 'string') {
+                items = JSON.parse(report.invoice_items);
+            } else if (Array.isArray(report.invoice_items)) {
+                items = report.invoice_items;
+            } else if (Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0) {
+                items = report.selected_accessories.map((item: any, index: number) => ({
+                    id: Date.now() + index,
+                    name: typeof item === 'object' && item !== null ? (item.name || item.description || 'بند غير معروف') : item,
+                    quantity: typeof item === 'object' && item !== null ? (item.quantity || 1) : 1,
+                    price: typeof item === 'object' && item !== null ? (item.price || item.regular_price || 0) : 0
+                }));
+            }
+        } catch (e) {
+            console.error("Failed to parse invoice_items for report:", report.id);
+        }
+
+        return (
+            <div className="flex items-center gap-2">
+                {items.length > 0 && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCartItems(items);
+                            setCartAnchorEl(e.currentTarget);
+                            setCartPopoverOpen(true);
+                        }}
+                        className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20 shrink-0 hover:bg-primary/20 hover:scale-110 cursor-pointer"
+                        title="عرض التفاصيل الإضافية للبند"
+                    >
+                        <ShoppingCart size={12} />
+                    </button>
+                )}
+
+                {(report.is_confirmed || report.status === 'completed' || report.status === 'مكتمل') && (
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 transition-all shadow-sm ring-1 ring-green-200 shrink-0" title="مؤكد">
+                        <CheckCircle2 size={12} />
+                    </div>
+                )}
+
+                {report.payment_method && (
+                    <div
+                        className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center shrink-0"
+                        title={
+                            report.payment_method === 'instapay' ? 'InstaPay' :
+                                report.payment_method === 'vodafone_cash' || report.payment_method === 'wallet' ? 'Wallet' : 'Cash'
+                        }
+                    >
+                        <Image
+                            src={
+                                report.payment_method === 'instapay' ? '/images/payment-methods/instapay.png' :
+                                    report.payment_method === 'vodafone_cash' || report.payment_method === 'wallet' ? '/images/payment-methods/wallet.svg' :
+                                        '/images/payment-methods/cash.svg'
+                            }
+                            alt={report.payment_method}
+                            width={24}
+                            height={24}
+                            className="object-contain"
+                        />
+                    </div>
+                )}
+
+                {!items.length && !report.is_confirmed && report.status !== 'completed' && report.status !== 'مكتمل' && !report.payment_method && (
+                    <span className="text-secondary/20 text-xs">-</span>
+                )}
+            </div>
+        );
+    };
+
     return (
         <DashboardLayout>
-            <div className="space-y-10">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-xl md:text-3xl font-bold tracking-tight">تقارير فحص الأجهزة</h1>
-                        <p className="text-secondary text-xs md:text-sm font-medium">إدارة ومتابعة جميع تقارير فحص الأجهزة والمواصفات</p>
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="space-y-1">
+                    <h1 className="text-xl md:text-3xl font-bold tracking-tight">تقارير فحص الأجهزة</h1>
+                    <p className="text-secondary text-xs md:text-sm font-medium">إدارة ومتابعة جميع تقارير فحص الأجهزة والمواصفات</p>
+                </div>
+
+                {/* Filter Tabs + Search + Month Picker */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                        {STATUS_TABS.map((tab) => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setStatusFilter(tab.key)}
+                                className={cn(
+                                    "px-4 py-2 rounded-full text-xs font-black transition-all whitespace-nowrap",
+                                    statusFilter === tab.key
+                                        ? "bg-primary text-white shadow-sm"
+                                        : "bg-white border border-black/5 text-secondary/60 hover:bg-black/[0.02] hover:text-secondary"
+                                )}
+                            >
+                                {tab.label}
+                                {tab.key !== 'all' && (
+                                    <span className="mr-1.5 opacity-60">
+                                        {reports.filter(r => getStatusGroup(r.status) === tab.key).length}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="w-full max-w-[240px]">
-                            <Input
-                                placeholder="البحث هنا..."
-                                icon={<Search size={18} />}
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="bg-white h-11 rounded-full"
-                            />
-                        </div>
-                        <Button
-                            variant={showAll ? "primary" : "outline"}
-                            size="md"
-                            className={cn(
-                                "w-11 h-11 p-0 rounded-full transition-all",
-                                "bg-white border-black/10 text-foreground"
-                            )}
-                            onClick={() => setShowAll(!showAll)}
-                            title={showAll ? "عرض التقارير الهامة فقط" : "عرض جميع التقارير"}
+
+                    <div className="flex items-center gap-2 self-center sm:self-auto">
+                        <Input
+                            placeholder="بحث..."
+                            icon={<Search size={14} />}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="bg-white h-8 rounded-full text-xs w-32 md:w-40"
+                        />
+                        <button
+                            onClick={() => navigateMonth(-1)}
+                            className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center text-secondary/40 hover:text-secondary transition-all"
                         >
-                            <Filter size={18} />
-                        </Button>
+                            <ChevronRight size={14} />
+                        </button>
+                        <button
+                            onClick={() => setShowMonthPicker(!showMonthPicker)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-black/5 text-xs font-bold text-secondary hover:border-primary/20 transition-all"
+                        >
+                            <Calendar size={14} className="text-primary" />
+                            {monthNames[filterMonth]} {filterYear}
+                        </button>
+                        <button
+                            onClick={() => navigateMonth(1)}
+                            className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center text-secondary/40 hover:text-secondary transition-all"
+                        >
+                            <ChevronLeft size={14} />
+                        </button>
                     </div>
                 </div>
 
-                <Card className="overflow-visible">
-                    <CardContent className="p-0">
-                        {isLoading ? (
-                            <div className="p-12 text-center text-secondary">جاري التحميل...</div>
-                        ) : error ? (
-                            <div className="p-12 text-center text-destructive font-bold">{error}</div>
-                        ) : filteredReports.length === 0 ? (
-                            <div className="p-12 text-center text-secondary">لا توجد تقارير حالياً</div>
-                        ) : (
-                            <Table headers={[
-                                <div key="checkbox" className="flex justify-center items-center relative h-5 w-5">
-                                    <input
-                                        type="checkbox"
-                                        className="peer w-5 h-5 rounded-full border-2 border-gray-300 checked:bg-primary checked:border-primary cursor-pointer appearance-none transition-all duration-200"
-                                        checked={filteredReports.some(r => !r.invoice_created && !r.invoice_id) && selectedReportIds.length === filteredReports.filter(r => !r.invoice_created && !r.invoice_id).length}
-                                        onChange={toggleSelectAll}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                    <Check size={12} strokeWidth={3} className="text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-                                </div>,
-                                'التاريخ', 'العميل', 'الجهاز', 'الحالة', 'التفاصيل', ''
-                            ]} wrapperClassName="overflow-visible">
-                                {filteredReports.map((report) => {
-                                    const statusInfo = getStatusInfo(report.status);
-                                    const isSelectable = !report.invoice_created && !report.invoice_id;
-                                    const isSelected = selectedReportIds.includes(report.id);
+                {/* Desktop Table */}
+                <div className="hidden md:block">
+                    <Card className="overflow-visible">
+                        <CardContent className="p-0">
+                            {isLoading ? (
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-black/[0.03]">
+                                            {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                                                <th key={i} className="px-4 py-4"><div className="h-4 bg-black/[0.02] rounded-lg w-16" /></th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} />)}
+                                    </tbody>
+                                </table>
+                            ) : error ? (
+                                <div className="p-12 text-center text-destructive font-bold">{error}</div>
+                            ) : filteredReports.length === 0 ? (
+                                <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
+                                    <div className="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center text-secondary/20">
+                                        <Package size={32} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="text-lg font-bold">لا توجد تقارير</h3>
+                                        <p className="text-secondary/60 text-sm font-medium">لم يتم العثور على تقارير تطابق معايير البحث</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <Table headers={[
+                                    <div key="checkbox" className="flex justify-center items-center relative h-5 w-5">
+                                        <input
+                                            type="checkbox"
+                                            className="peer w-5 h-5 rounded-full border-2 border-gray-300 checked:bg-primary checked:border-primary cursor-pointer appearance-none transition-all duration-200"
+                                            checked={filteredReports.some(r => !r.invoice_created && !r.invoice_id) && selectedReportIds.length === filteredReports.filter(r => !r.invoice_created && !r.invoice_id).length}
+                                            onChange={toggleSelectAll}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                        <Check size={12} strokeWidth={3} className="text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                                    </div>,
+                                    'التاريخ', 'العميل', 'الجهاز', 'الحالة', 'التفاصيل', ''
+                                ]} wrapperClassName="overflow-visible">
+                                    {filteredReports.map((report) => {
+                                        const statusInfo = getStatusInfo(report.status);
+                                        const isSelectable = !report.invoice_created && !report.invoice_id;
+                                        const isSelected = selectedReportIds.includes(report.id);
+                                        const clientColor = getClientColor(report.client_name);
 
-                                    return (
-                                        <TableRow key={report.id} onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}`} className={`cursor-pointer ${isSelected ? 'bg-primary/5' : ''}`}>
-                                            <TableCell className="w-10 text-center" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                {isSelectable && (
-                                                    <div className="flex justify-center relative h-5 w-5 mx-auto">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="peer w-5 h-5 rounded-full border-2 border-gray-300 checked:bg-primary checked:border-primary cursor-pointer appearance-none transition-all duration-200"
-                                                            checked={isSelected}
-                                                            onChange={(e) => { e.stopPropagation(); }}
-                                                            onClick={(e) => toggleSelectReport(report.id, e)}
-                                                        />
-                                                        <Check size={12} strokeWidth={3} className="text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-secondary text-xs">
-                                                {new Date(report.inspection_date || report.created_at || report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                            </TableCell>
-                                            <TableCell className="font-semibold text-sm">{report.client_name}</TableCell>
-                                            <TableCell className="text-secondary font-medium min-w-[180px] max-w-[250px] truncate">{report.device_model}</TableCell>
-                                            <TableCell className="text-center align-middle" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                <div className="flex justify-center">
-                                                    <select
-                                                        value={report.status === 'pending' || report.status === 'انتظار' || report.status === 'نشط' || report.status === 'active' ? 'قيد الانتظار' :
-                                                            report.status === 'completed' ? 'مكتمل' :
-                                                                report.status === 'shipped' ? 'تم الشحن' :
-                                                                    report.status === 'new_order' ? 'طلب خارجي' :
-                                                                        report.status === 'cancelled' || report.status === 'ملغى' ? 'ملغي' : report.status}
-                                                        onChange={(e) => handleStatusChange(report.id, e.target.value)}
-                                                        className={cn(
-                                                            "px-3 py-1.5 rounded-full text-[11px] font-black border outline-none transition-all cursor-pointer appearance-none text-center min-w-[100px]",
-                                                            report.status === 'completed' || report.status === 'مكتمل' ? "bg-green-100 text-green-600 border-green-200" :
-                                                                report.status === 'shipped' || report.status === 'تم الشحن' ? "bg-blue-100 text-blue-600 border-blue-200" :
-                                                                    report.status === 'pending' || report.status === 'قيد الانتظار' || report.status === 'انتظار' || report.status === 'active' || report.status === 'نشط' ? "bg-yellow-100 text-yellow-600 border-yellow-200" :
-                                                                        report.status === 'new_order' ? "bg-primary/10 text-primary border-primary/20" :
-                                                                            report.status === 'cancelled' || report.status === 'ملغي' || report.status === 'ملغى' ? "bg-red-100 text-red-600 border-red-200" :
-                                                                                "bg-primary/10 text-primary border-primary/20"
-                                                        )}
-                                                    >
-                                                        <option value="طلب خارجي">🛒 طلب خارجي</option>
-                                                        <option value="قيد الانتظار">⏳ قيد الانتظار</option>
-                                                        <option value="تم الشحن">📦 تم الشحن</option>
-                                                        <option value="مكتمل">✅ مكتمل</option>
-                                                        <option value="ملغي">❌ ملغي</option>
-                                                    </select>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center align-middle p-0 min-w-[140px]">
-                                                <div className="flex justify-center items-center gap-2">
-                                                    {/* Accessories / Invoice Items Icon - Clickable */}
-                                                    {(() => {
-                                                        let items: any[] = [];
-                                                        try {
-                                                            if (typeof report.invoice_items === 'string') {
-                                                                items = JSON.parse(report.invoice_items);
-                                                            } else if (Array.isArray(report.invoice_items)) {
-                                                                items = report.invoice_items;
-                                                            } else if (Array.isArray(report.selected_accessories) && report.selected_accessories.length > 0) {
-                                                                items = report.selected_accessories.map((item: any, index: number) => ({
-                                                                    id: Date.now() + index,
-                                                                    name: typeof item === 'object' && item !== null ? (item.name || item.description || 'بند غير معروف') : item,
-                                                                    quantity: typeof item === 'object' && item !== null ? (item.quantity || 1) : 1,
-                                                                    price: typeof item === 'object' && item !== null ? (item.price || item.regular_price || 0) : 0
-                                                                }));
-                                                            }
-                                                        } catch (e) {
-                                                            console.error("Failed to parse invoice_items for report:", report.id);
-                                                        }
-
-                                                        if (!items || items.length === 0) return null;
-
-                                                        return (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedCartItems(items);
-                                                                    setCartAnchorEl(e.currentTarget);
-                                                                    setCartPopoverOpen(true);
-                                                                }}
-                                                                className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-all shadow-sm ring-1 ring-primary/20 shrink-0 hover:bg-primary/20 hover:scale-110 cursor-pointer"
-                                                                title="عرض التفاصيل الإضافية للبند"
-                                                            >
-                                                                <ShoppingCart size={12} />
-                                                            </button>
-                                                        );
-                                                    })()}
-
-                                                    {/* Confirmation Badge */}
-                                                    {(report.is_confirmed || report.status === 'completed' || report.status === 'مكتمل') && (
-                                                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 transition-all shadow-sm ring-1 ring-green-200 shrink-0" title="مؤكد">
-                                                            <CheckCircle2 size={12} />
-                                                        </div>
-                                                    )}
-
-                                                    {/* Payment Method Badge - Logo Only */}
-                                                    {report.payment_method && (
-                                                        <div
-                                                            className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center shrink-0"
-                                                            title={
-                                                                report.payment_method === 'instapay' ? 'InstaPay' :
-                                                                    report.payment_method === 'vodafone_cash' || report.payment_method === 'wallet' ? 'Wallet' : 'Cash'
-                                                            }
-                                                        >
-                                                            <Image
-                                                                src={
-                                                                    report.payment_method === 'instapay' ? '/images/payment-methods/instapay.png' :
-                                                                        report.payment_method === 'vodafone_cash' || report.payment_method === 'wallet' ? '/images/payment-methods/wallet.svg' :
-                                                                            '/images/payment-methods/cash.svg'
-                                                                }
-                                                                alt={report.payment_method}
-                                                                width={24}
-                                                                height={24}
-                                                                className="object-contain"
+                                        return (
+                                            <TableRow key={report.id} onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}`} className={`cursor-pointer ${isSelected ? 'bg-primary/5' : ''}`}>
+                                                <TableCell className="w-10 text-center" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                    {isSelectable && (
+                                                        <div className="flex justify-center relative h-5 w-5 mx-auto">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="peer w-5 h-5 rounded-full border-2 border-gray-300 checked:bg-primary checked:border-primary cursor-pointer appearance-none transition-all duration-200"
+                                                                checked={isSelected}
+                                                                onChange={(e) => { e.stopPropagation(); }}
+                                                                onClick={(e) => toggleSelectReport(report.id, e)}
                                                             />
+                                                            <Check size={12} strokeWidth={3} className="text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                                                         </div>
                                                     )}
+                                                </TableCell>
+                                                <TableCell className="text-secondary text-xs">
+                                                    {new Date(report.inspection_date || report.created_at || report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                                </TableCell>
+                                                <TableCell className="font-semibold text-sm">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div
+                                                            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0"
+                                                            style={{ backgroundColor: clientColor }}
+                                                        >
+                                                            {getInitials(report.client_name)}
+                                                        </div>
+                                                        <span>{report.client_name}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-secondary font-medium min-w-[180px] max-w-[250px] truncate">{report.device_model}</TableCell>
+                                                <TableCell className="text-center align-middle" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                    <div className="flex justify-center">
+                                                        {renderStatusSelect(report)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center align-middle p-0 min-w-[140px]">
+                                                    <div className="flex justify-center">
+                                                        {renderDetailsCell(report)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                    <div className="flex justify-end items-center gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="w-9 h-9 p-0 rounded-full text-[#25D366] hover:bg-[#25D366]/10"
+                                                            onClick={(e) => handleShareClick(report, e)}
+                                                            title="مشاركة واتساب"
+                                                        >
+                                                            <Share2 size={16} />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="w-9 h-9 p-0 rounded-full"
+                                                            onClick={(e) => toggleMenu(report.id, e)}
+                                                        >
+                                                            <MoreHorizontal size={20} />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
 
-                                                    {/* Placeholder if empty */}
-                                                    {(!report.selected_accessories?.length && !report.is_confirmed && report.status !== 'completed' && report.status !== 'مكتمل' && !report.payment_method) && (
-                                                        <span className="text-secondary/20 text-xs">-</span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                <div className="flex justify-end">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="w-10 h-10 p-0 rounded-full"
-                                                        onClick={(e) => toggleMenu(report.id, e)}
-                                                    >
-                                                        <MoreHorizontal size={20} />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-3">
+                    {isLoading ? (
+                        [1, 2, 3].map(i => <SkeletonCard key={i} />)
+                    ) : error ? (
+                        <div className="p-12 text-center text-destructive font-bold">{error}</div>
+                    ) : filteredReports.length === 0 ? (
+                        <div className="py-16 flex flex-col items-center justify-center text-center space-y-4 bg-white/40 rounded-2xl border border-dashed border-black/10">
+                            <div className="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center text-secondary/20">
+                                <Package size={32} />
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="text-lg font-bold">لا توجد تقارير</h3>
+                                <p className="text-secondary/60 text-sm font-medium">لم يتم العثور على تقارير تطابق معايير البحث</p>
+                            </div>
+                        </div>
+                    ) : (
+                        filteredReports.map((report) => {
+                            const isSelectable = !report.invoice_created && !report.invoice_id;
+                            const isSelected = selectedReportIds.includes(report.id);
+                            const clientColor = getClientColor(report.client_name);
 
-                {/* Floating Action Bar for Selected Reports */}
+                            return (
+                                <div
+                                    key={report.id}
+                                    onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${report.id}`}
+                                    className={cn(
+                                        "bg-white/60 border p-4 rounded-2xl transition-all",
+                                        isSelected ? "border-primary/30 bg-primary/5" : "border-black/5"
+                                    )}
+                                >
+                                    <div className="flex items-start justify-between gap-3 mb-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            {isSelectable && (
+                                                <div className="relative h-5 w-5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="peer w-5 h-5 rounded-full border-2 border-gray-300 checked:bg-primary checked:border-primary cursor-pointer appearance-none transition-all duration-200"
+                                                        checked={isSelected}
+                                                        onChange={() => { }}
+                                                        onClick={(e) => toggleSelectReport(report.id, e)}
+                                                    />
+                                                    <Check size={12} strokeWidth={3} className="text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                                                </div>
+                                            )}
+                                            <div
+                                                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                                                style={{ backgroundColor: clientColor }}
+                                            >
+                                                {getInitials(report.client_name)}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-sm truncate">{report.client_name}</p>
+                                                <p className="text-[11px] text-secondary/50 truncate">{report.device_model}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="w-8 h-8 p-0 rounded-full text-[#25D366] hover:bg-[#25D366]/10"
+                                                onClick={(e) => handleShareClick(report, e)}
+                                                title="مشاركة واتساب"
+                                            >
+                                                <Share2 size={14} />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="w-8 h-8 p-0 rounded-full"
+                                                onClick={(e) => toggleMenu(report.id, e)}
+                                            >
+                                                <MoreHorizontal size={18} />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 text-[10px] text-secondary/50">
+                                            <Calendar size={12} />
+                                            {new Date(report.inspection_date || report.created_at || report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </div>
+                                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                            {renderStatusSelect(report)}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-black/[0.03]">
+                                        {renderDetailsCell(report)}
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); window.location.href = `/${locale}/dashboard/admin/reports/${report.id}/edit`; }}
+                                                className="w-7 h-7 rounded-full bg-black/[0.03] flex items-center justify-center text-secondary/40 hover:text-primary transition-all"
+                                                title="تعديل"
+                                            >
+                                                <Edit size={12} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDuplicateReport(report.id); }}
+                                                className="w-7 h-7 rounded-full bg-black/[0.03] flex items-center justify-center text-secondary/40 hover:text-primary transition-all"
+                                                title="تكرار"
+                                            >
+                                                <Copy size={12} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Floating Action Bar */}
                 {selectedReportIds.length > 0 && (
                     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-black/5 shadow-2xl rounded-[2rem] md:rounded-full px-4 md:px-6 py-3 flex flex-wrap md:flex-nowrap items-center justify-center gap-3 md:gap-4 z-50 animate-in slide-in-from-bottom-4 duration-300 w-[95%] md:w-auto">
                         <span className="font-bold text-sm">
@@ -616,16 +841,22 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
 
                         <Button
                             size="sm"
+                            onClick={handleBulkShare}
+                            className="rounded-full bg-[#25D366] text-white hover:bg-[#25D366]/90 font-bold px-4 shadow-sm text-xs"
+                            icon={<Smartphone size={16} />}
+                        >
+                            واتساب للكل
+                        </Button>
+
+                        <Button
+                            size="sm"
                             onClick={async () => {
                                 if (!confirm('هل أنت متأكد من نقل التقارير المحددة إلى المخزن (Laapak)؟')) return;
-
                                 try {
-                                    // 1. Find or Create Laapak Client
                                     let laapakClient;
                                     const clientsResponse = await api.get('/clients?search=Laapak');
                                     const clients = clientsResponse.data.clients || [];
                                     laapakClient = clients.find((c: any) => c.name.toLowerCase() === 'laapak' || c.name === 'لابك');
-
                                     if (!laapakClient) {
                                         const createResponse = await api.post('/clients', {
                                             name: 'Laapak',
@@ -636,18 +867,13 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                         });
                                         laapakClient = createResponse.data;
                                     }
-
-                                    // 2. Ask for Source Details
                                     const source = prompt('أدخل تفاصيل المصدر (اختياري):', '');
                                     const sourceNote = source ? `\nSource: ${source}` : '';
-
-                                    // 3. Update Reports - reset all client-specific data
                                     await Promise.all(selectedReportIds.map(id =>
                                         api.put(`/reports/${id}`, {
                                             client_id: laapakClient.id,
                                             client_name: laapakClient.name,
                                             notes: (reports.find(r => r.id === id)?.notes || '') + sourceNote,
-                                            // Reset all client-specific confirmation/billing data
                                             payment_method: '',
                                             is_confirmed: false,
                                             selected_accessories: JSON.stringify([]),
@@ -658,30 +884,13 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                                             status: 'pending'
                                         })
                                     ));
-
-                                    // 4. Update Local State
                                     setReports(prev => prev.map(r =>
                                         selectedReportIds.includes(r.id)
-                                            ? {
-                                                ...r,
-                                                client_id: laapakClient.id,
-                                                client_name: laapakClient.name,
-                                                notes: (r.notes || '') + sourceNote,
-                                                payment_method: null,
-                                                is_confirmed: false,
-                                                selected_accessories: [],
-                                                invoice_items: [],
-                                                billing_enabled: false,
-                                                amount: 0,
-                                                invoice_id: null,
-                                                status: 'pending'
-                                            }
+                                            ? { ...r, client_id: laapakClient.id, client_name: laapakClient.name, notes: (r.notes || '') + sourceNote, payment_method: null, is_confirmed: false, selected_accessories: [], invoice_items: [], billing_enabled: false, amount: 0, invoice_id: null, status: 'pending' }
                                             : r
                                     ));
-
                                     setSelectedReportIds([]);
                                     alert('تم نقل التقارير للمخزون بنجاح');
-
                                 } catch (err) {
                                     console.error('Failed to move to inventory:', err);
                                     alert('فشل في نقل التقارير للمخزون');
@@ -690,17 +899,18 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                             className="rounded-full bg-secondary text-white hover:bg-secondary/90 font-bold px-4 shadow-lg shadow-black/5 text-xs"
                             icon={<Package size={16} />}
                         >
-                            نقل للمنخزون
+                            نقل للمخزون
                         </Button>
 
                         <Button
                             size="sm"
                             onClick={handleCreateInvoice}
-                            className="rounded-full bg-primary text-white hover:bg-primary/90 font-bold px-6 shadow-lg shadow-primary/20"
+                            className="rounded-full bg-primary text-white hover:bg-primary/90 font-bold px-5 shadow-lg shadow-primary/20"
                             icon={<Plus size={16} />}
                         >
-                            إنشاء فاتورة مجمعة
+                            فاتورة مجمعة
                         </Button>
+
                         <button
                             onClick={() => setSelectedReportIds([])}
                             className="p-2 hover:bg-black/5 rounded-full text-secondary transition-colors"
@@ -710,7 +920,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                     </div>
                 )}
 
-                {/* WhatsApp Share Modal */}
+                {/* Modals */}
                 <WhatsAppShareModal
                     isOpen={shareModalOpen}
                     onClose={() => setShareModalOpen(false)}
@@ -718,121 +928,88 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                     locale={locale}
                 />
 
+                <WhatsAppShareModal
+                    isOpen={bulkShareModalOpen}
+                    onClose={() => setBulkShareModalOpen(false)}
+                    report={selectedReportIds.length > 0 ? filteredReports.find(r => r.id === selectedReportIds[0]) : null}
+                    locale={locale}
+                />
+
                 <PaymentMethodModal
                     isOpen={showPaymentModal}
-                    onClose={() => {
-                        setShowPaymentModal(false);
-                        setPendingStatusUpdate(null);
-                        // Refresh reports to reset select value if cancelled
-                        window.location.reload();
-                    }}
-                    onConfirm={(method) => {
-                        if (pendingStatusUpdate) {
-                            handleStatusChange(pendingStatusUpdate.id, pendingStatusUpdate.status, method);
-                        }
-                    }}
+                    onClose={() => { setShowPaymentModal(false); setPendingStatusUpdate(null); window.location.reload(); }}
+                    onConfirm={(method) => { if (pendingStatusUpdate) { handleStatusChange(pendingStatusUpdate.id, pendingStatusUpdate.status, method); } }}
                     showInvoiceWarning={pendingStatusUpdate?.needsInvoice}
                 />
 
                 <TrackingCodeModal
                     isOpen={showTrackingModal}
-                    onClose={() => {
-                        setShowTrackingModal(false);
-                        setPendingShippedUpdate(null);
-                        window.location.reload();
-                    }}
-                    onConfirm={(data) => {
-                        if (pendingShippedUpdate) {
-                            // Pass mock req object or update handleStatusChange to accept tracking data explicitly
-                            // Actually, I'll update handleStatusChange to accept an options object
-                            handleStatusChange(pendingShippedUpdate.id, pendingShippedUpdate.status, undefined, data);
-                        }
-                    }}
+                    onClose={() => { setShowTrackingModal(false); setPendingShippedUpdate(null); window.location.reload(); }}
+                    onConfirm={(data) => { if (pendingShippedUpdate) { handleStatusChange(pendingShippedUpdate.id, pendingShippedUpdate.status, undefined, data); } }}
                     report={reports.find(r => r.id === (pendingShippedUpdate?.id))}
                 />
             </div>
 
             {/* Portal Action Menu */}
-            {
-                activeMenuId && menuPosition && typeof document !== 'undefined' && createPortal(
-                    <div
-                        className="fixed z-[9999] bg-white border border-black/5 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 min-w-[12rem]"
-                        style={{
-                            top: menuPosition.top + 8,
-                            left: menuPosition.left - 150,
-                        }}
-                        onClick={(e) => e.stopPropagation()}
+            {activeMenuId && menuPosition && typeof document !== 'undefined' && createPortal(
+                <div
+                    className="fixed z-[9999] bg-white border border-black/5 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 min-w-[12rem]"
+                    style={{ top: menuPosition.top + 8, left: menuPosition.left - 150 }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <button
+                        className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
+                        onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${activeMenuId}/edit`}
                     >
-                        <button
-                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
-                            onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${activeMenuId}/edit`}
-                        >
-                            <span>تعديل التقرير</span>
-                            <Edit size={16} className="text-primary" />
-                        </button>
-                        {(() => {
-                            const report = reports.find(r => r.id === activeMenuId);
-                            const isCompleted = report?.status === 'completed' || report?.status === 'مكتمل';
-                            if (!isCompleted) return null;
+                        <span>تعديل التقرير</span>
+                        <Edit size={16} className="text-primary" />
+                    </button>
+                    {(() => {
+                        const report = reports.find(r => r.id === activeMenuId);
+                        const isCompleted = report?.status === 'completed' || report?.status === 'مكتمل';
+                        if (!isCompleted) return null;
+                        return (
+                            <button
+                                className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3 text-primary"
+                                onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${activeMenuId}/edit?mode=update`}
+                            >
+                                <span>تحديث التقرير (History)</span>
+                                <RefreshCw size={16} className="text-primary" />
+                            </button>
+                        );
+                    })()}
+                    <button
+                        className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
+                        onClick={(e) => { const report = reports.find(r => r.id === activeMenuId); if (report) handleShareClick(report, e); }}
+                    >
+                        <span className="text-[#25D366]">مشاركة واتساب</span>
+                        <Share2 size={16} className="text-[#25D366]" />
+                    </button>
+                    <button
+                        className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
+                        onClick={() => { handleDuplicateReport(activeMenuId); }}
+                    >
+                        <span>تكرار التقرير (Duplicate)</span>
+                        <Copy size={16} className="text-primary" />
+                    </button>
+                    <div className="h-[1px] bg-black/5 mx-2 my-1" />
+                    <button
+                        className="w-full text-right px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/5 transition-colors flex items-center justify-between gap-3"
+                        onClick={() => { handleDeleteReport(activeMenuId); setActiveMenuId(null); }}
+                    >
+                        <span>حذف التقرير</span>
+                        <Trash2 size={16} className="text-destructive" />
+                    </button>
+                </div>,
+                document.body
+            )}
 
-                            return (
-                                <button
-                                    className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3 text-primary"
-                                    onClick={() => window.location.href = `/${locale}/dashboard/admin/reports/${activeMenuId}/edit?mode=update`}
-                                >
-                                    <span>تحديث التقرير (History)</span>
-                                    <RefreshCw size={16} className="text-primary" />
-                                </button>
-                            );
-                        })()}
-                        <button
-                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
-                            onClick={(e) => {
-                                const report = reports.find(r => r.id === activeMenuId);
-                                if (report) handleShareClick(report, e);
-                            }}
-                        >
-                            <span className="text-[#25D366]">مشاركة واتساب</span>
-                            <Share2 size={16} className="text-[#25D366]" />
-                        </button>
-
-                        <button
-                            className="w-full text-right px-4 py-3 text-sm font-bold hover:bg-black/5 transition-colors flex items-center justify-between gap-3"
-                            onClick={() => {
-                                handleDuplicateReport(activeMenuId);
-                            }}
-                        >
-                            <span>تكرار التقرير (Duplicate)</span>
-                            <Copy size={16} className="text-primary" />
-                        </button>
-                        <div className="h-[1px] bg-black/5 mx-2 my-1" />
-                        <button
-                            className="w-full text-right px-4 py-3 text-sm font-bold text-destructive hover:bg-destructive/5 transition-colors flex items-center justify-between gap-3"
-                            onClick={() => {
-                                handleDeleteReport(activeMenuId);
-                                setActiveMenuId(null);
-                            }}
-                        >
-                            <span>حذف التقرير</span>
-                            <Trash2 size={16} className="text-destructive" />
-                        </button>
-                    </div>,
-                    document.body
-                )
-            }
-
-            {/* Cart Items Popover */}
             <CartItemsPopover
                 items={selectedCartItems}
                 isOpen={cartPopoverOpen}
-                onClose={() => {
-                    setCartPopoverOpen(false);
-                    setCartAnchorEl(null);
-                    setSelectedCartItems([]);
-                }}
+                onClose={() => { setCartPopoverOpen(false); setCartAnchorEl(null); setSelectedCartItems([]); }}
                 anchorEl={cartAnchorEl}
             />
         </DashboardLayout>
     );
 }
-

@@ -18,6 +18,7 @@ import {
     ShieldCheck,
     CheckCircle2,
     XCircle,
+    X,
     AlertCircle,
     Plus,
     Minus,
@@ -26,6 +27,7 @@ import {
     FileText,
     ChevronRight,
     ChevronLeft,
+    Edit,
     Save,
     Receipt,
     Check,
@@ -50,14 +52,6 @@ import {
     Loader2,
     Upload
 } from 'lucide-react';
-import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableHead,
-    TableRow,
-    TableCell
-} from '@/components/ui/Table';
 import { useRouter } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
@@ -82,6 +76,24 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [step, setStep] = useState(1);
     const [agentData, setAgentData] = useState<any>(null);
+
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+    const [hasDraft, setHasDraft] = useState(false);
+
+    const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
+        setNotification({ type, message });
+        if (type !== 'error') {
+            setTimeout(() => setNotification(null), 4000);
+        }
+    };
+
+    useEffect(() => {
+        if (notification?.type === 'error') {
+            const timer = setTimeout(() => setNotification(null), 6000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
 
     const [quickSpecs, setQuickSpecs] = useState({
         cpu: [] as string[],
@@ -148,7 +160,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
     const searchParams = useSearchParams();
     const isUpdateMode = searchParams.get('mode') === 'update';
-    const totalSteps = isUpdateMode ? 5 : 4;
+    const totalSteps = isUpdateMode ? 4 : 3;
 
     const [imageInput, setImageInput] = useState('');
     const [videoInput, setVideoInput] = useState('');
@@ -232,7 +244,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         if (url) {
             handleTestScreenshotAdd(componentName, url);
         } else {
-            alert('فشل رفع الصورة. يرجى المحاولة مرة أخرى.');
+            showNotification('error', 'فشل رفع الصورة. يرجى المحاولة مرة أخرى.');
         }
         setUploadingComponents(prev => prev.filter(c => c !== componentName));
         setDragActiveComponent(null);
@@ -401,10 +413,10 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 return newData;
             });
 
-            alert('تم استخراج بيانات الجهاز بنجاح! يرجى مراجعة الحقول.');
+            showNotification('success', 'تم استخراج بيانات الجهاز بنجاح! يرجى مراجعة الحقول.');
         } catch (err) {
             console.error('Failed to parse scan file:', err);
-            alert('فشل في قراءة ملف الفحص. تأكد أنه ملف JSON صحيح.');
+            showNotification('error', 'فشل في قراءة ملف الفحص. تأكد أنه ملف JSON صحيح.');
         }
     };
 
@@ -445,7 +457,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     external_images: [...prev.external_images, { url, type: 'video' }]
                 }));
             } else {
-                alert('فشل رفع الفيديو. يرجى المحاولة مرة أخرى.');
+                showNotification('error', 'فشل رفع الفيديو. يرجى المحاولة مرة أخرى.');
             }
         }
         setIsVideoUploading(false);
@@ -491,6 +503,39 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
             }
         }
     };
+
+    // Restore draft from localStorage on mount
+    useEffect(() => {
+        if (!reportId) {
+            try {
+                const saved = localStorage.getItem('report-draft');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    const age = Date.now() - (parsed._savedAt || 0);
+                    if (age < 30 * 60 * 1000) {
+                        const { _savedAt, ...rest } = parsed;
+                        setFormData(prev => ({ ...prev, ...rest }));
+                        setHasDraft(true);
+                        showNotification('info', 'تم استعادة مسودة محفوظة');
+                    } else {
+                        localStorage.removeItem('report-draft');
+                    }
+                }
+            } catch {}
+        }
+    }, []);
+
+    // Auto-save draft to localStorage
+    useEffect(() => {
+        if (reportId || step !== 1) return;
+        const timer = setTimeout(() => {
+            try {
+                const toSave = { ...formData, _savedAt: Date.now() };
+                localStorage.setItem('report-draft', JSON.stringify(toSave));
+            } catch {}
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [formData, reportId, step]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -575,7 +620,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 }
             } catch (err) {
                 console.error('Failed to fetch data:', err);
-                if (reportId) alert('فشل في تحميل بيانات التقرير');
+                if (reportId) showNotification('error', 'فشل في تحميل بيانات التقرير');
             } finally {
                 setIsLoading(false);
             }
@@ -722,42 +767,39 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
     const handleNextStep = () => {
         if (step === 1) {
-            const requiredFields = {
-                client_name: 'اسم العميل / رقم الهاتف',
-                device_model: 'اسم الجهاز',
-                serial_number: 'الرقم التسلسلي (S/N)',
-                device_source: 'المورد / مصدر الجهاز'
-            };
+            const errors: Record<string, string> = {};
+            if (!formData.client_name) errors.client_name = 'اسم العميل مطلوب';
+            if (!formData.device_model) errors.device_model = 'اسم الجهاز مطلوب';
+            if (!formData.serial_number) errors.serial_number = 'الرقم التسلسلي مطلوب';
+            if (!formData.device_source) errors.device_source = 'مصدر الجهاز مطلوب';
 
-            const missing = Object.entries(requiredFields)
-                .filter(([key, _]) => !formData[key as keyof typeof formData])
-                .map(([_, label]) => label);
-
-            if (missing.length > 0) {
-                alert(`يرجى ملء الحقول الإلزامية التالية للاستمرار:\n\n${missing.join('\n')}`);
+            setFormErrors(errors);
+            if (Object.keys(errors).length > 0) {
+                showNotification('error', 'يرجى ملء الحقول الإلزامية قبل المتابعة');
                 return;
             }
         }
         setStep(step + 1);
     };
 
+    const handlePrevStep = () => {
+        setFormErrors({});
+        setStep(step - 1);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (step !== totalSteps) return;
 
-        const requiredFields = {
-            client_name: 'اسم العميل',
-            client_phone: 'رقم الهاتف',
-            device_model: 'موديل الجهاز',
-            order_number: 'رقم الطلب'
-        };
+        const errors: Record<string, string> = {};
+        if (!formData.client_name) errors.client_name = 'اسم العميل مطلوب';
+        if (!formData.client_phone) errors.client_phone = 'رقم الهاتف مطلوب';
+        if (!formData.device_model) errors.device_model = 'موديل الجهاز مطلوب';
+        if (!formData.order_number) errors.order_number = 'رقم الطلب مطلوب';
 
-        const missing = Object.entries(requiredFields)
-            .filter(([key, _]) => !formData[key as keyof typeof formData])
-            .map(([_, label]) => label);
-
-        if (missing.length > 0) {
-            alert(`يرجى ملء الحقول الإلزامية التالية: ${missing.join('، ')}`);
+        setFormErrors(errors);
+        if (Object.keys(errors).length > 0) {
+            showNotification('error', 'يرجى ملء الحقول الإلزامية قبل الحفظ');
             return;
         }
 
@@ -790,12 +832,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 reportId_final = res.data.id;
             }
 
-            // Simple Success Alert
-            alert(reportId ? 'تم تحديث التقرير بنجاح' : 'تم حفظ التقرير بنجاح');
-            router.push('/dashboard/admin/reports');
+            localStorage.removeItem('report-draft');
+            showNotification('success', reportId ? 'تم تحديث التقرير بنجاح' : 'تم حفظ التقرير بنجاح');
+            setTimeout(() => router.push('/dashboard/admin/reports'), 800);
         } catch (error: any) {
             console.error('Failed to submit report:', error);
-            alert('فشل في حفظ التقرير');
+            showNotification('error', 'فشل في حفظ التقرير');
         } finally {
             setIsLoading(false);
         }
@@ -807,32 +849,97 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
     return (
         <div className="max-w-5xl mx-auto space-y-8">
-            {/* Header with Steps Indicator */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={() => step > 1 ? setStep(step - 1) : router.back()} className="w-10 h-10 p-0 rounded-full">
-                        <ChevronRight size={22} className={cn(locale === 'ar' ? "" : "rotate-180")} />
-                    </Button>
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight">
-                            {isUpdateMode ? 'تحديث التقرير (History)' : (reportId ? 'تعديل التقرير' : 'إنشاء تقرير فحص')}
-                        </h1>
-                        <p className="text-secondary font-medium">خطوة {step} من {totalSteps}: {
-                            step === 1 ? 'البيانات والمواصفات' :
-                                step === 2 ? 'الاختبارات التقنية' :
-                                    step === 3 ? 'المعاينة الخارجية' :
-                                        step === 4 ? (isUpdateMode ? 'لقطات شاشة الاختبار' : 'لقطات شاشة الاختبار والحفظ') : 'وصف التعديل'
-                        }</p>
+            {/* Notification Banner */}
+            {notification && (
+                <div className={cn(
+                    "fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3.5 rounded-2xl shadow-2xl shadow-black/10 backdrop-blur-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 border max-w-md w-[calc(100%-2rem)]",
+                    notification.type === 'success' && "bg-emerald-50 border-emerald-200 text-emerald-800",
+                    notification.type === 'error' && "bg-red-50 border-red-200 text-red-800",
+                    notification.type === 'info' && "bg-blue-50 border-blue-200 text-blue-800",
+                )}>
+                    <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                        notification.type === 'success' && "bg-emerald-100 text-emerald-600",
+                        notification.type === 'error' && "bg-red-100 text-red-600",
+                        notification.type === 'info' && "bg-blue-100 text-blue-600",
+                    )}>
+                        {notification.type === 'success' ? <Check size={16} /> :
+                         notification.type === 'error' ? <XCircle size={16} /> : <AlertCircle size={16} />}
                     </div>
+                    <p className="text-sm font-bold flex-1">{notification.message}</p>
+                    <button
+                        type="button"
+                        onClick={() => setNotification(null)}
+                        className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors"
+                    >
+                        <X size={14} />
+                    </button>
                 </div>
+            )}
 
-                <div className="flex gap-2">
-                    {Array.from({ length: totalSteps }, (_, i) => i + 1).map(s => (
-                        <div key={s} className={cn(
-                            "w-8 h-2 rounded-full transition-all duration-300",
-                            s === step ? "bg-primary w-12" : s < step ? "bg-primary/40" : "bg-black/5"
-                        )} />
-                    ))}
+            {/* Header with Steps Indicator */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/[0.03] via-transparent to-primary/[0.02] border border-primary/[0.05] p-6 md:p-8">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+                <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="sm" onClick={() => step > 1 ? handlePrevStep() : router.back()} className="w-10 h-10 p-0 rounded-full bg-white/80 backdrop-blur-sm">
+                            <ChevronRight size={22} className={cn(locale === 'ar' ? "" : "rotate-180")} />
+                        </Button>
+                        <div className="space-y-1">
+                            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+                                {isUpdateMode ? 'تحديث التقرير (History)' : (reportId ? 'تعديل التقرير' : 'إنشاء تقرير فحص')}
+                                {hasDraft && (
+                                    <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-3 py-1 rounded-full border border-amber-200/50 animate-in fade-in">
+                                        مسودة
+                                    </span>
+                                )}
+                            </h1>
+                            <p className="text-secondary font-medium">
+                                <span className="text-primary/40 ml-1.5">خطوة {step}/{totalSteps}</span>
+                                {
+                                    step === 1 ? 'بيانات العميل والمواصفات الفنية' :
+                                    step === 2 ? 'صور الجهاز وفيديو الفحص' :
+                                    step === 3 ? 'لقطات نتائج الاختبارات' :
+                                    'وصف التعديل'
+                                }
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                        {[
+                            { n: 1, label: 'البيانات', icon: <User size={12} /> },
+                            { n: 2, label: 'الصور', icon: <Camera size={12} /> },
+                            { n: 3, label: 'لقطات', icon: <FileText size={12} /> },
+                            ...(isUpdateMode ? [{ n: 4, label: 'التعديل', icon: <Edit size={12} /> }] : [])
+                        ].map((s, idx, arr) => (
+                            <React.Fragment key={s.n}>
+                                <button
+                                    type="button"
+                                    onClick={() => s.n < step ? setStep(s.n) : undefined}
+                                    className={cn(
+                                        "flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all whitespace-nowrap border backdrop-blur-sm",
+                                        s.n === step
+                                            ? "bg-primary text-white border-primary shadow-lg shadow-primary/25 scale-105"
+                                            : s.n < step
+                                                ? "bg-white/80 text-primary border-primary/15 cursor-pointer hover:bg-primary/10 hover:border-primary/30"
+                                                : "bg-white/50 text-secondary/30 border-black/5 cursor-default"
+                                    )}
+                                >
+                                    {s.n < step ? (
+                                        <span className="w-4 h-4 rounded-full bg-primary text-white flex items-center justify-center"><Check size={9} /></span>
+                                    ) : (
+                                        <span className={cn("w-4 h-4 rounded-full flex items-center justify-center", s.n === step ? "bg-white/20" : "bg-black/[0.04]")}>{s.icon}</span>
+                                    )}
+                                    <span>{s.label}</span>
+                                </button>
+                                {idx < arr.length - 1 && (
+                                    <div className={cn("h-[2px] w-4 shrink-0 rounded-full transition-colors", s.n < step ? "bg-primary/30" : "bg-black/[0.06]")} />
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -840,10 +947,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 {step === 1 && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
                         {/* Agent JSON Import Row */}
-                        <div className="bg-white rounded-3xl border border-primary/10 overflow-hidden shadow-sm p-4 px-6">
-                            <div className="flex items-center justify-between gap-4">
+                        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-500/5 via-fuchsia-500/5 to-primary/5 border border-primary/[0.08] shadow-sm p-5">
+                            <div className="absolute -top-20 -right-20 w-40 h-40 bg-violet-400/10 rounded-full blur-3xl" />
+                            <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-fuchsia-400/10 rounded-full blur-3xl" />
+                            <div className="relative z-10 flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center text-violet-600 shrink-0">
                                         <Upload size={18} />
                                     </div>
                                     <div className="text-right">
@@ -866,13 +975,13 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => document.getElementById('scan-upload')?.click()}
-                                        className="rounded-full h-10 px-5 border-primary/20 text-primary"
+                                        className="rounded-full h-10 px-5 border-violet-200 bg-white/80 text-violet-700 hover:bg-violet-50 backdrop-blur-sm"
                                         icon={<Upload size={16} />}
                                     >
                                         اختر ملف JSON
                                     </Button>
                                     {agentData && (
-                                        <Badge variant="secondary" className="bg-green-50 text-green-600 border-green-100">
+                                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 border-emerald-100">
                                             <CheckCircle2 size={14} className="ml-1" />
                                             تم التحميل
                                         </Badge>
@@ -915,8 +1024,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                 }
 
                                 return chips.length > 0 ? (
-                                    <div className="space-y-2 pt-4 mt-4 border-t border-black/[0.03]">
-                                        <span className="text-[9px] font-black text-secondary/30 uppercase tracking-[0.2em] block px-1">
+                                    <div className="space-y-2 pt-4 mt-4 border-t border-violet-200/30">
+                                        <span className="text-[9px] font-black text-violet-400/60 uppercase tracking-[0.2em] block px-1">
                                             تعبئة سريعة من بيانات الفحص
                                         </span>
                                         <div className="flex flex-wrap gap-2">
@@ -929,7 +1038,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                         "flex items-center gap-1.5 px-4 py-2 rounded-full border transition-all",
                                                         (formData as any)[chip.field] === chip.value
                                                             ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
-                                                            : "bg-white text-secondary/60 border-black/5 hover:border-primary/20 hover:text-primary"
+                                                            : "bg-white/80 text-secondary/60 border-violet-200/40 hover:border-violet-300/60 hover:text-violet-700 hover:bg-violet-50/50"
                                                     )}
                                                 >
                                                     <Plus size={10} className="text-primary/60" />
@@ -944,7 +1053,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                         setFormData(prev => ({ ...prev, [chip.field]: chip.value }));
                                                     });
                                                 }}
-                                                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all"
+                                                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-violet-300/40 bg-violet-50/60 text-violet-700 hover:bg-violet-100/80 transition-all"
                                             >
                                                 <Zap size={12} />
                                                 <span className="text-[11px] font-bold">تعبئة الكل</span>
@@ -956,7 +1065,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         </div>
 
                         <Card variant="glass" className="overflow-hidden border-primary/10">
-                            <CardHeader className="p-8 pb-4 border-b border-black/[0.03] bg-primary/[0.01]">
+                            <CardHeader className="md:p-8 p-5 pb-4 border-b border-black/[0.03] bg-primary/[0.01]">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div className="space-y-1">
                                         <CardTitle className="text-2xl font-black text-secondary flex items-center gap-2">
@@ -977,7 +1086,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                     </Button>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-8 space-y-10">
+                            <CardContent className="md:p-8 p-5 space-y-6 md:space-y-10">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-12 gap-y-6">
                                     <div className="relative z-50 space-y-2">
                                         <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">البحث عن عميل</label>
@@ -993,7 +1102,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                     setShowClientResults(true);
                                                 }}
                                                 onFocus={() => setShowClientResults(true)}
-                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
+                                                className="rounded-full bg-black/[0.02] border-transparent h-14"
+                                                error={formErrors.client_name}
                                             />
                                             {showClientResults && (formData.client_name || clients.length > 0) && (
                                                 <div className="absolute z-50 w-full mt-2 bg-white border border-black/5 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
@@ -1031,7 +1141,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                 icon={<Smartphone size={18} />}
                                                 value={formData.client_phone}
                                                 onChange={handleChange}
-                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
+                                                className="rounded-full bg-black/[0.02] border-transparent h-14"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -1056,7 +1166,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                             icon={<Monitor size={18} />}
                                             value={formData.device_model}
                                             onChange={handleChange}
-                                            className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-bold"
+                                            className="rounded-full bg-black/[0.02] border-transparent h-14 font-bold"
+                                            error={formErrors.device_model}
                                             required
                                         />
                                     </div>
@@ -1068,7 +1179,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                             icon={<Hash size={18} />}
                                             value={formData.serial_number}
                                             onChange={handleChange}
-                                            className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
+                                            className="rounded-full bg-black/[0.02] border-transparent h-14"
+                                            error={formErrors.serial_number}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -1136,7 +1248,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                                         "group/btn flex items-center gap-1.5 px-4 py-2 rounded-full border transition-all shrink-0",
                                                                         (formData as any)[field] === val
                                                                             ? "bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105"
-                                                                            : "bg-white text-secondary/60 border-black/5 hover:border-primary/20 hover:text-primary hover:shadow-md hover:shadow-primary/5"
+                                                                            : "bg-white/80 text-secondary/60 border-black/5 hover:border-primary/20 hover:text-primary hover:shadow-md hover:shadow-primary/5 hover:bg-primary/[0.02]"
                                                                     )}
                                                                 >
                                                                     <Plus size={10} className={cn(
@@ -1240,6 +1352,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                 <option key={s.id} value={s.id}>{s.name} {s.code ? `(${s.code})` : ''}</option>
                                             ))}
                                         </select>
+                                        {formErrors.device_source && <p className="text-xs font-medium text-destructive px-4">{formErrors.device_source}</p>}
                                     </div>
                                 </div>
                             </CardContent>
@@ -1247,114 +1360,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </div>
                 )}
 
-                {step === 2 && (
-                    <Card variant="glass" className="overflow-hidden border-black/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <CardHeader className="p-8 pb-4 border-b border-black/[0.03]">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                    <ShieldCheck size={22} className="text-primary" />
-                                    حالة الهاردوير التقنية
-                                </CardTitle>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({
-                                            ...prev,
-                                            hardware_status: prev.hardware_status.map(item => ({ ...item, status: 'pass' }))
-                                        }))}
-                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 transition-all text-[11px] font-bold"
-                                    >
-                                        <CheckCircle2 size={14} />
-                                        تحديد الكل (سليم)
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({
-                                            ...prev,
-                                            hardware_status: prev.hardware_status.map(item => ({ ...item, status: 'none' }))
-                                        }))}
-                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-all text-[11px] font-bold"
-                                    >
-                                        <XCircle size={14} />
-                                        إلغاء الكل
-                                    </button>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <Table>
-                                <TableHeader className="bg-black/[0.01]">
-                                    <TableRow className="border-black/5 hover:bg-transparent">
-                                        <TableHead className="text-right font-black uppercase tracking-widest text-[10px] py-4 pr-10">القطعة</TableHead>
-                                        <TableHead className="text-center font-black uppercase tracking-widest text-[10px] py-4 px-10">الحالة</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {formData.hardware_status.map((item, index) => (
-                                        <TableRow key={`${item.id}-${index}`} className="border-black/[0.03] transition-colors group">
-                                            <TableCell className="pr-10 font-bold text-secondary py-6">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-black/[0.03] flex items-center justify-center text-secondary/40 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
-                                                        {getComponentIcon(item.name || item.componentName)}
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-base group-hover:translate-x-1 transition-transform">{item.nameAr || item.componentName}</span>
-                                                        {(() => {
-                                                            try {
-                                                                const tech = JSON.parse(item.comment);
-                                                                if (item.componentName === 'CPU') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.cores} Cores | {tech.temp}°C</span>;
-                                                                if (item.componentName === 'Battery') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.cycles} Cycles | {Math.round(tech.health)}% Health</span>;
-                                                                if (item.componentName === 'RAM') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.speed}MHz | {tech.type}</span>;
-                                                                if (item.componentName === 'Storage') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">Health: {tech.devices?.[0]?.health}% | {tech.devices?.[0]?.type}</span>;
-                                                                if (item.componentName === 'Display') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.width}x{tech.height} @ {tech.refresh_rate}Hz</span>;
-                                                                if (item.componentName === 'GPU') return <span className="text-[10px] text-primary font-black uppercase tracking-tighter">{tech.devices?.[0]?.vram}MB VRAM</span>;
-                                                            } catch (e) {
-                                                                if (item.comment) return <span className="text-[10px] text-secondary/40 font-medium">{item.comment}</span>;
-                                                            }
-                                                            return null;
-                                                        })()}
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-10">
-                                                <div className="flex items-center justify-center gap-6">
-                                                    {[
-                                                        { id: 'pass', label: 'سليم', color: 'bg-green-500', shadow: 'shadow-green-500/40' },
-                                                        { id: 'none', label: 'غير موجود', color: 'bg-red-500', shadow: 'shadow-red-500/40' },
-                                                    ].map((opt) => (
-                                                        <button
-                                                            key={opt.id}
-                                                            type="button"
-                                                            onClick={() => handleHardwareStatusChange(index, opt.id)}
-                                                            className="group/btn flex flex-col items-center gap-2 outline-none p-1"
-                                                        >
-                                                            <div className={cn(
-                                                                "w-6 h-6 rounded-full border-2 transition-all duration-300 relative",
-                                                                item.status === opt.id
-                                                                    ? `${opt.color} border-transparent ${opt.shadow} shadow-lg scale-110`
-                                                                    : "border-black/5 bg-transparent hover:border-black/20"
-                                                            )}>
-                                                                {item.status === opt.id && (
-                                                                    <div className="absolute inset-0 rounded-full animate-ping bg-current opacity-20" />
-                                                                )}
-                                                            </div>
-                                                            <span className={cn(
-                                                                "text-[8px] font-black uppercase tracking-tighter transition-all",
-                                                                item.status === opt.id ? opt.color.replace('bg-', 'text-') : "text-secondary/20"
-                                                            )}>{opt.label}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {step === 4 && (
+                {step === 3 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="flex flex-col items-center text-center mb-8">
                             <h2 className="text-2xl font-black text-secondary flex items-center gap-2">
@@ -1480,7 +1486,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </div>
                 )}
 
-                {step === 3 && (
+                {step === 2 && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <Card variant="glass" className="overflow-hidden">
                             <CardHeader className="p-8 pb-4 border-b border-black/[0.03]">
@@ -1646,7 +1652,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </div>
                 )}
 
-                {step === 5 && isUpdateMode && (
+                {step === 4 && isUpdateMode && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <Card variant="glass" className="overflow-hidden border-primary/20">
                             <CardHeader className="p-8 border-b border-black/5 bg-primary/[0.02]">
@@ -1678,18 +1684,28 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     </div>
                 )}
 
-                <div className="flex items-center justify-between pt-8 border-t border-black/5 mt-8">
-                    <Button type="button" variant="outline" onClick={() => step > 1 ? setStep(step - 1) : router.back()} className="rounded-full h-12 px-8" icon={<ChevronRight size={18} />}>
-                        {step === 1 ? 'إلغاء' : 'السابق'}
-                    </Button>
-                    <div className="flex gap-4">
-                        {step < totalSteps ? (
-                            <Button type="button" onClick={handleNextStep} className="rounded-full h-12 px-8" icon={<ChevronLeft size={18} />}>المتابعة</Button>
-                        ) : (
-                            <Button type="button" onClick={handleSubmit} disabled={isLoading} className="rounded-full h-12 px-12 bg-primary text-white shadow-xl shadow-primary/20 hover:scale-105 transition-all" icon={isLoading ? <Clock size={18} className="animate-spin" /> : <Save size={18} />}>
-                                {isLoading ? 'جاري الحفظ...' : (reportId ? (isUpdateMode ? 'حفظ وتحديث التقرير' : 'تحديث التقرير') : 'حفظ التقرير نهائياً')}
-                            </Button>
-                        )}
+                <div className="sticky bottom-0 -mx-4 md:-mx-8 px-4 md:px-8 pt-4 pb-6 mt-8 bg-gradient-to-t from-white via-white/95 to-white/80 backdrop-blur-xl border-t border-black/[0.04] shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+                    {/* Progress bar */}
+                    <div className="h-1 w-full bg-black/[0.04] rounded-full mb-4 max-w-5xl mx-auto overflow-hidden">
+                        <div
+                            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${(step / totalSteps) * 100}%` }}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between max-w-5xl mx-auto">
+                        <Button type="button" variant="outline" onClick={() => step > 1 ? handlePrevStep() : router.back()} className="rounded-full h-11 px-6 text-xs md:text-sm" icon={<ChevronRight size={17} />}>
+                            {step === 1 ? 'إلغاء' : 'السابق'}
+                        </Button>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold text-secondary/30 tabular-nums">{step}/{totalSteps}</span>
+                            {step < totalSteps ? (
+                                <Button type="button" onClick={handleNextStep} className="rounded-full h-11 px-6 sm:px-8 shadow-lg shadow-primary/20 text-xs md:text-sm" icon={<ChevronLeft size={17} />}>المتابعة</Button>
+                            ) : (
+                                <Button type="button" onClick={handleSubmit} disabled={isLoading} className="rounded-full h-11 px-6 sm:px-10 shadow-xl shadow-primary/25 hover:scale-[1.03] active:scale-[0.98] transition-all text-xs md:text-sm" icon={isLoading ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}>
+                                    {isLoading ? 'جاري الحفظ...' : (reportId ? (isUpdateMode ? 'حفظ التحديث' : 'تحديث التقرير') : 'حفظ التقرير')}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </form>
