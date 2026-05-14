@@ -39,7 +39,7 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ isOpen, 
             const clientName = report.client?.name || report.client_name || 'عميلنا العزيز';
             const deviceModel = report.device_model || '';
 
-            const directLink = `https://reports.laapak.com/${locale}/login?u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}&r=/${locale}/reports/${report.id}`;
+            const directLink = `https://reports.laapak.com/login?u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}`;
 
             const template = settings.template_report_ready;
 
