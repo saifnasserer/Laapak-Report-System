@@ -189,8 +189,8 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                     console.log('Fetching accessories from Medusa...');
                     const response = await axios.get(`${MEDUSA_BASE_URL}/store/products`, {
                         params: {
-                            category_id: ACCESSORIES_CATEGORY_ID,
-                            fields: '+variants.prices,+variants,+images', // Simplified expansion
+                            category_id: [ACCESSORIES_CATEGORY_ID],
+                            fields: 'id,title,handle,description,thumbnail,variants.id,variants.title,variants.prices.amount,variants.prices.currency_code,images.url',
                             limit: 50
                         },
                         headers: {
@@ -210,7 +210,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         // Prices are in minor units (e.g., 5000 = 50.00 EGP)
                         const firstVariant = p.variants?.[0];
                         const firstPrice = firstVariant?.prices?.[0];
-                        const priceAmount = firstPrice ? (firstPrice.amount || firstPrice.raw_amount?.value || 0) : 0;
+                        const priceAmount = firstPrice ? (firstPrice.amount ?? 0) : 0;
 
                         return {
                             id: p.id || p.handle || `product-${Math.random().toString(36).substr(2, 9)}`,
@@ -1781,12 +1781,12 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
 
     // Components we want to show even if no screenshot exists
     const technicalComponents = ['CPU', 'GPU', 'Battery', 'Storage', 'Display'];
-    
+
     // Combine both: prioritize screenshots, fallback to tech data
-    const allTests = technicalComponents.map(comp => {
+    const coreTests = technicalComponents.map(comp => {
         const screenshot = testScreenshots.find((s: any) => (s.component || '').toLowerCase() === comp.toLowerCase());
         const statusItem = hStatus.find((h: any) => h.componentName === comp);
-        
+
         let techData = null;
         if (statusItem?.comment) {
             try { techData = JSON.parse(statusItem.comment); } catch (e) {}
@@ -1799,6 +1799,18 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
             status: statusItem?.status || 'neutral'
         };
     }).filter(t => t.screenshot || t.techData);
+
+    // Also include any screenshots for components not in the predefined list (e.g. Keyboard, DXDiag)
+    const extraTests = testScreenshots
+        .filter((s: any) => !technicalComponents.some(c => c.toLowerCase() === (s.component || '').toLowerCase()))
+        .map((s: any) => ({
+            component: s.component || s.name || '',
+            screenshot: s,
+            techData: null,
+            status: 'pass' as const
+        }));
+
+    const allTests = [...coreTests, ...extraTests];
 
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 

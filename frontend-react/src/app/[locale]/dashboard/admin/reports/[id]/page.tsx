@@ -2,14 +2,14 @@
 
 import React, { use } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import ReportView from '@/components/reports/ReportView';
+import ReportViewV2 from '@/components/reports/ReportViewV2';
 
-export default function ReportDetailPage({ params }: { params: Promise<{ id: string, locale: string }> }) {
+export default function AdminReportDetailPage({ params }: { params: Promise<{ id: string, locale: string }> }) {
     const { id, locale } = use(params);
 
     return (
         <DashboardLayout>
-            <ReportView id={id} locale={locale} viewMode="admin" />
+            <ReportViewV2 id={id} locale={locale} viewMode="admin" />
         </DashboardLayout>
     );
 }

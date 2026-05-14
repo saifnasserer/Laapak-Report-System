@@ -47,7 +47,8 @@ import {
     Link2,
     Trash2,
     SquareCheck,
-    Loader2
+    Loader2,
+    Upload
 } from 'lucide-react';
 import {
     Table,
@@ -80,6 +81,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [step, setStep] = useState(1);
+    const [agentData, setAgentData] = useState<any>(null);
 
     const [quickSpecs, setQuickSpecs] = useState({
         cpu: [] as string[],
@@ -140,7 +142,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         update_description: '',
         payment_method: '' as string,
         is_confirmed: false as boolean,
-        selected_accessories: [] as any[]
+        selected_accessories: [] as any[],
+        agent_json: ''
     });
 
     const searchParams = useSearchParams();
@@ -246,6 +249,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         try {
             const text = await file.text();
             const scanData = JSON.parse(text);
+            setAgentData(scanData);
 
             const roundToStandard = (gb: number) => {
                 if (gb <= 0) return 0;
@@ -372,6 +376,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         vendor: g.vendor
                     }))
                 };
+
+                newData.agent_json = text;
 
                 newData.hardware_status = prev.hardware_status.map(item => {
                     if (['CPU', 'GPU', 'Storage', 'Battery', 'Display', 'Wifi', 'Bluetooth'].includes(item.componentName)) {
@@ -524,6 +530,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     const screenshots = allMedia.filter((m: any) => m.type === 'test_screenshot');
                     const externalImgs = allMedia.filter((m: any) => m.type === 'image' || m.type === 'video' || m.type === 'youtube');
 
+                    if (r.agent_json) {
+                        try {
+                            setAgentData(JSON.parse(r.agent_json));
+                        } catch (e) {}
+                    }
+
                     setFormData({
                         client_id: r.client_id || '',
                         client_name: r.client_name || '',
@@ -557,7 +569,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         update_description: '',
                         payment_method: r.payment_method || '',
                         is_confirmed: !!r.is_confirmed,
-                        selected_accessories: typeof r.selected_accessories === 'string' ? JSON.parse(r.selected_accessories) : (r.selected_accessories || [])
+                        selected_accessories: typeof r.selected_accessories === 'string' ? JSON.parse(r.selected_accessories) : (r.selected_accessories || []),
+                        agent_json: r.agent_json || ''
                     });
                 }
             } catch (err) {
@@ -825,7 +838,123 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
             <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
                 {step === 1 && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+                        {/* Agent JSON Import Row */}
+                        <div className="bg-white rounded-3xl border border-primary/10 overflow-hidden shadow-sm p-4 px-6">
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                        <Upload size={18} />
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="font-bold text-sm">استيراد من ملف JSON</span>
+                                        <p className="text-[10px] text-secondary/40 font-medium">
+                                            {agentData ? 'تم استيراد بيانات الجهاز بنجاح' : 'ارفع ملف JSON من برنامج الفحص'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                    <input
+                                        type="file"
+                                        id="scan-upload"
+                                        className="hidden"
+                                        accept=".json"
+                                        onChange={handleScanUpload}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => document.getElementById('scan-upload')?.click()}
+                                        className="rounded-full h-10 px-5 border-primary/20 text-primary"
+                                        icon={<Upload size={16} />}
+                                    >
+                                        اختر ملف JSON
+                                    </Button>
+                                    {agentData && (
+                                        <Badge variant="secondary" className="bg-green-50 text-green-600 border-green-100">
+                                            <CheckCircle2 size={14} className="ml-1" />
+                                            تم التحميل
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Agent Quick-Fill Chips */}
+                            {agentData && (() => {
+                                const formatSize = (gb: number) => {
+                                    if (gb <= 0) return '';
+                                    const standards = [128, 256, 512, 1024, 2048];
+                                    const closest = standards.reduce((prev, curr) =>
+                                        Math.abs(curr - gb) < Math.abs(prev - gb) ? curr : prev
+                                    );
+                                    const rounded = (Math.abs(closest - gb) / gb < 0.15) ? closest : Math.round(gb);
+                                    return rounded >= 1024 ? `${rounded / 1024}TB` : `${rounded}GB`;
+                                };
+
+                                const chips: { label: string; field: string; value: string }[] = [];
+                                if (agentData.cpu?.name) chips.push({ label: 'CPU', field: 'cpu', value: agentData.cpu.name });
+                                if (agentData.gpu?.devices?.[0]) {
+                                    const g = agentData.gpu.devices[0];
+                                    const gpuVal = g.name?.toLowerCase().includes((g.vendor || '').toLowerCase())
+                                        ? g.name : `${g.vendor || ''} ${g.name || ''}`.trim();
+                                    if (gpuVal) chips.push({ label: 'GPU', field: 'gpu', value: gpuVal });
+                                }
+                                if (agentData.ram?.total) chips.push({ label: 'RAM', field: 'ram', value: `${agentData.ram.total} GB` });
+                                if (agentData.storage?.devices?.length > 0) {
+                                    const internal = agentData.storage.devices.filter((d: any) =>
+                                        d.type?.toLowerCase() !== 'usb' && !String(d.model || '').toLowerCase().includes('usb')
+                                    );
+                                    if (internal.length > 0) {
+                                        const storageVal = internal.map((d: any) => {
+                                            const sizeGb = d.size_gb || (d.size ? d.size / (1024 ** 3) : 0);
+                                            return `${formatSize(sizeGb)} ${d.type || 'SSD'}`;
+                                        }).join(' + ');
+                                        if (storageVal) chips.push({ label: 'Storage', field: 'storage', value: storageVal });
+                                    }
+                                }
+
+                                return chips.length > 0 ? (
+                                    <div className="space-y-2 pt-4 mt-4 border-t border-black/[0.03]">
+                                        <span className="text-[9px] font-black text-secondary/30 uppercase tracking-[0.2em] block px-1">
+                                            تعبئة سريعة من بيانات الفحص
+                                        </span>
+                                        <div className="flex flex-wrap gap-2">
+                                            {chips.map(chip => (
+                                                <button
+                                                    key={chip.field}
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, [chip.field]: chip.value }))}
+                                                    className={cn(
+                                                        "flex items-center gap-1.5 px-4 py-2 rounded-full border transition-all",
+                                                        (formData as any)[chip.field] === chip.value
+                                                            ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
+                                                            : "bg-white text-secondary/60 border-black/5 hover:border-primary/20 hover:text-primary"
+                                                    )}
+                                                >
+                                                    <Plus size={10} className="text-primary/60" />
+                                                    <span className="text-[11px] font-bold">{chip.label}: </span>
+                                                    <span className="text-[11px] font-mono font-bold">{chip.value}</span>
+                                                </button>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    chips.forEach(chip => {
+                                                        setFormData(prev => ({ ...prev, [chip.field]: chip.value }));
+                                                    });
+                                                }}
+                                                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all"
+                                            >
+                                                <Zap size={12} />
+                                                <span className="text-[11px] font-bold">تعبئة الكل</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : null;
+                            })()}
+                        </div>
+
                         <Card variant="glass" className="overflow-hidden border-primary/10">
                             <CardHeader className="p-8 pb-4 border-b border-black/[0.03] bg-primary/[0.01]">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -836,37 +965,16 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                         </CardTitle>
                                         <p className="text-xs text-secondary/40 font-bold uppercase tracking-widest px-1">أدخل بيانات العميل وهوية الجهاز والمواصفات الأساسية</p>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <div className="relative">
-                                            <input 
-                                                type="file" 
-                                                id="scan-upload" 
-                                                className="hidden" 
-                                                accept=".json" 
-                                                onChange={handleScanUpload} 
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="primary"
-                                                size="sm"
-                                                onClick={() => document.getElementById('scan-upload')?.click()}
-                                                className="rounded-full h-10 px-6 shadow-lg shadow-primary/20"
-                                                icon={<Zap size={16} />}
-                                            >
-                                                رفع فحص ذكي
-                                            </Button>
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setIsClientModalOpen(true)}
-                                            className="rounded-full h-10 px-6 border-primary/20 text-primary hover:bg-primary/5"
-                                            icon={<Plus size={16} />}
-                                        >
-                                            إضافة عميل جديد
-                                        </Button>
-                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsClientModalOpen(true)}
+                                        className="rounded-full h-10 px-6 border-primary/20 text-primary hover:bg-primary/5"
+                                        icon={<Plus size={16} />}
+                                    >
+                                        إضافة عميل جديد
+                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-8 space-y-10">
@@ -1142,10 +1250,36 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 {step === 2 && (
                     <Card variant="glass" className="overflow-hidden border-black/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <CardHeader className="p-8 pb-4 border-b border-black/[0.03]">
-                            <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                <ShieldCheck size={22} className="text-primary" />
-                                حالة الهاردوير التقنية
-                            </CardTitle>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                    <ShieldCheck size={22} className="text-primary" />
+                                    حالة الهاردوير التقنية
+                                </CardTitle>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            hardware_status: prev.hardware_status.map(item => ({ ...item, status: 'pass' }))
+                                        }))}
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 transition-all text-[11px] font-bold"
+                                    >
+                                        <CheckCircle2 size={14} />
+                                        تحديد الكل (سليم)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            hardware_status: prev.hardware_status.map(item => ({ ...item, status: 'none' }))
+                                        }))}
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-all text-[11px] font-bold"
+                                    >
+                                        <XCircle size={14} />
+                                        إلغاء الكل
+                                    </button>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent className="p-0">
                             <Table>
