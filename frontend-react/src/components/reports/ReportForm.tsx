@@ -57,6 +57,8 @@ import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
+import { UploadZone } from '@/components/ui/UploadZone';
+import { TextField } from '@/components/ui/TextField';
 import { ClientModal } from '@/components/clients/ClientModal';
 import { SupplierModal } from '@/components/suppliers/SupplierModal';
 
@@ -76,6 +78,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [step, setStep] = useState(1);
     const [agentData, setAgentData] = useState<any>(null);
+    const [step4Mode, setStep4Mode] = useState<'images' | 'data'>('images');
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
@@ -200,25 +203,20 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     };
 
     const uploadToCatbox = async (file: File) => {
-        const uploadData = new FormData();
-        uploadData.append('file', file);
+        const formData = new FormData();
+        formData.append('file', file);
 
         try {
-            // Use backend proxy to bypass CORS restrictions
-            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
             const response = await fetch('/api/upload/catbox', {
                 method: 'POST',
-                headers: {
-                    ...(token ? { 'x-auth-token': token } : {})
-                },
-                body: uploadData,
+                body: formData,
             });
 
             const data = await response.json();
             if (data.success && data.url) {
                 return data.url;
             } else {
-                console.error('Catbox proxy error:', data.error || data);
+                console.error('Catbox error:', data.error || data);
                 return null;
             }
         } catch (err) {
@@ -569,6 +567,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
 
                     // Parse JSON fields
                     const hardwareStatus = typeof r.hardware_status === 'string' ? JSON.parse(r.hardware_status) : (r.hardware_status || []);
+                    const configEntry = hardwareStatus.find((e: any) => e.componentName === '__step4Mode__');
+                    if (configEntry) setStep4Mode(configEntry.status as 'images' | 'data');
                     const allMedia = typeof r.external_images === 'string' ? JSON.parse(r.external_images) : (r.external_images || []);
                     const invoiceItems = typeof r.invoice_items === 'string' ? JSON.parse(r.invoice_items) : (r.invoice_items || []);
 
@@ -812,7 +812,10 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     ? `SOURCE: ${formData.device_source}\n${formData.notes}`
                     : formData.notes,
                 inspection_date: new Date(formData.inspection_date),
-                hardware_status: JSON.stringify(formData.hardware_status),
+                hardware_status: JSON.stringify([
+                    ...formData.hardware_status,
+                    { componentName: '__step4Mode__', status: step4Mode, type: 'config' }
+                ]),
                 external_images: JSON.stringify([
                     ...formData.external_images,
                     ...formData.test_screenshots.filter(s => s.url)
@@ -907,7 +910,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                    <div className="flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden py-1">
                         {[
                             { n: 1, label: 'البيانات', icon: <User size={12} /> },
                             { n: 2, label: 'الصور', icon: <Camera size={12} /> },
@@ -1102,12 +1105,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                     setShowClientResults(true);
                                                 }}
                                                 onFocus={() => setShowClientResults(true)}
-                                                className="rounded-full bg-black/[0.02] border-transparent h-14"
+                                                className="rounded-full bg-white border border-black/[0.06] h-14 transition-all hover:border-black/[0.15] focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
                                                 error={formErrors.client_name}
                                             />
                                             {showClientResults && (formData.client_name || clients.length > 0) && (
                                                 <div className="absolute z-50 w-full mt-2 bg-white border border-black/5 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
-                                                    <div className="max-h-64 overflow-y-auto no-scrollbar">
+                                                    <div className="max-h-64 overflow-y-auto [&::-webkit-scrollbar]:hidden">
                                                         {clients
                                                             .filter(c =>
                                                                 c.name.toLowerCase().includes(formData.client_name.toLowerCase()) ||
@@ -1133,68 +1136,55 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">رقم الموبايل</label>
-                                            <Input
-                                                name="client_phone"
-                                                placeholder="رقم الموبايل"
-                                                icon={<Smartphone size={18} />}
-                                                value={formData.client_phone}
-                                                onChange={handleChange}
-                                                className="rounded-full bg-black/[0.02] border-transparent h-14"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">رقم التقرير</label>
-                                            <Input
-                                                name="order_number"
-                                                icon={<Hash size={18} />}
-                                                value={formData.order_number}
-                                                onChange={handleChange}
-                                                className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14 font-mono text-primary font-black text-lg"
-                                            />
-                                        </div>
+                                        <TextField
+                                            label="رقم الموبايل"
+                                            name="client_phone"
+                                            placeholder="رقم الموبايل"
+                                            icon={<Smartphone size={18} />}
+                                            value={formData.client_phone}
+                                            onChange={handleChange}
+                                        />
+                                        <TextField
+                                            label="رقم التقرير"
+                                            name="order_number"
+                                            icon={<Hash size={18} />}
+                                            value={formData.order_number}
+                                            onChange={handleChange}
+                                            inputClassName="font-mono text-primary font-black text-lg"
+                                        />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6 border-t border-black/[0.03]">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">اسم الجهاز (Device Name)</label>
-                                        <Input
-                                            name="device_model"
-                                            placeholder="HP xxxxx X7"
-                                            icon={<Monitor size={18} />}
-                                            value={formData.device_model}
-                                            onChange={handleChange}
-                                            className="rounded-full bg-black/[0.02] border-transparent h-14 font-bold"
-                                            error={formErrors.device_model}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">الرقم التسلسلي (S/N)</label>
-                                        <Input
-                                            name="serial_number"
-                                            placeholder="S/N Number"
-                                            icon={<Hash size={18} />}
-                                            value={formData.serial_number}
-                                            onChange={handleChange}
-                                            className="rounded-full bg-black/[0.02] border-transparent h-14"
-                                            error={formErrors.serial_number}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 tracking-tighter">تاريخ الفحص</label>
-                                        <Input
-                                            name="inspection_date"
-                                            type="date"
-                                            icon={<Calendar size={18} />}
-                                            value={formData.inspection_date}
-                                            onChange={handleChange}
-                                            className="rounded-[1.5rem] bg-black/[0.02] border-transparent h-14"
-                                            required
-                                        />
-                                    </div>
+                                    <TextField
+                                        label="اسم الجهاز (Device Name)"
+                                        name="device_model"
+                                        placeholder="HP xxxxx X7"
+                                        icon={<Monitor size={18} />}
+                                        value={formData.device_model}
+                                        onChange={handleChange}
+                                        error={formErrors.device_model}
+                                        required
+                                        inputClassName="font-bold"
+                                    />
+                                    <TextField
+                                        label="الرقم التسلسلي (S/N)"
+                                        name="serial_number"
+                                        placeholder="S/N Number"
+                                        icon={<Hash size={18} />}
+                                        value={formData.serial_number}
+                                        onChange={handleChange}
+                                        error={formErrors.serial_number}
+                                    />
+                                    <TextField
+                                        label="تاريخ الفحص"
+                                        name="inspection_date"
+                                        type="date"
+                                        icon={<Calendar size={18} />}
+                                        value={formData.inspection_date}
+                                        onChange={handleChange}
+                                        required
+                                    />
                                 </div>
 
                                 <div className="pt-8 border-t border-black/[0.03] space-y-8">
@@ -1210,35 +1200,32 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                 try { techData = JSON.parse(statusItem.comment); } catch (e) {}
                                             }
 
+                                            let badgeContent: React.ReactNode = null;
+                                            if (techData) {
+                                                if (field === 'cpu' && techData.cores) {
+                                                    badgeContent = <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5 whitespace-nowrap">{techData.cores} Cores</Badge>;
+                                                } else if (field === 'ram' && techData.speed) {
+                                                    badgeContent = <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5 whitespace-nowrap">{techData.speed}MHz</Badge>;
+                                                } else if (field === 'storage' && techData.devices?.[0]?.health) {
+                                                    badgeContent = <Badge variant="outline" className="bg-green-50 text-green-600 border-green-100 text-[9px] font-black h-5 whitespace-nowrap">Health: {techData.devices[0].health}%</Badge>;
+                                                }
+                                            }
+
                                             return (
-                                                <div key={field} className="space-y-4 group">
-                                                    <div className="relative">
-                                                        <Input
-                                                            name={field}
-                                                            label={field.toUpperCase()}
-                                                            placeholder={field.toUpperCase() + "..."}
-                                                            icon={field === 'cpu' ? <Cpu size={18} /> : field === 'gpu' ? <Monitor size={18} /> : field === 'ram' ? <Database size={18} /> : <HardDrive size={18} />}
-                                                            value={(formData as any)[field]}
-                                                            onChange={handleChange}
-                                                            className="rounded-2xl bg-black/[0.02] border-transparent group-hover:bg-white group-hover:border-primary/20 h-12 transition-all"
-                                                        />
-                                                        {techData && (
-                                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex gap-1 animate-in fade-in zoom-in">
-                                                                {field === 'cpu' && techData.cores && (
-                                                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5">{techData.cores} Cores</Badge>
-                                                                )}
-                                                                {field === 'ram' && techData.speed && (
-                                                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5">{techData.speed}MHz</Badge>
-                                                                )}
-                                                                {field === 'storage' && techData.devices?.[0]?.health && (
-                                                                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-100 text-[9px] font-black h-5">Health: {techData.devices[0].health}%</Badge>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="space-y-2 px-1">
+                                                <TextField
+                                                    key={field}
+                                                    label={field.toUpperCase()}
+                                                    name={field}
+                                                    placeholder={field.toUpperCase() + "..."}
+                                                    icon={field === 'cpu' ? <Cpu size={18} /> : field === 'gpu' ? <Monitor size={18} /> : field === 'ram' ? <Database size={18} /> : <HardDrive size={18} />}
+                                                    value={(formData as any)[field]}
+                                                    onChange={handleChange}
+                                                    badge={badgeContent}
+                                                    inputClassName="font-bold uppercase tracking-tight"
+                                                >
+                                                    <div className="space-y-2">
                                                         <span className="text-[9px] font-black text-secondary/20 uppercase tracking-[0.2em]">المقترحات</span>
-                                                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mask-fade-edges">
+                                                        <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 mask-fade-edges">
                                                             {(quickSpecs as any)[field].map((val: string) => (
                                                                 <button
                                                                     key={val}
@@ -1260,7 +1247,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                             ))}
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </TextField>
                                             );
                                         })}
                                     </div>
@@ -1278,49 +1265,44 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                                                 try { techData = JSON.parse(statusItem.comment); } catch (e) {}
                                             }
 
+                                            let subBadge: React.ReactNode = null;
+                                            if (techData) {
+                                                if (field.component === 'Battery' && techData.cycles) {
+                                                    subBadge = <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5 whitespace-nowrap">{techData.cycles} Cycles</Badge>;
+                                                } else if (field.component === 'Display' && techData.refresh_rate) {
+                                                    subBadge = <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5 whitespace-nowrap">{techData.refresh_rate}Hz</Badge>;
+                                                }
+                                            }
+
                                             return (
-                                                <div key={field.name} className="space-y-4 group">
-                                                    <div className="relative">
-                                                        <Input
-                                                            name={field.name}
-                                                            label={field.label}
-                                                            placeholder={field.label + "..."}
-                                                            icon={field.icon}
-                                                            value={(formData as any)[field.name]}
-                                                            onChange={handleChange}
-                                                            className="rounded-2xl bg-black/[0.02] border-transparent group-hover:bg-white group-hover:border-primary/20 h-12 transition-all"
-                                                        />
-                                                        {techData && (
-                                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex gap-1">
-                                                                {field.component === 'Battery' && techData.cycles && (
-                                                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5">{techData.cycles} Cycles</Badge>
-                                                                )}
-                                                                {field.component === 'Display' && techData.refresh_rate && (
-                                                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black h-5">{techData.refresh_rate}Hz</Badge>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                <TextField
+                                                    key={field.name}
+                                                    label={field.label}
+                                                    name={field.name}
+                                                    placeholder={field.label + "..."}
+                                                    icon={field.icon}
+                                                    value={(formData as any)[field.name]}
+                                                    onChange={handleChange}
+                                                    badge={subBadge}
+                                                />
                                             );
                                         })}
                                     </div>
                                 </div>
 
                                 <div className="mt-6 pt-6 border-t border-black/[0.03] flex flex-col md:flex-row items-stretch md:items-center justify-center gap-6">
-                                    <div className="w-full max-w-md mx-auto space-y-2">
-                                        <label className="text-[10px] font-black text-secondary/40 uppercase px-4 text-center block">سعر البيع (Selling Price)</label>
-                                        <Input
-                                            name="amount"
-                                            type="number"
-                                            placeholder="أدخل سعر البيع للعميل..."
-                                            icon={<CreditCard size={18} />}
-                                            value={formData.amount}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                                            className="rounded-full bg-black/[0.02] border-transparent h-12 text-center font-black text-primary"
-                                            required
-                                        />
-                                    </div>
+                                    <TextField
+                                        label="سعر البيع (Selling Price)"
+                                        name="amount"
+                                        type="number"
+                                        placeholder="أدخل سعر البيع للعميل..."
+                                        icon={<CreditCard size={18} />}
+                                        value={formData.amount}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                                        required
+                                        wrapperClassName="w-full max-w-md mx-auto"
+                                        inputClassName="text-center font-black text-primary"
+                                    />
                                     <div className="w-full max-w-md mx-auto space-y-2 animate-in slide-in-from-right-2">
                                         <div className="flex items-center justify-between px-4">
                                             <label className="text-[10px] font-black text-primary uppercase block">المورد (Supplier)</label>
@@ -1361,291 +1343,181 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 )}
 
                 {step === 3 && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="flex flex-col items-center text-center mb-8">
-                            <h2 className="text-2xl font-black text-secondary flex items-center gap-2">
-                                <Camera size={24} className="text-primary" />
-                                فحوصات المكونات (Screenshots)
-                            </h2>
-                        </div>
-                        <div className="space-y-4 max-w-3xl mx-auto pb-10">
-                            {formData.test_screenshots.map((s, idx) => (
-                                <div key={idx} className="bg-white border border-black/5 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-md transition-all group">
-                                    <div className="bg-primary/5 p-4 border-b border-black/5 flex items-center justify-between">
-                                        <div className="flex items-center gap-3 text-primary">
-                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                                                {getComponentIcon(s.component)}
-                                            </div>
-                                            <h5 className="font-black text-sm">{getComponentTitle(s.component)}</h5>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <input 
-                                                id={`file-input-${s.component}`}
-                                                type="file"
-                                                className="hidden"
-                                                accept="image/*"
-                                                onChange={(e) => handleFileUpload(e, s.component)}
-                                            />
-                                            {s.url && (
-                                                <Badge variant="secondary" className="bg-green-500 text-white border-transparent py-1 animate-in zoom-in">تم إرفاق النتيجة</Badge>
-                                            )}
-                                        </div>
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <Card variant="glass" className="overflow-hidden">
+                            <CardHeader className="md:p-8 p-5 pb-4 border-b border-black/[0.03]">
+                                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                    <Camera size={22} className="text-primary" />
+                                    فحوصات المكونات (Screenshots)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="md:p-8 p-5 space-y-3">
+                                {/* Step 4 Display Mode Toggle */}
+                                <div className="flex items-center gap-3 p-4 rounded-2xl bg-black/[0.02] border border-black/[0.03] mb-2">
+                                    <p className="text-xs font-black text-secondary/50 flex-1">طريقة عرض الفحص الداخلي (الخطوة 4)</p>
+                                    <div className="flex rounded-xl overflow-hidden border border-black/[0.06]">
+                                        <button
+                                            type="button"
+                                            onClick={() => setStep4Mode('images')}
+                                            className={cn("px-4 py-2 text-[11px] font-black transition-colors", step4Mode === 'images' ? "bg-primary text-white" : "bg-white text-secondary/50 hover:bg-black/[0.02]")}
+                                        >
+                                            صور الفحص
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setStep4Mode('data')}
+                                            className={cn("px-4 py-2 text-[11px] font-black transition-colors", step4Mode === 'data' ? "bg-primary text-white" : "bg-white text-secondary/50 hover:bg-black/[0.02]")}
+                                        >
+                                            بيانات التقرير
+                                        </button>
                                     </div>
-                                    <div 
-                                        className={cn(
-                                            "p-6 space-y-4 transition-all duration-300",
-                                            dragActiveComponent === s.component && "bg-primary/5 ring-2 ring-primary ring-inset rounded-b-[2rem]"
-                                        )}
+                                </div>
+                                {formData.test_screenshots.map((s, idx) => (
+                                    <UploadZone
+                                        key={s.component}
+                                        header={{
+                                            icon: getComponentIcon(s.component),
+                                            title: getComponentTitle(s.component),
+                                            hasItems: !!s.url,
+                                        }}
+                                        compact
+                                        accept="image/*"
+                                        multiple={false}
+                                        items={s.url ? [{ url: s.url }] : []}
+                                        uploading={uploadingComponents.includes(s.component)}
+                                        dragActive={dragActiveComponent === s.component}
                                         onDragOver={(e) => handleDrag(e, s.component, true)}
                                         onDragLeave={(e) => handleDrag(e, s.component, false)}
                                         onDrop={(e) => handleDrop(e, s.component)}
-                                    >
-                                        {!s.url && !uploadingComponents.includes(s.component) ? (
-                                            <div 
-                                                onClick={() => document.getElementById(`file-input-${s.component}`)?.click()}
-                                                className="border-2 border-dashed border-black/10 rounded-2xl p-10 flex flex-col items-center justify-center gap-3 hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group/drop"
-                                            >
-                                                <div className="w-12 h-12 rounded-full bg-black/[0.03] flex items-center justify-center text-secondary/40 group-hover/drop:bg-primary/10 group-hover/drop:text-primary transition-all">
-                                                    <Plus size={24} />
+                                        onFileSelect={(e) => handleFileUpload(e, s.component)}
+                                        onUrlSubmit={(url) => {
+                                            if (url) handleTestScreenshotAdd(s.component, url);
+                                        }}
+                                        onRemove={() => handleTestScreenshotAdd(s.component, '')}
+                                        urlInput={s.url || ''}
+                                        setUrlInput={(val) => handleTestScreenshotAdd(s.component, val)}
+                                        fileInputId={`file-input-${s.component}`}
+                                        placeholder="رابط صورة نتيجة الاختبار..."
+                                        renderItem={(item) => (
+                                            <div className="relative aspect-video rounded-xl overflow-hidden group/img bg-black/5">
+                                                <img src={item.url} className="w-full h-full object-contain" alt={s.component} />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                    <Button variant="destructive" size="sm" className="rounded-full h-8 text-[10px]" onClick={() => handleTestScreenshotAdd(s.component, '')}>
+                                                        <Trash2 size={12} className="ml-1" /> حذف
+                                                    </Button>
+                                                    <Button variant="outline" size="sm" className="rounded-full h-8 text-[10px] bg-white border-transparent text-primary" onClick={() => document.getElementById(`file-input-${s.component}`)?.click()}>
+                                                        <Camera size={12} className="ml-1" /> تغيير
+                                                    </Button>
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm font-black text-secondary">اسحب الصورة هنا أو اضغط للرفع</p>
-                                                    <p className="text-[10px] text-secondary/40 font-bold uppercase mt-1">Image or Screenshot</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                {s.url && (
-                                                    <div className="relative aspect-video rounded-2xl overflow-hidden group/img animate-in fade-in zoom-in duration-300 bg-black/5 shadow-inner">
-                                                        <img src={s.url} className="w-full h-full object-contain" alt={s.component} />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                            <Button 
-                                                                variant="destructive" 
-                                                                size="sm" 
-                                                                className="rounded-full h-9 text-[10px]" 
-                                                                onClick={() => handleTestScreenshotAdd(s.component, '')}
-                                                            >
-                                                                <Trash2 size={14} className="ml-1" /> حذف الصورة
-                                                            </Button>
-                                                            <Button 
-                                                                variant="outline" 
-                                                                size="sm" 
-                                                                className="rounded-full h-9 text-[10px] bg-white border-transparent text-primary hover:bg-white/90" 
-                                                                onClick={() => document.getElementById(`file-input-${s.component}`)?.click()}
-                                                            >
-                                                                <Camera size={14} className="ml-1" /> تغيير الصورة
-                                                            </Button>
+                                                {dragActiveComponent === s.component && (
+                                                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
+                                                        <div className="bg-white/90 p-3 rounded-xl shadow-xl flex items-center gap-2">
+                                                            <Plus size={16} className="text-primary" />
+                                                            <span className="text-xs font-black text-primary">استبدال</span>
                                                         </div>
-                                                        {dragActiveComponent === s.component && (
-                                                            <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in">
-                                                                <div className="bg-white/90 p-4 rounded-2xl shadow-xl flex items-center gap-2 scale-110 transition-transform">
-                                                                    <Plus size={20} className="text-primary" />
-                                                                    <span className="text-sm font-black text-primary">افلت لاستبدال الصورة</span>
-                                                                </div>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 )}
-                                                {uploadingComponents.includes(s.component) && !s.url && (
-                                                    <div className="aspect-video rounded-2xl bg-black/[0.02] border border-black/5 flex flex-col items-center justify-center gap-3">
-                                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                                        <p className="text-[10px] font-black text-primary animate-pulse">جاري الرفع...</p>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-
-                                        <div className="space-y-4 pt-2">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-1">رابط صورة نتيجة الاختبار (أو اسحبها أعلاه)</label>
-                                                <Input
-                                                    placeholder="https://example.com/image.jpg"
-                                                    value={s.url || ''}
-                                                    onChange={(e) => handleTestScreenshotAdd(s.component, e.target.value)}
-                                                    className={cn(
-                                                        "rounded-full bg-black/[0.02] border-transparent h-11 text-xs",
-                                                        s.url && !isDirectImageLink(s.url) && "border-amber-400/50 bg-amber-50/50"
-                                                    )}
-                                                    icon={<Link2 size={16} />}
-                                                />
                                             </div>
-                                            <div className="pt-2 border-t border-black/5">
-                                                <label className="text-[10px] font-black text-secondary/40 uppercase px-1">ملاحظات فنية على الاختبار</label>
+                                        )}
+                                        extra={
+                                            <div className="pt-1">
                                                 <Input
-                                                    placeholder="اكتب أي ملاحظة فنية هنا..."
+                                                    placeholder="ملاحظة فنية..."
                                                     value={s.comment || ''}
                                                     onChange={(e) => handleTestScreenshotComment(s.component, e.target.value)}
-                                                    className="rounded-full h-11 text-xs bg-black/[0.02] border-transparent mt-1"
+                                                    className="rounded-full h-10 text-xs bg-black/[0.02] border-transparent"
                                                 />
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                        }
+                                    />
+                                ))}
+                            </CardContent>
+                        </Card>
                     </div>
                 )}
 
                 {step === 2 && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <Card variant="glass" className="overflow-hidden">
-                            <CardHeader className="p-8 pb-4 border-b border-black/[0.03]">
+                            <CardHeader className="md:p-8 p-5 pb-4 border-b border-black/[0.03]">
                                 <CardTitle className="text-xl font-bold flex items-center gap-2">
                                     <ImageIcon size={22} className="text-primary" />
                                     المعاينة الخارجية
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="p-8 space-y-10">
-                                <div className="space-y-6">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-2 px-2">
-                                            <ImageIcon size={14} className="text-primary/60" />
-                                            <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest">صور الجهاز (خارجي)</h4>
-                                        </div>
-
-                                        <div 
-                                            className={cn(
-                                                "border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center gap-4 transition-all duration-300 cursor-pointer overflow-hidden relative w-full",
-                                                isExternalDragActive 
-                                                    ? "border-primary bg-primary/[0.05] ring-4 ring-primary/10 ring-inset" 
-                                                    : "border-black/5 bg-black/[0.01] hover:bg-black/[0.02] hover:border-black/10"
-                                            )}
-                                            onDragOver={(e) => handleDrag(e, 'external', true)}
-                                            onDragLeave={(e) => handleDrag(e, 'external', false)}
-                                            onDrop={(e) => handleDrop(e, 'external')}
-                                            onClick={() => document.getElementById('external-image-upload')?.click()}
-                                        >
-                                            <input 
-                                                id="external-image-upload"
-                                                type="file"
-                                                className="hidden"
-                                                accept="image/*"
-                                                multiple
-                                                onChange={handleExternalImageInputChange}
-                                            />
-                                            {isExternalUploading && (
-                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 z-10">
-                                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                                    <p className="text-xs font-black text-primary animate-pulse">جاري رفع الصور...</p>
-                                                </div>
-                                            )}
-                                            <div className={cn(
-                                                "w-16 h-16 rounded-full flex items-center justify-center transition-all",
-                                                isExternalDragActive ? "bg-primary text-white scale-110" : "bg-primary/10 text-primary"
-                                            )}>
-                                                <ImageIcon size={32} />
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-lg font-black text-secondary">اسحب صور الجهاز هنا</p>
-                                                <p className="text-sm text-secondary/40 font-bold mt-1">سيتم رفع الصور تلقائياً وتحويلها لروابط</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 bg-black/[0.01] p-1 pr-5 rounded-full border border-black/5">
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <Link2 size={14} className="text-secondary/30" />
-                                            </div>
-                                            <Input
-                                                id="device-image-url-input"
-                                                placeholder="أو أضف رابط صورة يدوياً هنا..."
-                                                value={imageInput}
-                                                onChange={(e) => setImageInput(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        handleDeviceImageAdd();
-                                                    }
-                                                }}
-                                                className="rounded-full border-transparent bg-transparent h-11 text-xs flex-1 focus:ring-0 font-medium"
-                                            />
-                                            <Button type="button" onClick={handleDeviceImageAdd} className="rounded-full h-10 px-6 shadow-md shadow-primary/10 text-xs font-bold" icon={<Plus size={16} />}>إضافة</Button>
-                                        </div>
+                            <CardContent className="md:p-8 p-5 space-y-10">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 px-2">
+                                        <ImageIcon size={14} className="text-primary/60" />
+                                        <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest">صور الجهاز (خارجي)</h4>
                                     </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                        {formData.external_images.filter(img => img.type === 'image' && img.url).map((img, i) => (
-                                            <div key={i} className="relative aspect-square rounded-2xl overflow-hidden group/img border border-black/5 bg-black/5 animate-in zoom-in duration-300">
-                                                <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                    <button type="button" onClick={() => setFormData(p => ({ ...p, external_images: p.external_images.filter(item => item !== img) }))} className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:scale-110 transition-transform"><Trash2 size={14} /></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <UploadZone
+                                        icon={<ImageIcon size={22} />}
+                                        accept="image/*"
+                                        multiple
+                                        items={formData.external_images.filter(img => img.type === 'image')}
+                                        uploading={isExternalUploading}
+                                        dragActive={isExternalDragActive}
+                                        onDragOver={(e) => handleDrag(e, 'external', true)}
+                                        onDragLeave={(e) => handleDrag(e, 'external', false)}
+                                        onDrop={(e) => handleDrop(e, 'external')}
+                                        onFileSelect={handleExternalImageInputChange}
+                                        onUrlSubmit={(url) => {
+                                            if (url) {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    external_images: [...prev.external_images, { url, type: 'image' }]
+                                                }));
+                                                setImageInput('');
+                                            }
+                                        }}
+                                        onRemove={(item) => setFormData(p => ({ ...p, external_images: p.external_images.filter(i => i !== item) }))}
+                                        urlInput={imageInput}
+                                        setUrlInput={setImageInput}
+                                        fileInputId="external-image-upload"
+                                        placeholder="أو أضف رابط صورة يدوياً هنا..."
+                                    />
                                 </div>
-
-                                <div className="pt-10 border-t border-black/[0.03] space-y-6">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-2 px-2">
-                                            <Video size={14} className="text-primary/60" />
-                                            <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest">فيديو الفحص</h4>
-                                        </div>
-
-                                        <div 
-                                            className={cn(
-                                                "border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center gap-4 transition-all duration-300 cursor-pointer overflow-hidden relative w-full",
-                                                isVideoDragActive 
-                                                    ? "border-primary bg-primary/[0.05] ring-4 ring-primary/10 ring-inset" 
-                                                    : "border-black/5 bg-black/[0.01] hover:bg-black/[0.02] hover:border-black/10"
-                                            )}
-                                            onDragOver={(e) => handleDrag(e, 'video', true)}
-                                            onDragLeave={(e) => handleDrag(e, 'video', false)}
-                                            onDrop={(e) => handleDrop(e, 'video')}
-                                            onClick={() => document.getElementById('external-video-upload')?.click()}
-                                        >
-                                            <input 
-                                                id="external-video-upload"
-                                                type="file"
-                                                className="hidden"
-                                                accept="video/*"
-                                                onChange={handleVideoInputChange}
-                                            />
-                                            {isVideoUploading && (
-                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 z-10">
-                                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                                    <p className="text-xs font-black text-primary animate-pulse">جاري رفع الفيديو...</p>
-                                                </div>
-                                            )}
-                                            <div className={cn(
-                                                "w-16 h-16 rounded-full flex items-center justify-center transition-all",
-                                                isVideoDragActive ? "bg-primary text-white scale-110" : "bg-primary/10 text-primary"
-                                            )}>
-                                                <Video size={32} />
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-lg font-black text-secondary">اسحب فيديو الفحص هنا</p>
-                                                <p className="text-sm text-secondary/40 font-bold mt-1">أو اضغط لاختياره من جهازك (UPLOADS TO CATBOX)</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 bg-black/[0.01] p-1 pr-5 rounded-full border border-black/5">
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <Link2 size={14} className="text-secondary/30" />
-                                            </div>
-                                            <Input
-                                                id="video-url-input"
-                                                placeholder="أو أضف رابط فيديو يدوياً (YouTube, etc)..."
-                                                value={videoInput}
-                                                onChange={(e) => setVideoInput(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        handleVideoAdd();
-                                                    }
-                                                }}
-                                                className="rounded-full border-transparent bg-transparent h-11 text-xs flex-1 focus:ring-0 font-medium"
-                                            />
-                                            <Button type="button" onClick={handleVideoAdd} className="rounded-full h-10 px-6 shadow-md shadow-primary/10 text-xs font-bold" icon={<Plus size={16} />}>إضافة</Button>
-                                        </div>
+                                <div className="pt-6 border-t border-black/[0.03] space-y-4">
+                                    <div className="flex items-center gap-2 px-2">
+                                        <Video size={14} className="text-primary/60" />
+                                        <h4 className="text-[11px] font-black text-secondary/60 uppercase tracking-widest">فيديو الفحص</h4>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                        {formData.external_images.filter(img => img.type === 'video' || img.type === 'youtube').map((v, i) => (
-                                            <div key={i} className="relative aspect-video rounded-3xl overflow-hidden group/vid border border-black/5 bg-black/[0.02] flex flex-col items-center justify-center transition-all hover:bg-white hover:shadow-xl hover:shadow-primary/5">
-                                                <Video size={28} className="text-primary/20 group-hover/vid:text-primary transition-colors mb-2" />
-                                                <span className="text-[9px] font-black text-secondary/40 truncate w-full px-6 text-center uppercase tracking-tighter">{v.url}</span>
-                                                <button type="button" onClick={() => setFormData(p => ({ ...p, external_images: p.external_images.filter(item => item !== v) }))} className="absolute top-3 left-3 w-8 h-8 rounded-full bg-red-50 text-red-500 opacity-0 group-hover/vid:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-500 hover:text-white"><Trash2 size={14} /></button>
+                                    <UploadZone
+                                        icon={<Video size={22} />}
+                                        accept="video/*"
+                                        multiple={false}
+                                        items={formData.external_images.filter(img => img.type === 'video' || img.type === 'youtube')}
+                                        uploading={isVideoUploading}
+                                        dragActive={isVideoDragActive}
+                                        onDragOver={(e) => handleDrag(e, 'video', true)}
+                                        onDragLeave={(e) => handleDrag(e, 'video', false)}
+                                        onDrop={(e) => handleDrop(e, 'video')}
+                                        onFileSelect={handleVideoInputChange}
+                                        onUrlSubmit={(url) => {
+                                            if (url) {
+                                                let type = 'video';
+                                                if (url.includes('youtube') || url.includes('youtu.be')) type = 'youtube';
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    external_images: [...prev.external_images, { url, type }]
+                                                }));
+                                                setVideoInput('');
+                                            }
+                                        }}
+                                        onRemove={(item) => setFormData(p => ({ ...p, external_images: p.external_images.filter(i => i !== item) }))}
+                                        urlInput={videoInput}
+                                        setUrlInput={setVideoInput}
+                                        fileInputId="external-video-upload"
+                                        placeholder="أو أضف رابط فيديو يدوياً (YouTube, etc)..."
+                                        renderItem={(item) => (
+                                            <div className="relative aspect-video rounded-2xl overflow-hidden group/vid border border-black/5 bg-black/[0.02] flex flex-col items-center justify-center transition-all hover:bg-white hover:shadow-xl hover:shadow-primary/5">
+                                                <Video size={24} className="text-primary/20 group-hover/vid:text-primary transition-colors mb-1" />
+                                                <span className="text-[8px] font-black text-secondary/40 truncate w-full px-4 text-center uppercase tracking-tighter">{item.url}</span>
+                                                <button type="button" onClick={() => setFormData(p => ({ ...p, external_images: p.external_images.filter(i => i !== item) }))} className="absolute top-2 left-2 w-7 h-7 rounded-full bg-red-50 text-red-500 opacity-0 group-hover/vid:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-500 hover:text-white"><Trash2 size={12} /></button>
                                             </div>
-                                        ))}
-                                    </div>
+                                        )}
+                                    />
                                 </div>
                             </CardContent>
                         </Card>

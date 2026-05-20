@@ -4,24 +4,20 @@ const { sequelize } = require('../config/db');
 const InvoiceReport = sequelize.define('InvoiceReport', {
     id: {
         type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
+        primaryKey: true,
+        autoIncrement: true
     },
     invoice_id: {
         type: DataTypes.STRING(255),
         allowNull: false,
-        references: {
-            model: 'invoices',
-            key: 'id'
-        }
+        field: 'invoice_id',
+        references: { model: 'invoices', key: 'id' }
     },
     report_id: {
         type: DataTypes.STRING(50),
         allowNull: false,
-        references: {
-            model: 'reports',
-            key: 'id'
-        }
+        field: 'report_id',
+        references: { model: 'reports', key: 'id' }
     }
 }, {
     tableName: 'invoice_reports',

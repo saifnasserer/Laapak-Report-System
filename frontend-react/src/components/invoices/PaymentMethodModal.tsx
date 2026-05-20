@@ -82,7 +82,7 @@ export const PaymentMethodModal = ({
                                     className="object-contain"
                                 />
                             ) : (
-                                <method.icon className={cn("w-6 h-6", method.color)} />
+                                method.icon && React.createElement(method.icon, { className: cn("w-6 h-6", method.color) })
                             )}
                         </div>
                         <div className="flex-1">

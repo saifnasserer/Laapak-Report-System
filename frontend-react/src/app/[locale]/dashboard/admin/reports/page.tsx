@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -78,6 +78,8 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
     const { locale } = use(params);
     const t = useTranslations('dashboard.reports');
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+    const searchRef = useRef<HTMLInputElement>(null);
     const [reports, setReports] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -103,7 +105,7 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
 
     // Action Menu State
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-    const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
+    const [menuPosition, setMenuPosition] = useState<{ top: number, left?: number, right?: number } | null>(null);
 
     // Cart Popover State
     const [cartPopoverOpen, setCartPopoverOpen] = useState(false);
@@ -119,11 +121,17 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
             setMenuPosition(null);
         } else {
             const rect = e.currentTarget.getBoundingClientRect();
+            const menuWidth = 192;
+            // If button is far enough right, open leftward (right-anchored).
+            // If button is near the left edge, open rightward (left-anchored).
+            const pos: { top: number; left?: number; right?: number } = { top: rect.bottom };
+            if (rect.right >= menuWidth) {
+                pos.right = window.innerWidth - rect.right;
+            } else {
+                pos.left = rect.left;
+            }
             setActiveMenuId(id);
-            setMenuPosition({
-                top: rect.bottom + window.scrollY,
-                left: rect.left + window.scrollX
-            });
+            setMenuPosition(pos);
         }
     };
 
@@ -540,14 +548,41 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
         <DashboardLayout>
             <div className="space-y-6">
                 {/* Header */}
-                <div className="space-y-1">
-                    <h1 className="text-xl md:text-3xl font-bold tracking-tight">تقارير فحص الأجهزة</h1>
-                    <p className="text-secondary text-xs md:text-sm font-medium">إدارة ومتابعة جميع تقارير فحص الأجهزة والمواصفات</p>
+                <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1 min-w-0">
+                        <h1 className="text-xl md:text-3xl font-bold tracking-tight">تقارير فحص الأجهزة</h1>
+                        <p className="text-secondary text-xs md:text-sm font-medium">إدارة ومتابعة جميع تقارير فحص الأجهزة والمواصفات</p>
+                    </div>
+                    {showSearch ? (
+                        <div className="flex items-center gap-1 shrink-0 animate-in fade-in slide-in-from-left-2 duration-200">
+                            <Input
+                                ref={searchRef}
+                                placeholder="بحث..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-white h-8 rounded-full text-xs w-32 md:w-48"
+                                onBlur={() => { if (!searchTerm) setTimeout(() => setShowSearch(false), 200); }}
+                            />
+                            <button
+                                onClick={() => { setShowSearch(false); setSearchTerm(''); }}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-secondary/40 hover:text-secondary transition-all shrink-0"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => { setShowSearch(true); setTimeout(() => searchRef.current?.focus(), 100); }}
+                            className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center text-secondary/40 hover:text-secondary hover:border-primary/20 transition-all shadow-sm shrink-0"
+                        >
+                            <Search size={14} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Filter Tabs + Search + Month Picker */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
                         {STATUS_TABS.map((tab) => (
                             <button
                                 key={tab.key}
@@ -570,29 +605,22 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
                     </div>
 
                     <div className="flex items-center gap-2 self-center sm:self-auto">
-                        <Input
-                            placeholder="بحث..."
-                            icon={<Search size={14} />}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-white h-8 rounded-full text-xs w-32 md:w-40"
-                        />
                         <button
                             onClick={() => navigateMonth(-1)}
-                            className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center text-secondary/40 hover:text-secondary transition-all"
+                            className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center text-secondary/40 hover:text-secondary hover:border-primary/20 transition-all shadow-sm shrink-0"
                         >
                             <ChevronRight size={14} />
                         </button>
                         <button
                             onClick={() => setShowMonthPicker(!showMonthPicker)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-black/5 text-xs font-bold text-secondary hover:border-primary/20 transition-all"
+                            className="h-8 rounded-full bg-white border border-black/5 shadow-sm flex items-center gap-1.5 px-3 text-xs font-bold text-secondary hover:border-primary/20 hover:text-primary transition-all"
                         >
-                            <Calendar size={14} className="text-primary" />
+                            <Calendar size={14} className="text-primary/60" />
                             {monthNames[filterMonth]} {filterYear}
                         </button>
                         <button
                             onClick={() => navigateMonth(1)}
-                            className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center text-secondary/40 hover:text-secondary transition-all"
+                            className="w-8 h-8 rounded-full bg-white border border-black/5 flex items-center justify-center text-secondary/40 hover:text-secondary hover:border-primary/20 transition-all shadow-sm shrink-0"
                         >
                             <ChevronLeft size={14} />
                         </button>
@@ -954,7 +982,10 @@ export default function ReportsAdminPage({ params }: { params: Promise<{ locale:
             {activeMenuId && menuPosition && typeof document !== 'undefined' && createPortal(
                 <div
                     className="fixed z-[9999] bg-white border border-black/5 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 min-w-[12rem]"
-                    style={{ top: menuPosition.top + 8, left: menuPosition.left - 150 }}
+                    style={{
+                        top: menuPosition.top + 4,
+                        ...(menuPosition.right != null ? { right: menuPosition.right, left: 'auto' } : { left: menuPosition.left, right: 'auto' })
+                    }}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <button
