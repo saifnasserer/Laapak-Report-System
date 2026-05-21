@@ -2,12 +2,23 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { steps } from '../constants';
 
-export function useReportData(id: string) {
-    const [report, setReport] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+export function useReportData(id: string, initialReport?: any) {
+    const [report, setReport] = useState<any>(initialReport || null);
+    const [isLoading, setIsLoading] = useState(!initialReport);
     const [error, setError] = useState<string | null>(null);
-    const [isConfirmed, setIsConfirmed] = useState(false);
-    const [agentData, setAgentData] = useState<any>(null);
+    const [isConfirmed, setIsConfirmed] = useState(initialReport ? !!initialReport.is_confirmed : false);
+    const [agentData, setAgentData] = useState<any>(() => {
+        if (initialReport?.agent_json) {
+            try {
+                return typeof initialReport.agent_json === 'string'
+                    ? JSON.parse(initialReport.agent_json)
+                    : initialReport.agent_json;
+            } catch (e) {
+                console.error('Failed to parse agent_json from initialReport:', e);
+            }
+        }
+        return null;
+    });
     const [showConfetti, setShowConfetti] = useState(false);
 
     const [activeStep, setActiveStep] = useState(() => {
@@ -41,6 +52,22 @@ export function useReportData(id: string) {
     }, [report?.status]);
 
     useEffect(() => {
+        if (initialReport) {
+            setReport(initialReport);
+            setIsConfirmed(!!initialReport.is_confirmed);
+            if (initialReport.agent_json) {
+                try {
+                    const parsed = typeof initialReport.agent_json === 'string'
+                        ? JSON.parse(initialReport.agent_json)
+                        : initialReport.agent_json;
+                    setAgentData(parsed);
+                } catch (e) {
+                    console.error('Failed to parse agent_json:', e);
+                }
+            }
+            setIsLoading(false);
+            return;
+        }
         const fetchReport = async () => {
             try {
                 setIsLoading(true);
@@ -70,7 +97,7 @@ export function useReportData(id: string) {
         };
 
         fetchReport();
-    }, [id]);
+    }, [id, initialReport]);
 
     return {
         report,

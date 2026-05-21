@@ -194,6 +194,31 @@ const Report = sequelize.define('Report', {
         allowNull: true,
         field: 'update_history',
         comment: 'JSON array of changes/updates made to the report'
+    },
+    agent_json: {
+        type: DataTypes.TEXT('long'),
+        allowNull: true,
+        field: 'agent_json',
+        comment: 'Full diagnostic scanner JSON data'
+    },
+    battery_capacity: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'battery_capacity',
+        comment: 'Extracted battery health capacity'
+    },
+    display_size: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'display_size',
+        comment: 'Extracted display resolution/size'
+    },
+    view_mode: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+        defaultValue: 'standard',
+        field: 'view_mode',
+        comment: 'Display layout view mode (standard or advanced)'
     }
 }, {
     tableName: 'reports',

@@ -196,71 +196,73 @@ export function StepDataAndSpecs({
                 </div>
             </div>
 
-            <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm">
-                <h3 className="text-base font-black text-secondary mb-6">مواصفات الجهاز المكتشفة</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {hw.cpu && (
-                        <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Cpu size={18} /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-secondary/30 uppercase">المعالج CPU</p>
-                                <p className="text-xs font-bold text-secondary mt-1">{hw.cpu.name}</p>
-                                {hw.cpu.cores && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.cpu.cores} أنوية ({hw.cpu.threads} خيط)</p>}
+            {hw && (
+                <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm">
+                    <h3 className="text-base font-black text-secondary mb-6">مواصفات الجهاز المكتشفة</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {hw.cpu && (
+                            <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Cpu size={18} /></div>
+                                <div>
+                                    <p className="text-[10px] font-black text-secondary/30 uppercase">المعالج CPU</p>
+                                    <p className="text-xs font-bold text-secondary mt-1">{hw.cpu.name}</p>
+                                    {hw.cpu.cores && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.cpu.cores} أنوية ({hw.cpu.threads} خيط)</p>}
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    {hw.gpu && hw.gpu.length > 0 && (
-                        <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Monitor size={18} /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-secondary/30 uppercase">كارت الشاشة GPU</p>
-                                <p className="text-xs font-bold text-secondary mt-1">{hw.gpu[0].name}</p>
-                                {hw.gpu[0].vram && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">VRAM: {hw.gpu[0].vram}</p>}
+                        )}
+                        {hw.gpu && hw.gpu.length > 0 && (
+                            <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Monitor size={18} /></div>
+                                <div>
+                                    <p className="text-[10px] font-black text-secondary/30 uppercase">كارت الشاشة GPU</p>
+                                    <p className="text-xs font-bold text-secondary mt-1">{hw.gpu[0].name}</p>
+                                    {hw.gpu[0].vram && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">VRAM: {hw.gpu[0].vram}</p>}
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    {hw.memory && (
-                        <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Database size={18} /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-secondary/30 uppercase">الرامات RAM</p>
-                                <p className="text-xs font-bold text-secondary mt-1">{hw.memory.total_ram}</p>
-                                {hw.memory.type && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.memory.type} · {hw.memory.speed}</p>}
+                        )}
+                        {hw.memory && (
+                            <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Database size={18} /></div>
+                                <div>
+                                    <p className="text-[10px] font-black text-secondary/30 uppercase">الرامات RAM</p>
+                                    <p className="text-xs font-bold text-secondary mt-1">{hw.memory.total_ram}</p>
+                                    {hw.memory.type && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.memory.type} · {hw.memory.speed}</p>}
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    {hw.storage && hw.storage.length > 0 && (
-                        <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><HardDrive size={18} /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-secondary/30 uppercase">وحدات التخزين</p>
-                                <p className="text-xs font-bold text-secondary mt-1">{hw.storage[0].model}</p>
-                                <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.storage[0].capacity} · {hw.storage[0].type}</p>
+                        )}
+                        {hw.storage && hw.storage.length > 0 && (
+                            <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><HardDrive size={18} /></div>
+                                <div>
+                                    <p className="text-[10px] font-black text-secondary/30 uppercase">وحدات التخزين</p>
+                                    <p className="text-xs font-bold text-secondary mt-1">{hw.storage[0].model}</p>
+                                    <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.storage[0].capacity} · {hw.storage[0].type}</p>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    {hw.battery && (
-                        <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Battery size={18} /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-secondary/30 uppercase">البطارية Battery</p>
-                                <p className="text-xs font-bold text-secondary mt-1">صحة البطارية: {Number(hw.battery.health_percentage).toFixed(1)}%</p>
-                                {hw.battery.cycle_count && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.battery.cycle_count} دورة شحن</p>}
+                        )}
+                        {hw.battery && (
+                            <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Battery size={18} /></div>
+                                <div>
+                                    <p className="text-[10px] font-black text-secondary/30 uppercase">البطارية Battery</p>
+                                    <p className="text-xs font-bold text-secondary mt-1">صحة البطارية: {Number(hw.battery.health_percentage).toFixed(1)}%</p>
+                                    {hw.battery.cycle_count && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.battery.cycle_count} دورة شحن</p>}
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    {hw.display && (
-                        <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Monitor size={18} /></div>
-                            <div>
-                                <p className="text-[10px] font-black text-secondary/30 uppercase">الشاشة Display</p>
-                                <p className="text-xs font-bold text-secondary mt-1">{hw.display.resolution}</p>
-                                {hw.display.refresh_rate_hz && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.display.refresh_rate_hz}Hz · {hw.display.size_inch}"</p>}
+                        )}
+                        {hw.display && (
+                            <div className="p-4 rounded-2xl bg-black/[0.01] border border-black/[0.02] flex gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Monitor size={18} /></div>
+                                <div>
+                                    <p className="text-[10px] font-black text-secondary/30 uppercase">الشاشة Display</p>
+                                    <p className="text-xs font-bold text-secondary mt-1">{hw.display.resolution}</p>
+                                    {hw.display.refresh_rate_hz && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.display.refresh_rate_hz}Hz · {hw.display.size_inch}"</p>}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {diagScore > 0 && (
                 <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm">

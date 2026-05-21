@@ -57,6 +57,11 @@ router.get('/', async (req, res) => {
           notes: reportInstance.notes,
           client: reportInstance.client ? reportInstance.client.toJSON() : null,
           supplier_id: reportInstance.supplier_id || null,
+          agent_json: reportInstance.agent_json || null,
+          full_specs: reportInstance.agent_json || null,
+          battery_capacity: reportInstance.battery_capacity || null,
+          display_size: reportInstance.display_size || null,
+          view_mode: reportInstance.view_mode || 'standard',
         },
         technical_tests: reportInstance.technical_tests ? reportInstance.technical_tests.map(tt => tt.toJSON()) : []
       };
@@ -240,6 +245,7 @@ router.get('/:id', async (req, res) => {
 
     const reportData = report.toJSON ? report.toJSON() : report;
     reportData.device_price = reportData.device_price || 0;
+    reportData.full_specs = reportData.agent_json || null;
 
     res.json({ success: true, report: reportData });
   } catch (error) {
@@ -350,7 +356,8 @@ router.put('/:id', auth, async (req, res) => {
       'inspection_date', 'hardware_status', 'external_images', 'invoice_items', 'notes', 
       'billing_enabled', 'amount', 'device_price', 'status', 'tracking_code', 'tracking_method',
       'created_at', 'updated_at', 'supplier_id', 'update_history',
-      'is_confirmed', 'payment_method', 'selected_accessories', 'invoice_id', 'invoice_created', 'invoice_date'
+      'is_confirmed', 'payment_method', 'selected_accessories', 'invoice_id', 'invoice_created', 'invoice_date', 'agent_json',
+      'battery_capacity', 'display_size', 'view_mode'
     ];
 
     const updateData = {};
@@ -449,7 +456,10 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
 
-    res.json({ message: 'Report updated successfully', report });
+    const reportData = report.toJSON ? report.toJSON() : report;
+    reportData.full_specs = reportData.agent_json || null;
+
+    res.json({ message: 'Report updated successfully', report: reportData });
   } catch (error) {
     console.error('Update failed:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });

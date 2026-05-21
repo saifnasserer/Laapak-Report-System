@@ -10,7 +10,7 @@ const REPORT_BASE_ATTRIBUTES = [
   'order_number', 'device_brand', 'device_model', 'serial_number', 'cpu', 'gpu', 'ram', 'storage',
   'inspection_date', 'hardware_status', 'external_images', 'invoice_items', 'notes', 'billing_enabled', 'amount', 'device_price',
   'invoice_created', 'invoice_id', 'invoice_date', 'status', 'admin_id', 'tracking_code', 'tracking_method',
-  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories', 'payment_method', 'supplier_id', 'update_history'
+  'created_at', 'updated_at', 'warranty_alerts_log', 'is_confirmed', 'selected_accessories', 'payment_method', 'supplier_id', 'update_history', 'agent_json', 'battery_capacity', 'display_size', 'view_mode'
 ];
 
 /**

@@ -2,6 +2,7 @@ export interface ReportViewProps {
     id: string;
     locale: string;
     viewMode: 'admin' | 'client' | 'public';
+    initialReport?: any;
 }
 
 export interface CartItem {

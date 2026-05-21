@@ -55,7 +55,13 @@ import {
     Copy,
     Trophy,
     Sparkles,
-    PartyPopper
+    PartyPopper,
+    Activity,
+    Usb,
+    MousePointer2,
+    Layers,
+    Wrench,
+    AlertTriangle
 } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { useRouter } from '@/i18n/routing';
@@ -70,6 +76,10 @@ import { TrackingCodeModal } from '@/components/reports/TrackingCodeModal';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { PaymentMethodModal } from '@/components/invoices/PaymentMethodModal';
+import ExternalExaminationSection from './report-view-v2/sections/ExternalExaminationSection';
+import StepAccessories from './report-view-v2/steps/StepAccessories';
+import ImageLightbox from './report-view-v2/modals/ImageLightbox';
+import PaymentSelectionModal from './report-view-v2/modals/PaymentSelectionModal';
 
 // WooCommerce Configuration
 const ACCESSORIES_CATEGORY_ID = 'pcat_01KJX49W9EFHXGNJKY27C27X53';
@@ -82,13 +92,14 @@ interface ReportViewProps {
     id: string;
     locale: string;
     viewMode: 'admin' | 'client' | 'public';
+    initialReport?: any;
 }
 
-export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
+export default function ReportView({ id, locale, viewMode, initialReport }: ReportViewProps) {
     const t = useTranslations();
     const router = useRouter();
-    const [report, setReport] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [report, setReport] = useState<any>(initialReport || null);
+    const [isLoading, setIsLoading] = useState(!initialReport);
     const [error, setError] = useState<string | null>(null);
     const [activeStep, setActiveStep] = useState(1);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -178,8 +189,23 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             }
         };
 
-        fetchReport();
-    }, [id]);
+        if (initialReport) {
+            setReport(initialReport);
+            setIsConfirmed(!!initialReport.is_confirmed);
+            if (initialReport.status === 'completed' || initialReport.status === 'مكتمل') {
+                setActiveStep(7);
+            }
+            if (initialReport.selected_accessories) {
+                const accessories = typeof initialReport.selected_accessories === 'string'
+                    ? JSON.parse(initialReport.selected_accessories)
+                    : initialReport.selected_accessories;
+                setCartItems(Array.isArray(accessories) ? accessories : []);
+            }
+            setIsLoading(false);
+        } else {
+            fetchReport();
+        }
+    }, [id, initialReport]);
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -531,62 +557,61 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className="space-y-12"
+                        className="space-y-6"
+                        dir="rtl"
                     >
+                        {/* Completed Banner */}
                         {(report.status === 'completed' || report.status === 'مكتمل') && (
-                            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 p-6 md:p-10 shadow-lg group" dir="rtl">
+                            <div className="relative overflow-hidden rounded-3xl bg-white border border-green-500/20 p-6 shadow-sm group">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-green-500/20 transition-colors duration-700" />
                                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
 
                                 <div className="relative flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-10 text-center md:text-right">
-                                    <div className="w-20 h-20 md:w-28 md:h-28 mx-auto md:mx-0 rounded-[2rem] bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white shadow-xl shadow-green-500/30 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500 shrink-0">
-                                        <Trophy size={48} className="md:size-56" />
+                                    <div className="w-20 h-20 md:w-24 md:h-24 mx-auto md:mx-0 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500 shrink-0">
+                                        <Trophy size={36} />
                                     </div>
 
-                                    <div className="flex-1 space-y-4 w-full">
-                                        <div className="flex items-center gap-2 mb-2 justify-center md:justify-start">
-                                            <Sparkles size={16} className="text-green-600 animate-pulse shrink-0" />
-                                            <span className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em] break-words">Order Completed Successfully</span>
+                                    <div className="flex-1 space-y-3 w-full">
+                                        <div className="flex items-center gap-2 justify-center md:justify-start">
+                                            <Sparkles size={14} className="text-green-600 shrink-0" />
+                                            <span className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Order Completed Successfully</span>
                                         </div>
-                                        <h2 className="text-3xl md:text-4xl font-black text-secondary tracking-tight">
+                                        <h2 className="text-2xl md:text-3xl font-black text-secondary tracking-tight">
                                             {viewMode === 'admin' ? 'تمت المهمة بنجاح!' : 'ألف مبروك! جهازك خلص وبقى تمام'}
                                         </h2>
-                                        <p className="text-secondary/60 text-sm md:text-lg font-medium leading-relaxed max-w-2xl mx-auto md:mx-0">
+                                        <p className="text-secondary/60 text-sm md:text-base font-medium leading-relaxed max-w-2xl mx-auto md:mx-0">
                                             {viewMode === 'admin'
                                                 ? 'الأوردر ده خلص وتأكد تسليمه للعميل. عاش جداً!'
                                                 : 'إحنا مبسوطين جداً إننا خدمناك! نتمنى لك تجربة ممتازة وماتترددش تكلمنا في أي وقت لو احتجت مساعدة.'}
                                         </p>
 
-                                        <div className="flex justify-center md:justify-start w-full">
-                                            <Button
-                                                variant="outline"
-                                                className="mt-4 border-green-500/30 text-green-700 hover:bg-green-50 hover:border-green-500/50 transition-colors gap-2 rounded-2xl h-12 px-6 font-bold bg-white/50 backdrop-blur-sm flex flex-row items-center gap-2"
-                                                onClick={() => setShowConfetti(!showConfetti)}
-                                            >
-                                                <PartyPopper size={18} />
-                                                {showConfetti ? 'وقف الاحتفال' : 'احتفل معانا!'}
-                                            </Button>
-                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            className="border-green-500/30 text-green-700 hover:bg-green-50 hover:border-green-500/50 transition-colors gap-2 rounded-2xl h-11 px-5 font-bold bg-white/50 backdrop-blur-sm"
+                                            onClick={() => setShowConfetti(!showConfetti)}
+                                        >
+                                            <PartyPopper size={16} />
+                                            {showConfetti ? 'وقف الاحتفال' : 'احتفل معانا!'}
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
                         )}
 
+                        {/* Shipped Banner */}
                         {(report.status === 'shipped' || report.status === 'تم الشحن') && (
-                            <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-black/5 p-6 md:p-10 shadow-sm group" dir="rtl">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-colors" />
-
-                                <div className="relative flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10 text-center md:text-right">
-                                    <div className="w-20 h-20 md:w-24 md:h-24 mx-auto md:mx-0 rounded-[2rem] bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500 shrink-0">
-                                        <Truck size={40} className="md:size-48" />
+                            <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm">
+                                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10 text-center md:text-right">
+                                    <div className="w-20 h-20 md:w-24 md:h-24 mx-auto md:mx-0 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500 shrink-0">
+                                        <Truck size={36} />
                                     </div>
 
-                                    <div className="flex-1 space-y-6 w-full">
+                                    <div className="flex-1 space-y-5 w-full">
                                         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 md:gap-8">
-                                            <div className="space-y-3 md:space-y-2">
-                                                <div className="flex items-center gap-2 mb-2 justify-center md:justify-start">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 justify-center md:justify-start">
                                                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
-                                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] break-words">Shipment In Transit</span>
+                                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Shipment In Transit</span>
                                                 </div>
                                                 <h2 className="text-2xl md:text-3xl font-black text-secondary tracking-tight">
                                                     {viewMode === 'admin' ? 'تم الشحن للعميل' : 'جهازك في السكة ليك'}
@@ -600,7 +625,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
                                             <div className="flex flex-col gap-3 w-full md:min-w-[300px]">
                                                 <div
-                                                    className="flex items-center justify-between gap-4 p-4 bg-surface-variant/30 border border-black/[0.03] rounded-2xl cursor-pointer hover:bg-surface-variant/70 hover:border-black/5 transition-all group/copy w-full"
+                                                    className="flex items-center justify-between gap-4 p-4 bg-black/[0.02] border border-black/[0.03] rounded-2xl cursor-pointer hover:bg-black/[0.04] transition-all group/copy w-full"
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(report.tracking_code || '');
                                                         setIsCopied(true);
@@ -609,9 +634,9 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                 >
                                                     <div className="text-right flex-1 min-w-0">
                                                         <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">{isCopied ? 'تم النسخ بنجاح' : 'رقم التتبع (اضغط للنسخ)'}</p>
-                                                        <p className="text-lg md:text-xl font-mono font-bold text-secondary tracking-widest break-all line-clamp-1">{report.tracking_code || '---'}</p>
+                                                        <p className="text-lg md:text-xl font-mono font-bold text-secondary tracking-widest">{report.tracking_code || '---'}</p>
                                                     </div>
-                                                    <div className="flex items-center justify-center w-12 h-12 bg-white rounded-xl shadow-sm text-primary group-hover/copy:scale-105 transition-transform shrink-0">
+                                                    <div className="flex items-center justify-center w-12 h-12 bg-white rounded-xl shadow-sm text-primary shrink-0">
                                                         {isCopied ? <Check size={20} className="text-green-500" /> : <Copy size={20} />}
                                                     </div>
                                                 </div>
@@ -619,7 +644,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                 <Button
                                                     variant="primary"
                                                     size="lg"
-                                                    className="rounded-2xl h-14 w-full font-black shadow-xl shadow-primary/10 hover:shadow-primary/20 transition-all flex flex-row items-center justify-center gap-3"
+                                                    className="rounded-2xl h-12 w-full font-black shadow-sm flex items-center justify-center gap-3"
                                                     onClick={() => {
                                                         const url = report.tracking_method === 'Aramex'
                                                             ? `https://www.aramex.com/eg/ar/track/results?shipmentNumber=${report.tracking_code}`
@@ -628,7 +653,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                     }}
                                                 >
                                                     تتبع الشحنة
-                                                    <ExternalLink size={18} />
+                                                    <ExternalLink size={16} />
                                                 </Button>
                                             </div>
                                         </div>
@@ -637,65 +662,68 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 text-right" dir="rtl">
-                            <div className="space-y-8">
-                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3">
-                                    <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm">01</span>
-                                    بيانات العميل
+                        {/* Device Identity + Client Info */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Device Identity */}
+                            <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm space-y-5">
+                                <h3 className="text-base font-black text-secondary flex items-center gap-3">
+                                    <Smartphone size={18} className="text-primary/50" />
+                                    هوية الجهاز
                                 </h3>
-                                <div className="space-y-6 px-2 md:px-4">
-                                    <div className="group">
-                                        <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">اسم العميل</p>
-                                        <p className="text-xl md:text-2xl font-bold text-secondary">{report.client_name}</p>
+                                <div className="space-y-4">
+                                    <div>
+                                        <p className="text-xs font-bold text-secondary/40 mb-1">موديل الجهاز</p>
+                                        <p className="text-2xl font-black text-secondary">{report.device_model}</p>
                                     </div>
-                                    <div className="group">
-                                        <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">رقم الهاتف</p>
-                                        <p className="text-xl md:text-2xl font-bold text-secondary dir-ltr inline-block" dir="ltr">{report.client_phone}</p>
+                                    <div>
+                                        <p className="text-xs font-bold text-secondary/40 mb-1">الرقم التسلسلي (IMEI/SN)</p>
+                                        <p className="text-sm font-mono font-bold text-secondary/70 bg-black/[0.02] px-3 py-1.5 rounded-xl inline-block" dir="ltr">{report.serial_number || 'N/A'}</p>
                                     </div>
-                                    <div className="group">
-                                        <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">العنوان</p>
-                                        <p className="text-base md:text-lg font-medium text-secondary/80">{report.client_address || 'لم يتم تحديد عنوان'}</p>
+                                    <div className="flex items-center gap-6">
+                                        <div>
+                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">تاريخ الفحص</p>
+                                            <p className="text-base font-bold text-secondary/80">{report.inspection_date ? new Date(report.inspection_date).toLocaleDateString('ar-EG') : '-'}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">رقم الطلب</p>
+                                            <p className="text-base font-black text-primary" dir="ltr">#{report.order_number || report.id}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-8">
-                                <h3 className="text-xl font-black text-primary/80 flex items-center gap-3">
-                                    <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm">02</span>
-                                    هوية الجهاز
+                            {/* Client Info */}
+                            <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm space-y-5">
+                                <h3 className="text-base font-black text-secondary flex items-center gap-3">
+                                    <User size={18} className="text-primary/50" />
+                                    بيانات العميل
                                 </h3>
-                                <div className="space-y-6 px-2 md:px-4">
-                                    <div className="group">
-                                        <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">موديل الجهاز</p>
-                                        <div className="flex items-center gap-3">
-                                            <Smartphone className="text-primary/40 shrink-0" size={24} />
-                                            <p className="text-xl md:text-2xl font-bold text-secondary">{report.device_model}</p>
-                                        </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <p className="text-xs font-bold text-secondary/40 mb-1">اسم العميل</p>
+                                        <p className="text-xl font-black text-secondary">{report.client_name}</p>
                                     </div>
-                                    <div className="group">
-                                        <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">الرقم التسلسلي (IMEI/SN)</p>
-                                        <p className="text-xl md:text-2xl font-mono font-bold text-secondary/60 bg-surface-variant/20 px-3 py-1 rounded-xl inline-block" dir="ltr">{report.serial_number || 'N/A'}</p>
+                                    <div>
+                                        <p className="text-xs font-bold text-secondary/40 mb-1">رقم الموبايل</p>
+                                        <p className="text-sm font-bold text-secondary/70" dir="ltr">{report.client_phone}</p>
                                     </div>
-                                    <div className="flex items-center gap-6 md:gap-12">
-                                        <div className="group">
-                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">تاريخ الفحص</p>
-                                            <p className="text-base md:text-lg font-bold text-secondary/80">{report.inspection_date ? new Date(report.inspection_date).toLocaleDateString('ar-EG') : '-'}</p>
+                                    {report.client_address && (
+                                        <div>
+                                            <p className="text-xs font-bold text-secondary/40 mb-1">العنوان</p>
+                                            <p className="text-sm font-bold text-secondary/70">{report.client_address}</p>
                                         </div>
-                                        <div className="group text-right">
-                                            <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">رقم الطلب</p>
-                                            <p className="text-base md:text-lg font-black text-primary" dir="ltr">#{report.order_number || report.id}</p>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-12 border-t border-black/5" dir="rtl">
-                            <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 mb-8">
-                                <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm">03</span>
+                        {/* Quick Specs */}
+                        <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm">
+                            <h3 className="text-base font-black text-secondary flex items-center gap-3 mb-5">
+                                <Layers size={18} className="text-primary/50" />
                                 المواصفات
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 px-2 md:px-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {(() => {
                                     const hStatus = typeof report.hardware_status === 'string' ? JSON.parse(report.hardware_status) : (report.hardware_status || []);
                                     const getDetail = (comp: string) => {
@@ -708,51 +736,48 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                     const gpuD = getDetail('GPU');
                                     const ramD = getDetail('RAM');
                                     const storageD = getDetail('Storage');
-                                    const batteryD = getDetail('Battery');
 
                                     return [
-                                        { 
-                                            label: t('dashboard.reports.specs.processor'), 
-                                            value: report.cpu || 'Not Specified', 
-                                            icon: <Cpu size={20} />,
-                                            subStats: cpuD ? `${cpuD.cores} Cores | ${cpuD.temp}°C` : null
+                                        {
+                                            label: t('dashboard.reports.specs.processor'),
+                                            value: report.cpu || 'Not Specified',
+                                            icon: <Cpu size={16} />,
+                                            sub: cpuD ? `${cpuD.cores} Cores | ${cpuD.temp}°C` : null
                                         },
-                                        { 
-                                            label: t('dashboard.reports.specs.graphics'), 
-                                            value: report.gpu || 'Not Specified', 
-                                            icon: <MonitorIcon size={20} />,
-                                            subStats: gpuD?.devices?.[0] ? `${gpuD.devices[0].vram}MB VRAM` : null
+                                        {
+                                            label: t('dashboard.reports.specs.graphics'),
+                                            value: report.gpu || 'Not Specified',
+                                            icon: <MonitorIcon size={16} />,
+                                            sub: gpuD?.devices?.[0] ? `${gpuD.devices[0].vram}MB VRAM` : null
                                         },
-                                        { 
-                                            label: t('dashboard.reports.specs.memory'), 
-                                            value: report.ram || 'Not Specified', 
-                                            icon: <Database size={20} />,
-                                            subStats: ramD?.speed ? `${ramD.speed}MHz ${ramD.type || ''}` : null
+                                        {
+                                            label: t('dashboard.reports.specs.memory'),
+                                            value: report.ram || 'Not Specified',
+                                            icon: <Database size={16} />,
+                                            sub: ramD?.speed ? `${ramD.speed}MHz ${ramD.type || ''}` : null
                                         },
-                                        { 
-                                            label: t('dashboard.reports.specs.storage'), 
-                                            value: report.storage || 'Not Specified', 
-                                            icon: <HardDrive size={20} />,
-                                            subStats: storageD?.devices?.[0]?.health ? `Health: ${storageD.devices[0].health}%` : null
+                                        {
+                                            label: t('dashboard.reports.specs.storage'),
+                                            value: report.storage || 'Not Specified',
+                                            icon: <HardDrive size={16} />,
+                                            sub: storageD?.devices?.[0]?.health ? `Health: ${storageD.devices[0].health}%` : null
                                         }
                                     ].map((spec, i) => (
-                                        <div key={i} className="flex items-center gap-4 p-4 md:p-6 rounded-2xl md:rounded-[2rem] bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all group">
-                                            <div className="w-12 h-12 shrink-0 rounded-xl bg-white flex items-center justify-center text-primary/40 group-hover:text-primary transition-colors shadow-sm">
-                                                {spec.icon}
+                                        <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                                            className="flex items-center gap-4 p-4 rounded-2xl bg-black/[0.02] border border-black/[0.02] hover:bg-white hover:border-primary/10 hover:shadow-sm transition-all group">
+                                            <div className="w-10 h-10 shrink-0 rounded-xl bg-white flex items-center justify-center text-primary/40 group-hover:text-primary shadow-sm transition-colors">{spec.icon}</div>
+                                            <div className="flex flex-col flex-1 min-w-0 text-right">
+                                                <p className="text-[10px] font-black text-secondary/30 uppercase tracking-wider mb-0.5">{spec.label}</p>
+                                                <p className="font-black text-secondary text-sm truncate" dir="ltr" style={{ textAlign: 'right' }}>{spec.value || '—'}</p>
+                                                {spec.sub && <p className="text-[10px] font-bold text-primary/50 mt-0.5">{spec.sub}</p>}
                                             </div>
-                                            <div className="flex flex-col flex-1 text-right min-w-0">
-                                                <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-0.5" style={{ textAlign: 'right' }}>{spec.label}</p>
-                                                <p className="font-bold text-secondary truncate text-sm md:text-base" dir="ltr" style={{ textAlign: 'right' }}>{spec.value || '-'}</p>
-                                                {spec.subStats && (
-                                                    <p className="text-[10px] font-black text-primary/60 mt-0.5" style={{ textAlign: 'right' }}>{spec.subStats}</p>
-                                                )}
-                                            </div>
-                                        </div>
+                                        </motion.div>
                                     ));
                                 })()}
                             </div>
                         </div>
 
+                        {/* Report History */}
                         {report.update_history && (
                             <ReportHistorySection
                                 history={typeof report.update_history === 'string'
@@ -788,12 +813,12 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                             </h3>
                             <div className="flex gap-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                                    <div className="w-2 h-2 rounded-full bg-primary" />
                                     <span className="text-[10px] font-bold text-secondary/40 uppercase">شغال تمام</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                                    <span className="text-[10px] font-bold text-secondary/40 uppercase">مش موجود بالجهاز</span>
+                                    <div className="w-2 h-2 rounded-full bg-secondary/20" />
+                                    <span className="text-[10px] font-bold text-secondary/40 uppercase">يحتاج مراجعة</span>
                                 </div>
                             </div>
                         </div>
@@ -809,7 +834,7 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
                                 if (filteredTests.length === 0) {
                                     return (
-                                        <div className="py-12 text-center border-2 border-dashed border-green-100 rounded-[2.5rem] opacity-40">
+                                        <div className="py-12 text-center border-2 border-dashed border-black/[0.03] rounded-3xl opacity-40">
                                             <p className="text-sm font-black text-secondary/40">مفيش فحوصات فنية اتسجلت لسه</p>
                                         </div>
                                     );
@@ -817,29 +842,29 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
 
                                 return (
                                     <>
-                                        <div className="hidden md:block overflow-hidden rounded-3xl border border-green-100 bg-white shadow-sm">
+                                        <div className="hidden md:block overflow-hidden rounded-3xl border border-black/[0.03] bg-white shadow-sm">
                                             <table className="w-full text-right border-collapse">
                                                 <thead>
-                                                    <tr className="bg-green-50/50 border-b border-green-100/50">
-                                                        <th className="px-6 py-4 text-[11px] font-black text-green-700/60 uppercase tracking-widest">اختبار المكون</th>
-                                                        <th className="px-6 py-4 text-[11px] font-black text-green-700/60 uppercase tracking-widest text-center w-40">الحالة التشغيلية</th>
+                                                    <tr className="bg-black/[0.02] border-b border-black/[0.03]">
+                                                        <th className="px-6 py-4 text-[11px] font-black text-secondary/30 uppercase tracking-widest">اختبار المكون</th>
+                                                        <th className="px-6 py-4 text-[11px] font-black text-secondary/30 uppercase tracking-widest text-center w-40">الحالة التشغيلية</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {filteredTests.map((test: any, idx: number) => {
                                                         const status = test.status || 'neutral';
                                                         return (
-                                                            <tr key={idx} className="border-b border-green-50/30 last:border-0 hover:bg-green-50/20 transition-colors group">
+                                                            <tr key={idx} className="border-b border-black/[0.02] last:border-0 hover:bg-black/[0.01] transition-colors group">
                                                                 <td className="px-6 py-5">
                                                                     <div className="flex items-center gap-4">
                                                                         <div className={cn(
                                                                             "p-2.5 rounded-xl transition-colors",
-                                                                            status === 'pass' ? "bg-green-50 text-green-600" : "bg-black/5 text-secondary/30"
+                                                                            status === 'pass' ? "bg-primary/5 text-primary" : "bg-black/[0.03] text-secondary/30"
                                                                         )}>
                                                                             {getComponentIcon(test.componentName || '')}
                                                                         </div>
                                                                         <div className="flex flex-col">
-                                                                            <span className="font-bold text-secondary text-lg group-hover:text-green-700 transition-colors">
+                                                                            <span className="font-bold text-secondary text-lg group-hover:text-primary transition-colors">
                                                                                 {getComponentTitle(test.componentName || '')}
                                                                             </span>
                                                                             <span className="text-[11px] text-secondary/40 font-medium">تم فحص الوظائف وتحليل الأداء</span>
@@ -849,12 +874,13 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                                 <td className="px-6 py-5">
                                                                     <div className="flex justify-center">
                                                                         {status === 'pass' ? (
-                                                                            <div className="bg-green-500 text-white px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] font-black uppercase tracking-tight shadow-md flex items-center gap-2 cursor-default">
-                                                                                <div className="w-1.5 md:w-2 h-1.5 md:h-2 rounded-full bg-white animate-pulse" />
+                                                                            <div className="bg-primary text-white px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-tight shadow-sm flex items-center gap-2 cursor-default">
+                                                                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
                                                                                 مية مية
                                                                             </div>
                                                                         ) : (
-                                                                            <div className="bg-green-50/50 text-green-600/40 border border-green-100/50 px-3 py-1.5 md:px-5 md:py-2 rounded-full text-[11px] font-black uppercase tracking-tight flex items-center gap-2 cursor-default">
+                                                                            <div className="bg-black/[0.02] text-secondary/30 border border-black/[0.03] px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-tight flex items-center gap-2 cursor-default">
+                                                                                <div className="w-1.5 h-1.5 rounded-full bg-secondary/20" />
                                                                                 متشيك عليه
                                                                             </div>
                                                                         )}
@@ -871,11 +897,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                             {filteredTests.map((test: any, idx: number) => {
                                                 const status = test.status || 'neutral';
                                                 return (
-                                                    <div key={idx} className="p-3 rounded-xl bg-white border border-green-100 shadow-sm flex items-center justify-between gap-3">
+                                                    <div key={idx} className="p-3 rounded-2xl bg-white border border-black/[0.03] shadow-sm flex items-center justify-between gap-3">
                                                         <div className="flex items-center gap-3 min-w-0">
                                                             <div className={cn(
                                                                 "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-                                                                status === 'pass' ? "bg-green-50 text-green-600" : "bg-black/5 text-secondary/30"
+                                                                status === 'pass' ? "bg-primary/5 text-primary" : "bg-black/[0.03] text-secondary/30"
                                                             )}>
                                                                 {getComponentIcon(test.componentName || '')}
                                                             </div>
@@ -888,11 +914,11 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                                                         </div>
                                                         <div className="shrink-0">
                                                             {status === 'pass' ? (
-                                                                <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/20">
+                                                                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white">
                                                                     <Check size={14} />
                                                                 </div>
                                                             ) : (
-                                                                <div className="w-7 h-7 rounded-full bg-green-50 text-green-600/40 border border-green-100 flex items-center justify-center">
+                                                                <div className="w-7 h-7 rounded-full bg-black/[0.03] text-secondary/20 border border-black/[0.03] flex items-center justify-center">
                                                                     <div className="w-1 h-1 rounded-full bg-current" />
                                                                 </div>
                                                             )}
@@ -920,492 +946,312 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 );
             case 5:
                 return (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.02 }}
-                        className="space-y-8"
-                    >
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                                <ShoppingCart size={24} />
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-secondary">إضافات مهمة !</h3>
-                                <p className="text-sm text-secondary/60">دي شوية إضافات بنرشحهالك عشان تحافظ على جهازك وتزود كفاءته</p>
-                            </div>
-                        </div>
+                    <StepAccessories
+                        products={products}
+                        isLoadingProducts={isLoadingProducts}
+                        cartItems={cartItems}
+                        toggleCartItem={toggleCartItem}
+                        calculateFinalTotal={calculateFinalTotal}
+                        handleConfirmOrder={handleConfirmOrder}
+                        isConfirmed={isConfirmed}
+                    />
+                );
+            case 6: {
+                const invoices = report.relatedInvoices || [];
+                const totalPaid = invoices.reduce((s: number, inv: any) => s + (inv.paymentStatus === 'paid' ? parseFloat(inv.total) || 0 : 0), 0);
+                const totalAmt = invoices.reduce((s: number, inv: any) => s + (parseFloat(inv.total) || 0), 0);
+                const finalTotalDetails = calculateFinalTotal();
+                const paymentLabels: Record<string, string> = {
+                    'cash': 'كاش عند الاستلام (للمندوب)',
+                    'vodafone_cash': 'فودافون كاش - عند الاستلام',
+                    'instapay': 'انستاباي - عند الاستلام'
+                };
+                return (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6" dir="rtl">
 
-                        {isLoadingProducts ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {[1, 2, 3].map((n) => (
-                                    <div key={n} className="h-64 rounded-3xl bg-surface-variant/10 animate-pulse" />
+                        <div className="rounded-3xl bg-white border border-black/[0.03] p-5 md:p-6 shadow-sm space-y-4">
+                            <h3 className="text-base font-black text-secondary flex items-center gap-3"><CreditCard size={18} className="text-primary/50" />ملخص الطلب</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center py-2 border-b border-black/[0.02]">
+                                    <span className="text-sm font-bold text-secondary">{report.device_model || 'اللابتوب'}</span>
+                                    <span className="text-sm font-black text-secondary">{(parseFloat(report.amount || 0)).toLocaleString()} ج.م</span>
+                                </div>
+                                {cartItems.map((item: any) => (
+                                    <div key={item.id} className="flex justify-between items-center py-1.5 text-secondary/60 border-b border-black/[0.01]">
+                                        <span className="text-xs font-bold flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                            {item.name}
+                                        </span>
+                                        <span className="text-xs font-black">{(parseFloat(item.price || 0)).toLocaleString()} ج.م</span>
+                                    </div>
                                 ))}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {products.length > 0 ? (
-                                    products.map((product: any) => {
-                                        const isInCart = cartItems.find(item => item.id === product.id);
-                                        return (
-                                            <div key={product.id} className="group bg-white rounded-[2rem] border border-black/5 p-4 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col">
-                                                <div className="aspect-square w-full rounded-2xl overflow-hidden bg-surface-variant/5 mb-4 relative">
-                                                    {product.images && product.images[0] ? (
-                                                        <img src={product.images[0].src} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-secondary/20">
-                                                            <Package size={48} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="space-y-3 flex-1">
-                                                    <h4 className="font-bold text-secondary group-hover:text-primary transition-colors line-clamp-2 min-h-[3rem]">{product.name}</h4>
-                                                    <div className="flex items-center justify-between mt-auto">
-                                                        <p className="text-xl font-black text-primary">{product.price} <span className="text-[10px] font-bold">جنيه</span></p>
-                                                        <Button
-                                                            onClick={() => toggleCartItem(product)}
-                                                            className={cn(
-                                                                "rounded-xl px-4 py-2 text-xs font-black transition-all",
-                                                                isInCart
-                                                                    ? "bg-red-50 text-red-500 hover:bg-red-100 border-red-100"
-                                                                    : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                                                            )}
-                                                        >
-                                                            {isInCart ? 'حذف من الطلب' : 'إضافة للطلب'}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="col-span-full py-20 text-center bg-surface-variant/5 rounded-[3rem] border-2 border-dashed border-black/5">
-                                        <div className="w-16 h-16 rounded-full bg-surface-variant/20 flex items-center justify-center mx-auto mb-4 text-secondary/20">
-                                            <Package size={32} />
+                                <div className="pt-3 flex justify-between items-center text-secondary/50 text-xs">
+                                    <span>الإجمالي الفرعي:</span>
+                                    <span>{finalTotalDetails.baseTotal.toLocaleString()} ج.م</span>
+                                </div>
+                                {finalTotalDetails.fee > 0 && (
+                                    <div className="flex justify-between items-center text-rose-500 text-xs">
+                                        <span>الرسوم الإضافية{finalTotalDetails.feeReason}:</span>
+                                        <span className="font-black">+{finalTotalDetails.fee.toLocaleString()} ج.م</span>
+                                    </div>
+                                )}
+                                <div className="pt-3 border-t border-black/[0.03] flex justify-between items-center">
+                                    <span className="font-black text-secondary">الإجمالي المطلوب:</span>
+                                    <span className="text-xl font-black text-primary">{finalTotalDetails.finalTotal.toLocaleString()} ج.م</span>
+                                </div>
+                                {isConfirmed && (report.payment_method || selectedPaymentMethod) && (
+                                    <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-3">
+                                        <CreditCard size={16} className="text-primary shrink-0 mt-0.5" />
+                                        <div className="space-y-0.5">
+                                            <h4 className="font-bold text-primary text-[11px]">طريقة الدفع المختارة</h4>
+                                            <p className="text-secondary/70 text-[11px] font-bold leading-relaxed">
+                                                {paymentLabels[report.payment_method || selectedPaymentMethod] || report.payment_method || selectedPaymentMethod}
+                                            </p>
                                         </div>
-                                        <p className="font-bold text-secondary/40">لا توجد إضافات متاحة حالياً</p>
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </motion.div>
-                );
-            case 6:
-                return (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="space-y-12"
-                    >
-                        <div className="space-y-12 max-w-4xl mx-auto w-full">
-                            <div className="flex flex-col items-center justify-center gap-8 pb-12 border-b border-black/5 text-center">
-                                <div className="space-y-2">
-                                    <h3 className="text-xl md:text-3xl font-black text-secondary flex items-center justify-center gap-3">
-                                        <CreditCard className="text-primary" size={28} />
-                                        {viewMode === 'admin' ? 'تفاصيل الحسابات' : 'إجمالي الحساب'}
-                                    </h3>
-                                    <p className="text-sm text-secondary/40 font-medium max-w-lg mx-auto">
-                                        {viewMode === 'admin' ? 'ملخص الفواتير والإضافات الخاصة بالأوردر ده' : 'راجع حسابك النهائي للإضافات وفاتورة الصيانة'}
-                                    </p>
-                                </div>
-                                <div className="bg-primary/[0.03] p-8 md:p-10 rounded-[3rem] border border-primary/10 w-full max-w-md text-center shadow-xl shadow-primary/[0.02]">
-                                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">الاجمالي</p>
-                                    <div className="flex items-baseline justify-center gap-2">
-                                        <h2 className="text-4xl md:text-6xl font-black text-primary">
-                                            {(parseFloat(report.amount || 0) + cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0)).toLocaleString()}
-                                        </h2>
-                                        <span className="text-xl font-bold text-primary/60">جنيه</span>
-                                    </div>
-                                </div>
-                            </div>
+                        </div>
 
-                            {cartItems.length > 0 && (
-                                <div className="space-y-6 w-full px-6">
-                                    <div className="flex items-center gap-3 justify-center">
-                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                            <ShoppingCart size={20} />
-                                        </div>
-                                        <h4 className="text-lg font-bold text-secondary">إضافات للأوردر (Accessories)</h4>
-                                    </div>
-                                    <div className="space-y-3 max-w-2xl mx-auto">
-                                        {cartItems.map((item) => (
-                                            <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-black/5 shadow-sm hover:border-primary/20 transition-all">
-                                                <div className="flex items-center gap-4 text-right">
-                                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-variant/5">
-                                                        {item.images?.[0] && <img src={item.images[0].src} className="w-full h-full object-cover" />}
-                                                    </div>
-                                                    <span className="font-bold text-secondary text-sm">{item.name}</span>
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="font-black text-primary">{item.price} <span className="text-[10px] font-bold">جنيه</span></p>
-                                                </div>
+                        {invoices.length > 0 && (
+                            <div className="rounded-3xl bg-white border border-black/[0.03] p-5 md:p-6 shadow-sm space-y-4">
+                                <h3 className="text-base font-black text-secondary flex items-center gap-3"><CheckCircle2 size={18} className="text-primary/50" />الفواتير</h3>
+                                <div className="space-y-3">
+                                    {invoices.map((inv: any, i: number) => (
+                                        <div key={i} onClick={() => handlePrint(inv.id)}
+                                            className="p-3.5 bg-black/[0.02] rounded-2xl flex items-center justify-between border border-black/[0.02] gap-3 cursor-pointer hover:bg-black/[0.04] transition-all group">
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-secondary/30 uppercase tracking-wider mb-0.5">فاتورة</p>
+                                                <p className="font-bold text-secondary font-mono text-sm group-hover:text-primary transition-colors">#{inv.id}</p>
+                                                <p className="text-[9px] text-secondary/40 mt-0.5">{inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : ''}</p>
                                             </div>
-                                        ))}
-                                        <div className="pt-4 border-t border-black/5 flex justify-between items-center px-2">
-                                            <span className="text-secondary/40 font-bold uppercase tracking-widest text-[10px]">إجمالي الإضافات</span>
-                                            <span className="text-lg font-black text-primary">
-                                                {cartItems.reduce((sum, item) => sum + parseFloat(item.price || 0), 0).toLocaleString()} جنيه
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-8 w-full">
-                                <div className="flex items-center justify-between px-6 max-w-3xl mx-auto">
-                                    <h4 className="text-lg font-bold text-secondary">{viewMode === 'admin' ? 'الفواتير الخاصة بالأوردر' : 'فواتيرك'}</h4>
-                                    <Badge variant={report.invoice_created ? 'success' : 'warning'} className="rounded-full px-4 py-1">
-                                        {report.invoice_created ? (viewMode === 'admin' ? 'تم إنشاء الفواتير' : 'الفواتير جاهزة') : 'لسه مفيش فواتير'}
-                                    </Badge>
-                                </div>
-
-                                <div className="px-6 max-w-3xl mx-auto w-full">
-                                    {report.relatedInvoices && report.relatedInvoices.length > 0 ? (
-                                        <div className="space-y-4">
-                                            {report.relatedInvoices.map((inv: any) => (
-                                                <div
-                                                    key={inv.id}
-                                                    onClick={() => handlePrint(inv.id)}
-                                                    className="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 rounded-3xl bg-surface-variant/10 border border-black/5 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer group gap-4 md:gap-0"
-                                                >
-                                                    <div className="flex items-center gap-4 md:gap-6">
-                                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex items-center justify-center text-primary shadow-sm group-hover:bg-primary group-hover:text-white transition-all">
-                                                            <FileText size={18} />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-secondary text-sm md:text-base">فاتورة #{inv.id}</p>
-                                                            <p className="text-[10px] text-secondary/40 font-medium">{inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : '-'}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center justify-between md:justify-end gap-3 md:gap-8 border-t md:border-t-0 pt-4 md:pt-0 border-black/5">
-                                                        <p className="text-sm md:text-lg font-black text-secondary">{parseFloat(inv.total).toLocaleString()} جنيه</p>
-                                                        <div className="flex items-center gap-3">
-                                                            <Badge variant={inv.paymentStatus === 'paid' ? 'success' : 'warning'} className="text-[10px] px-3 py-0.5 rounded-full">
-                                                                {inv.paymentStatus === 'paid' ? 'اتدفعت' : 'لسه متدفعتش'}
-                                                            </Badge>
-                                                            <ChevronLeft size={18} className="text-secondary/20 group-hover:text-primary transition-colors" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="py-20 bg-surface-variant/5 rounded-[3rem] border-2 border-dashed border-black/5 flex flex-col items-center justify-center text-secondary/40 gap-4">
-                                            <div className="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center">
-                                                <FileText size={32} />
+                                            <div className="text-left flex flex-col items-end gap-1">
+                                                <p className="text-base md:text-lg font-black text-primary leading-none">{parseFloat(inv.total).toLocaleString()} <span className="text-xs font-bold text-secondary/40">ج.م</span></p>
+                                                <span className={cn("text-[9px] font-black px-2.5 py-0.5 rounded-full border inline-block tracking-wider", inv.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100')}>{inv.paymentStatus === 'paid' ? 'مدفوعة' : 'مستحقة'}</span>
                                             </div>
-                                            <p className="font-bold">مفيش فواتير طلعت للأوردر ده لسه</p>
-                                            {/* {viewMode === 'admin' && (
-                                                <Button variant="outline" size="sm" className="mt-2 rounded-2xl" icon={<Plus size={18} />}>إنشاء فاتورة الآن</Button>
-                                            )} */}
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                );
-            case 7:
-                return (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.05 }}
-                        className="space-y-12"
-                    >
-                        <div className="text-center space-y-6 max-w-2xl mx-auto">
-                            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-4">
-                                <CheckCircle2 size={48} />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-3xl font-black text-secondary">{viewMode === 'admin' ? 'مراجعة التقرير' : 'جاهزين لاستلام جهازك؟'}</h3>
-                                <p className="text-secondary/60 font-medium">
-                                    {viewMode === 'admin' ? 'تقدر دلوقتي تأكد الأوردر النهائي أو تبعت التقرير للعميل يراجعه.' : 'راجع التقرير وأكد الأوردر عشان نجهزهولك ونبعتهولك في أسرع وقت.'}
-                                </p>
-                            </div>
-
-                            {isConfirmed && (report.payment_method || selectedPaymentMethod) && (
-                                <div className="mt-4 p-4 rounded-2xl bg-green-50 border border-green-100 flex flex-col items-center gap-2">
-                                    <span className="text-[10px] font-black text-green-700/40 uppercase tracking-widest">طريقة الدفع المختارة</span>
-                                    <div className="flex items-center gap-2 text-green-700">
-                                        {(() => {
-                                            const method = report.payment_method || selectedPaymentMethod;
-                                            const label = method === 'cash' ? 'كاش عند الاستلام' :
-                                                method === 'vodafone_cash' ? 'فودافون كاش' : 'انستاباي';
-                                            return (
-                                                <>
-                                                    {method === 'cash' ? <CreditCard size={18} /> :
-                                                        method === 'vodafone_cash' ? <Smartphone size={18} /> : <Zap size={18} />}
-                                                    <span className="font-bold">{label}</span>
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                    <p className="text-[10px] font-bold text-green-600/60">* الدفع عند الاستلام *</p>
-                                </div>
-                            )}
-
-                            {cartItems.length > 0 && !isConfirmed && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center gap-3 justify-center text-primary"
-                                >
-                                    <AlertCircle size={20} className="shrink-0" />
-                                    <p className="text-sm font-bold">عشان الإضافات دي تتسجل في الأوردر (Accessories) لازم الأول تأكد الطلب</p>
-                                </motion.div>
-                            )}
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-center gap-6">
-                            {(() => {
-                                const hasUnsavedChanges = (() => {
-                                    if (!report) return false;
-                                    const initialAccessories = report.selected_accessories || [];
-                                    const currentIds = [...cartItems].map(item => item.id).sort().join(',');
-                                    const initialIds = [...initialAccessories].map((item: any) => item.id).sort().join(',');
-                                    return currentIds !== initialIds;
-                                })();
-
-                                const isReallyConfirmed = isConfirmed && !hasUnsavedChanges;
-
-                                return (
-                                    <div
-                                        onClick={!isReallyConfirmed ? handleConfirmOrder : undefined}
-                                        className={cn(
-                                            "px-10 md:px-12 py-8 rounded-[2.5rem] bg-white border-2 transition-all cursor-pointer group flex items-center gap-6 w-full md:w-auto md:min-w-[420px] justify-center relative overflow-hidden",
-                                            isReallyConfirmed
-                                                ? "border-green-500/30 bg-green-50/10"
-                                                : "border-red-500/40 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/10 hover:-translate-y-1 shadow-xl shadow-red-500/5 bg-red-50/5"
+                                    ))}
+                                    <div className="pt-3 border-t border-black/[0.03] flex justify-between items-end gap-4">
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-secondary/30 uppercase tracking-wider mb-0.5">الإجمالي المدفوع</p>
+                                            <p className="text-xl md:text-2xl font-black text-emerald-600">{totalPaid.toLocaleString()} <span className="text-xs md:text-sm font-bold text-secondary/40">ج.م</span></p>
+                                        </div>
+                                        {totalAmt > totalPaid && (
+                                            <div className="text-left flex flex-col items-end">
+                                                <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider mb-0.5">المتبقي</p>
+                                                <p className="text-base md:text-lg font-black text-rose-600">{(totalAmt - totalPaid).toLocaleString()} <span className="text-xs font-bold text-secondary/40">ج.م</span></p>
+                                            </div>
                                         )}
-                                    >
-                                        {isReallyConfirmed ? (
-                                            <>
-                                                <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0">
-                                                    <CheckCircle2 size={32} />
-                                                </div>
-                                                <div className="flex flex-col items-start gap-1">
-                                                    <span className="text-xl font-black text-secondary">تم تأكيد الأوردر</span>
-                                                    <p className="text-xs font-bold text-green-600/60">شكراً لثقتك في لابك</p>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform">
-                                                    <ShoppingCart size={32} />
-                                                </div>
-                                                <div className="flex flex-col items-start gap-1 text-right">
-                                                    <span className="text-xl font-black text-secondary group-hover:text-red-600 transition-colors">
-                                                        {isConfirmed && hasUnsavedChanges
-                                                            ? 'تحديث الأوردر (في إضافات نزلت)'
-                                                            : (viewMode === 'admin' ? 'تأكيد وحفظ التغييرات' : 'تأكيد الأوردر (وهدفع عند الاستلام)')
-                                                        }
-                                                    </span>
-                                                    <p className="text-sm font-bold text-secondary/40">
-                                                        {isConfirmed && hasUnsavedChanges
-                                                            ? 'في حاجات جديدة اتضافت للأوردر، أكد التحديث'
-                                                            : (viewMode === 'admin' ? 'تأكيد الطلب وطريقة الدفع من العميل' : 'هنأكد الأوردر وهتختار طريقة الدفع وهنكلمك واتساب')
-                                                        }
-                                                    </p>
-                                                </div>
-                                                <div className="absolute top-0 right-0 p-2">
-                                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                );
-                            })()}
-                            {[
-                                {
-                                    title: viewMode === 'admin' ? 'مشاركة واتساب' : 'شارك التقرير',
-                                    desc: viewMode === 'admin' ? 'ابعت رابط التقرير للعميل على الواتساب' : 'لو حابب تبعته لحد يشوفه معاك',
-                                    icon: <Share2 />,
-                                    color: 'primary',
-                                    action: () => {
-                                        const shareUrl = `${window.location.origin}/${locale}/reports/${id}`;
-                                        if (viewMode === 'admin') {
-                                            navigator.clipboard.writeText(shareUrl);
-                                            // Simple alert for feedback since no toast is available
-                                            alert('تم نسخ الرابط بنجاح');
-                                            setShareModalOpen(true);
-                                        } else {
-                                            const shareMessage = `بص كده على تقرير فحص جهازي من لابك:\n${shareUrl}`;
-                                            window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank');
-                                        }
-                                    }
-                                },
-                                ...(viewMode === 'admin' ? [
-                                    { title: 'تعديل التقرير', desc: 'تحديث مواصفات الجهاز أو نتايج الفحص', icon: <Edit />, color: 'secondary', action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
-                                    { title: 'ضيف للمخزن', desc: 'سجل الجهاز في الداتا بيز بتاعة المخزن', icon: <Package />, color: 'secondary', action: () => setWarehouseModalOpen(true) }
-                                ] : [])
-                            ].map((item, i) => (
-                                <div
-                                    key={i}
-                                    onClick={item.action}
-                                    className="px-10 md:px-12 py-8 rounded-[2.5rem] bg-white border border-black/5 hover:border-primary/20 hover:-translate-y-1 transition-all cursor-pointer group flex items-center gap-6 w-full md:w-auto md:min-w-[380px] justify-center"
-                                >
-                                    <div className={cn(
-                                        "w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all group-hover:scale-110 shrink-0",
-                                        item.color === 'primary' ? "bg-primary/10 text-primary" : "bg-black/5 text-secondary/40"
-                                    )}>
-                                        {React.cloneElement(item.icon as React.ReactElement<any>, { size: 32 })}
-                                    </div>
-                                    <div className="text-right">
-                                        <h4 className="text-xl font-black text-secondary leading-tight">{item.title}</h4>
-                                        {item.desc && <p className="text-sm text-secondary/40 mt-1">{item.desc}</p>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {viewMode === 'admin' && (
-                            <div className="pt-12 border-t border-black/5 flex flex-col items-center gap-8">
-                                <div className="text-center">
-                                    <p className="text-[10px] font-black text-secondary/20 uppercase tracking-[0.5em] mb-4">Final Status Control</p>
-                                    <div className="flex flex-wrap justify-center gap-4 p-2 bg-surface-variant/10 rounded-[2rem] border border-black/5">
-                                        <button
-                                            onClick={() => updateStatus('pending')}
-                                            className={cn(
-                                                "px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all",
-                                                report.status === 'pending' ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-white text-secondary hover:bg-black/5"
-                                            )}
-                                        >
-                                            قيد الانتظار
-                                        </button>
-                                        <button
-                                            onClick={() => updateStatus('shipped')}
-                                            className={cn(
-                                                "px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all",
-                                                report.status === 'shipped' ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20" : "bg-white text-secondary hover:bg-black/5"
-                                            )}
-                                        >
-                                            تم الشحن
-                                        </button>
-                                        <button
-                                            onClick={() => updateStatus('completed')}
-                                            className={cn(
-                                                "px-8 py-3 rounded-[1.5rem] text-sm font-bold transition-all",
-                                                report.status === 'completed' ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-white text-secondary hover:bg-black/5"
-                                            )}
-                                        >
-                                            اعتماد كمكتمل
-                                        </button>
                                     </div>
                                 </div>
                             </div>
                         )}
+
+                        <div className="rounded-3xl bg-white border border-black/[0.03] p-5 md:p-6 shadow-sm space-y-5">
+                            <div className="text-center space-y-2">
+                                <div className="w-14 h-14 rounded-full bg-primary/5 flex items-center justify-center text-primary mx-auto">
+                                    <CheckCircle2 size={28} />
+                                </div>
+                                <h3 className="text-xl font-black text-secondary">إكمال العملية</h3>
+                                <p className="text-xs text-secondary/50 font-medium">اعتماد التقرير أو إجراء العمليات التالية</p>
+                            </div>
+
+                            {!isConfirmed ? (
+                                <button onClick={handleConfirmOrder}
+                                    className="w-full py-3.5 px-6 rounded-full bg-primary text-white font-black text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2">
+                                    <CheckCircle2 size={16} />{viewMode === 'admin' ? 'تأكيد وحفظ التغييرات' : 'تأكيد الأوردر ومتابعة الشحن'}
+                                </button>
+                            ) : (
+                                <div className="py-3.5 px-5 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col gap-2">
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white shrink-0"><Check size={16} /></div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-black text-secondary">تم تأكيد الأوردر بنجاح</p>
+                                            <p className="text-[11px] font-bold text-primary/60">
+                                                {report.payment_method ? `طريقة الدفع: ${paymentLabels[report.payment_method] || report.payment_method}` : 'شكراً!'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {isConfirmed && viewMode !== 'admin' && (
+                                <button onClick={handleConfirmOrder}
+                                    className="w-full py-3.5 px-6 rounded-full border border-black/[0.04] bg-white text-secondary hover:bg-black/[0.01] font-bold text-xs transition-all flex items-center justify-center gap-2">
+                                    تعديل طريقة الدفع أو إعادة إرسال الأوردر
+                                </button>
+                            )}
+
+                            {viewMode === 'admin' && (
+                                <div className="grid grid-cols-2 gap-3 pt-1">
+                                    {[
+                                        { title: 'تعديل التقرير', desc: 'تحديث البيانات', icon: <Edit size={16} />, action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
+                                        { title: 'المخزن', desc: 'إضافة الجهاز', icon: <Package size={16} />, action: () => setWarehouseModalOpen(true) },
+                                    ].map((item, i) => (
+                                        <motion.button key={i} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} onClick={item.action}
+                                            className="flex flex-col items-center gap-2 py-4 px-3 rounded-2xl bg-white border border-black/[0.03] hover:border-primary/10 hover:shadow-sm transition-all">
+                                            <div className="w-9 h-9 rounded-xl bg-primary/5 text-primary flex items-center justify-center">{item.icon}</div>
+                                            <div className="text-center"><p className="text-xs font-bold text-secondary">{item.title}</p><p className="text-[9px] text-secondary/40">{item.desc}</p></div>
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
                 );
+            }
+            case 7: {
+                const invoices = report.relatedInvoices || [];
+                const totalPaid = invoices.reduce((s: number, inv: any) => s + (inv.paymentStatus === 'paid' ? parseFloat(inv.total) || 0 : 0), 0);
+                const totalAmt = invoices.reduce((s: number, inv: any) => s + (parseFloat(inv.total) || 0), 0);
+                const finalTotalDetails = calculateFinalTotal();
+                const paymentLabels: Record<string, string> = {
+                    'cash': 'كاش عند الاستلام (للمندوب)',
+                    'vodafone_cash': 'فودافون كاش - عند الاستلام',
+                    'instapay': 'انستاباي - عند الاستلام'
+                };
+                return (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6" dir="rtl">
+
+                        <div className="rounded-3xl bg-white border border-black/[0.03] p-5 md:p-6 shadow-sm space-y-4">
+                            <h3 className="text-base font-black text-secondary flex items-center gap-3"><CreditCard size={18} className="text-primary/50" />ملخص الطلب</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center py-2 border-b border-black/[0.02]">
+                                    <span className="text-sm font-bold text-secondary">{report.device_model || 'اللابتوب'}</span>
+                                    <span className="text-sm font-black text-secondary">{(parseFloat(report.amount || 0)).toLocaleString()} ج.م</span>
+                                </div>
+                                {cartItems.map((item: any) => (
+                                    <div key={item.id} className="flex justify-between items-center py-1.5 text-secondary/60 border-b border-black/[0.01]">
+                                        <span className="text-xs font-bold flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                            {item.name}
+                                        </span>
+                                        <span className="text-xs font-black">{(parseFloat(item.price || 0)).toLocaleString()} ج.م</span>
+                                    </div>
+                                ))}
+                                <div className="pt-3 flex justify-between items-center text-secondary/50 text-xs">
+                                    <span>الإجمالي الفرعي:</span>
+                                    <span>{finalTotalDetails.baseTotal.toLocaleString()} ج.م</span>
+                                </div>
+                                {finalTotalDetails.fee > 0 && (
+                                    <div className="flex justify-between items-center text-rose-500 text-xs">
+                                        <span>الرسوم الإضافية{finalTotalDetails.feeReason}:</span>
+                                        <span className="font-black">+{finalTotalDetails.fee.toLocaleString()} ج.م</span>
+                                    </div>
+                                )}
+                                <div className="pt-3 border-t border-black/[0.03] flex justify-between items-center">
+                                    <span className="font-black text-secondary">الإجمالي المطلوب:</span>
+                                    <span className="text-xl font-black text-primary">{finalTotalDetails.finalTotal.toLocaleString()} ج.م</span>
+                                </div>
+                                {isConfirmed && (report.payment_method || selectedPaymentMethod) && (
+                                    <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-3">
+                                        <CreditCard size={16} className="text-primary shrink-0 mt-0.5" />
+                                        <div className="space-y-0.5">
+                                            <h4 className="font-bold text-primary text-[11px]">طريقة الدفع المختارة</h4>
+                                            <p className="text-secondary/70 text-[11px] font-bold leading-relaxed">
+                                                {paymentLabels[report.payment_method || selectedPaymentMethod] || report.payment_method || selectedPaymentMethod}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {invoices.length > 0 && (
+                            <div className="rounded-3xl bg-white border border-black/[0.03] p-5 md:p-6 shadow-sm space-y-4">
+                                <h3 className="text-base font-black text-secondary flex items-center gap-3"><CheckCircle2 size={18} className="text-primary/50" />الفواتير</h3>
+                                <div className="space-y-3">
+                                    {invoices.map((inv: any, i: number) => (
+                                        <div key={i} onClick={() => handlePrint(inv.id)}
+                                            className="p-3.5 bg-black/[0.02] rounded-2xl flex items-center justify-between border border-black/[0.02] gap-3 cursor-pointer hover:bg-black/[0.04] transition-all group">
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-secondary/30 uppercase tracking-wider mb-0.5">فاتورة</p>
+                                                <p className="font-bold text-secondary font-mono text-sm group-hover:text-primary transition-colors">#{inv.id}</p>
+                                                <p className="text-[9px] text-secondary/40 mt-0.5">{inv.date ? new Date(inv.date).toLocaleDateString('ar-EG') : ''}</p>
+                                            </div>
+                                            <div className="text-left flex flex-col items-end gap-1">
+                                                <p className="text-base md:text-lg font-black text-primary leading-none">{parseFloat(inv.total).toLocaleString()} <span className="text-xs font-bold text-secondary/40">ج.م</span></p>
+                                                <span className={cn("text-[9px] font-black px-2.5 py-0.5 rounded-full border inline-block tracking-wider", inv.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100')}>{inv.paymentStatus === 'paid' ? 'مدفوعة' : 'مستحقة'}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="pt-3 border-t border-black/[0.03] flex justify-between items-end gap-4">
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-secondary/30 uppercase tracking-wider mb-0.5">الإجمالي المدفوع</p>
+                                            <p className="text-xl md:text-2xl font-black text-emerald-600">{totalPaid.toLocaleString()} <span className="text-xs md:text-sm font-bold text-secondary/40">ج.م</span></p>
+                                        </div>
+                                        {totalAmt > totalPaid && (
+                                            <div className="text-left flex flex-col items-end">
+                                                <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider mb-0.5">المتبقي</p>
+                                                <p className="text-base md:text-lg font-black text-rose-600">{(totalAmt - totalPaid).toLocaleString()} <span className="text-xs font-bold text-secondary/40">ج.م</span></p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="rounded-3xl bg-white border border-black/[0.03] p-5 md:p-6 shadow-sm space-y-5">
+                            <div className="text-center space-y-2">
+                                <div className="w-14 h-14 rounded-full bg-primary/5 flex items-center justify-center text-primary mx-auto">
+                                    <CheckCircle2 size={28} />
+                                </div>
+                                <h3 className="text-xl font-black text-secondary">إكمال العملية</h3>
+                                <p className="text-xs text-secondary/50 font-medium">اعتماد التقرير أو إجراء العمليات التالية</p>
+                            </div>
+
+                            {!isConfirmed ? (
+                                <button onClick={handleConfirmOrder}
+                                    className="w-full py-3.5 px-6 rounded-full bg-primary text-white font-black text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2">
+                                    <CheckCircle2 size={16} />{viewMode === 'admin' ? 'تأكيد وحفظ التغييرات' : 'تأكيد الأوردر ومتابعة الشحن'}
+                                </button>
+                            ) : (
+                                <div className="py-3.5 px-5 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col gap-2">
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white shrink-0"><Check size={16} /></div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-black text-secondary">تم تأكيد الأوردر بنجاح</p>
+                                            <p className="text-[11px] font-bold text-primary/60">
+                                                {report.payment_method ? `طريقة الدفع: ${paymentLabels[report.payment_method] || report.payment_method}` : 'شكراً!'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {isConfirmed && viewMode !== 'admin' && (
+                                <button onClick={handleConfirmOrder}
+                                    className="w-full py-3.5 px-6 rounded-full border border-black/[0.04] bg-white text-secondary hover:bg-black/[0.01] font-bold text-xs transition-all flex items-center justify-center gap-2">
+                                    تعديل طريقة الدفع أو إعادة إرسال الأوردر
+                                </button>
+                            )}
+
+                            {viewMode === 'admin' && (
+                                <div className="grid grid-cols-2 gap-3 pt-1">
+                                    {[
+                                        { title: 'تعديل التقرير', desc: 'تحديث البيانات', icon: <Edit size={16} />, action: () => router.push(`/dashboard/admin/reports/${id}/edit`) },
+                                        { title: 'المخزن', desc: 'إضافة الجهاز', icon: <Package size={16} />, action: () => setWarehouseModalOpen(true) },
+                                    ].map((item, i) => (
+                                        <motion.button key={i} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} onClick={item.action}
+                                            className="flex flex-col items-center gap-2 py-4 px-3 rounded-2xl bg-white border border-black/[0.03] hover:border-primary/10 hover:shadow-sm transition-all">
+                                            <div className="w-9 h-9 rounded-xl bg-primary/5 text-primary flex items-center justify-center">{item.icon}</div>
+                                            <div className="text-center"><p className="text-xs font-bold text-secondary">{item.title}</p><p className="text-[9px] text-secondary/40">{item.desc}</p></div>
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                );
+            }
             default:
                 return null;
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#FDFDFF] text-secondary selection:bg-primary/10 selection:text-primary relative p-4 md:p-8 overflow-x-hidden">
+        <div className="min-h-screen bg-transparent text-secondary relative p-4 md:p-8 overflow-x-hidden">
             {showConfetti && <Confetti width={width} height={height} recycle={true} numberOfPieces={200} style={{ zIndex: 9999 }} />}
-            {/* Payment Selection Modal */}
-            <Modal
-                isOpen={paymentModalOpen}
-                onClose={() => setPaymentModalOpen(false)}
-                title="تأكيد طريقة الدفع"
-                className="max-w-md"
-            >
-                <div className="space-y-6">
-                    <p className="text-secondary/60 text-sm">بالنسبة للدفع ف فية ٣ طرق (الدفع عند الاستلام) ، يرجى اختيار الأنسب لك:</p>
-
-                    <div className="space-y-3">
-                        {[
-                            {
-                                id: 'instapay',
-                                title: 'انستاباي (الأفضل)',
-                                desc: 'دفع عند الاستلام - مش بيخصم اي حاجة زيادة',
-                                icon: <Zap className="text-indigo-500" />,
-                                color: 'indigo'
-                            },
-                            {
-                                id: 'cash',
-                                title: 'كاش عند الاستلام',
-                                desc: 'المندوب بيستلم المبلغ بزيادة ١٪ عشان شركة الشحن بتخصمهم',
-                                icon: <CreditCard className="text-orange-500" />,
-                                color: 'orange'
-                            },
-                            {
-                                id: 'vodafone_cash',
-                                title: 'فودافون كاش',
-                                desc: 'زياده ١٪ ع المبلغ رسوم سحب فودافون - دفع عند الاستلام',
-                                icon: <Smartphone className="text-red-500" />,
-                                color: 'red'
-                            }
-                        ].map((method) => (
-                            <div
-                                key={method.id}
-                                onClick={() => setSelectedPaymentMethod(method.id as any)}
-                                className={cn(
-                                    "p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-4 hover:shadow-md",
-                                    selectedPaymentMethod === method.id
-                                        ? "border-primary bg-primary/5 ring-1 ring-primary"
-                                        : "border-black/5 bg-white hover:border-primary/20"
-                                )}
-                            >
-                                <div className={cn(
-                                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                                    method.id === 'instapay' ? "bg-indigo-50" :
-                                        method.id === 'cash' ? "bg-orange-50" : "bg-red-50"
-                                )}>
-                                    {method.icon}
-                                </div>
-                                <div className="text-right">
-                                    <h4 className="font-bold text-secondary">{method.title}</h4>
-                                    <p className="text-[11px] text-secondary/50 leading-relaxed mt-0.5">{method.desc}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {selectedPaymentMethod && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="p-4 rounded-2xl bg-surface-variant/20 border border-black/5 space-y-2"
-                        >
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-secondary/60">الإجمالي الأساسي:</span>
-                                <span className="font-bold text-secondary">{calculateFinalTotal().baseTotal.toLocaleString()} ج.م</span>
-                            </div>
-                            {calculateFinalTotal().fee > 0 && (
-                                <div className="flex justify-between items-center text-red-500">
-                                    <span className="text-xs">الرسوم الإضافية (1%):</span>
-                                    <span className="font-bold">+{calculateFinalTotal().fee.toLocaleString()} ج.م</span>
-                                </div>
-                            )}
-                            <div className="pt-2 border-t border-black/5 flex justify-between items-center">
-                                <span className="font-black text-secondary">الإجمالي النهائي:</span>
-                                <span className="text-xl font-black text-primary">{calculateFinalTotal().finalTotal.toLocaleString()} ج.م</span>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    <div className="flex gap-3">
-                        <Button
-                            onClick={handleFinalConfirmation}
-                            className="flex-1 rounded-2xl py-6 text-base font-black"
-                            disabled={!selectedPaymentMethod}
-                        >
-                            تأكيد وإرسال
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => setPaymentModalOpen(false)}
-                            className="rounded-2xl px-6"
-                        >
-                            إلغاء
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
 
             {/* Warehouse Assignment Modal */}
             <Modal
@@ -1413,12 +1259,12 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                 onClose={() => setWarehouseModalOpen(false)}
                 title="إضافة الجهاز للمخزن"
             >
-                <div className="space-y-6">
-                    <p className="text-secondary/60">
-                        سيتم نقل هذا الجهاز إلى ملكية <strong>Laapak</strong> وإضافته للمخزون.
+                <div className="space-y-6" dir="rtl">
+                    <p className="text-secondary/60 text-sm">
+                        سيتم نقل هذا الجهاز إلى ملكية <strong>Laapak</strong> وإضافته للمخزن.
                         يرجى تحديد مصدر الجهاز.
                     </p>
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-right">
                         <label className="text-sm font-bold text-secondary">مصدر الجهاز</label>
                         <Input
                             placeholder="مثال: شراء من العميل محمد أحمد، استيراد خارجي..."
@@ -1434,151 +1280,79 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                     </div>
                 </div>
             </Modal>
+
+            {/* Background blobs */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
                 <div className="absolute -top-[10%] -left-[10%] w-[60%] md:w-[40%] h-[40%] bg-primary/5 rounded-full blur-[80px] md:blur-[120px] animate-pulse" />
                 <div className="absolute top-[20%] -right-[10%] w-[50%] md:w-[30%] h-[50%] bg-surface-variant/20 rounded-full blur-[60px] md:blur-[100px]" />
             </div>
 
             <div className="relative max-w-7xl mx-auto space-y-8 md:space-y-16">
-                <header className={cn(
-                    "flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8",
-                    isRtl ? "pr-14 md:pr-0" : "pl-14 md:pl-0"
-                )}>
-                    <div className="space-y-4">
-                        <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-secondary leading-[1.1]">
-                            تفاصيل <span className="text-primary">التقرير</span>
-                        </h1>
-                    </div>
+                <header className="text-center">
+                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-secondary leading-[1.1]">
+                        تفاصيل <span className="text-primary">التقرير</span>
+                    </h1>
+                    <p className="text-secondary/40 font-bold mt-2">{report.device_model || ''}</p>
                 </header>
 
-                <div className="flex flex-col lg:flex-row gap-8 lg:gap-20 items-start">
-                    <div className="w-full lg:hidden mb-8">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-black text-secondary/40 uppercase tracking-widest">المرحلة {activeStep} من 7</span>
-                            <span className="text-xs font-bold text-primary">{Math.round((activeStep / 7) * 100)}%</span>
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 items-start">
+                    {/* Mobile step indicator */}
+                    <div className="w-full lg:hidden">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-bold text-secondary">{steps.find(s => s.id === activeStep)?.title}</span>
+                            <span className="text-xs font-black text-secondary/30 tabular-nums">{activeStep} / {steps.length}</span>
                         </div>
-                        <div className="h-1.5 w-full bg-black/5 rounded-full overflow-hidden mb-6">
-                            <motion.div
-                                className="h-full bg-primary"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${(activeStep / 7) * 100}%` }}
-                                transition={{ duration: 0.5, ease: "circOut" }}
-                            />
-                        </div>
-                        {/* Mobile Step Navigator */}
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 px-1 snap-x">
-                            {steps.map((step) => {
-                                const isActive = activeStep === step.id;
-                                return (
-                                    <button
-                                        key={step.id}
-                                        onClick={() => setActiveStep(step.id)}
-                                        className={cn(
-                                            "flex-shrink-0 px-4 py-2.5 rounded-2xl text-[11px] font-black transition-all snap-start border",
-                                            isActive
-                                                ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
-                                                : "bg-white text-secondary/40 border-black/5"
-                                        )}
-                                    >
-                                        {step.title}
-                                    </button>
-                                );
-                            })}
+                        <div className="flex gap-1.5">
+                            {steps.map(s => (
+                                <button key={s.id} onClick={() => setActiveStep(s.id)} className={cn("h-1.5 rounded-full flex-1 transition-all duration-500", activeStep === s.id ? "bg-primary" : "bg-black/[0.06]")} />
+                            ))}
                         </div>
                     </div>
 
-                    <aside className="hidden lg:block lg:w-72 sticky top-24 space-y-12">
-                        <div className="space-y-6">
-                            <p className="text-[10px] font-black text-secondary/20 uppercase tracking-[0.5em] pr-4">إجراءات الفحص</p>
-                            <nav className="space-y-2">
-                                {steps.map((step) => {
-                                    const isActive = activeStep === step.id;
-                                    return (
-                                        <button
-                                            key={step.id}
-                                            onClick={() => setActiveStep(step.id)}
-                                            className={cn(
-                                                "w-full flex items-center gap-6 py-4 px-4 rounded-3xl transition-all duration-500 group relative",
-                                                isActive ? "bg-white shadow-xl shadow-black/[0.03]" : "hover:bg-black/[0.02]"
-                                            )}
-                                        >
-                                            <span className={cn(
-                                                "text-lg font-black transition-colors duration-500",
-                                                isActive ? "text-primary" : "text-secondary/20 group-hover:text-secondary/40"
-                                            )}>
-                                                {step.id.toString().padStart(2, '0')}
-                                            </span>
-                                            <span className={cn(
-                                                "text-sm font-bold transition-all duration-500 text-right flex-1",
-                                                isActive ? "text-secondary" : "text-secondary/40 group-hover:text-secondary/60"
-                                            )}>
-                                                {step.title}
-                                            </span>
-                                            {isActive && (
-                                                <motion.div
-                                                    layoutId="active-indicator"
-                                                    className="absolute left-4 w-1.5 h-6 bg-primary rounded-full"
-                                                />
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </nav>
-                        </div>
+                    {/* Desktop sidebar */}
+                    <aside className="hidden lg:block lg:w-60 shrink-0 sticky top-24 space-y-2">
+                        <p className="text-[10px] font-black text-secondary/20 uppercase tracking-[0.5em] px-4 mb-4">إجراءات الفحص</p>
+                        {steps.map(step => {
+                            const isActive = activeStep === step.id;
+                            return (
+                                <button key={step.id} onClick={() => setActiveStep(step.id)}
+                                    className={cn("w-full flex items-center gap-5 py-4 px-4 rounded-3xl transition-all duration-300 group relative text-right", isActive ? "bg-white shadow-sm border border-black/[0.03]" : "hover:bg-black/[0.01]")}>
+                                    <span className={cn("text-lg font-black transition-colors", isActive ? "text-primary" : "text-secondary/20 group-hover:text-secondary/40")}>
+                                        {step.id.toString().padStart(2, '0')}
+                                    </span>
+                                    <span className={cn("text-sm font-bold flex-1 transition-colors", isActive ? "text-secondary" : "text-secondary/40 group-hover:text-secondary/60")}>
+                                        {step.title}
+                                    </span>
+                                    {isActive && <motion.div layoutId="sidebar-indicator" className="absolute left-4 w-1.5 h-6 bg-primary rounded-full" />}
+                                </button>
+                            );
+                        })}
                     </aside>
 
-                    <main className="flex-1 min-w-0">
+                    {/* Main content */}
+                    <main className="w-full flex-1 min-w-0 pb-32">
                         <AnimatePresence mode="wait">
-                            <motion.div key={activeStep} className="pb-32">
+                            <motion.div key={activeStep}>
                                 {renderStepContent()}
                             </motion.div>
                         </AnimatePresence>
 
-                        <div className="fixed bottom-6 md:bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 md:gap-4 p-2 md:p-3 bg-white/90 backdrop-blur-3xl rounded-full border border-black/5 shadow-2xl z-50 ring-1 ring-black/[0.02] w-[95%] md:w-auto max-w-lg justify-between md:justify-center">
+                        {/* Floating bottom nav pill */}
+                        <div className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2 md:gap-3 p-2 bg-white/90 backdrop-blur-3xl rounded-full border border-black/[0.04] shadow-lg z-50 w-[calc(100%-2rem)] md:w-auto max-w-sm justify-between md:justify-center">
                             {activeStep > 1 && (
-                                <Button
-                                    variant="ghost"
-                                    size="lg"
-                                    className="rounded-full h-11 md:h-14 px-3 md:px-8 font-black hover:bg-black/5 disabled:opacity-0 transition-opacity text-xs md:text-base flex-1 md:flex-initial"
-                                    onClick={() => setActiveStep(prev => Math.max(1, prev - 1))}
-                                    icon={<ChevronRight size={18} />}
-                                >
-                                    السابق
+                                <Button variant="ghost" className="rounded-full h-11 md:h-12 px-4 md:px-7 font-black hover:bg-black/[0.02] text-sm flex-1 md:flex-initial"
+                                    onClick={() => setActiveStep(prev => Math.max(1, prev - 1))}>
+                                    <ChevronRight size={16} className="ml-1" />السابق
                                 </Button>
                             )}
-
-                            <div className={cn(
-                                "hidden md:flex gap-2 px-4",
-                                activeStep === 1 && "md:hidden"
-                            )}>
-                                {steps.map((s) => (
-                                    <div
-                                        key={s.id}
-                                        className={cn(
-                                            "w-2 h-2 rounded-full transition-all duration-500",
-                                            activeStep === s.id ? "bg-primary w-8" : "bg-black/10"
-                                        )}
-                                    />
+                            <div className="flex gap-1.5 px-2">
+                                {steps.map(s => (
+                                    <button key={s.id} onClick={() => setActiveStep(s.id)} className={cn("rounded-full transition-all duration-500", activeStep === s.id ? "bg-primary w-7 h-2.5" : "bg-black/[0.07] hover:bg-black/[0.12] w-2.5 h-2.5")} />
                                 ))}
                             </div>
-
-                            <Button
-                                size="lg"
-                                className={cn(
-                                    "rounded-full h-11 md:h-14 px-4 md:px-10 font-black shadow-xl shadow-primary/20 text-xs md:text-base flex-1 md:flex-initial",
-                                    activeStep === 1 && "flex-1 md:w-full max-w-none"
-                                )}
-                                onClick={() => {
-                                    if (activeStep < 7) setActiveStep(prev => prev + 1);
-                                    else {
-                                        if (viewMode === 'admin') router.push(`/dashboard/admin/reports`);
-                                        else if (viewMode === 'client') router.push(`/dashboard/client`);
-                                        else router.push(`/`);
-                                    }
-                                }}
-                            >
-                                {activeStep === 7 ? 'إغلاق' : 'التالي'}
-                                {activeStep < 7 && <ChevronLeft size={16} className="mr-1 md:mr-2" />}
+                            <Button className={cn("rounded-full h-11 md:h-12 px-5 md:px-9 font-black shadow-sm text-sm flex-1 md:flex-initial", activeStep === 1 && "flex-1")}
+                                onClick={() => { if (activeStep < steps.length) setActiveStep(prev => prev + 1); else router.back(); }}>
+                                {activeStep === steps.length ? 'إغلاق' : 'التالي'}{activeStep < steps.length && <ChevronLeft size={15} className="mr-1" />}
                             </Button>
                         </div>
                     </main>
@@ -1586,40 +1360,6 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
             </div>
 
             <AnimatePresence>
-                {selectedImage && (
-                    <motion.div
-                        key="image-lightbox"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[110] flex items-center justify-center bg-black/95 backdrop-blur-md"
-                    >
-                        <motion.button
-                            className="fixed top-8 right-8 w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors z-[140]"
-                            onClick={() => setSelectedImage(null)}
-                        >
-                            <XCircle size={24} />
-                        </motion.button>
-
-                        <TransformWrapper minScale={1} centerOnInit={true} initialScale={1}>
-                            {({ zoomIn, zoomOut, resetTransform }) => (
-                                <>
-                                    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[140] flex items-center gap-2 p-2 bg-white/10 backdrop-blur-2xl rounded-full border border-white/10 shadow-2xl">
-                                        <button onClick={() => zoomIn()} className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full text-white transition-all active:scale-90"><Plus size={20} /></button>
-                                        <button onClick={() => zoomOut()} className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full text-white transition-all active:scale-90"><Minus size={20} /></button>
-                                        <div className="w-px h-6 bg-white/10 mx-1" />
-                                        <button onClick={() => resetTransform()} className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full text-white transition-all active:scale-90"><RotateCcw size={18} /></button>
-                                    </div>
-
-                                    <TransformComponent wrapperClass="!w-screen !h-screen cursor-move" contentClass="w-full h-full flex items-center justify-center">
-                                        <img src={selectedImage} alt="Inspection Detail" className="max-w-[90%] max-h-[90%] object-contain rounded-2xl shadow-2xl pointer-events-none" />
-                                    </TransformComponent>
-                                </>
-                            )}
-                        </TransformWrapper>
-                    </motion.div>
-                )}
-
                 {/* WhatsApp Share Modal */}
                 <WhatsAppShareModal
                     key="whatsapp-share-modal"
@@ -1659,111 +1399,25 @@ export default function ReportView({ id, locale, viewMode }: ReportViewProps) {
                     selectedMethod="cash"
                 />
             </AnimatePresence>
+
+            <ImageLightbox
+                selectedImage={selectedImage}
+                onClose={() => setSelectedImage(null)}
+            />
+
+            <PaymentSelectionModal
+                isOpen={paymentModalOpen}
+                onClose={() => setPaymentModalOpen(false)}
+                selectedPaymentMethod={selectedPaymentMethod}
+                setSelectedPaymentMethod={setSelectedPaymentMethod}
+                calculateFinalTotal={calculateFinalTotal}
+                handleFinalConfirmation={handleFinalConfirmation}
+            />
         </div>
     );
 }
 
 // Sub-components and Helper functions
-function ExternalExaminationSection({ report, onImageClick }: { report: any, onImageClick: (url: string) => void }) {
-    let media: any[] = [];
-    try {
-        media = typeof report.external_images === 'string' ? JSON.parse(report.external_images) : (report.external_images || []);
-    } catch (e) { console.error(e); }
-
-    const images = media.filter((m: any) => m.type === 'image' || !m.type);
-    const video = media.find((m: any) => m.type === 'video' || m.type === 'youtube');
-    const [selectedMedia, setSelectedMedia] = useState<any>(video || images[0] || null);
-
-    return (
-        <div className="space-y-6 lg:space-y-12">
-            <div className="aspect-video w-full bg-black rounded-2xl lg:rounded-[2.5rem] overflow-hidden shadow-lg lg:shadow-2xl ring-1 ring-black/5 relative group">
-                {selectedMedia ? (
-                    selectedMedia.type === 'video' || selectedMedia.type === 'youtube' ? (
-                        selectedMedia.url.includes('youtube.com') || selectedMedia.url.includes('youtu.be') ? (
-                            <iframe
-                                src={`https://www.youtube.com/embed/${(selectedMedia.url.match(/(?:v=|youtu\.be\/)([^&]+)/) || [])[1]}`}
-                                className="w-full h-full border-0"
-                                allowFullScreen
-                                title="External Examination Video"
-                            />
-                        ) : (
-                            <video src={selectedMedia.url} className="w-full h-full object-contain" controls autoPlay muted playsInline />
-                        )
-                    ) : (
-                        <img src={selectedMedia.url} alt="Selected" className="w-full h-full object-contain bg-black/90 cursor-zoom-in" onClick={() => onImageClick(selectedMedia.url)} />
-                    )
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-white/20">
-                        <ImageIcon size={64} />
-                        <p className="mt-4 font-bold">No Media Selected</p>
-                    </div>
-                )}
-            </div>
-
-            <div className="flex gap-2 md:gap-4 overflow-x-auto pb-4 px-1 snap-x no-scrollbar">
-                {video && (
-                    <button onClick={() => setSelectedMedia(video)} className={cn("flex-shrink-0 w-16 h-16 md:w-32 md:h-32 rounded-lg md:rounded-2xl overflow-hidden border-2 transition-all relative group snap-start", selectedMedia === video ? "border-primary ring-2 md:ring-4 ring-primary/20 scale-105" : "border-transparent opacity-60 hover:opacity-100")}>
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center group-hover:bg-black/40 transition-colors"><Video className="text-white drop-shadow-lg" size={20} /></div>
-                        <div className="w-full h-full bg-secondary" />
-                    </button>
-                )}
-                {images.map((img: any, idx: number) => (
-                    <button key={idx} onClick={() => setSelectedMedia(img)} className={cn("flex-shrink-0 w-16 h-16 md:w-32 md:h-32 rounded-lg md:rounded-2xl overflow-hidden border-2 transition-all snap-start", selectedMedia === img ? "border-primary ring-2 md:ring-4 ring-primary/20 scale-105" : "border-transparent opacity-60 hover:opacity-100")}>
-                        <img src={img.url} alt={getComponentNameArabic(img.component || img.name)} className="w-full h-full object-cover" />
-                    </button>
-                ))}
-            </div>
-
-            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                    { id: 'case', name: 'جسم الجهاز (Case)', condition: report.case_condition, notes: report.case_notes, icon: <Package size={18} /> },
-                    { id: 'screen', name: 'الشاشة (Screen)', condition: report.screen_condition, notes: report.screen_notes, icon: <Monitor size={18} /> },
-                    { id: 'keyboard', name: 'الكيبورد (Keyboard)', condition: report.keyboard_condition, notes: report.keyboard_notes, icon: <Keyboard size={18} /> },
-                    { id: 'battery', name: 'البطارية (Battery)', condition: report.battery_condition, notes: report.battery_notes, icon: <Zap size={18} /> }
-                ].map((part) => (
-                    <div key={part.id} className="p-4 rounded-3xl bg-white border border-black/5 flex flex-col gap-3 group hover:border-primary/20 transition-all">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-primary/5 text-primary/40 flex items-center justify-center group-hover:text-primary transition-colors">
-                                    {part.icon}
-                                </div>
-                                <span className="font-bold text-secondary text-sm">{part.name}</span>
-                            </div>
-                            {part.condition && (
-                                <Badge
-                                    className={cn(
-                                        "rounded-full px-3 py-1 text-[10px] font-black",
-                                        part.condition === 'excellent' ? "bg-green-500 text-white" :
-                                            part.condition === 'good' ? "bg-blue-500 text-white" :
-                                                part.condition === 'fair' ? "bg-orange-500 text-white" :
-                                                    "bg-red-500 text-white"
-                                    )}
-                                >
-                                    {part.condition === 'excellent' ? 'ممتاز' :
-                                        part.condition === 'good' ? 'جيد' :
-                                            part.condition === 'fair' ? 'مقبول' : 'ضعيف'}
-                                </Badge>
-                            )}
-                        </div>
-                        {part.notes && (
-                            <p className="text-xs text-secondary/60 bg-black/[0.02] p-3 rounded-xl font-medium leading-relaxed">
-                                {part.notes}
-                            </p>
-                        )}
-                    </div>
-                ))}
-            </div> */}
-
-            {/* {report.notes && (
-                <div className="p-6 md:p-10 rounded-3xl md:rounded-[2.5rem] bg-primary/[0.03] border border-primary/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-colors" />
-                    <h4 className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-4">ملاحظات الفحص الظاهري</h4>
-                    <p className="text-sm md:text-xl font-medium text-secondary/80 leading-relaxed whitespace-pre-wrap">{report.notes}</p>
-                </div>
-            )} */}
-        </div>
-    );
-}
 
 function InternalInspectionSection({ report, onImageClick }: { report: any, onImageClick: (url: string) => void }) {
     let media = [];
@@ -1821,31 +1475,31 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
                 <div className="space-y-3">
                     {allTests.map((item: any, idx: number) => {
                         const isOpen = openIndex === idx;
+                        const dotCls = item.status === 'pass' ? 'bg-emerald-500 border-emerald-600/20' : 'bg-blue-500 border-blue-600/20';
+                        const badgeLabel = item.status === 'pass' ? 'سليم' : 'متشيك عليه';
                         return (
-                            <div key={idx} className={cn("bg-white border rounded-[1.5rem] overflow-hidden transition-all duration-300", isOpen ? "border-primary/20 shadow-lg" : "border-black/5 hover:border-black/10 shadow-sm")}>
-                                <button onClick={() => setOpenIndex(isOpen ? null : idx)} className="w-full px-4 md:px-6 py-4 md:py-5 flex items-center justify-between group text-right">
+                            <div key={idx} className={cn("bg-white border rounded-2xl overflow-hidden transition-all duration-300", isOpen ? "border-primary/10 shadow-sm" : "border-black/[0.03] hover:border-black/[0.06] shadow-sm")}>
+                                <button onClick={() => setOpenIndex(isOpen ? null : idx)} className="w-full px-5 md:px-6 py-4 md:py-5 flex items-center justify-between group text-right">
                                     <div className="flex items-center gap-4">
-                                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors", isOpen ? "bg-primary text-white" : "bg-black/[0.03] text-secondary/40 group-hover:bg-primary/10 group-hover:text-primary")}>
+                                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors", isOpen ? "bg-primary text-white" : "bg-black/[0.02] text-secondary/30 group-hover:bg-primary/5 group-hover:text-primary")}>
                                             {getComponentIcon(item.component)}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-secondary text-base">{getComponentTitle(item.component)}</span>
-                                            <span className="text-[9px] text-primary/60 font-black uppercase tracking-wider">
+                                            <span className="font-bold text-secondary text-sm md:text-base">{getComponentTitle(item.component)}</span>
+                                            <span className="text-[9px] text-primary/50 font-black uppercase tracking-wider mt-0.5">
                                                 {item.screenshot ? 'لقطة شاشة الاختبار' : 'نتائج الفحص البرمجي'}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <Badge variant="outline" className={cn("text-[10px] font-black h-6 px-3 rounded-full", item.status === 'pass' ? "bg-green-50 text-green-700 border-green-100" : "bg-black/5 text-secondary/40")}>
-                                            {item.status === 'pass' ? '(PASSED)' : '(CHECKED)'}
-                                        </Badge>
-                                        <div className={cn("transition-transform duration-300", isOpen ? "rotate-90 text-primary" : "text-secondary/20")}><ChevronLeft size={20} /></div>
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn("w-2.5 h-2.5 rounded-full border shadow-sm shrink-0", dotCls)} title={badgeLabel} />
+                                        <ChevronLeft size={18} className={cn("transition-transform duration-300 text-secondary/20", isOpen && "rotate-90 text-primary")} />
                                     </div>
                                 </button>
                                 <AnimatePresence>
                                     {isOpen && (
                                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}>
-                                            <div className="px-6 pb-8 pt-4 border-t border-black/[0.03]">
+                                            <div className="px-5 md:px-6 pb-7 pt-4 border-t border-black/[0.02]">
                                                 {item.screenshot ? (
                                                     <div className="w-full aspect-video md:aspect-[21/9] bg-black/[0.02] rounded-2xl md:rounded-3xl overflow-hidden border border-black/5 cursor-zoom-in group/img relative mb-6" onClick={() => onImageClick(item.screenshot.url)}>
                                                         <img src={item.screenshot.url} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110" alt="نتيجة فحص فني متقدم" />
@@ -1892,9 +1546,9 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
                                                 ) : null}
                                                 
                                                 <div className="space-y-4 md:space-y-6">
-                                                    <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-black/[0.02] border border-black/[0.03]">
-                                                        <h5 className="text-[10px] font-black text-secondary/30 uppercase tracking-widest mb-2 md:mb-3">شرح تفصيلي للفحص</h5>
-                                                        <p className="text-secondary/70 text-sm md:text-base leading-relaxed font-bold">
+                                                    <div className="p-4 md:p-5 rounded-2xl bg-black/[0.02] border border-black/[0.02]">
+                                                        <h5 className="text-[10px] font-black text-secondary/30 uppercase tracking-widest mb-2">شرح تفصيلي</h5>
+                                                        <p className="text-secondary/60 text-sm leading-relaxed font-medium">
                                                             {item.screenshot?.comment || getTestDescription(item.component)}
                                                         </p>
                                                     </div>
@@ -1908,7 +1562,7 @@ function InternalInspectionSection({ report, onImageClick }: { report: any, onIm
                     })}
                 </div>
             ) : (
-                <div className="py-12 text-center border-2 border-dashed border-black/5 rounded-[2.5rem] opacity-40"><ImageIcon className="mx-auto mb-4 text-secondary/20" size={48} /><p className="text-sm font-black text-secondary/40">مفيش أي صور أو فحوصات تقنية اتسجلت لسه</p></div>
+                <div className="py-12 text-center border-2 border-dashed border-black/[0.03] rounded-3xl opacity-40"><ImageIcon className="mx-auto mb-4 text-secondary/20" size={48} /><p className="text-sm font-black text-secondary/40">مفيش أي صور أو فحوصات تقنية اتسجلت لسه</p></div>
             )}
         </div>
     );
@@ -1977,29 +1631,28 @@ const getTestDescription = (name: string) => {
 function ReportHistorySection({ history }: { history: any[] }) {
     if (!history || history.length === 0) return null;
 
-    // Sort history by timestamp descending (newest first)
     const sortedHistory = [...history].sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
     return (
-        <div className="pt-12 border-t border-black/5" dir="rtl">
-            <h3 className="text-xl font-black text-primary/80 flex items-center gap-3 mb-8">
-                <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm">04</span>
+        <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm" dir="rtl">
+            <h3 className="text-base font-black text-secondary flex items-center gap-3 mb-6">
+                <RefreshCw size={18} className="text-primary/50" />
                 تاريخ التحديثات
             </h3>
-            <div className="space-y-6 px-2 md:px-4">
+            <div className="space-y-4">
                 {sortedHistory.map((entry, i) => (
-                    <div key={i} className="relative flex gap-6 pb-6 last:pb-0 group">
+                    <div key={i} className="relative flex gap-4 pb-4 last:pb-0 group">
                         {i !== sortedHistory.length - 1 && (
-                            <div className="absolute top-9 bottom-0 right-4 w-px bg-black/5 group-hover:bg-primary/20 transition-colors" />
+                            <div className="absolute top-8 bottom-0 right-3.5 w-px bg-black/[0.03] group-hover:bg-primary/20 transition-colors" />
                         )}
-                        <div className="w-8 h-8 shrink-0 rounded-full bg-white border-2 border-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform z-10 shadow-sm">
-                            <RefreshCw size={14} />
+                        <div className="w-7 h-7 shrink-0 rounded-full bg-white border border-black/[0.03] flex items-center justify-center text-secondary/30 group-hover:text-primary group-hover:border-primary/20 transition-all z-10 shadow-sm">
+                            <RefreshCw size={12} />
                         </div>
-                        <div className="flex-1 space-y-2">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
-                                <span className="text-[10px] font-black text-secondary/40 uppercase tracking-widest">
+                        <div className="flex-1 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-secondary/40">
                                     {new Date(entry.timestamp).toLocaleString('ar-EG', {
                                         weekday: 'long',
                                         year: 'numeric',
@@ -2010,12 +1663,12 @@ function ReportHistorySection({ history }: { history: any[] }) {
                                     })}
                                 </span>
                                 {entry.status_at_update && (
-                                    <Badge variant="outline" className="text-[9px] font-black opacity-60 bg-black/[0.02] border-none px-2 h-5 w-fit">
-                                        الحالة: {entry.status_at_update}
-                                    </Badge>
+                                    <span className="text-[9px] font-bold text-secondary/30 bg-black/[0.02] px-2 py-0.5 rounded-full">
+                                        {entry.status_at_update}
+                                    </span>
                                 )}
                             </div>
-                            <div className="text-sm font-bold text-secondary/80 leading-relaxed bg-black/[0.02] p-4 rounded-2xl border border-transparent group-hover:border-primary/10 group-hover:bg-white group-hover:shadow-lg group-hover:shadow-primary/5 transition-all">
+                            <div className="text-sm font-medium text-secondary/70 leading-relaxed bg-black/[0.02] p-3.5 rounded-2xl border border-black/[0.02] group-hover:border-primary/10 group-hover:bg-white transition-all">
                                 {entry.description}
                             </div>
                         </div>

@@ -20,7 +20,7 @@ export function ExternalExaminationSection({ report, onImageClick }: ExternalExa
 
     return (
         <div className="space-y-6">
-            <div className="aspect-video w-full bg-black rounded-3xl overflow-hidden shadow-sm border border-black/[0.03] relative group">
+            <div className="w-full h-[50vh] sm:h-[60vh] lg:h-[650px] max-h-[75vh] bg-black rounded-[2rem] overflow-hidden shadow-md border border-black/[0.03] relative group flex items-center justify-center">
                 {selectedMedia ? (
                     selectedMedia.type === 'video' || selectedMedia.type === 'youtube' ? (
                         selectedMedia.url.includes('youtube.com') || selectedMedia.url.includes('youtu.be') ? (
@@ -44,15 +44,15 @@ export function ExternalExaminationSection({ report, onImageClick }: ExternalExa
                 )}
             </div>
 
-            <div className="flex gap-3 overflow-x-auto pb-2 px-1 snap-x no-scrollbar" dir="rtl">
+            <div className="flex gap-3 overflow-x-auto pb-3 pt-1 px-1 snap-x scroll-smooth no-scrollbar" dir="rtl">
                 {video && (
-                    <button onClick={() => setSelectedMedia(video)} className={cn("flex-shrink-0 w-16 h-16 md:w-28 md:h-28 rounded-2xl overflow-hidden border-2 transition-all relative group snap-start", selectedMedia === video ? "border-primary ring-2 ring-primary/20 scale-105" : "border-transparent opacity-60 hover:opacity-100")}>
+                    <button onClick={() => setSelectedMedia(video)} className={cn("flex-shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden border-2 transition-all duration-300 transform active:scale-95 relative group snap-start", selectedMedia === video ? "border-primary ring-2 ring-primary/20 scale-105" : "border-transparent opacity-60 hover:opacity-100")}>
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center group-hover:bg-black/40 transition-colors"><Video className="text-white" size={20} /></div>
                         <div className="w-full h-full bg-secondary" />
                     </button>
                 )}
                 {images.map((img: any, idx: number) => (
-                    <button key={idx} onClick={() => setSelectedMedia(img)} className={cn("flex-shrink-0 w-16 h-16 md:w-28 md:h-28 rounded-2xl overflow-hidden border-2 transition-all snap-start", selectedMedia === img ? "border-primary ring-2 ring-primary/20 scale-105" : "border-transparent opacity-60 hover:opacity-100")}>
+                    <button key={idx} onClick={() => setSelectedMedia(img)} className={cn("flex-shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden border-2 transition-all duration-300 transform active:scale-95 snap-start", selectedMedia === img ? "border-primary ring-2 ring-primary/20 scale-105" : "border-transparent opacity-60 hover:opacity-100")}>
                         <img src={img.url} alt={getComponentNameArabic(img.component || img.name)} className="w-full h-full object-cover" />
                     </button>
                 ))}

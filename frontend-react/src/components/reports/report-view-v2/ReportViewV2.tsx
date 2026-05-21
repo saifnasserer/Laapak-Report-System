@@ -41,7 +41,7 @@ import StepInternalInspection from './steps/StepInternalInspection';
 import StepAccessories from './steps/StepAccessories';
 import StepConfirmShare from './steps/StepConfirmShare';
 
-export default function ReportViewV2({ id, locale, viewMode }: ReportViewProps) {
+export default function ReportViewV2({ id, locale, viewMode, initialReport }: ReportViewProps) {
     const t = useTranslations();
     const router = useRouter();
     const { width, height } = useWindowSize();
@@ -59,7 +59,7 @@ export default function ReportViewV2({ id, locale, viewMode }: ReportViewProps) 
         agentData,
         showConfetti,
         setShowConfetti
-    } = useReportData(id);
+    } = useReportData(id, initialReport);
 
     // 2. Medusa products hook
     const { products, isLoadingProducts } = useProducts(activeStep);
@@ -122,7 +122,7 @@ export default function ReportViewV2({ id, locale, viewMode }: ReportViewProps) 
     }
 
     // Normalizing specs for UI (as in original ReportViewV2)
-    let specs: any = report.full_specs;
+    let specs: any = report.full_specs || report.agent_json;
     if (typeof specs === 'string') {
         try { specs = JSON.parse(specs); } catch { specs = null; }
     }

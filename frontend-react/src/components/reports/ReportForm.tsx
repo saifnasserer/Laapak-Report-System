@@ -132,6 +132,7 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
             { id: 8, componentName: 'Wifi', nameAr: 'الواي فاي (WiFi)', status: 'pass', comment: '' },
             { id: 9, componentName: 'Bluetooth', nameAr: 'البلوتوث (Bluetooth)', status: 'pass', comment: '' },
             { id: 10, componentName: 'Ports', nameAr: 'المنافذ (Ports)', status: 'pass', comment: '' },
+            { id: 11, componentName: 'RAM', nameAr: 'الذاكرة العشوائية (RAM)', status: 'pass', comment: '' },
         ] as any[],
         test_screenshots: [
             { component: 'Info', url: '', comment: '', type: 'test_screenshot' },
@@ -158,7 +159,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
         payment_method: '' as string,
         is_confirmed: false as boolean,
         selected_accessories: [] as any[],
-        agent_json: ''
+        agent_json: '',
+        view_mode: 'standard'
     });
 
     const searchParams = useSearchParams();
@@ -288,6 +290,20 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                     if (scanData.system.system_serial) {
                         newData.serial_number = scanData.system.system_serial;
                     }
+
+                    // Warehouse client (143) automatic supplier/device source mapping
+                    if (String(prev.client_id) === '143') {
+                        const matchedSupplier = suppliers.find((s: any) => 
+                            s.name?.toLowerCase().includes(manufacturer.toLowerCase()) || 
+                            manufacturer.toLowerCase().includes(s.name?.toLowerCase())
+                        );
+                        if (matchedSupplier) {
+                            newData.supplier_id = matchedSupplier.id;
+                            newData.device_source = matchedSupplier.name;
+                        } else {
+                            newData.device_source = manufacturer;
+                        }
+                    }
                 }
 
                 // 2. CPU
@@ -388,9 +404,10 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 };
 
                 newData.agent_json = text;
+                newData.view_mode = 'advanced';
 
                 newData.hardware_status = prev.hardware_status.map(item => {
-                    if (['CPU', 'GPU', 'Storage', 'Battery', 'Display', 'Wifi', 'Bluetooth'].includes(item.componentName)) {
+                    if (['CPU', 'GPU', 'Storage', 'Battery', 'Display', 'Wifi', 'Bluetooth', 'RAM'].includes(item.componentName)) {
                         let detail = {};
                         if (item.componentName === 'CPU') detail = cpuDetails;
                         if (item.componentName === 'GPU') detail = gpuDetails;
@@ -615,7 +632,8 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                         payment_method: r.payment_method || '',
                         is_confirmed: !!r.is_confirmed,
                         selected_accessories: typeof r.selected_accessories === 'string' ? JSON.parse(r.selected_accessories) : (r.selected_accessories || []),
-                        agent_json: r.agent_json || ''
+                        agent_json: r.agent_json || '',
+                        view_mode: r.view_mode || 'standard'
                     });
                 }
             } catch (err) {
