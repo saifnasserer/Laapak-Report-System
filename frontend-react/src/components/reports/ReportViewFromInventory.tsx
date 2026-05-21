@@ -20,6 +20,7 @@ import { maintenanceApi } from '@/lib/maintenance-api';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import ExternalExaminationSection from './report-view-v2/sections/ExternalExaminationSection';
+import StatusBanners from './report-view-v2/sections/StatusBanners';
 import ImageLightbox from './report-view-v2/modals/ImageLightbox';
 import { useProducts } from './report-view-v2/hooks/useProducts';
 import { useReportActions } from './report-view-v2/hooks/useReportActions';
@@ -294,6 +295,9 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
 
             case 1: return (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6" dir="rtl">
+                    {/* Status Banners: Completed / Shipped */}
+                    <StatusBanners report={report} viewMode={viewMode} />
+
                     {/* BSOD Warning */}
                     {(bsodCount > 0 || hasRecentCrash) && (
                         <div className="flex items-start gap-4 p-5 rounded-2xl bg-rose-50 border border-rose-200">
