@@ -1067,14 +1067,12 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                     if (m.cpu_max_freq_ghz) stats.push({ label: 'أعلى تردد بالضغط', value: `${m.cpu_max_freq_ghz} GHz`, icon: <Zap size={15} /> });
                     if (m.cpu_avg_usage_pct != null) stats.push({ label: 'متوسط الحمل بالضغط', value: `${m.cpu_avg_usage_pct}%`, icon: <Activity size={15} /> });
                     if (peakTemp) {
-                        const tempColor = peakTemp > 85 ? 'text-rose-600' : peakTemp > 70 ? 'text-amber-600' : 'text-emerald-600';
-                        const iconColor = peakTemp > 85 ? 'bg-rose-50 text-rose-600' : peakTemp > 70 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600';
                         stats.push({
-                            label: 'ذروة حرارة الضغط',
+                            label: 'أقصى حرارة تحت الاختبار',
                             value: `${peakTemp}°C`,
                             icon: <Thermometer size={15} />,
-                            iconColorClass: iconColor,
-                            valueColorClass: tempColor
+                            iconColorClass: 'bg-primary/5 text-primary',
+                            valueColorClass: ''
                         });
                     }
                 } else if (comp === 'ram') {
@@ -1085,7 +1083,13 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                     if (mem?.configured_voltage) stats.push({ label: 'الجهد الكهربائي', value: `${mem.configured_voltage} V`, icon: <Info size={15} /> });
                     if (m.ram_peak_bw_gbps != null) stats.push({ label: 'الباندويدث الأقصى', value: `${Number(m.ram_peak_bw_gbps).toFixed(1)} GB/s`, icon: <Zap size={15} /> });
                     if (m.ram_allocated_gb) stats.push({ label: 'الذاكرة المستهلكة', value: `${Number(m.ram_allocated_gb).toFixed(1)} GB`, icon: <Activity size={15} /> });
-                    if (m.ram_error_count != null) stats.push({ label: 'أخطاء الرام', value: `${m.ram_error_count}`, icon: <AlertTriangle size={15} /> });
+                    if (m.ram_error_count != null) {
+                        if (m.ram_error_count === 0) {
+                            stats.push({ label: 'نتيجة فحص الرامات', value: 'سليم', icon: <CheckCircle2 size={15} />, iconColorClass: 'bg-emerald-50 text-emerald-600', valueColorClass: 'text-emerald-600' });
+                        } else {
+                            stats.push({ label: 'ملاحظات على الرامات', value: `${m.ram_error_count}`, icon: <AlertTriangle size={15} />, iconColorClass: 'bg-amber-50 text-amber-600', valueColorClass: 'text-amber-600' });
+                        }
+                    }
                 } else if (comp === 'gpu') {
                     const gpuDevs = specs?.gpu?.devices || item.hwData;
                     gpuDevs.forEach((g: any, gi: number) => {
@@ -1097,14 +1101,12 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                     if (m.gpu_usage_pct != null) stats.push({ label: 'مستوى الحمل', value: `${m.gpu_usage_pct}%`, icon: <Activity size={15} /> });
                     const gpuTemp = m.gpu_temp || peakTemp;
                     if (gpuTemp) {
-                        const tempColor = gpuTemp > 85 ? 'text-rose-600' : gpuTemp > 70 ? 'text-amber-600' : 'text-emerald-600';
-                        const iconColor = gpuTemp > 85 ? 'bg-rose-50 text-rose-600' : gpuTemp > 70 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600';
                         stats.push({
-                            label: 'درجة الحرارة',
+                            label: 'درجة الحرارة تحت الحمل',
                             value: `${gpuTemp}°C`,
                             icon: <Thermometer size={15} />,
-                            iconColorClass: iconColor,
-                            valueColorClass: tempColor
+                            iconColorClass: 'bg-primary/5 text-primary',
+                            valueColorClass: ''
                         });
                     }
                 } else if (comp === 'storage') {
@@ -1212,21 +1214,15 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                                     <div className="px-5 md:px-6 pb-7 pt-4 border-t border-black/[0.02]" dir="rtl">
                                         {/* Stress Test Summary Strip */}
                                         {item.result && (
-                                            <div className="mb-4 p-3 rounded-xl border border-black/[0.03] bg-secondary/5 text-secondary flex flex-wrap items-center justify-between gap-3 text-sm text-right">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-xs">نتيجة اختبار ضغط {getComponentTitle(item.component)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-3 text-xs font-bold" dir="ltr">
-                                                    {r.duration && (
-                                                        <span className="flex items-center gap-1 opacity-70">
-                                                            <Clock size={12} />
-                                                            {r.duration}
-                                                        </span>
-                                                    )}
-                                                    {peakTemp > 0 && (
-                                                        <span className="flex items-center gap-1 opacity-70">
-                                                            <Thermometer size={12} />
-                                                            {peakTemp}°C Max
+                                            <div className="mb-4 p-3 rounded-xl border border-black/[0.03] bg-secondary/5 text-secondary flex items-center gap-2 text-sm text-right">
+                                                <span className="text-emerald-600 shrink-0">{isPassed ? '✅' : '⚠️'}</span>
+                                                <div>
+                                                    <span className="font-bold text-xs">
+                                                        {isPassed ? `تم اختبار ${getComponentTitle(item.component)} تحت أقصى ضغط للتأكد من ثباته — اجتاز الاختبار بنجاح` : `نتيجة اختبار ضغط ${getComponentTitle(item.component)}`}
+                                                    </span>
+                                                    {isPassed && peakTemp > 0 && (
+                                                        <span className="text-[10px] text-secondary/50 mr-1 font-medium">
+                                                            (وصلت الحرارة إلى {peakTemp}° تحت الحمل الكامل وهذا طبيعي)
                                                         </span>
                                                     )}
                                                 </div>
@@ -1465,15 +1461,13 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                                             <p className="text-secondary/60 text-sm leading-relaxed font-medium">{getTestDescription(item.component)}</p>
                                         </div>
 
-                                        {/* Warnings */}
-                                        {warnings.length > 0 && (
-                                            <div className="mt-4 space-y-2">
-                                                {warnings.map((w, wi) => (
-                                                    <div key={wi} className="flex items-start gap-2.5 p-3 bg-amber-50/60 border border-amber-100/60 rounded-xl">
-                                                        <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                                                        <p className="text-[11px] font-bold text-amber-800/70 leading-relaxed">{w}</p>
-                                                    </div>
-                                                ))}
+                                        {/* Warnings — show only on failure, with user-friendly message */}
+                                        {isFailed && (
+                                            <div className="mt-4 p-3 bg-amber-50/60 border border-amber-100/60 rounded-xl flex items-start gap-2.5">
+                                                <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                                                <p className="text-[11px] font-bold text-amber-800/70 leading-relaxed">
+                                                    تم اكتشاف ملاحظة أثناء اختبار {getComponentTitle(item.component)}. يُنصح بمراجعة الفني المختص.
+                                                </p>
                                             </div>
                                         )}
                                     </div>
