@@ -578,7 +578,7 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
                             details={hw?.gpu?.[0]?.vram ? `${hw.gpu[0].vram} VRAM` : null} />
                         {hw?.display && (
                             <SpecCard icon={<Monitor />} title="الشاشة" main={`${hw.display.resolution} @ ${hw.display.refresh_rate_hz}Hz`}
-                                details={hw.display.size_inch ? `${hw.display.size_inch}" ${hw.display.touch ? '· Touch' : ''}` : null} />
+                                details={hw.display.size_inch ? `${hw.display.size_inch}"` : null} />
                         )}
                         {hw?.battery && (
                             <SpecCard icon={<Battery />} title="البطارية" main={hw.battery.health || report.battery_health || '—'}
@@ -1131,7 +1131,6 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                     if (d.resolution) stats.push({ label: 'الدقة', value: d.resolution, icon: <Monitor size={15} /> });
                     if (d.refresh_rate_hz) stats.push({ label: 'معدل التحديث', value: `${d.refresh_rate_hz}Hz`, icon: <Zap size={15} /> });
                     if (d.size_inch) stats.push({ label: 'الحجم القُطري', value: `${d.size_inch}"`, icon: <Info size={15} /> });
-                    if (d.touch) stats.push({ label: 'شاشة لمس', value: 'نعم', icon: <CheckCircle2 size={15} /> });
                 } else if (comp === 'monitor') {
                     const mon = specs?.monitor;
                     if (mon?.count !== undefined) stats.push({ label: 'عدد الشاشات الخارجية', value: `${mon.count} شاشة`, icon: <Monitor size={15} /> });

@@ -119,7 +119,6 @@ export function DataInspectionSection({ stressResults, hw, interactiveMap }: Dat
                     if (d.resolution) stats.push({ label: 'الدقة', value: d.resolution, icon: <MonitorIcon size={15} /> });
                     if (d.refresh_rate_hz) stats.push({ label: 'معدل التحديث', value: `${d.refresh_rate_hz}Hz`, icon: <Zap size={15} /> });
                     if (d.size_inch) stats.push({ label: 'الحجم', value: `${d.size_inch}"`, icon: <Info size={15} /> });
-                    if (d.touch) stats.push({ label: 'شاشة لمس', value: 'نعم', icon: <CheckCircle2 size={15} /> });
                 } else if (comp === 'keyboard') {
                     const kb = item.hwData;
                     stats.push({ label: 'الحالة', value: kb?.passed ? 'سليم ✓' : 'خلل ✗', icon: <Keyboard size={15} /> });
