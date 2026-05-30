@@ -1051,6 +1051,18 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                     if (cpu?.base_speed_ghz) stats.push({ label: 'التردد الأساسي', value: `${cpu.base_speed_ghz} GHz`, icon: <Zap size={15} /> });
                     if (cpu?.boost_speed_ghz) stats.push({ label: 'تردد Boost', value: `${cpu.boost_speed_ghz} GHz`, icon: <Zap size={15} /> });
                     if (cpu?.max_clock_speed) stats.push({ label: 'أقصى سرعة', value: `${cpu.max_clock_speed} MHz`, icon: <Zap size={15} /> });
+                    if (cpu?.temperature_c) {
+                        const temp = cpu.temperature_c;
+                        const tempColor = temp > 85 ? 'text-rose-600' : temp > 70 ? 'text-amber-600' : 'text-emerald-600';
+                        const iconColor = temp > 85 ? 'bg-rose-50 text-rose-600' : temp > 70 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600';
+                        stats.push({
+                            label: 'الحرارة الحالية',
+                            value: `${temp}°C`,
+                            icon: <Thermometer size={15} />,
+                            iconColorClass: iconColor,
+                            valueColorClass: tempColor
+                        });
+                    }
                     if (cpu?.l3_cache_mb) stats.push({ label: 'L3 Cache', value: `${cpu.l3_cache_mb} MB`, icon: <Database size={15} /> });
                     if (m.cpu_max_freq_ghz) stats.push({ label: 'أعلى تردد بالضغط', value: `${m.cpu_max_freq_ghz} GHz`, icon: <Zap size={15} /> });
                     if (m.cpu_avg_usage_pct != null) stats.push({ label: 'متوسط الحمل بالضغط', value: `${m.cpu_avg_usage_pct}%`, icon: <Activity size={15} /> });
