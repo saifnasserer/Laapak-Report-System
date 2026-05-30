@@ -101,7 +101,7 @@ export function DataInspectionSection({ stressResults, hw, interactiveMap }: Dat
                     if (m.gpu_usage_pct != null) stats.push({ label: 'الحمل', value: `${m.gpu_usage_pct}%`, icon: <Activity size={15} /> });
                     if (m.gpu_temp || peakTemp) stats.push({ label: 'الحرارة', value: `${m.gpu_temp || peakTemp}°C`, icon: <Thermometer size={15} /> });
                 } else if (comp === 'storage') {
-                    const drives: any[] = item.hwData;
+                    const drives: any[] = (item.hwData || []).filter((d: any) => d.type?.toLowerCase() !== 'usb' && !String(d.model || '').toLowerCase().includes('usb'));
                     const d = drives[0] || {};
                     if (d.model) stats.push({ label: 'القرص', value: d.model, icon: <HardDrive size={15} /> });
                     if (d.capacity) stats.push({ label: 'السعة', value: d.capacity, icon: <Database size={15} /> });
@@ -112,7 +112,6 @@ export function DataInspectionSection({ stressResults, hw, interactiveMap }: Dat
                 } else if (comp === 'battery') {
                     const b = item.hwData;
                     if (b.health_percentage) stats.push({ label: 'الصحة', value: `${Number(b.health_percentage).toFixed(1)}%`, icon: <Battery size={15} /> });
-                    if (b.cycle_count) stats.push({ label: 'دورات الشحن', value: `${b.cycle_count}`, icon: <RefreshCw size={15} /> });
                     if (b.estimated_charge != null) stats.push({ label: 'الشحن الحالي', value: `${b.estimated_charge}%`, icon: <Zap size={15} /> });
                 } else if (comp === 'display') {
                     const d = item.hwData;

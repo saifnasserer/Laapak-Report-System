@@ -134,7 +134,6 @@ export function InternalInspectionSection({ report, agentData, onImageClick }: I
                                                             {item.component.toLowerCase().includes('battery') && (
                                                                 <>
                                                                     <TechStatCard label="صحة البطارية" value={`${Math.round(item.techData.health)}%`} icon={<Zap size={16} />} color="text-primary" />
-                                                                    <TechStatCard label="دورات الشحن" value={`${item.techData.cycles}`} icon={<RefreshCw size={16} />} />
                                                                     <TechStatCard label="السعة الفعلية" value={`${Math.round(item.techData.full / 1000)} Wh`} icon={<Battery size={16} />} />
                                                                 </>
                                                             )}

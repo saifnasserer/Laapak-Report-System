@@ -246,7 +246,6 @@ export function StepDataAndSpecs({
                                 <div>
                                     <p className="text-[10px] font-black text-secondary/30 uppercase">البطارية Battery</p>
                                     <p className="text-xs font-bold text-secondary mt-1">صحة البطارية: {Number(hw.battery.health_percentage).toFixed(1)}%</p>
-                                    {hw.battery.cycle_count && <p className="text-[9px] text-secondary/40 mt-0.5 font-bold">{hw.battery.cycle_count} دورة شحن</p>}
                                 </div>
                             </div>
                         )}

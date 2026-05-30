@@ -388,7 +388,7 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
                                 { label: 'الرامات', value: hw?.memory?.total_ram || report.ram, icon: <Database size={16} />, sub: hw?.memory?.type ? `${hw.memory.type} ${hw.memory.speed || ''}` : null },
                                 { label: 'التخزين', value: storageItem?.capacity || report.storage, icon: <HardDrive size={16} />, sub: storageHealth ? `${storageType} · صحة ${storageHealth}` : storageType },
                                 { label: 'كارت الشاشة', value: hw?.gpu?.[0]?.name || report.gpu, icon: <Monitor size={16} />, sub: hw?.gpu?.[0]?.vram ? `${hw.gpu[0].vram} VRAM` : null },
-                                ...(hw?.battery ? [{ label: 'البطارية', value: hw.battery.health, icon: <Battery size={16} />, sub: hw.battery.cycle_count ? `${hw.battery.cycle_count} دورة شحن` : null }] : []),
+                                ...(hw?.battery ? [{ label: 'البطارية', value: hw.battery.health, icon: <Battery size={16} />, sub: null }] : []),
                                 ...(hw?.display ? [{ label: 'الشاشة', value: hw.display.resolution, icon: <Monitor size={16} />, sub: `${hw.display.refresh_rate_hz}Hz${hw.display.size_inch ? ` · ${hw.display.size_inch}"` : ''}` }] : []),
                             ].filter(s => s.value).map((spec, i) => (
                                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
@@ -440,7 +440,7 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
                         }
                     }
                     if (hw.display) results.push({ id: 'display', name: 'Display', status: 'pass', message: `${hw.display.resolution} @ ${hw.display.refresh_rate_hz}Hz` });
-                    if (hw.battery) results.push({ id: 'battery', name: 'Battery', status: 'pass', message: `صحة البطارية ${hw.battery.health} (${hw.battery.cycle_count || 0} دورة)` });
+                    if (hw.battery) results.push({ id: 'battery', name: 'Battery', status: 'pass', message: `صحة البطارية ${hw.battery.health}` });
                     
                     if (specs.network?.devices?.[0]?.name) {
                         results.push({ id: 'wifi', name: 'WiFi', status: 'pass', message: `${specs.network.devices[0].name} · الإشارة: ${specs.network.wifi_signal_pct || 0}%` });
@@ -582,7 +582,7 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
                         )}
                         {hw?.battery && (
                             <SpecCard icon={<Battery />} title="البطارية" main={hw.battery.health || report.battery_health || '—'}
-                                details={hw.battery.cycle_count ? `${hw.battery.cycle_count} دورة شحن` : null}
+                                details={null}
                                 footer={hw.battery.health_percentage != null ? (
                                     <div className="mt-2 pt-2 border-t border-black/[0.03] space-y-1">
                                         <div className="w-full h-1.5 bg-secondary/10 rounded-full overflow-hidden">
@@ -1110,7 +1110,7 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                         });
                     }
                 } else if (comp === 'storage') {
-                    const drives = item.hwData || [];
+                    const drives = (item.hwData || []).filter((d: any) => d.type?.toLowerCase() !== 'usb' && !String(d.model || '').toLowerCase().includes('usb'));
                     const d = drives[0] || {};
                     if (d.model) stats.push({ label: 'القرص الأساسي', value: d.model, icon: <HardDrive size={15} /> });
                     if (d.capacity) stats.push({ label: 'سعة القرص', value: d.capacity, icon: <Database size={15} /> });
@@ -1121,7 +1121,6 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                 } else if (comp === 'battery') {
                     const b = specs?.battery?.devices?.[0] || item.hwData;
                     if (b.health_percentage != null) stats.push({ label: 'صحة البطارية', value: `${Number(b.health_percentage).toFixed(1)}%`, icon: <Battery size={15} /> });
-                    if (b.cycle_count != null) stats.push({ label: 'دورات الشحن', value: `${b.cycle_count}`, icon: <RefreshCw size={15} /> });
                     if (b.chemistry) stats.push({ label: 'كيمياء البطارية', value: b.chemistry, icon: <Info size={15} /> });
                     if (b.manufacturer) stats.push({ label: 'الشركة المصنعة', value: b.manufacturer, icon: <Info size={15} /> });
                     if (b.design_capacity != null) stats.push({ label: 'السعة التصميمية', value: `${b.design_capacity} mWh`, icon: <Database size={15} /> });
