@@ -1461,15 +1461,7 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                                             <p className="text-secondary/60 text-sm leading-relaxed font-medium">{getTestDescription(item.component)}</p>
                                         </div>
 
-                                        {/* Warnings — show only on failure, with user-friendly message */}
-                                        {isFailed && (
-                                            <div className="mt-4 p-3 bg-amber-50/60 border border-amber-100/60 rounded-xl flex items-start gap-2.5">
-                                                <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                                                <p className="text-[11px] font-bold text-amber-800/70 leading-relaxed">
-                                                    تم اكتشاف ملاحظة أثناء اختبار {getComponentTitle(item.component)}. يُنصح بمراجعة الفني المختص.
-                                                </p>
-                                            </div>
-                                        )}
+
                                     </div>
                                 </motion.div>
                             )}
