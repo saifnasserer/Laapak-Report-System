@@ -18,10 +18,10 @@ import {
 } from 'lucide-react';
 import { statusMap } from './constants';
 
-export const getGradeColor = (grade: string) => {
-    const g = (grade || '').toUpperCase();
-    if (g.startsWith('A')) return 'text-emerald-600';
-    if (g.startsWith('B')) return 'text-amber-600';
+export const getGradeColor = (grade: any) => {
+    const g = String(grade || '').toUpperCase();
+    if (g.startsWith('A') || g === '100' || g === 'READY' || parseInt(g, 10) >= 85) return 'text-emerald-600';
+    if (g.startsWith('B') || g.startsWith('C') || parseInt(g, 10) >= 65) return 'text-amber-600';
     return 'text-rose-600';
 };
 

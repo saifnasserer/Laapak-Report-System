@@ -263,32 +263,6 @@ export function StepDataAndSpecs({
                 </div>
             )}
 
-            {diagScore > 0 && (
-                <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm">
-                    <h3 className="text-base font-black text-secondary mb-6">تقييم سلامة الجهاز</h3>
-                    <div className="flex flex-col md:flex-row items-center gap-8">
-                        <div className="relative w-32 h-32 flex items-center justify-center">
-                            <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="64" cy="64" r="54" className="stroke-black/[0.03]" strokeWidth="12" fill="transparent" />
-                                <circle cx="64" cy="64" r="54" className={cn("transition-all duration-1000", diagScore >= 85 ? "stroke-emerald-500" : diagScore >= 65 ? "stroke-amber-500" : "stroke-rose-500")} strokeWidth="12" fill="transparent" strokeDasharray={339.29} strokeDashoffset={339.29 - (339.29 * diagScore) / 100} strokeLinecap="round" />
-                            </svg>
-                            <span className="absolute text-3xl font-black text-secondary">{diagScore}</span>
-                        </div>
-                        <div className="flex-1 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                {diagBreakdown.map((item: any, i: number) => (
-                                    <div key={i} className="p-3 bg-black/[0.01] rounded-2xl border border-black/[0.02]">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-bold text-secondary/40">{item.name}</span>
-                                            <span className={cn("text-xs font-black", getGradeColor(item.grade))}>{item.grade}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <ReportHistorySection history={report.history} />
         </motion.div>

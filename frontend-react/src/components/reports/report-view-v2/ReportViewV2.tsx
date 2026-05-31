@@ -123,8 +123,12 @@ export default function ReportViewV2({ id, locale, viewMode, initialReport }: Re
 
     // Normalizing specs for UI (as in original ReportViewV2)
     let specs: any = report.full_specs || report.agent_json;
-    if (typeof specs === 'string') {
-        try { specs = JSON.parse(specs); } catch { specs = null; }
+    while (typeof specs === 'string' && specs.trim() !== '') {
+        try {
+            specs = JSON.parse(specs);
+        } catch {
+            break;
+        }
     }
     const isNewFormat = specs && !specs.device && (specs.cpu || specs.ram || specs.storage);
     const hw = (() => {
@@ -149,22 +153,87 @@ export default function ReportViewV2({ id, locale, viewMode, initialReport }: Re
 
     const bsodCount: number = isNewFormat ? (specs?.stability?.bsod_count ?? 0) : 0;
     const hasRecentCrash: boolean = isNewFormat ? (specs?.stability?.has_recent_crashes ?? false) : false;
+    
+    // Robust diagnosis scoring and processing
     let diagnosis: any = specs?.diagnosis || null;
     if (!diagnosis && report.grade) {
         diagnosis = { grade: report.grade, status: report.status, score: undefined };
     }
-    const diagScore: number = diagnosis?.score ?? 0;
+
+    let diagScore: number = 0;
+    if (diagnosis) {
+        if (typeof diagnosis.score === 'number' && !isNaN(diagnosis.score) && diagnosis.score > 0) {
+            diagScore = diagnosis.score;
+        } else if (typeof diagnosis.score === 'string' && !isNaN(parseInt(diagnosis.score, 10)) && parseInt(diagnosis.score, 10) > 0) {
+            diagScore = parseInt(diagnosis.score, 10);
+        } else if (diagnosis.breakdown && Object.keys(diagnosis.breakdown).length > 0) {
+            // Calculate average from breakdown values
+            const values = Object.values(diagnosis.breakdown);
+            let sum = 0;
+            let count = 0;
+            
+            const gradeToScoreMap: Record<string, number> = {
+                'A+': 98, 'A': 95, 'A-': 90,
+                'B+': 88, 'B': 85, 'B-': 80,
+                'C+': 78, 'C': 75, 'C-': 70,
+                'D+': 68, 'D': 65, 'D-': 60,
+                'F': 40
+            };
+
+            values.forEach((val: any) => {
+                let num = 0;
+                if (typeof val === 'number') {
+                    num = val;
+                } else if (typeof val === 'string') {
+                    const parsed = parseFloat(val);
+                    if (!isNaN(parsed)) {
+                        num = parsed;
+                    } else {
+                        const cleanVal = val.trim().toUpperCase();
+                        num = gradeToScoreMap[cleanVal] || (cleanVal.startsWith('A') ? 95 : cleanVal.startsWith('B') ? 85 : cleanVal.startsWith('C') ? 75 : cleanVal.startsWith('D') ? 65 : 40);
+                    }
+                }
+                sum += num;
+                count++;
+            });
+            if (count > 0) {
+                diagScore = Math.round(sum / count);
+            }
+        }
+        
+        // Fallback to converting grade to score if still 0
+        if (diagScore === 0 && (diagnosis.grade || report.grade)) {
+            const cleanGrade = String(diagnosis.grade || report.grade).trim().toUpperCase();
+            if (cleanGrade.startsWith('A')) diagScore = 95;
+            else if (cleanGrade.startsWith('B')) diagScore = 85;
+            else if (cleanGrade.startsWith('C')) diagScore = 75;
+            else if (cleanGrade.startsWith('D')) diagScore = 65;
+            else if (cleanGrade.startsWith('F')) diagScore = 40;
+        }
+    }
 
     const diagBreakdown = (() => {
         const bd = diagnosis?.breakdown ?? {};
-        return Object.entries(bd).map(([key, val]: [string, any]) => ({
-            name: key === 'cpu' ? 'المعالج' :
-                key === 'gpu' ? 'كارت الشاشة' :
-                    key === 'ram' ? 'الرامات' :
-                        key === 'storage' ? 'الهاردوير' :
-                            key === 'battery' ? 'البطارية' : key,
-            grade: val
-        }));
+        return Object.entries(bd).map(([key, val]: [string, any]) => {
+            const lowerKey = key.toLowerCase();
+            const arabicName = 
+                lowerKey === 'cpu' ? 'المعالج' :
+                lowerKey === 'gpu' ? 'كارت الشاشة' :
+                lowerKey === 'ram' || lowerKey === 'memory' ? 'الرامات' :
+                lowerKey === 'storage' ? 'الهاردوير/التخزين' :
+                lowerKey === 'battery' ? 'البطارية' :
+                lowerKey === 'display' || lowerKey === 'screen' ? 'الشاشة' :
+                lowerKey === 'system' ? 'النظام' :
+                lowerKey === 'thermal' ? 'الحرارة' :
+                lowerKey === 'ports' ? 'المنافذ' :
+                lowerKey === 'audio' ? 'الصوت' :
+                lowerKey === 'camera' ? 'الكاميرا' :
+                lowerKey === 'input' ? 'وسائل الإدخال' : key;
+            return {
+                name: arabicName,
+                grade: val
+            };
+        });
     })();
 
     const isReportCompleted = report.status === 'completed' || report.status === 'مكتمل';

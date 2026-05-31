@@ -231,7 +231,13 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
 
     // ── Data Normalization ────────────────────────────────────────────────────
     let specs = report.full_specs || report.agent_json;
-    if (typeof specs === 'string') { try { specs = JSON.parse(specs); } catch { specs = null; } }
+    while (typeof specs === 'string' && specs.trim() !== '') {
+        try {
+            specs = JSON.parse(specs);
+        } catch {
+            break;
+        }
+    }
 
     const isNewFormat = specs && !specs.device && (specs.cpu || specs.ram || specs.storage);
 
@@ -260,11 +266,64 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
     const bsodCount: number = isNewFormat ? (specs?.stability?.bsod_count ?? 0) : 0;
     const hasRecentCrash: boolean = isNewFormat ? (specs?.stability?.has_recent_crashes ?? false) : false;
 
-    let diagnosis = specs?.diagnosis || null;
+    // Robust diagnosis scoring and processing
+    let diagnosis: any = specs?.diagnosis || null;
     if (!diagnosis && report.grade) {
         diagnosis = { grade: report.grade, status: report.status, score: undefined };
     }
-    const diagScore: number = diagnosis?.score ?? 0;
+
+    let diagScore: number = 0;
+    if (diagnosis) {
+        if (typeof diagnosis.score === 'number' && !isNaN(diagnosis.score) && diagnosis.score > 0) {
+            diagScore = diagnosis.score;
+        } else if (typeof diagnosis.score === 'string' && !isNaN(parseInt(diagnosis.score, 10)) && parseInt(diagnosis.score, 10) > 0) {
+            diagScore = parseInt(diagnosis.score, 10);
+        } else if (diagnosis.breakdown && Object.keys(diagnosis.breakdown).length > 0) {
+            // Calculate average from breakdown values
+            const values = Object.values(diagnosis.breakdown);
+            let sum = 0;
+            let count = 0;
+            
+            const gradeToScoreMap: Record<string, number> = {
+                'A+': 98, 'A': 95, 'A-': 90,
+                'B+': 88, 'B': 85, 'B-': 80,
+                'C+': 78, 'C': 75, 'C-': 70,
+                'D+': 68, 'D': 65, 'D-': 60,
+                'F': 40
+            };
+
+            values.forEach((val: any) => {
+                let num = 0;
+                if (typeof val === 'number') {
+                    num = val;
+                } else if (typeof val === 'string') {
+                    const parsed = parseFloat(val);
+                    if (!isNaN(parsed)) {
+                        num = parsed;
+                    } else {
+                        const cleanVal = val.trim().toUpperCase();
+                        num = gradeToScoreMap[cleanVal] || (cleanVal.startsWith('A') ? 95 : cleanVal.startsWith('B') ? 85 : cleanVal.startsWith('C') ? 75 : cleanVal.startsWith('D') ? 65 : 40);
+                    }
+                }
+                sum += num;
+                count++;
+            });
+            if (count > 0) {
+                diagScore = Math.round(sum / count);
+            }
+        }
+        
+        // Fallback to converting grade to score if still 0
+        if (diagScore === 0 && (diagnosis.grade || report.grade)) {
+            const cleanGrade = String(diagnosis.grade || report.grade).trim().toUpperCase();
+            if (cleanGrade.startsWith('A')) diagScore = 95;
+            else if (cleanGrade.startsWith('B')) diagScore = 85;
+            else if (cleanGrade.startsWith('C')) diagScore = 75;
+            else if (cleanGrade.startsWith('D')) diagScore = 65;
+            else if (cleanGrade.startsWith('F')) diagScore = 40;
+        }
+    }
+
     const diagBreakdown: Record<string, number> = diagnosis?.breakdown ?? {};
 
     // Thermal
@@ -354,30 +413,6 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
                         </div>
                     </div>
 
-                    {/* Diagnosis Score */}
-                    {diagScore > 0 && (
-                        <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-base font-black text-secondary">نقاط التشخيص الشامل</h3>
-                                <span className={cn("text-3xl font-black", diagScore >= 80 ? "text-emerald-600" : diagScore >= 60 ? "text-amber-600" : "text-rose-600")}>
-                                    {diagScore}<span className="text-sm font-bold text-secondary/30"> / 100</span>
-                                </span>
-                            </div>
-                            <div className="w-full h-2.5 bg-secondary/10 rounded-full overflow-hidden">
-                                <div className={cn("h-full rounded-full transition-all duration-700", diagScore >= 80 ? "bg-emerald-500" : diagScore >= 60 ? "bg-amber-500" : "bg-rose-500")} style={{ width: `${diagScore}%` }} />
-                            </div>
-                            {Object.keys(diagBreakdown).length > 0 && (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-                                    {Object.entries(diagBreakdown).map(([key, val]) => (
-                                        <div key={key} className="p-3 bg-black/[0.02] rounded-2xl text-center">
-                                            <div className="text-[9px] font-black text-secondary/30 uppercase tracking-wider mb-1">{key}</div>
-                                            <div className={cn("text-lg font-black", (val as number) >= 80 ? "text-emerald-600" : (val as number) >= 60 ? "text-amber-600" : "text-rose-600")}>{val}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     {/* Quick specs */}
                     <div className="rounded-3xl bg-white border border-black/[0.03] p-6 shadow-sm">
