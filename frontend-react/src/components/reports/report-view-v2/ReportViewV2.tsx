@@ -147,7 +147,8 @@ export default function ReportViewV2({ id, locale, viewMode, initialReport }: Re
             gpu: gpuDevs.map((g: any) => ({ name: g.name, vram: g.vram_mb ? `${g.vram_mb} MB` : null, driver_version: g.driver_version || '' })),
             battery: battDev ? (() => {
                 const hp = battDev.health_percentage;
-                const num = Number(hp);
+                const cleanHp = typeof hp === 'string' ? hp.replace('%', '').trim() : hp;
+                const num = Number(cleanHp);
                 const isNumeric = hp !== null && hp !== undefined && !isNaN(num);
                 const healthStr = isNumeric ? `${num.toFixed(1)}%` : String(hp || 'Unknown');
                 let percentage = 100;
