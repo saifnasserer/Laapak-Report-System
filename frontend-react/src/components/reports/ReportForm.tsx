@@ -360,9 +360,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 let batteryDetails = {};
                 const batteryDevice = scanData.battery?.devices?.[0];
                 if (batteryDevice?.health_percentage) {
-                    newData.battery_capacity = `${Math.round(batteryDevice.health_percentage)}% Health`;
+                    const hp = batteryDevice.health_percentage;
+                    const num = Number(hp);
+                    const isNumeric = hp !== null && hp !== undefined && !isNaN(num);
+                    newData.battery_capacity = isNumeric ? `${Math.round(num)}% Health` : `${hp} Health`;
                     batteryDetails = {
-                        health: batteryDevice.health_percentage,
+                        health: hp,
                         cycles: batteryDevice.cycle_count || 0,
                         design: batteryDevice.design_capacity,
                         full: batteryDevice.full_charge_capacity

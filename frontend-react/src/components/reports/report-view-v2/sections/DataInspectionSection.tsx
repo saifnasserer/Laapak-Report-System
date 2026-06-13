@@ -111,7 +111,10 @@ export function DataInspectionSection({ stressResults, hw, interactiveMap }: Dat
                     if (m.write_throughput_mbps) stats.push({ label: 'كتابة', value: `${Math.round(m.write_throughput_mbps)} MB/s`, icon: <Activity size={15} /> });
                 } else if (comp === 'battery') {
                     const b = item.hwData;
-                    if (b.health_percentage) stats.push({ label: 'الصحة', value: `${Number(b.health_percentage).toFixed(1)}%`, icon: <Battery size={15} /> });
+                    if (b.health_percentage) {
+                        const displayVal = b.health || (typeof b.health_percentage === 'number' ? `${b.health_percentage.toFixed(1)}%` : String(b.health_percentage));
+                        stats.push({ label: 'الصحة', value: displayVal, icon: <Battery size={15} /> });
+                    }
                     if (b.estimated_charge != null) stats.push({ label: 'الشحن الحالي', value: `${b.estimated_charge}%`, icon: <Zap size={15} /> });
                 } else if (comp === 'display') {
                     const d = item.hwData;
@@ -213,7 +216,7 @@ export function DataInspectionSection({ stressResults, hw, interactiveMap }: Dat
                                                 <div className="flex justify-between items-center mb-2">
                                                     <span className="text-[10px] font-black text-secondary/30 uppercase tracking-wider">صحة البطارية</span>
                                                     <span className={cn("text-sm font-black", item.hwData.health_percentage >= 80 ? "text-emerald-600" : item.hwData.health_percentage >= 60 ? "text-amber-600" : "text-rose-600")}>
-                                                        {Number(item.hwData.health_percentage).toFixed(1)}%
+                                                        {item.hwData.health || (typeof item.hwData.health_percentage === 'number' ? `${item.hwData.health_percentage.toFixed(1)}%` : String(item.hwData.health_percentage))}
                                                     </span>
                                                 </div>
                                                 <div className="w-full h-2 bg-secondary/10 rounded-full overflow-hidden">

@@ -145,7 +145,28 @@ export default function ReportViewV2({ id, locale, viewMode, initialReport }: Re
             memory: s.ram ? { total_ram: `${s.ram.total} GB`, total: `${s.ram.total} GB`, type: s.ram.type, speed: s.ram.speed_mhz ? `${s.ram.speed_mhz} MHz` : null } : null,
             storage: storDev.map((d: any) => ({ type: d.type || 'SSD', model: d.model || '', capacity: `${Math.round(d.size_gb || 0)} GB`, size: `${Math.round(d.size_gb || 0)} GB`, health_percent: d.health_pct ?? 100, health_status: d.status || 'OK', firmware: d.firmware || '' })),
             gpu: gpuDevs.map((g: any) => ({ name: g.name, vram: g.vram_mb ? `${g.vram_mb} MB` : null, driver_version: g.driver_version || '' })),
-            battery: battDev ? { health: `${(battDev.health_percentage ?? 0).toFixed(1)}%`, health_percentage: battDev.health_percentage ?? 0, cycle_count: battDev.cycle_count ?? 0, estimated_charge: battDev.estimated_charge ?? 0 } : null,
+            battery: battDev ? (() => {
+                const hp = battDev.health_percentage;
+                const num = Number(hp);
+                const isNumeric = hp !== null && hp !== undefined && !isNaN(num);
+                const healthStr = isNumeric ? `${num.toFixed(1)}%` : String(hp || 'Unknown');
+                let percentage = 100;
+                if (isNumeric) {
+                    percentage = num;
+                } else if (typeof hp === 'string') {
+                    const str = hp.trim().toLowerCase();
+                    if (str === 'excellent') percentage = 100;
+                    else if (str === 'good') percentage = 85;
+                    else if (str === 'fair' || str === 'normal') percentage = 75;
+                    else if (str === 'poor') percentage = 50;
+                }
+                return {
+                    health: healthStr,
+                    health_percentage: percentage,
+                    cycle_count: battDev.cycle_count ?? 0,
+                    estimated_charge: battDev.estimated_charge ?? 0
+                };
+            })() : null,
             display: disp ? { resolution: `${disp.resolution?.width ?? 0}x${disp.resolution?.height ?? 0}`, refresh_rate_hz: disp.refresh_rate ?? 0, size_inch: disp.size_inch ?? 0, touch: disp.touch ?? false } : null,
             network: { wifi_signal: s.network?.wifi_signal_pct || '', bluetooth: s.bluetooth?.available ?? false },
         };
@@ -213,7 +234,7 @@ export default function ReportViewV2({ id, locale, viewMode, initialReport }: Re
     }
 
     const diagBreakdown = (() => {
-        const bd = diagnosis?.breakdown ?? {};
+        const bd = diagnosis?.breakdown && typeof diagnosis.breakdown === 'object' ? diagnosis.breakdown : {};
         return Object.entries(bd).map(([key, val]: [string, any]) => {
             const lowerKey = key.toLowerCase();
             const arabicName = 

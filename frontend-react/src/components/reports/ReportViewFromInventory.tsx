@@ -255,7 +255,28 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
             memory: s.ram ? { total_ram: `${s.ram.total} GB`, total: `${s.ram.total} GB`, type: s.ram.type, speed: s.ram.speed_mhz ? `${s.ram.speed_mhz} MHz` : null } : null,
             storage: storDev.map((d: any) => ({ type: d.type || 'SSD', model: d.model || '', capacity: `${Math.round(d.size_gb || 0)} GB`, size: `${Math.round(d.size_gb || 0)} GB`, health_percent: d.health_pct ?? 100, health_status: d.status || 'OK', firmware: d.firmware || '' })),
             gpu: gpuDevs.map((g: any) => ({ name: g.name, vram: g.vram_mb ? `${g.vram_mb} MB` : null, driver_version: g.driver_version || '' })),
-            battery: battDev ? { health: `${(battDev.health_percentage ?? 0).toFixed(1)}%`, health_percentage: battDev.health_percentage ?? 0, cycle_count: battDev.cycle_count ?? 0, estimated_charge: battDev.estimated_charge ?? 0 } : null,
+            battery: battDev ? (() => {
+                const hp = battDev.health_percentage;
+                const num = Number(hp);
+                const isNumeric = hp !== null && hp !== undefined && !isNaN(num);
+                const healthStr = isNumeric ? `${num.toFixed(1)}%` : String(hp || 'Unknown');
+                let percentage = 100;
+                if (isNumeric) {
+                    percentage = num;
+                } else if (typeof hp === 'string') {
+                    const str = hp.trim().toLowerCase();
+                    if (str === 'excellent') percentage = 100;
+                    else if (str === 'good') percentage = 85;
+                    else if (str === 'fair' || str === 'normal') percentage = 75;
+                    else if (str === 'poor') percentage = 50;
+                }
+                return {
+                    health: healthStr,
+                    health_percentage: percentage,
+                    cycle_count: battDev.cycle_count ?? 0,
+                    estimated_charge: battDev.estimated_charge ?? 0
+                };
+            })() : null,
             display: disp ? { resolution: `${disp.resolution?.width ?? 0}x${disp.resolution?.height ?? 0}`, refresh_rate_hz: disp.refresh_rate ?? 0, size_inch: disp.size_inch ?? 0, touch: disp.touch ?? false } : null,
             network: { wifi_signal: s.network?.wifi_signal_pct || '', bluetooth: s.bluetooth?.available ?? false },
         };
@@ -271,7 +292,6 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
     if (!diagnosis && report.grade) {
         diagnosis = { grade: report.grade, status: report.status, score: undefined };
     }
-
     let diagScore: number = 0;
     if (diagnosis) {
         if (typeof diagnosis.score === 'number' && !isNaN(diagnosis.score) && diagnosis.score > 0) {
@@ -324,7 +344,7 @@ export default function ReportView({ id, locale, viewMode, initialReport }: Repo
         }
     }
 
-    const diagBreakdown: Record<string, number> = diagnosis?.breakdown ?? {};
+    const diagBreakdown: Record<string, number> = diagnosis?.breakdown && typeof diagnosis.breakdown === 'object' ? diagnosis.breakdown : {};
 
     // Thermal
     let maxCpuTemp = 0, avgCpuTemp = 0;
@@ -1155,7 +1175,12 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                     if (m.write_throughput_mbps) stats.push({ label: 'سرعة الكتابة Seq', value: `${Math.round(m.write_throughput_mbps)} MB/s`, icon: <Activity size={15} /> });
                 } else if (comp === 'battery') {
                     const b = specs?.battery?.devices?.[0] || item.hwData;
-                    if (b.health_percentage != null) stats.push({ label: 'صحة البطارية', value: `${Number(b.health_percentage).toFixed(1)}%`, icon: <Battery size={15} /> });
+                    if (b.health_percentage != null) {
+                        const hp = b.health_percentage;
+                        const num = Number(hp);
+                        const displayVal = !isNaN(num) ? `${num.toFixed(1)}%` : String(b.health || hp);
+                        stats.push({ label: 'صحة البطارية', value: displayVal, icon: <Battery size={15} /> });
+                    }
                     if (b.chemistry) stats.push({ label: 'كيمياء البطارية', value: b.chemistry, icon: <Info size={15} /> });
                     if (b.manufacturer) stats.push({ label: 'الشركة المصنعة', value: b.manufacturer, icon: <Info size={15} /> });
                     if (b.design_capacity != null) stats.push({ label: 'السعة التصميمية', value: `${b.design_capacity} mWh`, icon: <Database size={15} /> });
@@ -1395,7 +1420,7 @@ function InternalInspectionSection({ stressResults, hw, interactiveMap, specs }:
                                                 <div className="flex justify-between items-center mb-2">
                                                     <span className="text-[10px] font-black text-secondary/30 uppercase tracking-wider">صحة البطارية</span>
                                                     <span className={cn("text-sm font-black", item.hwData.health_percentage >= 80 ? "text-emerald-600" : item.hwData.health_percentage >= 60 ? "text-amber-600" : "text-rose-600")}>
-                                                        {Number(item.hwData.health_percentage).toFixed(1)}%
+                                                        {item.hwData.health || `${Number(item.hwData.health_percentage).toFixed(1)}%`}
                                                     </span>
                                                 </div>
                                                 <div className="w-full h-2 bg-secondary/10 rounded-full overflow-hidden">

@@ -569,13 +569,32 @@ function DisplayAndPortsSection({ display, monitor, ports, network, bluetooth, b
     const batteryDevice = battery?.devices?.[0];
     const mainDisplay = display?.active_displays?.[0];
 
+    const hp = batteryDevice?.health_percentage;
+    const num = Number(hp);
+    const isNumeric = hp !== null && hp !== undefined && !isNaN(num);
+    const displayHealth = isNumeric ? `${Math.round(num)}%` : String(hp || '');
+    let isLowHealth = false;
+    let progressPct = 100;
+    if (isNumeric) {
+        isLowHealth = num < 70;
+        progressPct = num;
+    } else if (typeof hp === 'string') {
+        const str = hp.trim().toLowerCase();
+        isLowHealth = str === 'poor' || str === 'bad';
+        if (str === 'excellent') progressPct = 100;
+        else if (str === 'good') progressPct = 85;
+        else if (str === 'fair' || str === 'normal') progressPct = 75;
+        else if (str === 'poor') progressPct = 50;
+    }
+    const healthStatusText = isNumeric ? (num > 80 ? 'Excellent' : num > 50 ? 'Good' : 'Poor') : String(hp || 'Excellent');
+
     const features = [
-        { name: 'الواي فاي (WiFi)', status: !!network?.devices?.some((d: any) => d.is_physical), info: network?.devices?.find((d: any) => d.is_physical)?.name, icon: <Wifi size={18} /> },
+        { name: 'الواي فاي (WiFi)', status: !!(Array.isArray(network?.devices) && network.devices.some((d: any) => d.is_physical)), info: Array.isArray(network?.devices) ? network.devices.find((d: any) => d.is_physical)?.name : undefined, icon: <Wifi size={18} /> },
         { name: 'البلوتوث', status: !!bluetooth?.available, info: bluetooth?.controller?.name, icon: <Bluetooth size={18} /> },
-        { name: 'منافذ USB', count: ports?.usb_count, status: (ports?.usb_count > 0), icon: <Usb size={18} /> },
-        { name: 'منافذ Thunderbolt', count: ports?.thunderbolt_count, status: (ports?.thunderbolt_count > 0), icon: <Zap size={18} /> },
+        { name: 'منافذ USB', count: ports?.usb_count ?? 0, status: (ports?.usb_count > 0), icon: <Usb size={18} /> },
+        { name: 'منافذ Thunderbolt', count: ports?.thunderbolt_count ?? 0, status: (ports?.thunderbolt_count > 0), icon: <Zap size={18} /> },
         { name: 'السماعات والميكروفون', status: (ports?.audio_count > 0), icon: <Speaker size={18} /> },
-        { name: 'الكاميرا', status: (ports?.audio_devices?.some((d: any) => d.name.toLowerCase().includes('camera') || d.name.toLowerCase().includes('webcam')) || true), icon: <Camera size={18} /> },
+        { name: 'الكاميرا', status: !!(Array.isArray(ports?.audio_devices) && ports.audio_devices.some((d: any) => d.name?.toLowerCase().includes('camera') || d.name?.toLowerCase().includes('webcam'))), icon: <Camera size={18} /> },
         { name: 'قارئ الكروت SD', status: (ports?.sdcard_count > 0), icon: <Layout size={18} /> },
     ];
 
@@ -593,8 +612,8 @@ function DisplayAndPortsSection({ display, monitor, ports, network, bluetooth, b
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] font-black text-secondary/40 uppercase tracking-widest mb-1">صحة البطارية</p>
-                                <h4 className={cn("text-4xl font-black leading-none", batteryDevice.health_percentage < 70 ? "text-orange-500" : "text-primary")}>
-                                    {Math.round(batteryDevice.health_percentage)}%
+                                <h4 className={cn("text-4xl font-black leading-none", isLowHealth ? "text-orange-500" : "text-primary")}>
+                                    {displayHealth}
                                 </h4>
                             </div>
                         </div>
@@ -620,15 +639,15 @@ function DisplayAndPortsSection({ display, monitor, ports, network, bluetooth, b
                             <div className="pt-2">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-[8px] font-black text-secondary/30 uppercase tracking-tighter">الحالة الفنية</span>
-                                    <span className="text-[8px] font-black text-primary uppercase tracking-tighter">Excellent</span>
+                                    <span className="text-[8px] font-black text-primary uppercase tracking-tighter">{healthStatusText}</span>
                                 </div>
                                 <div className="w-full h-2 bg-black/5 rounded-full overflow-hidden">
                                     <motion.div 
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${batteryDevice.health_percentage}%` }}
+                                        animate={{ width: `${progressPct}%` }}
                                         className={cn("h-full rounded-full transition-all duration-1000", 
-                                            batteryDevice.health_percentage > 80 ? "bg-primary" : 
-                                            batteryDevice.health_percentage > 50 ? "bg-orange-500" : "bg-red-500"
+                                            progressPct > 80 ? "bg-primary" : 
+                                            progressPct > 50 ? "bg-orange-500" : "bg-red-500"
                                         )}
                                     />
                                 </div>

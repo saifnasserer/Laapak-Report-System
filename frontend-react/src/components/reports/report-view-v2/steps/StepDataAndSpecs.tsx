@@ -245,7 +245,7 @@ export function StepDataAndSpecs({
                                 <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center shrink-0"><Battery size={18} /></div>
                                 <div>
                                     <p className="text-[10px] font-black text-secondary/30 uppercase">البطارية Battery</p>
-                                    <p className="text-xs font-bold text-secondary mt-1">صحة البطارية: {Number(hw.battery.health_percentage).toFixed(1)}%</p>
+                                    <p className="text-xs font-bold text-secondary mt-1">صحة البطارية: {hw.battery.health || (hw.battery.health_percentage != null ? `${Number(hw.battery.health_percentage).toFixed(1)}%` : '')}</p>
                                 </div>
                             </div>
                         )}
