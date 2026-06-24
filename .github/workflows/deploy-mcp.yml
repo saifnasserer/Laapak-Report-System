@@ -76,19 +76,19 @@ jobs:
             pattern = re.compile(r'(server_name\s+reports\.laapak\.com;)')
             if pattern.search(content):
                 new_location = """
-    location /mcp/ {
-        set $upstream_reports_mcp http://82.112.253.29:3015;
-        proxy_pass $upstream_reports_mcp;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_buffering off;
-        proxy_read_timeout 300;
-        proxy_connect_timeout 300;
-    }
-"""
-                new_content = pattern.sub(r'\1' + new_location, content)
+            location /mcp/ {
+                set $upstream_reports_mcp http://82.112.253.29:3015;
+                proxy_pass $upstream_reports_mcp;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_set_header Host $host;
+                proxy_buffering off;
+                proxy_read_timeout 300;
+                proxy_connect_timeout 300;
+            }
+            """
+                new_content = pattern.sub(r'\1\n' + new_location, content)
                 with open(conf_path, 'w') as f:
                     f.write(new_content)
                 print('Successfully added /mcp/ location block')
