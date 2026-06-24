@@ -79,7 +79,10 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: CATBOX_USERHASH,JWT_SECRET,EVOLUTION_URL,EVOLUTION_API_KEY,EVOLUTION_INSTANCE,EVOLUTION_TOKEN,FB_ACCESS_TOKEN,NEXT_PUBLIC_IMGBB_API_KEY,NEXT_PUBLIC_API_URL
           script: |
+            set -e
             cd /home/deploy/laapak-projects/reports
+            git fetch origin main
+            git checkout origin/main -- remote-docker-compose.yml
             git pull origin main
             
             # Update .env file with secrets
