@@ -50,6 +50,24 @@ services:
     ports:
       - 3000:3000
     restart: always
+  reports-mcp:
+    image: saifnasser/laapak-reports:mcp-latest
+    container_name: reports-mcp
+    env_file:
+      - .env
+    environment:
+      - API_BASE_URL=http://report-system:3001/api
+      - PORT=3015
+    networks:
+      - laapak-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    ports:
+      - 3015:3015
+    restart: always
 volumes:
   mysql_data: null
   postgres_data: null

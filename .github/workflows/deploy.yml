@@ -3,6 +3,9 @@ name: Build and Deploy
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'reports-mcp/**'
+      - '.github/workflows/deploy-mcp.yml'
   workflow_dispatch:
 
 env:
