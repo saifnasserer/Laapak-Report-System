@@ -81,9 +81,9 @@ jobs:
           script: |
             set -e
             cd /home/deploy/laapak-projects/reports
-            git fetch origin main
-            git checkout origin/main -- remote-docker-compose.yml
-            git pull origin main
+            git fetch https://github.com/saifnasserer/Laapak-Report-System.git main
+            git checkout FETCH_HEAD -- remote-docker-compose.yml
+            git pull https://github.com/saifnasserer/Laapak-Report-System.git main
             
             # Update .env file with secrets
             echo "PORT=3001" > .env
