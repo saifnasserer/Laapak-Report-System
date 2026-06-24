@@ -54,50 +54,5 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /home/deploy/laapak-projects/reports
-            git pull origin main
-            
-            docker compose -f remote-docker-compose.yml pull reports-mcp
-            docker compose -f remote-docker-compose.yml up -d reports-mcp
-            
-            cat << 'EOF' > /tmp/update_nginx.py
-            import sys
-            import re
-
-            conf_path = '/home/deploy/fz-projects/system/docker-infra/nginx/conf.d/laapak_services.conf'
-            with open(conf_path, 'r') as f:
-                content = f.read()
-
-            if 'location /mcp/' in content:
-                print('MCP location already exists in Nginx config')
-                sys.exit(0)
-
-            # Insert the location block right after `server_name reports.laapak.com;`
-            pattern = re.compile(r'(server_name\s+reports\.laapak\.com;)')
-            if pattern.search(content):
-                new_location = """
-            location /mcp/ {
-                set $upstream_reports_mcp http://82.112.253.29:3015;
-                proxy_pass $upstream_reports_mcp;
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade $http_upgrade;
-                proxy_set_header Connection "upgrade";
-                proxy_set_header Host $host;
-                proxy_buffering off;
-                proxy_read_timeout 300;
-                proxy_connect_timeout 300;
-            }
-            """
-                new_content = pattern.sub(r'\1\n' + new_location, content)
-                with open(conf_path, 'w') as f:
-                    f.write(new_content)
-                print('Successfully added /mcp/ location block')
-            else:
-                print('Error: Could not find reports.laapak.com server block')
-                sys.exit(1)
-            EOF
-            python3 /tmp/update_nginx.py
-            
-            if [ $? -eq 0 ]; then
-                docker exec nginx-proxy nginx -s reload
-            fi
+            docker ps -a | grep mcp
+            docker logs reports-mcp --tail 100
