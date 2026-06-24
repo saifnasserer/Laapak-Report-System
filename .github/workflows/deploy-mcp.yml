@@ -54,5 +54,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            docker ps -a | grep mcp
-            docker logs reports-mcp --tail 100
+            cd /home/deploy/laapak-projects/reports
+            git status
+            cat remote-docker-compose.yml
+            docker ps -a | grep reports
