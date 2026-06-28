@@ -59,9 +59,8 @@ jobs:
             git remote remove origin || true
             git remote add origin https://github.com/saifnasserer/Laapak-Report-System.git || true
             git checkout -- remote-docker-compose.yml .env || true
-            git fetch https://github.com/saifnasserer/Laapak-Report-System.git main
-            git checkout FETCH_HEAD -- remote-docker-compose.yml
-            git pull https://github.com/saifnasserer/Laapak-Report-System.git main
+            git fetch --depth=1 https://github.com/saifnasserer/Laapak-Report-System.git main
+            git reset --hard FETCH_HEAD
             
             docker compose -f remote-docker-compose.yml pull reports-mcp
             docker compose -f remote-docker-compose.yml up -d reports-mcp
