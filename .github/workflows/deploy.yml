@@ -81,6 +81,8 @@ jobs:
           script: |
             set -e
             cd /home/deploy/laapak-projects/reports
+            git remote set-url origin https://github.com/saifnasserer/Laapak-Report-System.git || true
+            git checkout -- remote-docker-compose.yml .env || true
             git fetch https://github.com/saifnasserer/Laapak-Report-System.git main
             git checkout FETCH_HEAD -- remote-docker-compose.yml
             git pull https://github.com/saifnasserer/Laapak-Report-System.git main
