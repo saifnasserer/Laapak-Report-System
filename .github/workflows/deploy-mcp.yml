@@ -59,9 +59,14 @@ jobs:
             rm -f .git/index.lock || true
             git remote remove origin || true
             git remote add origin https://github.com/saifnasserer/Laapak-Report-System.git || true
-            git checkout -- remote-docker-compose.yml .env || true
+            # Backup .env if it exists to prevent git reset --hard from deleting it
+            mv .env .env.tmp || true
+            git checkout -- remote-docker-compose.yml || true
             git fetch --depth=1 https://github.com/saifnasserer/Laapak-Report-System.git main
             git reset --hard FETCH_HEAD
+            # Restore .env
+            mv .env.tmp .env || true
+            touch .env
             
             docker compose -f remote-docker-compose.yml pull reports-mcp
             docker compose -f remote-docker-compose.yml up -d reports-mcp
