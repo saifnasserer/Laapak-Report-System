@@ -81,6 +81,7 @@ jobs:
           script: |
             set -e
             cd /home/deploy/laapak-projects/reports
+            rm -f .git/index.lock || true
             git remote remove origin || true
             git remote add origin https://github.com/saifnasserer/Laapak-Report-System.git || true
             git checkout -- remote-docker-compose.yml .env || true
