@@ -82,7 +82,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
         // 1. KPI Metrics with Trends
         const getKpis = async (range) => {
             const completed = await Report.count({
-                where: { ...range, status: { [Op.in]: ['مكتمل', 'completed'] } }
+                where: { ...range, status: { [Op.in]: ['مكتمل', 'completed', 'shipped', 'مسلم'] } }
             });
             const cancelled = await Report.count({
                 where: { ...range, status: { [Op.in]: ['ملغى', 'cancelled', 'canceled'] } }
@@ -92,7 +92,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
                 col: 'client_id',
                 where: range
             });
-            const total = completed + cancelled;
+            const total = await Report.count({ where: range });
             const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
             return { completed, cancelled, activeClients, total, rate };
@@ -110,7 +110,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
             ],
             where: {
                 ...dateRange,
-                status: { [Op.in]: ['مكتمل', 'completed'] }
+                status: { [Op.in]: ['مكتمل', 'completed', 'shipped', 'مسلم'] }
             },
             group: ['device_brand', 'device_model'],
             order: [[literal('count'), 'DESC']]
@@ -156,7 +156,7 @@ router.get('/dashboard', adminRoleAuth(['superadmin']), async (req, res) => {
         const trendsRaw = await Report.findAll({
             attributes: [
                 [fn('DATE', col('created_at')), 'date'],
-                [fn('COUNT', literal("CASE WHEN status IN ('مكتمل', 'completed') THEN 1 END")), 'completed'],
+                [fn('COUNT', literal("CASE WHEN status IN ('مكتمل', 'completed', 'shipped', 'مسلم') THEN 1 END")), 'completed'],
                 [fn('COUNT', literal("CASE WHEN status IN ('ملغى', 'cancelled', 'canceled') THEN 1 END")), 'cancelled']
             ],
             where: dateRange,

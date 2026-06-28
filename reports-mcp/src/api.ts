@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL, API_KEY } from "./constants.js";
+import { API_BASE_URL, API_KEY, JWT_TOKEN } from "./constants.js";
 
 /**
  * Shared utility for making API requests to the Laapak Report System
@@ -22,7 +22,8 @@ export async function makeApiRequest<T>(
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "x-api-key": API_KEY
+        "x-api-key": API_KEY,
+        ...(JWT_TOKEN ? { "x-auth-token": JWT_TOKEN, "Authorization": `Bearer ${JWT_TOKEN}` } : {})
       }
     });
     return response.data;

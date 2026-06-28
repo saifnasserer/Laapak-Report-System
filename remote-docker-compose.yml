@@ -58,6 +58,8 @@ services:
     environment:
       - API_BASE_URL=http://report-system:3001/api
       - PORT=3015
+      - API_KEY=mcp_live_wh2pX7kR9mQ
+      - JWT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OSwiaWF0IjoxNzUwMTA3NDU0LCJleHAiOjE3ODE2NDM0NTR9.aMGs2K5QEt9VhoxTL5SC9Hf6d8_ZqqmVIOiVHUGhKTM
     networks:
       - laapak-network
     deploy:
