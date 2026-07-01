@@ -40,6 +40,7 @@ services:
     environment:
       - BACKEND_URL=http://report-system:3001
       - NEXT_PUBLIC_API_URL=https://reports.laapak.com/api
+      - CATBOX_USERHASH=${CATBOX_USERHASH}
     networks:
       - laapak-network
     deploy:

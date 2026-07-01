@@ -54,8 +54,17 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const blob = new Blob([arrayBuffer], { type: file.type || 'application/octet-stream' });
 
+        // Catbox's edge rejects anonymous uploads with HTTP 412
+        // "Invalid uploader" (despite the docs saying anonymous is allowed).
+        // Send the account userhash when configured; fall back to anonymous
+        // only if the env var is absent so the route still works if the
+        // account is ever removed.
+        const userhash = process.env.CATBOX_USERHASH;
         const uploadFormData = new FormData();
         uploadFormData.append('reqtype', 'fileupload');
+        if (userhash) {
+            uploadFormData.append('userhash', userhash);
+        }
         uploadFormData.append('fileToUpload', blob, file.name || 'upload.bin');
 
         const response = await fetch(CATBOX_API, {
