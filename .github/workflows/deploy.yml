@@ -109,5 +109,29 @@ jobs:
             
             docker compose -f remote-docker-compose.yml pull
             docker compose -f remote-docker-compose.yml up -d
+            
+            # Idempotently ensure nginx allows large Catbox video uploads
+            # (default client_max_body_size 1m would 413 any upload >1MB).
+            cat << 'PYEOF' > /tmp/ensure_catbox_nginx.py
+            import re, sys
+            conf = '/home/deploy/fz-projects/system/docker-infra/nginx/conf.d/laapak_services.conf'
+            with open(conf) as f: c = f.read()
+            if 'client_max_body_size 256m' not in c:
+                m = re.search(r'(server_name\s+reports\.laapak\.com;)', c)
+                if m:
+                    guard = ('\n    client_max_body_size 256m;'
+                             '\n    proxy_connect_timeout 300s;'
+                             '\n    proxy_send_timeout 600s;'
+                             '\n    proxy_read_timeout 600s;')
+                    c = c.replace(m.group(1), m.group(1) + guard, 1)
+                    with open(conf, 'w') as f: f.write(c)
+                    print('Added client_max_body_size 256m to reports.laapak.com')
+                else:
+                    print('WARN: reports.laapak.com server block not found')
+            else:
+                print('client_max_body_size already set')
+            PYEOF
+            python3 /tmp/ensure_catbox_nginx.py || true
+            
             docker restart nginx-proxy
             docker image prune -f

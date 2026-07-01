@@ -44,13 +44,20 @@ export default function TestVideoUploadPage() {
                 body: formData,
             });
 
+            const contentType = response.headers.get("content-type") || "";
+            if (!response.ok || !contentType.includes("application/json")) {
+                const text = await response.text().catch(() => "");
+                console.error("Catbox non-JSON response:", response.status, text.slice(0, 200));
+                throw new Error(`Upload failed (HTTP ${response.status}). The file may exceed the server's size limit.`);
+            }
+
             const data = await response.json();
             
             if (data.success && data.url) {
                 setResult(data.url);
                 console.log("Catbox upload successful:", data.url);
             } else {
-                throw new Error(data.error || data.details || "Upload failed");
+                throw new Error(data.details || data.error || "Upload failed");
             }
         } catch (err: any) {
             console.error("Upload error details:", err);

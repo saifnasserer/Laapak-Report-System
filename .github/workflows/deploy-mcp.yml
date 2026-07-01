@@ -79,14 +79,35 @@ jobs:
             with open(conf_path, 'r') as f:
                 content = f.read()
 
+            changed = False
+
+            # --- Idempotently ensure Catbox video uploads (up to 200MB)
+            # are not rejected by nginx's default client_max_body_size 1m.
+            # Insert the directives right after the reports.laapak.com
+            # server_name line if they are not already present in that block.
+            cms_pattern = re.compile(
+                r'(server_name\s+reports\.laapak\.com;)(?!.*?client_max_body_size)(.*?)(\n\s*location|\n\s*ssl_certificate|\Z)',
+                re.DOTALL,
+            )
+            cms_match = cms_pattern.search(content)
+            if cms_match and 'client_max_body_size 256m' not in content:
+                cms_block = ('\n    client_max_body_size 256m;'
+                             '\n    proxy_connect_timeout 300s;'
+                             '\n    proxy_send_timeout 600s;'
+                             '\n    proxy_read_timeout 600s;')
+                content = cms_pattern.sub(r'\1' + cms_block + r'\2\3', content, count=1)
+                changed = True
+                print('Added client_max_body_size 256m to reports.laapak.com server block')
+            else:
+                print('client_max_body_size already set (or server block not found)')
+
             if 'location /mcp/' in content:
                 print('MCP location already exists in Nginx config')
-                sys.exit(0)
-
-            # Insert the location block right after `server_name reports.laapak.com;`
-            pattern = re.compile(r'(server_name\s+reports\.laapak\.com;)')
-            if pattern.search(content):
-                new_location = """
+            else:
+                # Insert the location block right after `server_name reports.laapak.com;`
+                pattern = re.compile(r'(server_name\s+reports\.laapak\.com;)')
+                if pattern.search(content):
+                    new_location = """
             location /mcp/ {
                 set $upstream_reports_mcp http://82.112.253.29:3015;
                 proxy_pass $upstream_reports_mcp;
@@ -99,13 +120,17 @@ jobs:
                 proxy_connect_timeout 300;
             }
             """
-                new_content = pattern.sub(r'\1\n' + new_location, content)
+                    content = pattern.sub(r'\1\n' + new_location, content)
+                    changed = True
+                    print('Successfully added /mcp/ location block')
+                else:
+                    print('Error: Could not find reports.laapak.com server block')
+                    if not changed:
+                        sys.exit(1)
+
+            if changed:
                 with open(conf_path, 'w') as f:
-                    f.write(new_content)
-                print('Successfully added /mcp/ location block')
-            else:
-                print('Error: Could not find reports.laapak.com server block')
-                sys.exit(1)
+                    f.write(content)
             EOF
             python3 /tmp/update_nginx.py
             

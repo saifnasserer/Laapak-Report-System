@@ -205,6 +205,12 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
     };
 
     const uploadToCatbox = async (file: File) => {
+        const CATBOX_MAX_BYTES = 200 * 1024 * 1024;
+        if (file.size > CATBOX_MAX_BYTES) {
+            showNotification('error', `حجم الفيديو ${(file.size / (1024 * 1024)).toFixed(1)} ميجابايت يتجاوز الحد الأقصى المسموح (200 ميجابايت).`);
+            return null;
+        }
+
         const formData = new FormData();
         formData.append('file', file);
 
@@ -214,15 +220,25 @@ export default function ReportForm({ locale, reportId }: ReportFormProps) {
                 body: formData,
             });
 
+            const contentType = response.headers.get('content-type') || '';
+            if (!response.ok || !contentType.includes('application/json')) {
+                const text = await response.text().catch(() => '');
+                console.error('Catbox non-JSON response:', response.status, text.slice(0, 200));
+                showNotification('error', `فشل رفع الفيديو (HTTP ${response.status}). تأكد من أن الحجم ضمن 200 ميجابايت وحاول مجدداً.`);
+                return null;
+            }
+
             const data = await response.json();
             if (data.success && data.url) {
                 return data.url;
             } else {
-                console.error('Catbox error:', data.error || data);
+                console.error('Catbox error:', data.error || data.details || data);
+                showNotification('error', `فشل رفع الفيديو: ${data.details || data.error || 'استجابة غير متوقعة'}`);
                 return null;
             }
         } catch (err) {
             console.error('Catbox upload error:', err);
+            showNotification('error', 'تعذّر الاتصال بخدمة رفع الفيديو. تحقق من الإنترنت وحاول مجدداً.');
             return null;
         }
     };
